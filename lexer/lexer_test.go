@@ -6,21 +6,48 @@ import (
 )
 
 func TestNextToken(t *testing.T) {
-	input := `=+(){},:;`
+	input := `five = 5 
+  ten = 10
+  spell add(x , y):
+    return x + y
+
+  result = add(five, ten)
+  `
 
 	tests := []struct {
 		expectedType    token.TokenType
 		expectedLiteral string
 	}{
+		{token.IDENT, "five"},
 		{token.ASSIGN, "="},
-		{token.PLUS, "+"},
+		{token.INT, "5"},
+		{token.NEWLINE, "\n"},
+		{token.IDENT, "ten"},
+		{token.ASSIGN, "="},
+		{token.NEWLINE, "\n"},
+		{token.SPELL, "spell"},
+		{token.IDENT, "add"},
 		{token.LPAREN, "("},
-		{token.RPAREN, ")"},
-		{token.LBRACE, "{"},
-		{token.RBRACE, "}"},
+		{token.IDENT, "x"},
 		{token.COMMA, ","},
+		{token.IDENT, "y"},
+		{token.RPAREN, ")"},
 		{token.COLON, ":"},
-		{token.SEMICOLON, ";"},
+		{token.NEWLINE, "\n"},
+		{token.INDENT, " "},
+		{token.RETURN, "return"},
+		{token.IDENT, "x"},
+		{token.PLUS, "+"},
+		{token.IDENT, "y"},
+		{token.NEWLINE, "\n"},
+		{token.IDENT, "result"},
+		{token.ASSIGN, "="},
+		{token.IDENT, "add"},
+		{token.LPAREN, "("},
+		{token.IDENT, "five"},
+		{token.COMMA, ","},
+		{token.IDENT, "ten"},
+		{token.RPAREN, ")"},
 		{token.EOF, ""},
 	}
 	l := New(input)

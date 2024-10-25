@@ -10,10 +10,14 @@ type Token struct {
 const (
 	ILLEGAL TokenType = "ILLEGAL"
 	EOF     TokenType = "EOF"
+	NEWLINE TokenType = "NEWLINE"
+	INDENT  TokenType = "INDENT"
+	DEDENT  TokenType = "DEDENT"
 
 	//Idenfiers and Literals
 	IDENT TokenType = "IDENT"
 	INT   TokenType = "INT"
+	FLOAT TokenType = "FLOAT"
 
 	//Operators
 	ASSIGN   TokenType = "="
@@ -32,6 +36,7 @@ const (
 	SEMICOLON TokenType = ";"
 	COLON     TokenType = ":"
 	PIPE      TokenType = "|"
+	DOT       TokenType = "."
 
 	LPAREN TokenType = "("
 	RPAREN TokenType = ")"
@@ -41,7 +46,51 @@ const (
 	RBRACK TokenType = "]"
 
 	//Keywords
-	VAR    TokenType = "VAR"
-	FLOAT  TokenType = "FLOAT"
-	SPELLS TokenType = "SPELLS"
+	VAR       TokenType = "VAR"
+	SPELL     TokenType = "SPELL"
+	SPELLBOOK TokenType = "SPELLBOOK"
+	TRUE      TokenType = "TRUE"
+	FALSE     TokenType = "FALSE"
+	IF        TokenType = "IF"
+	ELIF      TokenType = "ELIF"
+	ELSE      TokenType = "ELSE"
+	FOR       TokenType = "FOR"
+	IN        TokenType = "IN"
+	WHILE     TokenType = "WHILE"
+	STOP      TokenType = "STOP"
+	SKIP      TokenType = "SKIP"
+	IGNORE    TokenType = "IGNORE"
+	RETURN    TokenType = "RETURN"
+
+	//Logical Operators
+	AND TokenType = "AND"
+	OR  TokenType = "OR"
+	NOT TokenType = "NOT"
 )
+
+var keywords = map[string]TokenType{
+	"var":       VAR,
+	"spell":     SPELL,
+	"spellbook": SPELLBOOK,
+	"true":      TRUE,
+	"false":     FALSE,
+	"if":        IF,
+	"elif":      ELIF,
+	"else":      ELSE,
+	"for":       FOR,
+	"in":        IN,
+	"while":     WHILE,
+	"stop":      STOP,
+	"skip":      SKIP,
+	"ignore":    IGNORE,
+	"and":       AND,
+	"or":        OR,
+	"not":       NOT,
+}
+
+func LookupIdent(ident string) TokenType {
+	if tok, ok := keywords[ident]; ok {
+		return tok
+	}
+	return IDENT
+}
