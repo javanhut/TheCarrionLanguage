@@ -34,7 +34,7 @@ func (l *Lexer) peekChar() byte {
 
 func (l *Lexer) skipWhiteSpace() {
 	for l.ch == ' ' || l.ch == '\t' || l.ch == '\n' || l.ch == '\r' {
-		if l.ch == "\n" {
+		if l.ch == '\n' {
 			l.readChar()
 			l.handleIndentation()
 		} else {
@@ -106,14 +106,22 @@ func (l *Lexer) NextToken() token.Token {
 		tok = newToken(token.LT, l.ch)
 	case '>':
 		tok = newToken(token.GT, l.ch)
-	case isLetter(l.ch):
-		literal := l.readIdentifier()
-		tok.Type = token.LookupIndent(literal)
-		tok.Literal = literal
-		return tok
 	case 0:
 		tok.Literal = ""
 		tok.Type = token.EOF
+	default:
+		if isLetter(l.ch) {
+			literal := l.readIdentifier()
+			tok.Type = token.LookupIndent(literal)
+			tok.Literal = literal
+			return tok
+		} else if isDigit(l.ch) {
+			tok.Type = token.INT
+			tok.Literal = l.readNumber()
+			return tok
+		} else {
+			tok = newToken(token.ILLEGAL, l.ch)
+		}
 	}
 	l.readChar()
 	return tok
