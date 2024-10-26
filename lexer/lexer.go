@@ -3,6 +3,7 @@ package lexer
 
 import (
 	"thecarrionlang/token"
+	"unicode"
 )
 
 // Lexer represents a lexical scanner.
@@ -10,7 +11,7 @@ type Lexer struct {
 	input        string
 	position     int  // Current position in input (points to current char)
 	readPosition int  // Current reading position in input (after current char)
-	ch           byte // Current char under examination
+	ch           rune // Current char under examination
 	tokens       []token.Token
 	indentStack  []int // Stack to track indentation levels
 }
@@ -30,18 +31,18 @@ func (l *Lexer) readChar() {
 	if l.readPosition >= len(l.input) {
 		l.ch = 0 // ASCII code for NUL, signifies EOF
 	} else {
-		l.ch = l.input[l.readPosition]
+		l.ch = rune(l.input[l.readPosition])
 	}
 	l.position = l.readPosition
 	l.readPosition++
 }
 
 // peekChar returns the next character without advancing the position.
-func (l *Lexer) peekChar() byte {
+func (l *Lexer) peekChar() rune {
 	if l.readPosition >= len(l.input) {
 		return 0
 	}
-	return l.input[l.readPosition]
+	return rune(l.input[l.readPosition])
 }
 
 // NextToken lexes and returns the next token.
@@ -74,10 +75,14 @@ func (l *Lexer) NextToken() token.Token {
 		tok = newToken(token.RBRACE, l.ch)
 	case '+':
 		tok = newToken(token.PLUS, l.ch)
+	case '*':
+		tok = newToken(token.ASTERISK, l.ch)
 	case '-':
 		tok = newToken(token.MINUS, l.ch)
 	case ',':
 		tok = newToken(token.COMMA, l.ch)
+	case '.':
+		tok = newToken(token.DOT, l.ch)
 	case '/':
 		tok = newToken(token.SLASH, l.ch)
 	case '%':
@@ -130,8 +135,9 @@ func (l *Lexer) NextToken() token.Token {
 			tok.Literal = literal
 			return tok
 		} else if isDigit(l.ch) {
-			tok.Type = token.INT
-			tok.Literal = l.readNumber()
+			literal, tokType := l.readNumber()
+			tok.Type = tokType
+			tok.Literal = literal
 			return tok
 		} else {
 			tok = newToken(token.ILLEGAL, l.ch)
@@ -217,27 +223,37 @@ func (l *Lexer) readIdentifier() string {
 }
 
 // readNumber reads a numeric literal (integer).
-func (l *Lexer) readNumber() string {
+func (l *Lexer) readNumber() (string, token.TokenType) {
 	start := l.position
-	for isDigit(l.ch) {
+	isFloat := false
+
+	for isDigit(l.ch) || l.ch == '.' {
+		if l.ch == '.' {
+			if isFloat {
+				break
+			}
+			isFloat = true
+		}
 		l.readChar()
 	}
-	return l.input[start:l.position]
+	literal := l.input[start:l.position]
+	if isFloat {
+		return literal, token.FLOAT
+	}
+	return literal, token.INT
 }
 
 // newToken creates a new Token instance.
-func newToken(tokenType token.TokenType, ch byte) token.Token {
+func newToken(tokenType token.TokenType, ch rune) token.Token {
 	return token.Token{Type: tokenType, Literal: string(ch)}
 }
 
 // isLetter checks if the character is a letter or underscore.
-func isLetter(ch byte) bool {
-	return ('a' <= ch && ch <= 'z') ||
-		('A' <= ch && ch <= 'Z') ||
-		ch == '_'
+func isLetter(ch rune) bool {
+	return unicode.IsLetter(ch) || ch == '_'
 }
 
 // isDigit checks if the character is a digit.
-func isDigit(ch byte) bool {
-	return '0' <= ch && ch <= '9'
+func isDigit(ch rune) bool {
+	return unicode.IsDigit(ch)
 }

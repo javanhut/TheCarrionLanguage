@@ -65,7 +65,7 @@ const (
 	SKIP      TokenType = "SKIP"
 	IGNORE    TokenType = "IGNORE"
 	RETURN    TokenType = "RETURN"
-
+	RANGE     TokenType = "RANGE"
 	// Logical Operators
 	AND TokenType = "AND"
 	OR  TokenType = "OR"
@@ -90,6 +90,8 @@ var keywords = map[string]TokenType{
 	"and":       AND,
 	"or":        OR,
 	"not":       NOT,
+	"return":    RETURN,
+	"range":     RANGE,
 }
 
 func LookupIdent(ident string) TokenType {
