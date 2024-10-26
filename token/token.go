@@ -33,6 +33,7 @@ const (
 	GT       TokenType = ">"
 	LE       TokenType = "<="
 	GE       TokenType = ">="
+	BANG     TokenType = "!"
 
 	// Delimiters
 	COMMA     TokenType = ","
@@ -113,4 +114,3 @@ func LookupIndent(indent string) TokenType {
 	}
 	return ILLEGAL
 }
-

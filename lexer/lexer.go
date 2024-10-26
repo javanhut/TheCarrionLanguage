@@ -8,11 +8,11 @@ import (
 // Lexer represents a lexical scanner.
 type Lexer struct {
 	input        string
-	position     int    // Current position in input (points to current char)
-	readPosition int    // Current reading position in input (after current char)
-	ch           byte   // Current char under examination
+	position     int  // Current position in input (points to current char)
+	readPosition int  // Current reading position in input (after current char)
+	ch           byte // Current char under examination
 	tokens       []token.Token
-	indentStack  []int  // Stack to track indentation levels
+	indentStack  []int // Stack to track indentation levels
 }
 
 // New initializes a new Lexer with the provided input string.
@@ -88,6 +88,15 @@ func (l *Lexer) NextToken() token.Token {
 		tok = newToken(token.RBRACK, l.ch)
 	case '|':
 		tok = newToken(token.PIPE, l.ch)
+	case '!':
+		if l.peekChar() == '=' {
+			ch := l.ch
+			l.readChar()
+			literal := string(ch) + string(l.ch)
+			tok = token.Token{Type: token.NOT_EQ, Literal: literal}
+		} else {
+			tok = newToken(token.BANG, l.ch)
+		}
 	case '<':
 		if l.peekChar() == '=' {
 			ch := l.ch
@@ -232,4 +241,3 @@ func isLetter(ch byte) bool {
 func isDigit(ch byte) bool {
 	return '0' <= ch && ch <= '9'
 }
-
