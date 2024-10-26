@@ -13,6 +13,7 @@ func TestNextToken(t *testing.T) {
     return x + y
 
   result = add(five, ten)
+  result >= 16
   `
 
 	tests := []struct {
@@ -51,6 +52,11 @@ func TestNextToken(t *testing.T) {
 		{token.COMMA, ","},
 		{token.IDENT, "ten"},
 		{token.RPAREN, ")"},
+
+		//result greater than or equal to 16
+		{token.IDENT, "result"},
+		{token.GE, ">="},
+		{token.INT, "16"},
 		// End of input: dedent to base and EOF
 		{token.DEDENT, ""},
 		{token.EOF, ""},
