@@ -1,3 +1,4 @@
+// token/token.go
 package token
 
 type TokenType string
@@ -14,24 +15,26 @@ const (
 	INDENT  TokenType = "INDENT"
 	DEDENT  TokenType = "DEDENT"
 
-	//Idenfiers and Literals
+	// Identifiers and Literals
 	IDENT TokenType = "IDENT"
 	INT   TokenType = "INT"
 	FLOAT TokenType = "FLOAT"
 
-	//Operators
+	// Operators
 	ASSIGN   TokenType = "="
 	PLUS     TokenType = "+"
 	MINUS    TokenType = "-"
-	ASTERICK TokenType = "*"
+	ASTERISK TokenType = "*"
 	SLASH    TokenType = "/"
 	MOD      TokenType = "%"
 	EQ       TokenType = "=="
 	NOT_EQ   TokenType = "!="
 	LT       TokenType = "<"
 	GT       TokenType = ">"
+	LE       TokenType = "<="
+	GE       TokenType = ">="
 
-	//Delimters
+	// Delimiters
 	COMMA     TokenType = ","
 	SEMICOLON TokenType = ";"
 	COLON     TokenType = ":"
@@ -45,7 +48,7 @@ const (
 	LBRACK TokenType = "["
 	RBRACK TokenType = "]"
 
-	//Keywords
+	// Keywords
 	VAR       TokenType = "VAR"
 	SPELL     TokenType = "SPELL"
 	SPELLBOOK TokenType = "SPELLBOOK"
@@ -62,7 +65,7 @@ const (
 	IGNORE    TokenType = "IGNORE"
 	RETURN    TokenType = "RETURN"
 
-	//Logical Operators
+	// Logical Operators
 	AND TokenType = "AND"
 	OR  TokenType = "OR"
 	NOT TokenType = "NOT"
@@ -94,3 +97,20 @@ func LookupIdent(ident string) TokenType {
 	}
 	return IDENT
 }
+
+// LookupIndent determines the TokenType based on the indentation string.
+func LookupIndent(indent string) TokenType {
+	indentLevels := map[int]TokenType{
+		0: DEDENT,
+		4: INDENT, // 4 spaces
+		8: INDENT, // 8 spaces, etc.
+		// Add more levels as needed
+	}
+
+	length := len(indent)
+	if tok, ok := indentLevels[length]; ok {
+		return tok
+	}
+	return ILLEGAL
+}
+

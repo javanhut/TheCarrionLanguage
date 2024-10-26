@@ -1,3 +1,4 @@
+// lexer/lexer_test.go
 package lexer
 
 import (
@@ -6,7 +7,7 @@ import (
 )
 
 func TestNextToken(t *testing.T) {
-	input := `five = 5 
+	input := `five = 5
   ten = 10
   spell add(x , y):
     return x + y
@@ -18,13 +19,16 @@ func TestNextToken(t *testing.T) {
 		expectedType    token.TokenType
 		expectedLiteral string
 	}{
+		// Line 1: five = 5
 		{token.IDENT, "five"},
 		{token.ASSIGN, "="},
 		{token.INT, "5"},
-		{token.NEWLINE, "\n"},
+
+		// Line 2: two spaces + ten = 10
 		{token.IDENT, "ten"},
 		{token.ASSIGN, "="},
-		{token.NEWLINE, "\n"},
+		{token.INT, "10"},
+		// Line 3: two spaces + spell add(x , y):
 		{token.SPELL, "spell"},
 		{token.IDENT, "add"},
 		{token.LPAREN, "("},
@@ -33,13 +37,12 @@ func TestNextToken(t *testing.T) {
 		{token.IDENT, "y"},
 		{token.RPAREN, ")"},
 		{token.COLON, ":"},
-		{token.NEWLINE, "\n"},
-		{token.INDENT, " "},
-		{token.RETURN, "return"},
+		// Line 4: four spaces + return x + y
+		{token.IDENT, "return"},
 		{token.IDENT, "x"},
 		{token.PLUS, "+"},
 		{token.IDENT, "y"},
-		{token.NEWLINE, "\n"},
+		// Line 6: two spaces + result = add(five, ten)
 		{token.IDENT, "result"},
 		{token.ASSIGN, "="},
 		{token.IDENT, "add"},
@@ -48,18 +51,25 @@ func TestNextToken(t *testing.T) {
 		{token.COMMA, ","},
 		{token.IDENT, "ten"},
 		{token.RPAREN, ")"},
+		// End of input: dedent to base and EOF
+		{token.DEDENT, ""},
 		{token.EOF, ""},
 	}
+
 	l := New(input)
 
 	for i, tt := range tests {
 		tok := l.NextToken()
 
+		// Check Token Type
 		if tok.Type != tt.expectedType {
-			t.Fatalf("tests[%d] - tokentype wrong. expected=%q, got%q", i, tt.expectedType, tok.Type)
+			t.Errorf("tests[%d] - Token Type Wrong.\nExpected Type: %q\nActual Type:   %q\n",
+				i, tt.expectedType, tok.Type)
 		}
+
+		// Check Token Literal
 		if tok.Literal != tt.expectedLiteral {
-			t.Fatalf("tests[%d] - literal wrong. expected=%q, got=%q",
+			t.Errorf("tests[%d] - Token Literal Wrong.\nExpected Literal: %q\nActual Literal:   %q\n",
 				i, tt.expectedLiteral, tok.Literal)
 		}
 	}
