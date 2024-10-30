@@ -93,6 +93,12 @@ func (l *Lexer) NextToken() token.Token {
 		tok = newToken(token.RBRACK, l.ch)
 	case '|':
 		tok = newToken(token.PIPE, l.ch)
+	case '&':
+		tok = newToken(token.AMPERSAND, l.ch)
+	case '#':
+		tok = newToken(token.HASH, l.ch)
+	case '@':
+		tok = newToken(token.AT, l.ch)
 	case '!':
 		if l.peekChar() == '=' {
 			ch := l.ch
