@@ -1,5 +1,9 @@
 package ast
 
+import (
+	"bytes"
+)
+
 type Node interface {
 	TokenLiteral() string
 	String() string
@@ -27,9 +31,9 @@ func (p *Program) TokenLiteral() string {
 }
 
 func (p *Program) String() string {
-	var out string
+	var out bytes.Buffer
 	for _, s := range p.Statements {
-		out += s.String()
+		out.WriteString(s.String())
 	}
-	return out
+	return out.String()
 }

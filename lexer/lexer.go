@@ -2,8 +2,9 @@
 package lexer
 
 import (
-	"thecarrionlang/token"
 	"unicode"
+
+	"thecarrionlang/token"
 )
 
 // Lexer represents a lexical scanner.
@@ -74,11 +75,35 @@ func (l *Lexer) NextToken() token.Token {
 	case '}':
 		tok = newToken(token.RBRACE, l.ch)
 	case '+':
-		tok = newToken(token.PLUS, l.ch)
+		if l.peekChar() == '+' {
+			ch := l.ch
+			l.readChar()
+			literal := string(ch) + string(l.ch)
+			tok = token.Token{Type: token.PLUS_INCREMENT, Literal: literal}
+		} else if l.peekChar() == '=' {
+			ch := l.ch
+			l.readChar()
+			literal := string(ch) + string(l.ch)
+			tok = token.Token{Type: token.INCREMENT, Literal: literal}
+		} else {
+			tok = newToken(token.PLUS, l.ch)
+		}
 	case '*':
 		tok = newToken(token.ASTERISK, l.ch)
 	case '-':
-		tok = newToken(token.MINUS, l.ch)
+		if l.peekChar() == '-' {
+			ch := l.ch
+			l.readChar()
+			literal := string(ch) + string(l.ch)
+			tok = token.Token{Type: token.MINUS_DECREMENT, Literal: literal}
+		} else if l.peekChar() == '=' {
+			ch := l.ch
+			l.readChar()
+			literal := string(ch) + string(l.ch)
+			tok = token.Token{Type: token.DECREMENT, Literal: literal}
+		} else {
+			tok = newToken(token.MINUS, l.ch)
+		}
 	case ',':
 		tok = newToken(token.COMMA, l.ch)
 	case '.':

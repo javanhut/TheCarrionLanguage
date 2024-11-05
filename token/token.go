@@ -21,22 +21,26 @@ const (
 	FLOAT TokenType = "FLOAT"
 
 	// Operators
-	ASSIGN    TokenType = "="
-	PLUS      TokenType = "+"
-	MINUS     TokenType = "-"
-	ASTERISK  TokenType = "*"
-	SLASH     TokenType = "/"
-	MOD       TokenType = "%"
-	EQ        TokenType = "=="
-	NOT_EQ    TokenType = "!="
-	LT        TokenType = "<"
-	GT        TokenType = ">"
-	LE        TokenType = "<="
-	GE        TokenType = ">="
-	BANG      TokenType = "!"
-	AMPERSAND TokenType = "&"
-	HASH      TokenType = "#"
-	AT        TokenType = "@"
+	ASSIGN          TokenType = "="
+	PLUS            TokenType = "+"
+	MINUS           TokenType = "-"
+	ASTERISK        TokenType = "*"
+	SLASH           TokenType = "/"
+	MOD             TokenType = "%"
+	INCREMENT       TokenType = "+="
+	DECREMENT       TokenType = "-="
+	PLUS_INCREMENT  TokenType = "++"
+	MINUS_DECREMENT TokenType = "--"
+	EQ              TokenType = "=="
+	NOT_EQ          TokenType = "!="
+	LT              TokenType = "<"
+	GT              TokenType = ">"
+	LE              TokenType = "<="
+	GE              TokenType = ">="
+	BANG            TokenType = "!"
+	AMPERSAND       TokenType = "&"
+	HASH            TokenType = "#"
+	AT              TokenType = "@"
 
 	// Delimiters
 	COMMA     TokenType = ","
@@ -79,8 +83,8 @@ var keywords = map[string]TokenType{
 	"var":       VAR,
 	"spell":     SPELL,
 	"spellbook": SPELLBOOK,
-	"true":      TRUE,
-	"false":     FALSE,
+	"True":      TRUE,
+	"False":     FALSE,
 	"if":        IF,
 	"elif":      ELIF,
 	"else":      ELSE,
