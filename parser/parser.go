@@ -321,6 +321,7 @@ func (p *Parser) parsePostfixExpression(left ast.Expression) ast.Expression {
 
 func (p *Parser) parseIfStatement() ast.Statement {
 	stmt := &ast.IfStatement{Token: p.currToken}
+
 	if !p.expectPeek(token.LPAREN) {
 		return nil
 	}
@@ -336,33 +337,42 @@ func (p *Parser) parseIfStatement() ast.Statement {
 		return nil
 	}
 
-	if !p.expectPeek(token.NEWLINE) {
-		return nil
-	}
+	p.nextToken() // Move to the token after COLON
 
-	if !p.expectPeek(token.INDENT) {
-		return nil
+	if p.currTokenIs(token.NEWLINE) {
+		// Multiline block
+		if !p.expectPeek(token.INDENT) {
+			return nil
+		}
+		stmt.Consequence = p.parseBlockStatement()
+	} else {
+		// Inline statement
+		stmt.Consequence = &ast.BlockStatement{
+			Statements: []ast.Statement{p.parseStatement()},
+		}
 	}
-
-	stmt.Consequence = p.parseBlockStatement()
 
 	// Handle optional else
 	if p.peekTokenIs(token.ELSE) {
 		p.nextToken()
-
 		if !p.expectPeek(token.COLON) {
 			return nil
 		}
 
-		if !p.expectPeek(token.NEWLINE) {
-			return nil
-		}
+		p.nextToken() // Move to the token after COLON
 
-		if !p.expectPeek(token.INDENT) {
-			return nil
+		if p.currTokenIs(token.NEWLINE) {
+			// Multiline block
+			if !p.expectPeek(token.INDENT) {
+				return nil
+			}
+			stmt.Alternative = p.parseBlockStatement()
+		} else {
+			// Inline statement
+			stmt.Alternative = &ast.BlockStatement{
+				Statements: []ast.Statement{p.parseStatement()},
+			}
 		}
-
-		stmt.Alternative = p.parseBlockStatement()
 	}
 
 	return stmt

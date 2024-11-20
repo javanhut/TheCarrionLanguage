@@ -127,3 +127,60 @@ func testIntegerLiteral(t *testing.T, il ast.Expression, value int64) bool {
 
 	return true
 }
+
+func TestParserErrors(t *testing.T) {
+	input := "5 +"
+
+	l := lexer.New(input)
+	p := New(l)
+	p.ParseProgram()
+
+	errors := p.Errors()
+	if len(errors) == 0 {
+		t.Fatalf("expected parser errors, but got none")
+	}
+
+	for _, err := range errors {
+		t.Logf("parser error: %s", err)
+	}
+}
+
+func TestParsingIfStatement(t *testing.T) {
+	input := `
+if (x < y):
+    return x
+else:
+    return y
+`
+
+	l := lexer.New(input)
+	p := New(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	if len(program.Statements) != 1 {
+		t.Fatalf(
+			"program.Statements does not contain %d statements. got=%d\n",
+			1,
+			len(program.Statements),
+		)
+	}
+
+	_, ok := program.Statements[0].(*ast.IfStatement)
+	if !ok {
+		t.Fatalf("program.Statements[0] is not ast.IfStatement. got=%T", program.Statements[0])
+	}
+
+	// Further checks on stmt.Condition, stmt.Consequence, stmt.Alternative...
+}
+
+func TestPrintAST(t *testing.T) {
+	input := "5 + 5 * (10 - 2)"
+
+	l := lexer.New(input)
+	p := New(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	fmt.Println(program.String())
+}
