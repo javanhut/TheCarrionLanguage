@@ -1,8 +1,10 @@
 package ast
 
 import (
+	"bytes"
+	"fmt"
 	"strconv"
-
+	"strings"
 	"thecarrionlang/token"
 )
 
@@ -42,7 +44,7 @@ type PrefixExpression struct {
 func (pe *PrefixExpression) expressionNode()      {}
 func (pe *PrefixExpression) TokenLiteral() string { return pe.Token.Literal }
 func (pe *PrefixExpression) String() string {
-	return "(" + pe.Operator + pe.Right.String() + ")"
+	return fmt.Sprintf("(%s%s)", pe.Operator, pe.Right.String())
 }
 
 type InfixExpression struct {
@@ -55,5 +57,40 @@ type InfixExpression struct {
 func (ie *InfixExpression) expressionNode()      {}
 func (ie *InfixExpression) TokenLiteral() string { return ie.Token.Literal }
 func (ie *InfixExpression) String() string {
-	return "(" + ie.Left.String() + " " + ie.Operator + " " + ie.Right.String() + ")"
+	return fmt.Sprintf("(%s %s %s)", ie.Left.String(), ie.Operator, ie.Right.String())
+}
+
+type PostfixExpression struct {
+	Token    token.Token
+	Left     Expression
+	Operator string
+}
+
+func (pe *PostfixExpression) expressionNode()      {}
+func (pe *PostfixExpression) TokenLiteral() string { return pe.Token.Literal }
+func (pe *PostfixExpression) String() string {
+	return fmt.Sprintf("(%s%s)", pe.Left.String(), pe.Operator)
+}
+
+type CallExpression struct {
+	Token     token.Token // The '(' token
+	Function  Expression  // Identifier or function literal
+	Arguments []Expression
+}
+
+func (ce *CallExpression) expressionNode()      {}
+func (ce *CallExpression) TokenLiteral() string { return ce.Token.Literal }
+func (ce *CallExpression) String() string {
+	var out bytes.Buffer
+
+	out.WriteString(ce.Function.String())
+	out.WriteString("(")
+	args := []string{}
+	for _, a := range ce.Arguments {
+		args = append(args, a.String())
+	}
+	out.WriteString(strings.Join(args, ", "))
+	out.WriteString(")")
+
+	return out.String()
 }
