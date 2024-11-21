@@ -524,22 +524,27 @@ func (p *Parser) parseFunctionDefinition() ast.Statement {
 	if !p.expectPeek(token.LPAREN) {
 		return nil
 	}
-
 	stmt.Parameters = p.parseFunctionParameters()
 
 	if !p.expectPeek(token.COLON) {
 		return nil
 	}
 
-	if !p.expectPeek(token.NEWLINE) {
-		return nil
-	}
+	// Check the next token after COLON
+	p.nextToken()
 
-	if !p.expectPeek(token.INDENT) {
-		return nil
+	if p.currTokenIs(token.NEWLINE) {
+		// We expect an INDENT if it's a multiline function
+		if !p.expectPeek(token.INDENT) {
+			return nil
+		}
+		stmt.Body = p.parseBlockStatement()
+	} else {
+		// Inline statement (function with a single statement)
+		stmt.Body = &ast.BlockStatement{
+			Statements: []ast.Statement{p.parseStatement()},
+		}
 	}
-
-	stmt.Body = p.parseBlockStatement()
 
 	return stmt
 }

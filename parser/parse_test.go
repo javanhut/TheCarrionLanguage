@@ -426,3 +426,71 @@ func testLiteralExpression(t *testing.T, expr ast.Expression, expected interface
 		return false
 	}
 }
+
+func TestFunctionDefinitionInlineParsing(t *testing.T) {
+	input := `
+spell add(x, y): return x + y
+`
+
+	l := lexer.New(input)
+	p := New(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	if len(program.Statements) != 1 {
+		t.Fatalf(
+			"program.Statements does not contain %d statements. got=%d\n",
+			1,
+			len(program.Statements),
+		)
+	}
+
+	stmt, ok := program.Statements[0].(*ast.FunctionDefinition)
+	if !ok {
+		t.Fatalf(
+			"program.Statements[0] is not ast.FunctionDefinition. got=%T",
+			program.Statements[0],
+		)
+	}
+
+	if stmt.Name.Value != "add" {
+		t.Errorf("Function name wrong. Expected 'add', got '%s'", stmt.Name.Value)
+	}
+
+	if len(stmt.Parameters) != 2 {
+		t.Fatalf("Function 'add' parameters wrong. Expected 2, got=%d", len(stmt.Parameters))
+	}
+
+	testLiteralExpression(t, stmt.Parameters[0], "x")
+	testLiteralExpression(t, stmt.Parameters[1], "y")
+
+	if len(stmt.Body.Statements) != 1 {
+		t.Fatalf("Function body does not contain 1 statement. got=%d", len(stmt.Body.Statements))
+	}
+
+	bodyStmt, ok := stmt.Body.Statements[0].(*ast.ReturnStatement)
+	if !ok {
+		t.Fatalf(
+			"Function body statement is not ast.ReturnStatement. got=%T",
+			stmt.Body.Statements[0],
+		)
+	}
+
+	// Test the expression x + y
+	exp, ok := bodyStmt.ReturnValue.(*ast.InfixExpression)
+	if !ok {
+		t.Fatalf("Return value is not ast.InfixExpression. got=%T", bodyStmt.ReturnValue)
+	}
+
+	if !testIdentifier(t, exp.Left, "x") {
+		return
+	}
+
+	if exp.Operator != "+" {
+		t.Errorf("Operator is not '+'. got=%s", exp.Operator)
+	}
+
+	if !testIdentifier(t, exp.Right, "y") {
+		return
+	}
+}
