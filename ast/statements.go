@@ -128,3 +128,30 @@ func (fs *ForStatement) String() string {
 
 	return out.String()
 }
+
+type FunctionDefinition struct {
+	Token      token.Token // The 'SPELL' token
+	Name       *Identifier
+	Parameters []*Identifier
+	Body       *BlockStatement
+}
+
+func (fd *FunctionDefinition) statementNode()       {}
+func (fd *FunctionDefinition) TokenLiteral() string { return fd.Token.Literal }
+func (fd *FunctionDefinition) String() string {
+	var out bytes.Buffer
+
+	params := []string{}
+	for _, p := range fd.Parameters {
+		params = append(params, p.String())
+	}
+
+	out.WriteString(fd.TokenLiteral() + " ")
+	out.WriteString(fd.Name.String())
+	out.WriteString("(")
+	out.WriteString(strings.Join(params, ", "))
+	out.WriteString("):\n")
+	out.WriteString(fd.Body.String())
+
+	return out.String()
+}

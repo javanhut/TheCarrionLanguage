@@ -2,9 +2,8 @@
 package lexer
 
 import (
-	"unicode"
-
 	"thecarrionlang/token"
+	"unicode"
 )
 
 // Lexer represents a lexical scanner.
@@ -124,6 +123,8 @@ func (l *Lexer) NextToken() token.Token {
 		tok = newToken(token.HASH, l.ch)
 	case '@':
 		tok = newToken(token.AT, l.ch)
+	case '\n':
+		tok = token.Token{Type: token.NEWLINE, Literal: "\\n"}
 	case '!':
 		if l.peekChar() == '=' {
 			ch := l.ch

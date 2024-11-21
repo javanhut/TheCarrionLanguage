@@ -75,7 +75,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.PLUS_INCREMENT, p.parsePrefixExpression)
 	p.registerPrefix(token.MINUS_DECREMENT, p.parsePrefixExpression)
 	p.registerPrefix(token.LPAREN, p.parseGroupedExpression)
-
+	p.registerPrefix(token.TRUE, p.parseBoolean)
 	// Register infix parsers
 	p.registerInfix(token.PLUS, p.parseInfixExpression)
 	p.registerInfix(token.MINUS, p.parseInfixExpression)
@@ -97,6 +97,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerStatement(token.RETURN, p.parseReturnStatement)
 	p.registerStatement(token.IF, p.parseIfStatement)
 	p.registerStatement(token.FOR, p.parseForStatement)
+	p.registerStatement(token.SPELL, p.parseFunctionDefinition)
 
 	return p
 }
@@ -119,6 +120,10 @@ func (p *Parser) registerStatement(tokenType token.TokenType, fn func() ast.Stat
 
 func (p *Parser) Errors() []string {
 	return p.errors
+}
+
+func (p *Parser) parseBoolean() ast.Expression {
+	return &ast.Boolean{Token: p.currToken, Value: p.currTokenIs(token.TRUE)}
 }
 
 func (p *Parser) peekError(t token.TokenType) {
@@ -217,6 +222,7 @@ func (p *Parser) expectPeek(t token.TokenType) bool {
 		return true
 	} else {
 		p.peekError(t)
+		fmt.Printf("expectPeek: expected %s, and got %s\n", t, p.peekToken.Type)
 		return false
 	}
 }
@@ -500,4 +506,73 @@ func (p *Parser) parseForStatement() ast.Statement {
 	}
 
 	return stmt
+}
+
+func (p *Parser) parseFunctionDefinition() ast.Statement {
+	stmt := &ast.FunctionDefinition{Token: p.currToken}
+
+	// Expect the function name
+	if !p.expectPeek(token.IDENT) {
+		return nil
+	}
+	stmt.Name = &ast.Identifier{
+		Token: p.currToken,
+		Value: p.currToken.Literal,
+	}
+
+	// Expect the parameter list
+	if !p.expectPeek(token.LPAREN) {
+		return nil
+	}
+
+	stmt.Parameters = p.parseFunctionParameters()
+
+	if !p.expectPeek(token.COLON) {
+		return nil
+	}
+
+	if !p.expectPeek(token.NEWLINE) {
+		return nil
+	}
+
+	if !p.expectPeek(token.INDENT) {
+		return nil
+	}
+
+	stmt.Body = p.parseBlockStatement()
+
+	return stmt
+}
+
+func (p *Parser) parseFunctionParameters() []*ast.Identifier {
+	identifiers := []*ast.Identifier{}
+
+	if p.peekTokenIs(token.RPAREN) {
+		p.nextToken()
+		return identifiers
+	}
+
+	p.nextToken()
+
+	ident := &ast.Identifier{
+		Token: p.currToken,
+		Value: p.currToken.Literal,
+	}
+	identifiers = append(identifiers, ident)
+
+	for p.peekTokenIs(token.COMMA) {
+		p.nextToken()
+		p.nextToken()
+		ident := &ast.Identifier{
+			Token: p.currToken,
+			Value: p.currToken.Literal,
+		}
+		identifiers = append(identifiers, ident)
+	}
+
+	if !p.expectPeek(token.RPAREN) {
+		return nil
+	}
+
+	return identifiers
 }

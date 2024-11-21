@@ -274,6 +274,7 @@ func TestOperatorPrecedenceParsing(t *testing.T) {
 			"-(5 + 5)",
 			"(-(5 + 5))",
 		},
+
 		{
 			"!(true == true)",
 			"(!(true == true))",
@@ -322,5 +323,106 @@ func TestOperatorPrecedenceParsing(t *testing.T) {
 		if actual != tt.expected {
 			t.Errorf("test[%d] - expected=%q, got=%q", i, tt.expected, actual)
 		}
+	}
+}
+
+func testIdentifier(t *testing.T, exp ast.Expression, value string) bool {
+	ident, ok := exp.(*ast.Identifier)
+	if !ok {
+		t.Errorf("exp not *ast.Identifier. got=%T", exp)
+		return false
+	}
+	if ident.Value != value {
+		t.Errorf("ident.Value not %s. got=%s", value, ident.Value)
+		return false
+	}
+	if ident.TokenLiteral() != value {
+		t.Errorf("ident.TokenLiteral not %s. got=%s", value,
+			ident.TokenLiteral())
+		return false
+	}
+	return true
+}
+
+func TestFunctionDefinitionParsing(t *testing.T) {
+	input := `
+spell add(x, y):
+    return x + y
+`
+
+	l := lexer.New(input)
+	p := New(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	if len(program.Statements) != 1 {
+		t.Fatalf(
+			"program.Statements does not contain %d statements. got=%d\n",
+			1,
+			len(program.Statements),
+		)
+	}
+
+	stmt, ok := program.Statements[0].(*ast.FunctionDefinition)
+	if !ok {
+		t.Fatalf(
+			"program.Statements[0] is not ast.FunctionDefinition. got=%T",
+			program.Statements[0],
+		)
+	}
+
+	if stmt.Name.Value != "add" {
+		t.Errorf("Function name wrong. Expected 'add', got '%s'", stmt.Name.Value)
+	}
+
+	if len(stmt.Parameters) != 2 {
+		t.Fatalf("Function 'add' parameters wrong. Expected 2, got=%d", len(stmt.Parameters))
+	}
+
+	testLiteralExpression(t, stmt.Parameters[0], "x")
+	testLiteralExpression(t, stmt.Parameters[1], "y")
+
+	if len(stmt.Body.Statements) != 1 {
+		t.Fatalf("Function body does not contain 1 statement. got=%d", len(stmt.Body.Statements))
+	}
+
+	bodyStmt, ok := stmt.Body.Statements[0].(*ast.ReturnStatement)
+	if !ok {
+		t.Fatalf(
+			"Function body statement is not ast.ReturnStatement. got=%T",
+			stmt.Body.Statements[0],
+		)
+	}
+
+	// Test the expression x + y
+	exp, ok := bodyStmt.ReturnValue.(*ast.InfixExpression)
+	if !ok {
+		t.Fatalf("Return value is not ast.InfixExpression. got=%T", bodyStmt.ReturnValue)
+	}
+
+	if !testIdentifier(t, exp.Left, "x") {
+		return
+	}
+
+	if exp.Operator != "+" {
+		t.Errorf("Operator is not '+'. got=%s", exp.Operator)
+	}
+
+	if !testIdentifier(t, exp.Right, "y") {
+		return
+	}
+}
+
+func testLiteralExpression(t *testing.T, expr ast.Expression, expected interface{}) bool {
+	switch v := expected.(type) {
+	case int:
+		return testIntegerLiteral(t, expr, int64(v))
+	case int64:
+		return testIntegerLiteral(t, expr, v)
+	case string:
+		return testIdentifier(t, expr, v)
+	default:
+		t.Errorf("type of expr not handled. got=%T", expr)
+		return false
 	}
 }
