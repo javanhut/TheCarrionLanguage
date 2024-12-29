@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
 	"thecarrionlang/token"
 )
 
@@ -100,9 +101,14 @@ type Boolean struct {
 	Value bool
 }
 
-func (b *Boolean) expressionNode()      {}
-func (b *Boolean) TokenLiteral() string { return b.Token.Literal }
-func (b *Boolean) String() string       { return b.Token.Literal }
+func (b *Boolean) expressionNode() {}
+func (b *Boolean) TokenLiteral() string {
+	if b.Value {
+		return "true"
+	}
+	return "false"
+}
+func (b *Boolean) String() string { return b.TokenLiteral() }
 
 type FunctionLiteral struct {
 	Token      token.Token // spell Token

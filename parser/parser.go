@@ -3,6 +3,7 @@ package parser
 import (
 	"fmt"
 	"strconv"
+
 	"thecarrionlang/ast"
 	"thecarrionlang/lexer"
 	"thecarrionlang/token"
@@ -76,6 +77,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.MINUS_DECREMENT, p.parsePrefixExpression)
 	p.registerPrefix(token.LPAREN, p.parseGroupedExpression)
 	p.registerPrefix(token.TRUE, p.parseBoolean)
+	p.registerPrefix(token.FALSE, p.parseBoolean)
 	// Register infix parsers
 	p.registerInfix(token.PLUS, p.parseInfixExpression)
 	p.registerInfix(token.MINUS, p.parseInfixExpression)
@@ -123,7 +125,8 @@ func (p *Parser) Errors() []string {
 }
 
 func (p *Parser) parseBoolean() ast.Expression {
-	return &ast.Boolean{Token: p.currToken, Value: p.currTokenIs(token.TRUE)}
+	value := (p.currToken.Type == token.TRUE)
+	return &ast.Boolean{Token: p.currToken, Value: value}
 }
 
 func (p *Parser) peekError(t token.TokenType) {
@@ -231,11 +234,17 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 	prefix := p.prefixParseFns[p.currToken.Type]
 	if prefix == nil {
 		p.noPrefixParseFnError(p.currToken.Type)
+		fmt.Printf("Prefix function missing for token: %s\n", p.currToken.Literal)
 		return nil
 	}
+
 	leftExp := prefix()
 
 	for !p.peekTokenIs(token.NEWLINE) && precedence < p.peekPrecedence() {
+		if p.peekTokenIs(token.RPAREN) { // Stop at ')'
+			break
+		}
+
 		// Handle postfix operators
 		if postfixFn, ok := p.postfixParseFns[p.peekToken.Type]; ok {
 			p.nextToken()
@@ -245,6 +254,7 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 
 		infix := p.infixParseFns[p.peekToken.Type]
 		if infix == nil {
+			fmt.Printf("Infix function missing for token: %s\n", p.peekToken.Literal)
 			return leftExp
 		}
 
