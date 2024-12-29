@@ -2,7 +2,7 @@ package ast
 
 import (
 	"bytes"
-
+	"strings"
 	"thecarrionlang/token"
 )
 
@@ -14,10 +14,6 @@ type AssignStatement struct {
 
 func (as *AssignStatement) statementNode()       {}
 func (as *AssignStatement) TokenLiteral() string { return as.Token.Literal }
-
-//func (as *AssignStatement) String() string {
-//	return as.Name.String() + " = " + as.Value.String() + "\n"
-//}
 
 func (as *AssignStatement) String() string {
 	var out bytes.Buffer
@@ -36,17 +32,15 @@ type ReturnStatement struct {
 
 func (rs *ReturnStatement) statementNode()       {}
 func (rs *ReturnStatement) TokenLiteral() string { return rs.Token.Literal }
-
-//	func (rs *ReturnStatement) String() string {
-//		return rs.Token.Literal + " " + rs.ReturnValue.String() + "\n"
-//	}
 func (rs *ReturnStatement) String() string {
-	var out bytes.Buffer
+	var out strings.Builder
+
 	out.WriteString(rs.TokenLiteral() + " ")
+
 	if rs.ReturnValue != nil {
 		out.WriteString(rs.ReturnValue.String())
 	}
-	out.WriteString("/n")
+
 	return out.String()
 }
 
@@ -58,11 +52,14 @@ type BlockStatement struct {
 func (bs *BlockStatement) statementNode()       {}
 func (bs *BlockStatement) TokenLiteral() string { return bs.Token.Literal }
 func (bs *BlockStatement) String() string {
-	var out string
+	var out strings.Builder
+
 	for _, s := range bs.Statements {
-		out += s.String()
+		out.WriteString(s.String())
+		out.WriteString("\n")
 	}
-	return out
+
+	return out.String()
 }
 
 type ExpressionStatement struct {
@@ -77,4 +74,84 @@ func (es *ExpressionStatement) String() string {
 		return es.Expression.String()
 	}
 	return ""
+}
+
+type IfStatement struct {
+	Token       token.Token // The 'if' token
+	Condition   Expression
+	Consequence *BlockStatement
+	Alternative *BlockStatement
+}
+
+func (is *IfStatement) statementNode()       {}
+func (is *IfStatement) TokenLiteral() string { return is.Token.Literal }
+func (is *IfStatement) String() string {
+	var out strings.Builder
+
+	out.WriteString("if ")
+	out.WriteString(is.Condition.String())
+	out.WriteString(":\n")
+	out.WriteString(is.Consequence.String())
+
+	if is.Alternative != nil {
+		out.WriteString("else:\n")
+		out.WriteString(is.Alternative.String())
+	}
+
+	return out.String()
+}
+
+type ForStatement struct {
+	Token       token.Token
+	Variable    *Identifier
+	Iterable    Expression
+	Body        *BlockStatement
+	Alternative *BlockStatement
+}
+
+func (fs *ForStatement) statementNode()       {}
+func (fs *ForStatement) TokenLiteral() string { return fs.Token.Literal }
+func (fs *ForStatement) String() string {
+	var out strings.Builder
+
+	out.WriteString("for ")
+	out.WriteString(fs.Variable.String())
+	out.WriteString(" in ")
+	out.WriteString(fs.Iterable.String())
+	out.WriteString(":\n")
+	out.WriteString(fs.Body.String())
+
+	if fs.Alternative != nil {
+		out.WriteString("else:\n")
+		out.WriteString(fs.Alternative.String())
+	}
+
+	return out.String()
+}
+
+type FunctionDefinition struct {
+	Token      token.Token // The 'SPELL' token
+	Name       *Identifier
+	Parameters []*Identifier
+	Body       *BlockStatement
+}
+
+func (fd *FunctionDefinition) statementNode()       {}
+func (fd *FunctionDefinition) TokenLiteral() string { return fd.Token.Literal }
+func (fd *FunctionDefinition) String() string {
+	var out bytes.Buffer
+
+	params := []string{}
+	for _, p := range fd.Parameters {
+		params = append(params, p.String())
+	}
+
+	out.WriteString(fd.TokenLiteral() + " ")
+	out.WriteString(fd.Name.String())
+	out.WriteString("(")
+	out.WriteString(strings.Join(params, ", "))
+	out.WriteString("):\n")
+	out.WriteString(fd.Body.String())
+
+	return out.String()
 }
