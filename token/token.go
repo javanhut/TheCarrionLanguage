@@ -73,6 +73,7 @@ const (
 	IGNORE    TokenType = "IGNORE"
 	RETURN    TokenType = "RETURN"
 	RANGE     TokenType = "RANGE"
+	NONE      TokenType = "NONE"
 	// Logical Operators
 	AND TokenType = "AND"
 	OR  TokenType = "OR"
@@ -99,6 +100,7 @@ var keywords = map[string]TokenType{
 	"not":       NOT,
 	"return":    RETURN,
 	"range":     RANGE,
+	"none":      NONE,
 }
 
 func LookupIdent(ident string) TokenType {

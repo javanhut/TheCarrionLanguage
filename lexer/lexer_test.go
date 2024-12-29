@@ -3,6 +3,7 @@ package lexer
 
 import (
 	"testing"
+
 	"thecarrionlang/token"
 )
 
@@ -39,7 +40,7 @@ func TestNextToken(t *testing.T) {
 		{token.RPAREN, ")"},
 		{token.COLON, ":"},
 		// Line 4: four spaces + return x + y
-		{token.IDENT, "return"},
+		{token.RETURN, "return"},
 		{token.IDENT, "x"},
 		{token.PLUS, "+"},
 		{token.IDENT, "y"},
@@ -53,7 +54,7 @@ func TestNextToken(t *testing.T) {
 		{token.IDENT, "ten"},
 		{token.RPAREN, ")"},
 
-		//result greater than or equal to 16
+		// result greater than or equal to 16
 		{token.IDENT, "result"},
 		{token.GE, ">="},
 		{token.INT, "16"},
@@ -75,8 +76,12 @@ func TestNextToken(t *testing.T) {
 
 		// Check Token Literal
 		if tok.Literal != tt.expectedLiteral {
-			t.Errorf("tests[%d] - Token Literal Wrong.\nExpected Literal: %q\nActual Literal:   %q\n",
-				i, tt.expectedLiteral, tok.Literal)
+			t.Errorf(
+				"tests[%d] - Token Literal Wrong.\nExpected Literal: %q\nActual Literal:   %q\n",
+				i,
+				tt.expectedLiteral,
+				tok.Literal,
+			)
 		}
 	}
 }
