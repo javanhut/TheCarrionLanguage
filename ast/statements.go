@@ -8,9 +8,10 @@ import (
 )
 
 type AssignStatement struct {
-	Token token.Token
-	Name  *Identifier
-	Value Expression
+	Token    token.Token
+	Name     *Identifier
+	Operator string
+	Value    Expression
 }
 
 func (as *AssignStatement) statementNode()       {}

@@ -25,6 +25,10 @@ const (
 
 var precedences = map[token.TokenType]int{
 	token.ASSIGN:          ASSIGN,
+	token.INCREMENT:       ASSIGN, // +=
+	token.DECREMENT:       ASSIGN, // -=
+	token.MULTASSGN:       ASSIGN, // *=
+	token.DIVASSGN:        ASSIGN, // /=
 	token.EQ:              EQUALS,
 	token.NOT_EQ:          EQUALS,
 	token.LT:              LESSGREATER,
@@ -90,11 +94,11 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.LPAREN, p.parseCallExpression)
 	p.registerInfix(token.OR, p.parseInfixExpression)
 	p.registerInfix(token.AND, p.parseInfixExpression)
-
+	p.registerInfix(token.INCREMENT, p.parseInfixExpression)
+	p.registerInfix(token.DECREMENT, p.parseInfixExpression)
 	// Register postfix parsers
 	p.registerPostfix(token.PLUS_INCREMENT, p.parsePostfixExpression)
 	p.registerPostfix(token.MINUS_DECREMENT, p.parsePostfixExpression)
-
 	// Register statement parsers
 	p.registerStatement(token.RETURN, p.parseReturnStatement)
 	p.registerStatement(token.IF, p.parseIfStatement)
@@ -174,9 +178,15 @@ func (p *Parser) parseAssignmentStatement() *ast.AssignStatement {
 		Value: p.currToken.Literal,
 	}
 
-	if !p.expectPeek(token.ASSIGN) {
+	if !p.expectPeek(token.ASSIGN) &&
+		!p.expectPeek(token.INCREMENT) &&
+		!p.expectPeek(token.DECREMENT) &&
+		!p.expectPeek(token.MULTASSGN) &&
+		!p.expectPeek(token.DIVASSGN) {
 		return nil
 	}
+
+	stmt.Operator = p.currToken.Literal
 
 	p.nextToken()
 	stmt.Value = p.parseExpression(LOWEST)

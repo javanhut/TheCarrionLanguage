@@ -29,6 +29,8 @@ const (
 	MOD             TokenType = "%"
 	INCREMENT       TokenType = "+="
 	DECREMENT       TokenType = "-="
+	MULTASSGN       TokenType = "*="
+	DIVASSGN        TokenType = "/="
 	PLUS_INCREMENT  TokenType = "++"
 	MINUS_DECREMENT TokenType = "--"
 	EQ              TokenType = "=="
