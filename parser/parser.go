@@ -343,60 +343,78 @@ func (p *Parser) parsePostfixExpression(left ast.Expression) ast.Expression {
 
 func (p *Parser) parseIfStatement() ast.Statement {
 	stmt := &ast.IfStatement{Token: p.currToken}
-
 	if !p.expectPeek(token.LPAREN) {
 		return nil
 	}
-
 	p.nextToken()
 	stmt.Condition = p.parseExpression(LOWEST)
-
 	if !p.expectPeek(token.RPAREN) {
 		return nil
 	}
-
 	if !p.expectPeek(token.COLON) {
 		return nil
 	}
-
-	p.nextToken() // Move to the token after COLON
-
+	p.nextToken()
 	if p.currTokenIs(token.NEWLINE) {
-		// Multiline block
 		if !p.expectPeek(token.INDENT) {
 			return nil
 		}
 		stmt.Consequence = p.parseBlockStatement()
 	} else {
-		// Inline statement
 		stmt.Consequence = &ast.BlockStatement{
 			Statements: []ast.Statement{p.parseStatement()},
 		}
 	}
-
-	// Handle optional else
+	for p.peekTokenIs(token.ELIF) {
+		p.nextToken()
+		elifToken := p.currToken
+		if !p.expectPeek(token.LPAREN) {
+			return nil
+		}
+		p.nextToken()
+		condition := p.parseExpression(LOWEST)
+		if !p.expectPeek(token.RPAREN) {
+			return nil
+		}
+		if !p.expectPeek(token.COLON) {
+			return nil
+		}
+		p.nextToken()
+		var consequence *ast.BlockStatement
+		if p.currTokenIs(token.NEWLINE) {
+			if !p.expectPeek(token.INDENT) {
+				return nil
+			}
+			consequence = p.parseBlockStatement()
+		} else {
+			consequence = &ast.BlockStatement{
+				Statements: []ast.Statement{p.parseStatement()},
+			}
+		}
+		ifBranch := ast.ElifBranch{
+			Token:       elifToken,
+			Condition:   condition,
+			Consequence: consequence,
+		}
+		stmt.ElifBranches = append(stmt.ElifBranches, ifBranch)
+	}
 	if p.peekTokenIs(token.ELSE) {
 		p.nextToken()
 		if !p.expectPeek(token.COLON) {
 			return nil
 		}
-
-		p.nextToken() // Move to the token after COLON
-
+		p.nextToken()
 		if p.currTokenIs(token.NEWLINE) {
-			// Multiline block
 			if !p.expectPeek(token.INDENT) {
 				return nil
 			}
 			stmt.Alternative = p.parseBlockStatement()
 		} else {
-			// Inline statement
 			stmt.Alternative = &ast.BlockStatement{
 				Statements: []ast.Statement{p.parseStatement()},
 			}
 		}
 	}
-
 	return stmt
 }
 
