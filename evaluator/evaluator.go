@@ -5,6 +5,12 @@ import (
 	"thecarrionlang/object"
 )
 
+var (
+	NONE  = &object.None{}
+	TRUE  = &object.Boolean{Value: true}
+	FALSE = &object.Boolean{Value: false}
+)
+
 func Eval(node ast.Node) object.Object {
 	switch node := node.(type) {
 	// Statements
@@ -13,9 +19,18 @@ func Eval(node ast.Node) object.Object {
 	case *ast.ExpressionStatement:
 		return Eval(node.Expression)
 
-	// Expressions
+	case *ast.PrefixExpression:
+		right := Eval(node.Right)
+		return evalPrefixExpression(node.Operator, right)
+	case *ast.PostfixExpression:
+		left := Eval(node.Left)
+		return evalPosfixExpression(node.Operator, left)
+		// Expressions
 	case *ast.IntegerLiteral:
 		return &object.Integer{Value: node.Value}
+
+	case *ast.Boolean:
+		return nativeBoolToBooleanObject(node.Value)
 	}
 	return nil
 }
@@ -27,4 +42,70 @@ func evalStatements(stmts []ast.Statement) object.Object {
 		result = Eval(statement)
 	}
 	return result
+}
+
+func nativeBoolToBooleanObject(input bool) *object.Boolean {
+	if input {
+		return TRUE
+	}
+	return FALSE
+}
+
+func evalPrefixExpression(operator string, right object.Object) object.Object {
+	switch operator {
+	case "!":
+		return evalBangOperatorExpression(right)
+	case "-":
+		return evalMinusPrefixOperatorExpression(right)
+	default:
+		return NONE
+	}
+}
+
+func evalPosfixExpression(operator string, left object.Object) object.Object {
+	switch operator {
+	case "++":
+		return evalIncrementOperatorExpression(left)
+	case "--":
+		return evalDecrementOperatorExpression(left)
+	default:
+		return NONE
+	}
+}
+
+func evalBangOperatorExpression(right object.Object) object.Object {
+	switch right {
+	case TRUE:
+		return FALSE
+	case FALSE:
+		return TRUE
+	case NONE:
+		return TRUE
+	default:
+		return FALSE
+	}
+}
+
+func evalMinusPrefixOperatorExpression(right object.Object) object.Object {
+	if right.Type() != object.INTEGER_OBJ {
+		return NONE
+	}
+	value := right.(*object.Integer).Value
+	return &object.Integer{Value: -value}
+}
+
+func evalIncrementOperatorExpression(side object.Object) object.Object {
+	if side.Type() != object.INTEGER_OBJ {
+		return NONE
+	}
+	value := side.(*object.Integer).Value
+	return &object.Integer{Value: value + 1}
+}
+
+func evalDecrementOperatorExpression(side object.Object) object.Object {
+	if side.Type() != object.INTEGER_OBJ {
+		return NONE
+	}
+	value := side.(*object.Integer).Value
+	return &object.Integer{Value: value - 1}
 }
