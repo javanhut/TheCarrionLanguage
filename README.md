@@ -7,20 +7,27 @@
 Currently the language is in development.
 
 ## Fun things I'm doing to the language.
-2 types of increments are accepted the c style: i++
-and the python style: 
-i += 1
+2 types of increments are accepted the 
+* c style: i++
+and
+* python style: i += 1
+
 notation. 
+
 It has similar syntax to python but no typing just yet will have optional type hint eventually.
 
 mapping from python to carrion
-class -> spellbook 
-def -> spell
+
+
+* class -> spellbook 
+* def -> spell
 
 
 "Example syntax":
+```python
 spell foobar(x, y):
     return x + y
+```
 
 
 
