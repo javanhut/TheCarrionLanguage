@@ -102,6 +102,8 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.AND, p.parseInfixExpression)
 	p.registerInfix(token.INCREMENT, p.parseInfixExpression)
 	p.registerInfix(token.DECREMENT, p.parseInfixExpression)
+	p.registerInfix(token.MULTASSGN, p.parseInfixExpression)
+	p.registerInfix(token.DIVASSGN, p.parseInfixExpression)
 	// Register postfix parsers
 	p.registerPostfix(token.PLUS_INCREMENT, p.parsePostfixExpression)
 	p.registerPostfix(token.MINUS_DECREMENT, p.parsePostfixExpression)

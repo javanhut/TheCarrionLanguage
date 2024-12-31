@@ -2,8 +2,9 @@
 package lexer
 
 import (
-	"thecarrionlang/token"
 	"unicode"
+
+	"thecarrionlang/token"
 )
 
 // Lexer represents a lexical scanner.
@@ -89,6 +90,14 @@ func (l *Lexer) NextToken() token.Token {
 		}
 	case '*':
 		tok = newToken(token.ASTERISK, l.ch)
+		if l.peekChar() == '=' {
+			ch := l.ch
+			l.readChar()
+			literal := string(ch) + string(l.ch)
+			tok = token.Token{Type: token.MULTASSGN, Literal: literal}
+		} else {
+			tok = newToken(token.ASTERISK, l.ch)
+		}
 	case '-':
 		if l.peekChar() == '-' {
 			ch := l.ch
@@ -108,7 +117,14 @@ func (l *Lexer) NextToken() token.Token {
 	case '.':
 		tok = newToken(token.DOT, l.ch)
 	case '/':
-		tok = newToken(token.SLASH, l.ch)
+		if l.peekChar() == '=' {
+			ch := l.ch
+			l.readChar()
+			literal := string(ch) + string(l.ch)
+			tok = token.Token{Type: token.DIVASSGN, Literal: literal}
+		} else {
+			tok = newToken(token.SLASH, l.ch)
+		}
 	case '%':
 		tok = newToken(token.MOD, l.ch)
 	case '[':
