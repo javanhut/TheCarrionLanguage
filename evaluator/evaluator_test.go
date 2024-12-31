@@ -70,6 +70,16 @@ func TestEvalBooleanExpression(t *testing.T) {
 	}{
 		{"True", true},
 		{"False", false},
+		{"1 < 2", true},
+		{"1 > 2", false},
+		{"1 < 1", false},
+		{"1 > 1", false},
+		{"1 == 1", true},
+		{"1 != 1", false},
+		{"1 == 2", false},
+		{"1 != 2", true},
+		{"10 >= 10", true},
+		{"10 <= 9", false},
 	}
 	for _, tt := range tests {
 		evaluated := testEval(tt.input)
@@ -107,4 +117,37 @@ func TestBangOperator(t *testing.T) {
 		evaluated := testEval(tt.input)
 		testBooleanObject(t, evaluated, tt.expected)
 	}
+}
+
+func TestIfElseExpression(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected interface{}
+	}{
+		{"if(True): 10", 10},
+		{"if(False): 10", nil},
+		{"if(1): 10", 10},
+		{"if(1 < 2): 10", 10},
+		{"if(1 > 10): 10", nil},
+		{"if(1 < 2): 10 else: 20", 10},
+		{"if(1 > 2): 10 else: 20", 20},
+		{"if(1<0): 0 otherwise (1 > 0): 1 else: -1", 1},
+	}
+	for _, tt := range tests {
+		evaluated := testEval(tt.input)
+		integer, ok := tt.expected.(int)
+		if ok {
+			testIntegerObject(t, evaluated, int64(integer))
+		} else {
+			testNoneObject(t, evaluated)
+		}
+	}
+}
+
+func testNoneObject(t *testing.T, obj object.Object) bool {
+	if obj != NONE {
+		t.Errorf("object is not NONE. got=%T (%+v)", obj, obj)
+		return false
+	}
+	return true
 }

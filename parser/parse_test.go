@@ -153,7 +153,7 @@ func TestParsingIfStatement(t *testing.T) {
 	input := `
 if (x < y):
     return x
-elif (x > y):
+otherwise (x > y):
     return y
 else:
     return z
