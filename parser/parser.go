@@ -92,7 +92,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.NEWLINE, func() ast.Expression { return nil })
 	p.registerPrefix(token.INDENT, func() ast.Expression { return nil })
 	p.registerPrefix(token.DEDENT, func() ast.Expression { return nil })
-
+	p.registerPrefix(token.EOF, func() ast.Expression { return nil })
 	// Register infix parsers
 	p.registerInfix(token.PLUS, p.parseInfixExpression)
 	p.registerInfix(token.MINUS, p.parseInfixExpression)
