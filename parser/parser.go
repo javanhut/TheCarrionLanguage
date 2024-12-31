@@ -85,6 +85,14 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.LPAREN, p.parseGroupedExpression)
 	p.registerPrefix(token.TRUE, p.parseBoolean)
 	p.registerPrefix(token.FALSE, p.parseBoolean)
+	p.registerPrefix(token.COLON, func() ast.Expression {
+		return nil
+	})
+
+	p.registerPrefix(token.NEWLINE, func() ast.Expression { return nil })
+	p.registerPrefix(token.INDENT, func() ast.Expression { return nil })
+	p.registerPrefix(token.DEDENT, func() ast.Expression { return nil })
+
 	// Register infix parsers
 	p.registerInfix(token.PLUS, p.parseInfixExpression)
 	p.registerInfix(token.MINUS, p.parseInfixExpression)
@@ -156,6 +164,16 @@ func (p *Parser) ParseProgram() *ast.Program {
 	program.Statements = []ast.Statement{}
 
 	for p.currToken.Type != token.EOF {
+		// Skip any leading newlines, dedents, etc.
+		for p.currToken.Type == token.NEWLINE ||
+			p.currToken.Type == token.INDENT ||
+			p.currToken.Type == token.DEDENT {
+			p.nextToken()
+			if p.currToken.Type == token.EOF {
+				break
+			}
+		}
+
 		stmt := p.parseStatement()
 		if stmt != nil {
 			program.Statements = append(program.Statements, stmt)
@@ -166,10 +184,17 @@ func (p *Parser) ParseProgram() *ast.Program {
 }
 
 func (p *Parser) parseStatement() ast.Statement {
-	if fn, ok := p.statementParseFns[p.currToken.Type]; ok {
-		return fn()
+	switch p.currToken.Type {
+	case token.IF:
+		return p.parseIfStatement()
+	case token.ELSE:
+		p.errors = append(p.errors, "Unexpected 'else' without matching 'if'")
+		return nil
+	default:
+		if fn, ok := p.statementParseFns[p.currToken.Type]; ok {
+			return fn()
+		}
 	}
-
 	// Handle assignment statements
 	if p.currToken.Type == token.IDENT && p.peekTokenIs(token.ASSIGN) {
 		return p.parseAssignmentStatement()
@@ -360,79 +385,141 @@ func (p *Parser) parsePostfixExpression(left ast.Expression) ast.Expression {
 }
 
 func (p *Parser) parseIfStatement() ast.Statement {
-	stmt := &ast.IfStatement{Token: p.currToken}
-	if !p.expectPeek(token.LPAREN) {
-		return nil
-	}
-	p.nextToken()
-	stmt.Condition = p.parseExpression(LOWEST)
-	if !p.expectPeek(token.RPAREN) {
-		return nil
-	}
-	if !p.expectPeek(token.COLON) {
-		return nil
-	}
-	p.nextToken()
-	if p.currTokenIs(token.NEWLINE) {
-		if !p.expectPeek(token.INDENT) {
-			return nil
-		}
-		stmt.Consequence = p.parseBlockStatement()
-	} else {
-		stmt.Consequence = &ast.BlockStatement{
-			Statements: []ast.Statement{p.parseStatement()},
-		}
-	}
-	for p.peekTokenIs(token.ELIF) {
-		p.nextToken()
-		elifToken := p.currToken
-		if !p.expectPeek(token.LPAREN) {
-			return nil
-		}
-		p.nextToken()
-		condition := p.parseExpression(LOWEST)
+	stmt := &ast.IfStatement{Token: p.currToken} // token.IF
+
+	// 1) Parse condition (with optional parentheses)
+	//    If next token is LPAREN, parse condition inside ( ), else parse bare expression
+	if p.peekTokenIs(token.LPAREN) {
+		// consume the 'if' token
+		p.nextToken() // move to '('
+		p.nextToken() // now at first token of condition
+		stmt.Condition = p.parseExpression(LOWEST)
 		if !p.expectPeek(token.RPAREN) {
 			return nil
 		}
+	} else {
+		// no parentheses
+		p.nextToken()
+		stmt.Condition = p.parseExpression(LOWEST)
+	}
+
+	// 2) Expect a colon
+	if !p.expectPeek(token.COLON) {
+		return nil
+	}
+
+	// 3) Single-line or multi-line?
+	if p.peekTokenIs(token.NEWLINE) {
+		// MULTI-LINE mode
+		p.nextToken() // consume NEWLINE
+
+		if p.peekTokenIs(token.INDENT) {
+			// parse an indented block
+			p.nextToken() // consume INDENT
+			stmt.Consequence = p.parseBlockStatement()
+		} else {
+			// next statement on a new line, but not indented => single statement
+			singleStmt := p.parseStatement()
+			stmt.Consequence = &ast.BlockStatement{
+				Token:      p.currToken,
+				Statements: []ast.Statement{singleStmt},
+			}
+		}
+	} else {
+		// SINGLE-LINE (inline) form => e.g. `if ...: return 10`
+		p.nextToken() // move to first token of that single statement
+		singleStmt := p.parseStatement()
+		stmt.Consequence = &ast.BlockStatement{
+			Token:      p.currToken,
+			Statements: []ast.Statement{singleStmt},
+		}
+	}
+
+	// 4) Handle ANY number of `otherwise(...)` branches
+	//    each 'otherwise' is like an "elseif"
+	for p.peekTokenIs(token.OTHERWISE) {
+		p.nextToken() // consume 'otherwise'
+		branch := ast.OtherwiseBranch{Token: p.currToken}
+
+		// optional parentheses again
+		if p.peekTokenIs(token.LPAREN) {
+			p.nextToken() // consume '('
+			p.nextToken() // now at condition expression
+			branch.Condition = p.parseExpression(LOWEST)
+			if !p.expectPeek(token.RPAREN) {
+				return nil
+			}
+		} else {
+			// bare expression
+			p.nextToken()
+			branch.Condition = p.parseExpression(LOWEST)
+		}
+
+		// expect a colon
 		if !p.expectPeek(token.COLON) {
 			return nil
 		}
-		p.nextToken()
-		var consequence *ast.BlockStatement
-		if p.currTokenIs(token.NEWLINE) {
-			if !p.expectPeek(token.INDENT) {
-				return nil
+
+		// single-line or multi-line again
+		if p.peekTokenIs(token.NEWLINE) {
+			// MULTI-LINE
+			p.nextToken() // consume NEWLINE
+			if p.peekTokenIs(token.INDENT) {
+				p.nextToken() // consume INDENT
+				branch.Consequence = p.parseBlockStatement()
+			} else {
+				singleStmt := p.parseStatement()
+				branch.Consequence = &ast.BlockStatement{
+					Token:      p.currToken,
+					Statements: []ast.Statement{singleStmt},
+				}
 			}
-			consequence = p.parseBlockStatement()
 		} else {
-			consequence = &ast.BlockStatement{
-				Statements: []ast.Statement{p.parseStatement()},
+			// SINGLE-LINE
+			p.nextToken()
+			singleStmt := p.parseStatement()
+			branch.Consequence = &ast.BlockStatement{
+				Token:      p.currToken,
+				Statements: []ast.Statement{singleStmt},
 			}
 		}
-		ifBranch := ast.ElifBranch{
-			Token:       elifToken,
-			Condition:   condition,
-			Consequence: consequence,
-		}
-		stmt.ElifBranches = append(stmt.ElifBranches, ifBranch)
+
+		// append this 'otherwise' branch
+		stmt.OtherwiseBranches = append(stmt.OtherwiseBranches, branch)
+
 	}
+
+	// 5) Finally, handle `else:` if present
 	if p.peekTokenIs(token.ELSE) {
-		p.nextToken()
+		p.nextToken() // consume else
 		if !p.expectPeek(token.COLON) {
 			return nil
 		}
-		p.nextToken()
-		if p.currTokenIs(token.NEWLINE) {
-			if !p.expectPeek(token.INDENT) {
-				return nil
+
+		if p.peekTokenIs(token.NEWLINE) {
+			// MULTI-LINE
+			p.nextToken() // consume NEWLINE
+			if p.peekTokenIs(token.INDENT) {
+				p.nextToken() // consume INDENT
+				stmt.Alternative = p.parseBlockStatement()
+			} else {
+				singleStmt := p.parseStatement()
+				stmt.Alternative = &ast.BlockStatement{
+					Token:      p.currToken,
+					Statements: []ast.Statement{singleStmt},
+				}
 			}
-			stmt.Alternative = p.parseBlockStatement()
 		} else {
+			// SINGLE-LINE
+			p.nextToken()
+			singleStmt := p.parseStatement()
 			stmt.Alternative = &ast.BlockStatement{
-				Statements: []ast.Statement{p.parseStatement()},
+				Token:      p.currToken,
+				Statements: []ast.Statement{singleStmt},
 			}
 		}
 	}
+
 	return stmt
 }
 

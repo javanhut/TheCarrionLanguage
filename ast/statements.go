@@ -79,11 +79,11 @@ func (es *ExpressionStatement) String() string {
 }
 
 type IfStatement struct {
-	Token        token.Token // The 'if' token
-	Condition    Expression
-	Consequence  *BlockStatement
-	ElifBranches []ElifBranch
-	Alternative  *BlockStatement
+	Token             token.Token // The 'if' token
+	Condition         Expression
+	Consequence       *BlockStatement
+	OtherwiseBranches []OtherwiseBranch
+	Alternative       *BlockStatement
 }
 
 func (is *IfStatement) statementNode()       {}
@@ -104,7 +104,7 @@ func (is *IfStatement) String() string {
 	return out.String()
 }
 
-type ElifBranch struct {
+type OtherwiseBranch struct {
 	Token       token.Token
 	Condition   Expression
 	Consequence *BlockStatement
