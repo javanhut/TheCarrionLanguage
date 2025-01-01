@@ -50,11 +50,12 @@ func Start(in io.Reader, out io.Writer) {
 	var inputBuffer strings.Builder
 	isMultiline := false
 	currentIndentLevel := 0
-	expectedIndentLevel := 0
+	baseIndentLevel := 0
+	inIfBlock := false
 
 	fmt.Fprintln(out, "Welcome to the Carrion Programming Language REPL!")
 	fmt.Fprintln(out, "Type 'exit' or 'quit' to exit, 'clear' to clear the screen.")
-
+	fmt.Printf("Type any commands you like may Mimir guide your hand.\n")
 	for {
 		if !isMultiline {
 			fmt.Fprint(out, ">>> ")
@@ -73,7 +74,7 @@ func Start(in io.Reader, out io.Writer) {
 		if !isMultiline {
 			switch trimmedLine {
 			case "exit", "quit":
-				fmt.Fprintln(out, "Farewell, brave coder!")
+				fmt.Fprintln(out, "Farewell, May the All Father bless your travels!")
 				return
 			case "clear":
 				clearScreen(out)
@@ -87,44 +88,48 @@ func Start(in io.Reader, out io.Writer) {
 		indentSpaces := len(line) - len(strings.TrimLeft(line, " "))
 		currentIndentLevel = indentSpaces / 4 // Assuming 4 spaces per indent level
 
-		// Skip empty lines in multiline mode
-		if isMultiline && trimmedLine == "" {
-			inputBuffer.WriteString(line)
-			inputBuffer.WriteString("\n")
+		// Handle empty lines
+		if trimmedLine == "" {
+			if isMultiline {
+				inputBuffer.WriteString(line)
+				inputBuffer.WriteString("\n")
+			}
 			continue
 		}
 
-		// Validate indentation if we're in multiline mode
-		if isMultiline && trimmedLine != "" {
-			if currentIndentLevel < expectedIndentLevel {
-				// Check if this is an 'otherwise' or 'else' statement
-				if strings.HasPrefix(trimmedLine, "otherwise") ||
-					strings.HasPrefix(trimmedLine, "else") {
-					expectedIndentLevel = currentIndentLevel
-				} else if currentIndentLevel == 0 {
-					// If we're back to no indentation, try to evaluate
-					isMultiline = false
-				} else {
-					fmt.Fprintln(out, "IndentationError: expected an indented block")
-					inputBuffer.Reset()
-					isMultiline = false
-					continue
-				}
-			}
+		// Check if this is the start of an if block
+		if strings.HasPrefix(trimmedLine, "if ") && strings.HasSuffix(trimmedLine, ":") {
+			inIfBlock = true
+			isMultiline = true
+			baseIndentLevel = currentIndentLevel
 		}
 
-		// Check if this line starts a new block
-		if strings.HasSuffix(trimmedLine, ":") {
+		// Check for otherwise or else clauses
+		if inIfBlock && currentIndentLevel <= baseIndentLevel &&
+			(strings.HasPrefix(trimmedLine, "otherwise") || strings.HasPrefix(trimmedLine, "else")) {
 			isMultiline = true
-			expectedIndentLevel = currentIndentLevel + 1
 		}
 
 		// Append the line to our input buffer
 		inputBuffer.WriteString(line)
 		inputBuffer.WriteString("\n")
 
-		// Try to evaluate if we're not in multiline mode or we've returned to base indentation
-		if !isMultiline || (currentIndentLevel == 0 && !strings.HasSuffix(trimmedLine, ":")) {
+		// Determine if we should evaluate
+		shouldEvaluate := false
+
+		// Check for a complete block
+		if isMultiline {
+			if currentIndentLevel <= baseIndentLevel && !strings.HasSuffix(trimmedLine, ":") &&
+				!strings.HasPrefix(trimmedLine, "otherwise") &&
+				!strings.HasPrefix(trimmedLine, "else") {
+				shouldEvaluate = true
+				inIfBlock = false
+			}
+		} else if !strings.HasSuffix(trimmedLine, ":") {
+			shouldEvaluate = true
+		}
+
+		if shouldEvaluate {
 			input := inputBuffer.String()
 			if strings.TrimSpace(input) == "" {
 				inputBuffer.Reset()
@@ -138,9 +143,9 @@ func Start(in io.Reader, out io.Writer) {
 				}
 				inputBuffer.Reset()
 				isMultiline = false
-				expectedIndentLevel = 0
+				baseIndentLevel = 0
+				inIfBlock = false
 			} else {
-				// If parsing is incomplete, continue in multiline mode
 				isMultiline = true
 			}
 		}
@@ -195,4 +200,3 @@ func printParserErrors(out io.Writer, errors []string) {
 func clearScreen(out io.Writer) {
 	fmt.Fprint(out, "\033[H\033[2J")
 }
-
