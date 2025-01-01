@@ -1,10 +1,11 @@
 package repl
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"strings"
+
+	"github.com/peterh/liner"
 
 	"thecarrionlang/evaluator"
 	"thecarrionlang/lexer"
@@ -14,39 +15,51 @@ import (
 
 const ODINS_EYE = `
 
-███████████████████████████████████████████████████████████████████
-███████████████████████████████████████████████████████████████████
-███████████████████████████████████████████████████████████████████
-█████████████████████████████████  █████████  ██  ▒████████████████
-███████████████████████  █████████ █████████     ██████████████████
-████████████████████  █  █████████     ██████       ███████████████
-█████████████████   █   █████████  ██   ████    ███████████████████
-█████████████████████   ██   █████    █████  ██ ███████████████████
-████████████████████████     █████  █████  █  █  ██████████████████
-█████████████████████████  ███████  ████  ███ █████████████████████
-███████████████████████████  █          ░██████████████████████████
-███████████████████████████  ████   ███  ██████████████████████████
-████████████████    ███████ ██████  ████  █████████████████████████
-███████████████  ██   ████                             ████████████
-████████████                    ██  █████ ███      ████████████████
-████████████████████████████ █████  ████  █████  ██████████████████
-███████████████████████ █████  ███  ██    █████████████████████████
-█████████████████████ █  ██  ██      █████  ███████████████████████
-█████████████████████  █    ██████  █████     ███    ██████████████
-██████████████████████    ███████   ████  ██     ██████████████████
-█████████████████████    ██████     █████   ██     ████████████████
-█████████████████        █████   █  ███████████  █ ████████████████
-███████████████████   █  ██████     ███████████  ██████████████████
-███████████████████ ███  █████████  ███████████████████████████████
-██████████████████████████████████  ███████████████████████████████
-███████████████████████████████████████████████████████████████████
-███████████████████████████████████████████████████████████████████
+  ███████████████████████████████████████████████████████████████████
+  ███████████████████████████████████████████████████████████████████
+  ███████████████████████████████████████████████████████████████████
+  █████████████████████████████████  █████████  ██  ▒████████████████
+  ███████████████████████  █████████ █████████     ██████████████████
+  ████████████████████  █  █████████     ██████       ███████████████
+  █████████████████   █   █████████  ██   ████    ███████████████████
+  █████████████████████   ██   █████    █████  ██ ███████████████████
+  ████████████████████████     █████  █████  █  █  ██████████████████
+  █████████████████████████  ███████  ████  ███ █████████████████████
+  ███████████████████████████  █          ░██████████████████████████
+  ███████████████████████████  ████   ███  ██████████████████████████
+  ████████████████    ███████ ██████  ████  █████████████████████████
+  ███████████████  ██   ████                             ████████████
+  ████████████                    ██  █████ ███      ████████████████
+  ████████████████████████████ █████  ████  █████  ██████████████████
+  ███████████████████████ █████  ███  ██    █████████████████████████
+  █████████████████████ █  ██  ██      █████  ███████████████████████
+  █████████████████████  █    ██████  █████     ███    ██████████████
+  ██████████████████████    ███████   ████  ██     ██████████████████
+  █████████████████████    ██████     █████   ██     ████████████████
+  █████████████████        █████   █  ███████████  █ ████████████████
+  ███████████████████   █  ██████     ███████████  ██████████████████
+  ███████████████████ ███  █████████  ███████████████████████████████
+  ██████████████████████████████████  ███████████████████████████████
+  ███████████████████████████████████████████████████████████████████
+  ███████████████████████████████████████████████████████████████████
 
-`
+  `
 
 func Start(in io.Reader, out io.Writer) {
-	scanner := bufio.NewScanner(in)
+	line := liner.NewLiner()
+	defer line.Close()
 
+	// Optional: Set a custom tab completion function
+	// line.SetCompleter(func(line string) []string {
+	// 	// Implement auto-completion logic here
+	// 	return nil
+	// })
+
+	// Optional: Load history from a file
+	// if f, err := os.Open(historyFile); err == nil {
+	// 	line.ReadHistory(f)
+	// 	f.Close()
+	// }
 	var inputBuffer strings.Builder
 	isMultiline := false
 	currentIndentLevel := 0
@@ -55,20 +68,28 @@ func Start(in io.Reader, out io.Writer) {
 
 	fmt.Fprintln(out, "Welcome to the Carrion Programming Language REPL!")
 	fmt.Fprintln(out, "Type 'exit' or 'quit' to exit, 'clear' to clear the screen.")
-	fmt.Printf("Type any commands you like may Mimir guide your hand.\n")
+	fmt.Fprintln(out, "Type any commands you like may Mimir guide your hand.")
+
 	for {
+		var prompt string
 		if !isMultiline {
-			fmt.Fprint(out, ">>> ")
+			prompt = ">>> "
 		} else {
-			fmt.Fprint(out, "... ")
+			prompt = "... "
 		}
 
-		if !scanner.Scan() {
-			return
+		// Get input from the user
+		input, err := line.Prompt(prompt)
+		if err != nil {
+			if err == io.EOF {
+				fmt.Fprintln(out, "\nFarewell, May the All Father bless your travels!")
+				return
+			}
+			fmt.Fprintf(out, "Error reading line: %v\n", err)
+			continue
 		}
 
-		line := scanner.Text()
-		trimmedLine := strings.TrimSpace(line)
+		trimmedLine := strings.TrimSpace(input)
 
 		// Handle special commands only at the primary prompt
 		if !isMultiline {
@@ -84,14 +105,19 @@ func Start(in io.Reader, out io.Writer) {
 			}
 		}
 
+		// Add input to history if not empty
+		if trimmedLine != "" {
+			line.AppendHistory(input)
+		}
+
 		// Count leading spaces to determine indentation level
-		indentSpaces := len(line) - len(strings.TrimLeft(line, " "))
+		indentSpaces := len(input) - len(strings.TrimLeft(input, " "))
 		currentIndentLevel = indentSpaces / 4 // Assuming 4 spaces per indent level
 
 		// Handle empty lines
 		if trimmedLine == "" {
 			if isMultiline {
-				inputBuffer.WriteString(line)
+				inputBuffer.WriteString(input)
 				inputBuffer.WriteString("\n")
 			}
 			continue
@@ -111,7 +137,7 @@ func Start(in io.Reader, out io.Writer) {
 		}
 
 		// Append the line to our input buffer
-		inputBuffer.WriteString(line)
+		inputBuffer.WriteString(input)
 		inputBuffer.WriteString("\n")
 
 		// Determine if we should evaluate
