@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"fmt"
 	"testing"
 
 	"thecarrionlang/lexer"
@@ -43,11 +44,15 @@ func TestEvalIntegerExpression(t *testing.T) {
 }
 
 func testEval(input string) object.Object {
+	// fmt.Printf("Evaluating input: %s\n", input)
 	l := lexer.New(input)
 	p := parser.New(l)
 	program := p.ParseProgram()
 
-	return Eval(program)
+	// fmt.Printf("Parsed program: %+v\n", program)
+	result := Eval(program)
+	// fmt.Printf("Evaluated result: %v\n", result)
+	return result
 }
 
 func testIntegerObject(t *testing.T, obj object.Object, expected int64) bool {
@@ -138,6 +143,10 @@ func TestIfElseExpression(t *testing.T) {
         return 1 
       else:
         return -1`, 1},
+		{`if 10 > 1:
+        if 10 > 1:
+              return 10
+        return 1`, 10},
 	}
 	for _, tt := range tests {
 		evaluated := testEval(tt.input)
@@ -156,4 +165,58 @@ func testNoneObject(t *testing.T, obj object.Object) bool {
 		return false
 	}
 	return true
+}
+
+func TestErrorHandling(t *testing.T) {
+	tests := []struct {
+		input           string
+		expectedMessage string
+	}{
+		{
+			"5 + True",
+			"type mismatch: INTEGER + BOOLEAN",
+		},
+		{
+			"5 + True 5",
+			"type mismatch: INTEGER + BOOLEAN",
+		},
+		{
+			"-True",
+			"unknown operator: -BOOLEAN",
+		},
+		{
+			"True + False",
+			"unknown operator: BOOLEAN + BOOLEAN",
+		},
+		{
+			"5 True + False 5",
+			"unknown operator: BOOLEAN + BOOLEAN",
+		},
+		{
+			"if (10 > 1): True + False ",
+			"unknown operator: BOOLEAN + BOOLEAN",
+		},
+		{
+			`
+      if (10 > 1):
+          if (10 > 1):
+              return True + False
+      return 1
+      `,
+			"unknown operator: BOOLEAN + BOOLEAN",
+		},
+	}
+	for _, tt := range tests {
+		evaluated := testEval(tt.input)
+		errObj, ok := evaluated.(*object.Error)
+		if !ok {
+			t.Errorf("no error object returned. got=%T(%+v)",
+				evaluated, evaluated)
+			continue
+		}
+		if errObj.Message != tt.expectedMessage {
+			t.Errorf("wrong error message. expected=%q, got=%q",
+				tt.expectedMessage, errObj.Message)
+		}
+	}
 }
