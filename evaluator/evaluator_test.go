@@ -1,7 +1,6 @@
 package evaluator
 
 import (
-	"fmt"
 	"testing"
 
 	"thecarrionlanguage/lexer"
@@ -48,9 +47,9 @@ func testEval(input string) object.Object {
 	l := lexer.New(input)
 	p := parser.New(l)
 	program := p.ParseProgram()
-
+	env := object.NewEnvironment()
 	// fmt.Printf("Parsed program: %+v\n", program)
-	result := Eval(program)
+	result := Eval(program, env)
 	// fmt.Printf("Evaluated result: %v\n", result)
 	return result
 }
@@ -205,6 +204,7 @@ func TestErrorHandling(t *testing.T) {
       `,
 			"unknown operator: BOOLEAN + BOOLEAN",
 		},
+		{"foobar", "identifier not found: foobar"},
 	}
 	for _, tt := range tests {
 		evaluated := testEval(tt.input)
@@ -218,5 +218,20 @@ func TestErrorHandling(t *testing.T) {
 			t.Errorf("wrong error message. expected=%q, got=%q",
 				tt.expectedMessage, errObj.Message)
 		}
+	}
+}
+
+func TestAssignmentStatements(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected int64
+	}{
+		{"x = 5 x", 5},
+		{"x = 5 * 5 x", 25},
+		{"a = 5 b= 5 a b ", 5},
+		{"a = 5 b = a c = a + b + 5 c", 15},
+	}
+	for _, tt := range tests {
+		testIntegerObject(t, testEval(tt.input), tt.expected)
 	}
 }

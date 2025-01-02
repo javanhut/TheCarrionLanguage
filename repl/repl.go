@@ -48,6 +48,7 @@ const ODINS_EYE = `
 func Start(in io.Reader, out io.Writer) {
 	line := liner.NewLiner()
 	defer line.Close()
+	env := object.NewEnvironment()
 
 	// Optional: Set a custom tab completion function
 	// line.SetCompleter(func(line string) []string {
@@ -162,7 +163,7 @@ func Start(in io.Reader, out io.Writer) {
 				continue
 			}
 
-			evaluated, complete := tryParseAndEval(input, out)
+			evaluated, complete := tryParseAndEval(input, out, env)
 			if complete {
 				if evaluated != nil {
 					fmt.Fprintf(out, "%s\n", evaluated.Inspect())
@@ -178,7 +179,7 @@ func Start(in io.Reader, out io.Writer) {
 	}
 }
 
-func tryParseAndEval(input string, out io.Writer) (object.Object, bool) {
+func tryParseAndEval(input string, out io.Writer, env *object.Environment) (object.Object, bool) {
 	l := lexer.New(input)
 	p := parser.New(l)
 	program := p.ParseProgram()
@@ -191,7 +192,7 @@ func tryParseAndEval(input string, out io.Writer) (object.Object, bool) {
 		return nil, true
 	}
 
-	evaluated := evaluator.Eval(program)
+	evaluated := evaluator.Eval(program, env)
 	if evaluated == nil {
 		return nil, true
 	}
