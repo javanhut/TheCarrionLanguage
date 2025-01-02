@@ -88,6 +88,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.COLON, func() ast.Expression {
 		return nil
 	})
+	p.registerPrefix(token.STRING, p.parseStringLiteral)
 
 	p.registerPrefix(token.NEWLINE, func() ast.Expression { return nil })
 	p.registerPrefix(token.INDENT, func() ast.Expression { return nil })
@@ -142,6 +143,10 @@ func (p *Parser) registerStatement(tokenType token.TokenType, fn func() ast.Stat
 
 func (p *Parser) Errors() []string {
 	return p.errors
+}
+
+func (p *Parser) parseStringLiteral() ast.Expression {
+	return &ast.StringLiteral{Token: p.currToken, Value: p.currToken.Literal}
 }
 
 func (p *Parser) parseBoolean() ast.Expression {

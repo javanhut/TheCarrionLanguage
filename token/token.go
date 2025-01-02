@@ -16,9 +16,10 @@ const (
 	DEDENT  TokenType = "DEDENT"
 
 	// Identifiers and Literals
-	IDENT TokenType = "IDENT"
-	INT   TokenType = "INT"
-	FLOAT TokenType = "FLOAT"
+	IDENT  TokenType = "IDENT"
+	INT    TokenType = "INT"
+	FLOAT  TokenType = "FLOAT"
+	STRING TokenType = "STRING"
 
 	// Operators
 	ASSIGN          TokenType = "="
