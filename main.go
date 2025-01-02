@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"thecarrionlang/repl"
+	"thecarrionlanguage/repl"
 )
 
 const CROW_IMAGE = `

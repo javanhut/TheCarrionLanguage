@@ -3,8 +3,8 @@ package evaluator
 import (
 	"fmt"
 
-	"thecarrionlang/ast"
-	"thecarrionlang/object"
+	"thecarrionlanguage/ast"
+	"thecarrionlanguage/object"
 )
 
 var (

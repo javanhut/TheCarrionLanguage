@@ -1,4 +1,4 @@
-module thecarrionlang
+module thecarrionlanguage
 
 go 1.23.2
 

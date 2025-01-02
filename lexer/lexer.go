@@ -4,7 +4,7 @@ package lexer
 import (
 	"unicode"
 
-	"thecarrionlang/token"
+	"thecarrionlanguage/token"
 )
 
 // Lexer represents a lexical scanner.

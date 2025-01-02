@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strconv"
 
-	"thecarrionlang/ast"
-	"thecarrionlang/lexer"
-	"thecarrionlang/token"
+	"thecarrionlanguage/ast"
+	"thecarrionlanguage/lexer"
+	"thecarrionlanguage/token"
 )
 
 const (

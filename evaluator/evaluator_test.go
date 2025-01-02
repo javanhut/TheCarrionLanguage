@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"testing"
 
-	"thecarrionlang/lexer"
-	"thecarrionlang/object"
-	"thecarrionlang/parser"
+	"thecarrionlanguage/lexer"
+	"thecarrionlanguage/object"
+	"thecarrionlanguage/parser"
 )
 
 func TestEvalIntegerExpression(t *testing.T) {

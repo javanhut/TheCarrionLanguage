@@ -3,7 +3,7 @@ package ast
 import (
 	"testing"
 
-	"thecarrionlang/token"
+	"thecarrionlanguage/token"
 )
 
 func TestString(t *testing.T) {

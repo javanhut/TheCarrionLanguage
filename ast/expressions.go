@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"thecarrionlang/token"
+	"thecarrionlanguage/token"
 )
 
 type Identifier struct {

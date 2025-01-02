@@ -7,10 +7,10 @@ import (
 
 	"github.com/peterh/liner"
 
-	"thecarrionlang/evaluator"
-	"thecarrionlang/lexer"
-	"thecarrionlang/object"
-	"thecarrionlang/parser"
+	"thecarrionlanguage/evaluator"
+	"thecarrionlanguage/lexer"
+	"thecarrionlanguage/object"
+	"thecarrionlanguage/parser"
 )
 
 const ODINS_EYE = `

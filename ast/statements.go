@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"strings"
 
-	"thecarrionlang/token"
+	"thecarrionlanguage/token"
 )
 
 type AssignStatement struct {
