@@ -138,7 +138,7 @@ func TestIfElseExpression(t *testing.T) {
 		{`
       if (1<0): 
         return 0
-      elif (1 > 0):
+      otherwise (1 > 0):
         return 1 
       else:
         return -1`, 1},
@@ -234,4 +234,26 @@ func TestAssignmentStatements(t *testing.T) {
 	for _, tt := range tests {
 		testIntegerObject(t, testEval(tt.input), tt.expected)
 	}
+}
+
+func TestFunctionDefinitionAndCall(t *testing.T) {
+	input := `
+spell add(x, y):
+    return x + y
+
+result = add(2, 3)
+result
+`
+	evaluated := testEval(input)
+	testIntegerObject(t, evaluated, 5)
+}
+
+func TestFunctionDefinitionInline(t *testing.T) {
+	// demonstrates a single-line function body
+	input := `
+spell identity(x): return x
+identity(42)
+`
+	evaluated := testEval(input)
+	testIntegerObject(t, evaluated, 42)
 }
