@@ -17,6 +17,7 @@ func TestNextToken(t *testing.T) {
   result >= 16
   "foobar"
   "foo bar"
+  [1, 2]
   `
 
 	tests := []struct {
@@ -62,6 +63,11 @@ func TestNextToken(t *testing.T) {
 		{token.INT, "16"},
 		{token.STRING, "foobar"},
 		{token.STRING, "foo bar"},
+		{token.LBRACK, "["},
+		{token.INT, "1"},
+		{token.COMMA, ","},
+		{token.INT, "2"},
+		{token.RBRACK, "]"},
 		// End of input: dedent to base and EOF
 		{token.DEDENT, ""},
 		{token.EOF, ""},

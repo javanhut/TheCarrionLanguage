@@ -10,6 +10,7 @@ import (
 )
 
 const (
+	_           int = iota
 	LOWEST      int = iota
 	ASSIGN          // =
 	LOGICAL_OR      // or
@@ -21,6 +22,7 @@ const (
 	PREFIX          // -X, !X, ++X, --X
 	CALL            // myFunction(X)
 	POSTFIX         // X++, X--
+	INDEX
 )
 
 var precedences = map[token.TokenType]int{
@@ -43,6 +45,7 @@ var precedences = map[token.TokenType]int{
 	token.PLUS_INCREMENT:  POSTFIX,
 	token.MINUS_DECREMENT: POSTFIX,
 	token.LPAREN:          CALL,
+	token.LBRACK:          INDEX,
 	token.OR:              LOGICAL_OR,
 	token.AND:             LOGICAL_AND,
 }
@@ -89,7 +92,7 @@ func New(l *lexer.Lexer) *Parser {
 		return nil
 	})
 	p.registerPrefix(token.STRING, p.parseStringLiteral)
-
+	p.registerPrefix(token.LBRACK, p.parseArrayLiteral)
 	p.registerPrefix(token.NEWLINE, func() ast.Expression { return nil })
 	p.registerPrefix(token.INDENT, func() ast.Expression { return nil })
 	p.registerPrefix(token.DEDENT, func() ast.Expression { return nil })
@@ -113,6 +116,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.DECREMENT, p.parseInfixExpression)
 	p.registerInfix(token.MULTASSGN, p.parseInfixExpression)
 	p.registerInfix(token.DIVASSGN, p.parseInfixExpression)
+	p.registerInfix(token.LBRACK, p.parseIndexExpression)
 	// Register postfix parsers
 	p.registerPostfix(token.PLUS_INCREMENT, p.parsePostfixExpression)
 	p.registerPostfix(token.MINUS_DECREMENT, p.parsePostfixExpression)
@@ -123,6 +127,41 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerStatement(token.SPELL, p.parseFunctionDefinition)
 
 	return p
+}
+
+func (p *Parser) parseIndexExpression(left ast.Expression) ast.Expression {
+	exp := &ast.IndexExpression{Token: p.currToken, Left: left}
+	p.nextToken()
+	exp.Index = p.parseExpression(LOWEST)
+	if !p.expectPeek(token.RBRACK) {
+		return nil
+	}
+	return exp
+}
+
+func (p *Parser) parseExpressionList(end token.TokenType) []ast.Expression {
+	list := []ast.Expression{}
+	if p.peekTokenIs(end) {
+		p.nextToken()
+		return list
+	}
+	p.nextToken()
+	list = append(list, p.parseExpression(LOWEST))
+	for p.peekTokenIs(token.COMMA) {
+		p.nextToken()
+		p.nextToken()
+		list = append(list, p.parseExpression(LOWEST))
+	}
+	if !p.expectPeek(end) {
+		return nil
+	}
+	return list
+}
+
+func (p *Parser) parseArrayLiteral() ast.Expression {
+	array := &ast.ArrayLiteral{Token: p.currToken}
+	array.Elements = p.parseExpressionList(token.RBRACK)
+	return array
 }
 
 func (p *Parser) registerPrefix(tokenType token.TokenType, fn prefixParseFn) {
@@ -375,7 +414,11 @@ func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
 	precedence := p.currPrecedence()
 	p.nextToken()
 	expression.Right = p.parseExpression(precedence)
-
+	if expression.Right == nil {
+		msg := fmt.Sprintf("no right-hand expression for infix operator %q", expression.Operator)
+		p.errors = append(p.errors, msg)
+		return nil
+	}
 	return expression
 }
 
@@ -561,11 +604,8 @@ func (p *Parser) parseGroupedExpression() ast.Expression {
 }
 
 func (p *Parser) parseCallExpression(function ast.Expression) ast.Expression {
-	exp := &ast.CallExpression{
-		Token:    p.currToken,
-		Function: function,
-	}
-	exp.Arguments = p.parseCallArguments()
+	exp := &ast.CallExpression{Token: p.currToken, Function: function}
+	exp.Arguments = p.parseExpressionList(token.RPAREN)
 	return exp
 }
 
