@@ -197,3 +197,22 @@ func (hl *HashLiteral) String() string {
 	out.WriteString("}")
 	return out.String()
 }
+
+type TupleLiteral struct {
+	Token    token.Token  // The '(' token
+	Elements []Expression // Elements in the tuple
+}
+
+func (tl *TupleLiteral) expressionNode()      {}
+func (tl *TupleLiteral) TokenLiteral() string { return tl.Token.Literal }
+func (tl *TupleLiteral) String() string {
+	var out bytes.Buffer
+	elements := []string{}
+	for _, el := range tl.Elements {
+		elements = append(elements, el.String())
+	}
+	out.WriteString("(")
+	out.WriteString(strings.Join(elements, ", "))
+	out.WriteString(")")
+	return out.String()
+}

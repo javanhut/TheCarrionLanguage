@@ -18,6 +18,7 @@ type Object interface {
 
 const (
 	INTEGER_OBJ      = "INTEGER"
+	FLOAT_OBJ        = "FLOAT"
 	BOOLEAN_OBJ      = "BOOLEAN"
 	NONE_OBJ         = "NONE"
 	RETURN_VALUE_OBJ = "RETURN_VALUE"
@@ -27,6 +28,7 @@ const (
 	ARRAY_OBJ        = "ARRAY"
 	BUILTIN_OBJ      = "BUILTIN"
 	HASH_OBJ         = "HASH"
+	TUPLE_OBJ        = "TUPLE"
 )
 
 type Integer struct {
@@ -35,6 +37,13 @@ type Integer struct {
 
 func (i *Integer) Type() ObjectType { return INTEGER_OBJ }
 func (i *Integer) Inspect() string  { return fmt.Sprintf("%d", i.Value) }
+
+type Float struct {
+	Value float64
+}
+
+func (f *Float) Type() ObjectType { return FLOAT_OBJ }
+func (f *Float) Inspect() string  { return fmt.Sprintf("%f", f.Value) }
 
 type Boolean struct {
 	Value bool
@@ -169,4 +178,21 @@ func (h *Hash) Inspect() string {
 
 type Hashable interface {
 	HashKey() HashKey
+}
+
+type Tuple struct {
+	Elements []Object
+}
+
+func (t *Tuple) Type() ObjectType { return TUPLE_OBJ }
+func (t *Tuple) Inspect() string {
+	var out bytes.Buffer
+	elems := []string{}
+	for _, e := range t.Elements {
+		elems = append(elems, e.Inspect())
+	}
+	out.WriteString("(")
+	out.WriteString(strings.Join(elems, ", "))
+	out.WriteString(")")
+	return out.String()
 }

@@ -81,6 +81,7 @@ func New(l *lexer.Lexer) *Parser {
 	// Register prefix parsers
 	p.registerPrefix(token.IDENT, p.parseIdentifier)
 	p.registerPrefix(token.INT, p.parseIntegerLiteral)
+	p.registerPrefix(token.FLOAT, p.parseFloatLiteral)
 	p.registerPrefix(token.MINUS, p.parsePrefixExpression)
 	p.registerPrefix(token.BANG, p.parsePrefixExpression)
 	p.registerPrefix(token.PLUS_INCREMENT, p.parsePrefixExpression)
@@ -90,6 +91,15 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.FALSE, p.parseBoolean)
 	p.registerPrefix(token.COLON, func() ast.Expression {
 		return nil
+	})
+
+	p.registerPrefix(token.LPAREN, func() ast.Expression {
+		if p.peekTokenIs(token.RPAREN) {
+			// Empty tuple
+			p.nextToken()
+			return &ast.TupleLiteral{Token: p.currToken, Elements: []ast.Expression{}}
+		}
+		return p.parseTupleLiteral()
 	})
 	p.registerPrefix(token.STRING, p.parseStringLiteral)
 	p.registerPrefix(token.LBRACK, p.parseArrayLiteral)
@@ -150,6 +160,24 @@ func (p *Parser) parseHashLiteral() ast.Expression {
 		return nil
 	}
 	return hash
+}
+
+func (p *Parser) parseTupleLiteral() ast.Expression {
+	tuple := &ast.TupleLiteral{Token: p.currToken}
+	tuple.Elements = p.parseExpressionList(token.RPAREN)
+	return tuple
+}
+
+func (p *Parser) parseFloatLiteral() ast.Expression {
+	lit := &ast.FloatLiteral{Token: p.currToken}
+	value, err := strconv.ParseFloat(p.currToken.Literal, 64)
+	if err != nil {
+		msg := fmt.Sprintf("could not parse %q as float", p.currToken.Literal)
+		p.errors = append(p.errors, msg)
+		return nil
+	}
+	lit.Value = value
+	return lit
 }
 
 func (p *Parser) parseIndexExpression(left ast.Expression) ast.Expression {

@@ -53,6 +53,8 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		// Expressions
 	case *ast.IntegerLiteral:
 		return &object.Integer{Value: node.Value}
+	case *ast.FloatLiteral:
+		return &object.Float{Value: node.Value}
 	case *ast.ReturnStatement:
 		val := Eval(node.ReturnValue, env)
 		if isError(val) {
@@ -78,7 +80,8 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 
 	case *ast.StringLiteral:
 		return &object.String{Value: node.Value}
-
+	case *ast.TupleLiteral:
+		return evalTupleLiteral(node, env)
 	case *ast.HashLiteral:
 		return evalHashLiteral(node, env)
 	case *ast.FunctionDefinition:
@@ -142,8 +145,19 @@ func evalHashLiteral(
 	return &object.Hash{Pairs: pairs}
 }
 
+func evalTupleLiteral(tl *ast.TupleLiteral, env *object.Environment) object.Object {
+	elements := evalExpressions(tl.Elements, env)
+	if len(elements) == 1 && isError(elements[0]) {
+		return elements[0]
+	}
+
+	return &object.Tuple{Elements: elements}
+}
+
 func evalIndexExpression(left, index object.Object) object.Object {
 	switch {
+	case left.Type() == object.TUPLE_OBJ:
+		return evalTupleIndexExpression(left, index)
 	case left.Type() == object.ARRAY_OBJ && index.Type() == object.INTEGER_OBJ:
 		return evalArrayIndexExpression(left, index)
 	case left.Type() == object.HASH_OBJ:
@@ -151,6 +165,15 @@ func evalIndexExpression(left, index object.Object) object.Object {
 	default:
 		return newError("index operator not supported: %s", left.Type())
 	}
+}
+
+func evalTupleIndexExpression(tuple, index object.Object) object.Object {
+	tupleObj := tuple.(*object.Tuple)
+	idx := int(index.(*object.Integer).Value)
+	if idx < 0 || idx >= len(tupleObj.Elements) {
+		return NONE
+	}
+	return tupleObj.Elements[idx]
 }
 
 func evalHashIndexExpression(hash, index object.Object) object.Object {
@@ -293,11 +316,38 @@ func evalInfixExpression(operator string, left, right object.Object) object.Obje
 		return evalBooleanInfixExpression(operator, left, right)
 	case left.Type() == object.STRING_OBJ && right.Type() == object.STRING_OBJ:
 		return evalStringInfixExpression(operator, left, right)
+
 	case left.Type() != right.Type():
 		return newError("type mismatch: %s %s %s", left.Type(), operator, right.Type())
+	case left.Type() == object.FLOAT_OBJ || right.Type() == object.FLOAT_OBJ:
+		leftVal := toFloat(left)
+		rightVal := toFloat(right)
+		switch operator {
+		case "+":
+			return &object.Float{Value: leftVal + rightVal}
+		case "-":
+			return &object.Float{Value: leftVal - rightVal}
+		case "*":
+			return &object.Float{Value: leftVal * rightVal}
+		case "/":
+			return &object.Float{Value: leftVal / rightVal}
+		default:
+			return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
+		}
 	default:
 		// fmt.Printf("Error: type mismatch or unknown operator\n")
 		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
+	}
+}
+
+func toFloat(obj object.Object) float64 {
+	switch obj := obj.(type) {
+	case *object.Integer:
+		return float64(obj.Value)
+	case *object.Float:
+		return obj.Value
+	default:
+		return 0.0 // Shouldn't reach here
 	}
 }
 
