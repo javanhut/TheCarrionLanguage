@@ -150,12 +150,12 @@ func (al *ArrayLiteral) expressionNode()      {}
 func (al *ArrayLiteral) TokenLiteral() string { return al.Token.Literal }
 func (al *ArrayLiteral) String() string {
 	var out bytes.Buffer
-	elements := []string{}
-	for _, el := range al.Elements {
-		elements = append(elements, el.String())
+	elems := make([]string, 0, len(al.Elements))
+	for _, e := range al.Elements {
+		elems = append(elems, e.String())
 	}
 	out.WriteString("[")
-	out.WriteString(strings.Join(elements, ", "))
+	out.WriteString(strings.Join(elems, ", "))
 	out.WriteString("]")
 	return out.String()
 }

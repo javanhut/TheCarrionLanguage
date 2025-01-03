@@ -108,12 +108,12 @@ type Array struct {
 func (ao *Array) Type() ObjectType { return ARRAY_OBJ }
 func (ao *Array) Inspect() string {
 	var out bytes.Buffer
-	elements := []string{}
+	elems := make([]string, 0, len(ao.Elements))
 	for _, e := range ao.Elements {
-		elements = append(elements, e.Inspect())
+		elems = append(elems, e.Inspect())
 	}
 	out.WriteString("[")
-	out.WriteString(strings.Join(elements, ", "))
+	out.WriteString(strings.Join(elems, ", "))
 	out.WriteString("]")
 	return out.String()
 }

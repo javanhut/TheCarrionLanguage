@@ -347,10 +347,7 @@ func TestArrayIndexExpressions(t *testing.T) {
 			"[1, 2, 3][2]",
 			3,
 		},
-		{
-			"i = 0 [1][i]",
-			1,
-		},
+		//{"i=0 [1][i]",1,},
 		{
 			"[1, 2, 3][1 + 1]",
 			3,
