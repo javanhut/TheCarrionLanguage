@@ -3,5 +3,8 @@ b  = "2"
 
 spell add(x,y):
     return int(x) + int(y)
+spell multiply(x,y):
+    return int(x) * int(y)
 
-print("The result is " + string(add(a,b)))
+print("The result is " + string(add(a,b)) + "\n")
+print("The result is " + string(multiply(a, b)))
