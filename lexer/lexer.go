@@ -2,6 +2,7 @@
 package lexer
 
 import (
+	"bytes"
 	"unicode"
 
 	"thecarrionlanguage/token"
@@ -169,8 +170,9 @@ func (l *Lexer) NextToken() token.Token {
 			tok = newToken(token.GT, l.ch)
 		}
 	case '"':
-		tok.Type = token.STRING
-		tok.Literal = l.readString()
+		tok = token.Token{Type: token.STRING, Literal: l.readString()}
+		return tok
+
 	case 0:
 		// Emit remaining DEDENT tokens before EOF
 		if len(l.indentStack) > 1 {
@@ -213,14 +215,45 @@ func (l *Lexer) skipWhiteSpace() {
 }
 
 func (l *Lexer) readString() string {
-	position := l.position + 1
+	var out bytes.Buffer
+
+	// Skip the opening quote mark
+	l.readChar()
+
 	for {
-		l.readChar()
-		if l.ch == '"' || l.ch == 0 {
-			break
+		if l.ch == '"' {
+			// Found the closing quote
+			l.readChar() // Move past the closing quote
+			return out.String()
 		}
+
+		if l.ch == 0 {
+			// EOF before string termination
+			return out.String()
+		}
+
+		if l.ch == '\\' {
+			l.readChar()
+			switch l.ch {
+			case 'n':
+				out.WriteByte('\n')
+			case 't':
+				out.WriteByte('\t')
+			case 'r':
+				out.WriteByte('\r')
+			case '\\':
+				out.WriteByte('\\')
+			case '"':
+				out.WriteByte('"')
+			default:
+				out.WriteByte('\\')
+				out.WriteByte(byte(l.ch))
+			}
+		} else {
+			out.WriteByte(byte(l.ch))
+		}
+		l.readChar()
 	}
-	return l.input[position:l.position]
 }
 
 // emitNewline emits a NEWLINE token.

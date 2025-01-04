@@ -1,0 +1,7 @@
+a  = "1"
+b  = "2"
+
+spell add(x,y):
+    return int(x) + int(y)
+
+print("The result is " + string(add(a,b)))

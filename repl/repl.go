@@ -3,6 +3,7 @@ package repl
 import (
 	"fmt"
 	"io"
+	"os"
 	"strings"
 
 	"github.com/peterh/liner"
@@ -61,6 +62,21 @@ func Start(in io.Reader, out io.Writer) {
 	// 	line.ReadHistory(f)
 	// 	f.Close()
 	// }
+	if len(os.Args) > 1 {
+		filePath := os.Args[1]
+		if strings.HasSuffix(filePath, ".crl") {
+			err := ProcessFile(filePath, out, env)
+			if err != nil {
+				fmt.Fprintf(out, "Error processing file: %v\n", err)
+				return
+			}
+			return
+		} else {
+			fmt.Fprintln(out, "Unsupported file type. Only .crl files are allowed.")
+			return
+		}
+	}
+
 	var inputBuffer strings.Builder
 	isMultiline := false
 	currentIndentLevel := 0
@@ -226,4 +242,27 @@ func printParserErrors(out io.Writer, errors []string) {
 
 func clearScreen(out io.Writer) {
 	fmt.Fprint(out, "\033[H\033[2J")
+}
+
+func ProcessFile(filePath string, out io.Writer, env *object.Environment) error {
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		return fmt.Errorf("error reading file %s: %w", filePath, err)
+	}
+
+	// Tokenize, parse, and evaluate the file contents
+	l := lexer.New(string(content))
+	p := parser.New(l)
+	program := p.ParseProgram()
+
+	if len(p.Errors()) > 0 {
+		printParserErrors(out, p.Errors())
+		return fmt.Errorf("file %s contains syntax errors", filePath)
+	}
+
+	evaluated := evaluator.Eval(program, env)
+	if evaluated != nil {
+		fmt.Fprintf(out, "%s\n", evaluated.Inspect())
+	}
+	return nil
 }

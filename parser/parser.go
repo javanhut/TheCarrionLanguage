@@ -86,21 +86,13 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.BANG, p.parsePrefixExpression)
 	p.registerPrefix(token.PLUS_INCREMENT, p.parsePrefixExpression)
 	p.registerPrefix(token.MINUS_DECREMENT, p.parsePrefixExpression)
-	p.registerPrefix(token.LPAREN, p.parseGroupedExpression)
+	// p.registerPrefix(token.LPAREN, p.parseGroupedExpression)
 	p.registerPrefix(token.TRUE, p.parseBoolean)
 	p.registerPrefix(token.FALSE, p.parseBoolean)
 	p.registerPrefix(token.COLON, func() ast.Expression {
 		return nil
 	})
 
-	p.registerPrefix(token.LPAREN, func() ast.Expression {
-		if p.peekTokenIs(token.RPAREN) {
-			// Empty tuple
-			p.nextToken()
-			return &ast.TupleLiteral{Token: p.currToken, Elements: []ast.Expression{}}
-		}
-		return p.parseTupleLiteral()
-	})
 	p.registerPrefix(token.STRING, p.parseStringLiteral)
 	p.registerPrefix(token.LBRACK, p.parseArrayLiteral)
 	p.registerPrefix(token.LBRACE, p.parseHashLiteral)
@@ -108,6 +100,8 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.INDENT, func() ast.Expression { return nil })
 	p.registerPrefix(token.DEDENT, func() ast.Expression { return nil })
 	p.registerPrefix(token.EOF, func() ast.Expression { return nil })
+
+	p.registerPrefix(token.LPAREN, p.parseParenExpression)
 	// Register infix parsers
 	p.registerInfix(token.PLUS, p.parseInfixExpression)
 	p.registerInfix(token.MINUS, p.parseInfixExpression)
@@ -138,6 +132,58 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerStatement(token.SPELL, p.parseFunctionDefinition)
 
 	return p
+}
+
+func (p *Parser) parseParenExpression() ast.Expression {
+	// If next token is RPAREN => empty tuple
+	if p.peekTokenIs(token.RPAREN) {
+		p.nextToken() // consume ')'
+		return &ast.TupleLiteral{
+			Token:    p.currToken, // this is the ')'
+			Elements: []ast.Expression{},
+		}
+	}
+
+	// 1) Parse the first expression after '('
+	p.nextToken() // move past '(' to the first token inside
+	firstExpr := p.parseExpression(LOWEST)
+	if firstExpr == nil {
+		return nil
+	}
+
+	// 2) If we see a comma after parsing the first expression, parse the rest => it’s a tuple
+	if p.peekTokenIs(token.COMMA) {
+		// We already have one expression in `firstExpr`
+		elements := []ast.Expression{firstExpr}
+
+		// Parse remaining expressions separated by commas
+		for p.peekTokenIs(token.COMMA) {
+			p.nextToken() // consume the comma
+			p.nextToken() // move to the next expression
+			nextExpr := p.parseExpression(LOWEST)
+			if nextExpr != nil {
+				elements = append(elements, nextExpr)
+			}
+		}
+
+		// Expect closing parenthesis
+		if !p.expectPeek(token.RPAREN) {
+			return nil
+		}
+
+		// Return a tuple literal
+		return &ast.TupleLiteral{
+			Token:    p.currToken, // this is the ')'
+			Elements: elements,
+		}
+	}
+
+	// 3) Otherwise, we expect exactly one expression => grouped expression
+	if !p.expectPeek(token.RPAREN) {
+		return nil
+	}
+	// Return that single expression
+	return firstExpr
 }
 
 func (p *Parser) parseHashLiteral() ast.Expression {
@@ -372,27 +418,19 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 	prefix := p.prefixParseFns[p.currToken.Type]
 	if prefix == nil {
 		p.noPrefixParseFnError(p.currToken.Type)
-		fmt.Printf("Prefix function missing for token: %s\n", p.currToken.Literal)
 		return nil
 	}
 
 	leftExp := prefix()
 
-	for !p.peekTokenIs(token.NEWLINE) && precedence < p.peekPrecedence() {
-		if p.peekTokenIs(token.RPAREN) { // Stop at ')'
-			break
-		}
-
-		// Handle postfix operators
-		if postfixFn, ok := p.postfixParseFns[p.peekToken.Type]; ok {
-			p.nextToken()
-			leftExp = postfixFn(leftExp)
-			continue
-		}
+	// Changed this condition to check for SEMICOLON and EOF as well
+	for !p.peekTokenIs(token.NEWLINE) &&
+		!p.peekTokenIs(token.SEMICOLON) &&
+		!p.peekTokenIs(token.EOF) &&
+		precedence < p.peekPrecedence() {
 
 		infix := p.infixParseFns[p.peekToken.Type]
 		if infix == nil {
-			fmt.Printf("Infix function missing for token: %s\n", p.peekToken.Literal)
 			return leftExp
 		}
 
@@ -656,7 +694,7 @@ func (p *Parser) parseGroupedExpression() ast.Expression {
 
 func (p *Parser) parseCallExpression(function ast.Expression) ast.Expression {
 	exp := &ast.CallExpression{Token: p.currToken, Function: function}
-	exp.Arguments = p.parseExpressionList(token.RPAREN)
+	exp.Arguments = p.parseCallArguments()
 	return exp
 }
 
@@ -678,7 +716,6 @@ func (p *Parser) parseCallArguments() []ast.Expression {
 	}
 
 	if !p.expectPeek(token.RPAREN) {
-		p.peekError(token.RPAREN)
 		return nil
 	}
 
