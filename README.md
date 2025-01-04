@@ -33,7 +33,14 @@ spell foobar(x, y):
 - The interpreter works but OOP features haven't been implemented yet
 - No standard library yet but will be implemented with OOP
 - Programs can be written and parsed/evaluated via the interpreter 
+- Working REPL
 
+# Run REPL
+```bash
+go build .
+./thecarrionlanguage
+```
+- Note: Run thecarrionlanguage without a file to run REPL
 
 # Data Types Currently supported:
  - Arrays
@@ -73,9 +80,14 @@ File type:
 
 # Future Updates
 
-- OOP and classes
+- OOP and Classes
 - Standard Munin library
 - Build and alias the carrion language
+- Loops
+- File I/O
+- Imports
+- Built setup
+
 
 # Author
 - Javan Hutchinson
