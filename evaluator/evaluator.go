@@ -25,11 +25,15 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 	case *ast.IfStatement:
 		return evalIfExpression(node, env)
 	case *ast.PrefixExpression:
+		if node.Operator == "++" || node.Operator == "--" {
+			return evalPrefixIncrementDecrement(node.Operator, node, env)
+		}
 		right := Eval(node.Right, env)
 		if isError(right) {
 			return right
 		}
-		return evalPrefixExpression(node.Operator, right)
+		return evalPrefixExpression(node.Operator, node, env)
+
 	case *ast.InfixExpression:
 		right := Eval(node.Right, env)
 		if isError(right) {
@@ -45,11 +49,14 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		// fmt.Printf("InfixExpression result: %v\n", result)
 		return result
 	case *ast.PostfixExpression:
+		if node.Operator == "++" || node.Operator == "--" {
+			return evalPostfixIncrementDecrement(node.Operator, node, env)
+		}
 		left := Eval(node.Left, env)
 		if isError(left) {
 			return left
 		}
-		return evalPosfixExpression(node.Operator, left)
+		return evalPostfixExpression(node.Operator, node, env)
 		// Expressions
 	case *ast.IntegerLiteral:
 		return &object.Integer{Value: node.Value}
@@ -296,14 +303,20 @@ func nativeBoolToBooleanObject(input bool) *object.Boolean {
 	return FALSE
 }
 
-func evalPrefixExpression(operator string, right object.Object) object.Object {
+func evalPrefixExpression(
+	operator string,
+	node *ast.PrefixExpression,
+	env *object.Environment,
+) object.Object {
 	switch operator {
 	case "!":
-		return evalBangOperatorExpression(right)
+		right := Eval(node.Right, env)
+		return evalBangOperatorExpression(right, env)
 	case "-":
-		return evalMinusPrefixOperatorExpression(right)
+		right := Eval(node.Right, env)
+		return evalMinusPrefixOperatorExpression(right, env)
 	default:
-		return newError("unknown operator: %s%s", operator, right.Type())
+		return newError("unknown operator: %s%s", operator, Eval(node.Right, env).Type())
 	}
 }
 
@@ -377,18 +390,108 @@ func evalBooleanInfixExpression(operator string, left, right object.Object) obje
 	}
 }
 
-func evalPosfixExpression(operator string, left object.Object) object.Object {
-	switch operator {
-	case "++":
-		return evalIncrementOperatorExpression(left)
-	case "--":
-		return evalDecrementOperatorExpression(left)
+func evalPostfixIncrementDecrement(
+	operator string,
+	node *ast.PostfixExpression,
+	env *object.Environment,
+) object.Object {
+	switch operand := node.Left.(type) {
+	case *ast.Identifier:
+		// Handle identifiers by modifying the environment variable
+		obj, ok := env.Get(operand.Value)
+		if !ok {
+			return newError("undefined variable '%s'", operand.Value)
+		}
+
+		if obj.Type() != object.INTEGER_OBJ {
+			return newError("cannot apply postfix '%s' operator to non-integer variable '%s'", operator, operand.Value)
+		}
+
+		intObj := obj.(*object.Integer)
+		oldValue := intObj.Value // Store the old value
+
+		if operator == "++" {
+			intObj.Value++
+		} else if operator == "--" {
+			intObj.Value--
+		}
+
+		env.Set(operand.Value, intObj)
+		return &object.Integer{Value: oldValue} // Return the old value
+
+	case *ast.IntegerLiteral:
+		// Handle integer literals by performing the operation and returning the new value
+		newValue := operand.Value
+		if operator == "++" {
+			newValue++
+		} else if operator == "--" {
+			newValue--
+		}
+		// Note: Literals cannot be modified in the environment, so we just return the new value
+		return &object.Integer{Value: newValue}
+
 	default:
-		return NONE
+		return newError("postfix '%s' operator requires an integer or identifier", operator)
 	}
 }
 
-func evalBangOperatorExpression(right object.Object) object.Object {
+func evalPrefixIncrementDecrement(
+	operator string,
+	node *ast.PrefixExpression,
+	env *object.Environment,
+) object.Object {
+	switch operand := node.Right.(type) {
+	case *ast.Identifier:
+		// Handle identifiers by modifying the environment variable
+		obj, ok := env.Get(operand.Value)
+		if !ok {
+			return newError("undefined variable '%s'", operand.Value)
+		}
+
+		if obj.Type() != object.INTEGER_OBJ {
+			return newError("cannot apply prefix '%s' operator to non-integer variable '%s'", operator, operand.Value)
+		}
+
+		intObj := obj.(*object.Integer)
+
+		if operator == "++" {
+			intObj.Value++
+		} else if operator == "--" {
+			intObj.Value--
+		}
+
+		env.Set(operand.Value, intObj)
+		return intObj // Return the new value
+
+	case *ast.IntegerLiteral:
+		// Handle integer literals by performing the operation and returning the new value
+		newValue := operand.Value
+		if operator == "++" {
+			newValue++
+		} else if operator == "--" {
+			newValue--
+		}
+		return &object.Integer{Value: newValue}
+
+	default:
+		return newError("prefix '%s' operator requires an integer or identifier", operator)
+	}
+}
+
+func evalPostfixExpression(
+	operator string,
+	node *ast.PostfixExpression,
+	env *object.Environment,
+) object.Object {
+	switch operator {
+	case "++", "--":
+		return evalPostfixIncrementDecrement(operator, node, env)
+	default:
+		return newError("unknown operator: %s", operator)
+	}
+}
+
+func evalBangOperatorExpression(right object.Object, env *object.Environment) object.Object {
 	switch right {
 	case TRUE:
 		return FALSE
@@ -401,12 +504,18 @@ func evalBangOperatorExpression(right object.Object) object.Object {
 	}
 }
 
-func evalMinusPrefixOperatorExpression(right object.Object) object.Object {
-	if right.Type() != object.INTEGER_OBJ {
+func evalMinusPrefixOperatorExpression(right object.Object, env *object.Environment) object.Object {
+	if right.Type() != object.INTEGER_OBJ && right.Type() != object.FLOAT_OBJ {
 		return newError("unknown operator: -%s", right.Type())
 	}
-	value := right.(*object.Integer).Value
-	return &object.Integer{Value: -value}
+	switch right := right.(type) {
+	case *object.Integer:
+		return &object.Integer{Value: -right.Value}
+	case *object.Float:
+		return &object.Float{Value: -right.Value}
+	default:
+		return newError("unknown type for minus operator: %s", right.Type())
+	}
 }
 
 func evalIncrementOperatorExpression(side object.Object) object.Object {

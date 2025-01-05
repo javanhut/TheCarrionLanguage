@@ -24,7 +24,7 @@ Currently the language is in development.
 
 ## Fun things I'm doing to the language.
 2 types of increments are accepted the 
-* c style: i++
+* go style: ++i
 and
 * python style: i += 1
 
