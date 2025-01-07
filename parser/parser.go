@@ -331,6 +331,8 @@ func (p *Parser) parseStatement() ast.Statement {
 	case token.ELSE:
 		p.errors = append(p.errors, "Unexpected 'else' without matching 'if'")
 		return nil
+	case token.WHILE:
+		return p.parseWhileStatement()
 	default:
 		if fn, ok := p.statementParseFns[p.currToken.Type]; ok {
 			return fn()
@@ -724,6 +726,8 @@ func (p *Parser) parseCallArguments() []ast.Expression {
 
 func (p *Parser) parseForStatement() ast.Statement {
 	stmt := &ast.ForStatement{Token: p.currToken}
+
+	// Parse loop variable
 	if !p.expectPeek(token.IDENT) {
 		return nil
 	}
@@ -732,43 +736,54 @@ func (p *Parser) parseForStatement() ast.Statement {
 		Value: p.currToken.Literal,
 	}
 
+	// Expect the 'in' keyword
 	if !p.expectPeek(token.IN) {
 		return nil
 	}
 
+	// Parse the iterable expression
 	p.nextToken()
 	stmt.Iterable = p.parseExpression(LOWEST)
 
+	// Expect colon after the iterable
 	if !p.expectPeek(token.COLON) {
 		return nil
 	}
 
-	if !p.expectPeek(token.NEWLINE) {
-		return nil
-	}
-
-	if !p.expectPeek(token.INDENT) {
-		return nil
-	}
-
-	stmt.Body = p.parseBlockStatement()
-
-	if p.peekTokenIs(token.ELSE) {
-		p.nextToken()
-
-		if !p.expectPeek(token.COLON) {
-			return nil
-		}
-
-		if !p.expectPeek(token.NEWLINE) {
-			return nil
-		}
-
+	// Parse loop body
+	if p.peekTokenIs(token.NEWLINE) {
+		p.nextToken() // consume NEWLINE
 		if !p.expectPeek(token.INDENT) {
 			return nil
 		}
+		stmt.Body = p.parseBlockStatement()
+	} else {
+		p.nextToken()
+		stmt.Body = &ast.BlockStatement{
+			Token:      p.currToken,
+			Statements: []ast.Statement{p.parseStatement()},
+		}
+	}
 
-		stmt.Alternative = p.parseBlockStatement()
+	// Parse optional else block
+	if p.peekTokenIs(token.ELSE) {
+		p.nextToken()
+		if !p.expectPeek(token.COLON) {
+			return nil
+		}
+		if p.peekTokenIs(token.NEWLINE) {
+			p.nextToken() // consume NEWLINE
+			if !p.expectPeek(token.INDENT) {
+				return nil
+			}
+			stmt.Alternative = p.parseBlockStatement()
+		} else {
+			p.nextToken()
+			stmt.Alternative = &ast.BlockStatement{
+				Token:      p.currToken,
+				Statements: []ast.Statement{p.parseStatement()},
+			}
+		}
 	}
 
 	return stmt
@@ -846,4 +861,42 @@ func (p *Parser) parseFunctionParameters() []*ast.Identifier {
 	}
 
 	return identifiers
+}
+
+func (p *Parser) parseWhileStatement() ast.Statement {
+	stmt := &ast.WhileStatement{Token: p.currToken}
+
+	// Parse the condition
+	if p.peekTokenIs(token.LPAREN) {
+		p.nextToken() // consume '('
+		p.nextToken() // advance into condition
+		stmt.Condition = p.parseExpression(LOWEST)
+		if !p.expectPeek(token.RPAREN) {
+			return nil
+		}
+	} else {
+		p.nextToken()
+		stmt.Condition = p.parseExpression(LOWEST)
+	}
+
+	// Expect a colon after condition
+	if !p.expectPeek(token.COLON) {
+		return nil
+	}
+
+	// Parse the loop body
+	if p.peekTokenIs(token.NEWLINE) {
+		p.nextToken() // consume NEWLINE
+		if !p.expectPeek(token.INDENT) {
+			return nil
+		}
+		stmt.Body = p.parseBlockStatement()
+	} else {
+		p.nextToken() // move to the statement after ':'
+		stmt.Body = &ast.BlockStatement{
+			Token:      p.currToken,
+			Statements: []ast.Statement{p.parseStatement()},
+		}
+	}
+	return stmt
 }

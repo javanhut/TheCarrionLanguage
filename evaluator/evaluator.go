@@ -76,6 +76,11 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 			return val
 		}
 		env.Set(node.Name.Value, val)
+	case *ast.WhileStatement:
+		return evalWhileStatement(node, env)
+	case *ast.ForStatement:
+		return evalForStatement(node, env)
+
 	case *ast.Identifier:
 		return evalIdentifier(node, env)
 	case *ast.ArrayLiteral:
@@ -618,4 +623,57 @@ func newError(format string, a ...interface{}) *object.Error {
 
 func isError(obj object.Object) bool {
 	return obj != nil && obj.Type() == object.ERROR_OBJ
+}
+
+func evalWhileStatement(ws *ast.WhileStatement, env *object.Environment) object.Object {
+	var result object.Object = NONE
+	for {
+		condition := Eval(ws.Condition, env)
+		if isError(condition) {
+			return condition
+		}
+		if !isTruthy(condition) {
+			break
+		}
+		result = Eval(ws.Body, env)
+		if result != nil {
+			rt := result.Type()
+			if rt == object.RETURN_VALUE_OBJ || rt == object.ERROR_OBJ {
+				return result
+			}
+		}
+	}
+	return result
+}
+
+func evalForStatement(fs *ast.ForStatement, env *object.Environment) object.Object {
+	iterable := Eval(fs.Iterable, env)
+	if isError(iterable) {
+		return iterable
+	}
+
+	var result object.Object = NONE
+
+	switch iter := iterable.(type) {
+	case *object.Array:
+		for _, elem := range iter.Elements {
+			env.Set(fs.Variable.Value, elem)
+			result = Eval(fs.Body, env)
+			if result != nil {
+				rt := result.Type()
+				if rt == object.RETURN_VALUE_OBJ || rt == object.ERROR_OBJ {
+					return result
+				}
+			}
+		}
+	default:
+		return newError("unsupported iterable type: %s", iterable.Type())
+	}
+
+	// Handle optional else block
+	if fs.Alternative != nil {
+		result = Eval(fs.Alternative, env)
+	}
+
+	return result
 }

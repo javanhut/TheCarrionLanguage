@@ -112,8 +112,8 @@ type OtherwiseBranch struct {
 
 type ForStatement struct {
 	Token       token.Token
-	Variable    *Identifier
-	Iterable    Expression
+	Variable    *Identifier // Loop variable
+	Iterable    Expression  // Iterable expression (e.g., range())
 	Body        *BlockStatement
 	Alternative *BlockStatement
 }
@@ -162,5 +162,22 @@ func (fd *FunctionDefinition) String() string {
 	out.WriteString("):\n")
 	out.WriteString(fd.Body.String())
 
+	return out.String()
+}
+
+type WhileStatement struct {
+	Token     token.Token // The 'while' token
+	Condition Expression
+	Body      *BlockStatement
+}
+
+func (ws *WhileStatement) statementNode()       {}
+func (ws *WhileStatement) TokenLiteral() string { return ws.Token.Literal }
+func (ws *WhileStatement) String() string {
+	var out strings.Builder
+	out.WriteString("while ")
+	out.WriteString(ws.Condition.String())
+	out.WriteString(":\n")
+	out.WriteString(ws.Body.String())
 	return out.String()
 }
