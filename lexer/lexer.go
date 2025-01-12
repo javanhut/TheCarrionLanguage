@@ -197,7 +197,7 @@ func (l *Lexer) NextToken() token.Token {
 			tok = newToken(token.ILLEGAL, l.ch)
 		}
 	}
-	fmt.Printf("[DEBUG] NextToken -> Type: %s, Literal: %q\n", tok.Type, tok.Literal)
+	// fmt.Printf("[DEBUG] NextToken -> Type: %s, Literal: %q\n", tok.Type, tok.Literal)
 
 	l.readChar()
 	return tok
