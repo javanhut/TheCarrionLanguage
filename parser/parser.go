@@ -424,22 +424,25 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 	}
 
 	leftExp := prefix()
-
-	// Changed this condition to check for SEMICOLON and EOF as well
 	for !p.peekTokenIs(token.NEWLINE) &&
 		!p.peekTokenIs(token.SEMICOLON) &&
 		!p.peekTokenIs(token.EOF) &&
 		precedence < p.peekPrecedence() {
 
-		infix := p.infixParseFns[p.peekToken.Type]
-		if infix == nil {
+		if postfixFn, ok := p.postfixParseFns[p.peekToken.Type]; ok {
+			p.nextToken()
+			leftExp = postfixFn(leftExp)
+			continue
+		}
+
+		infixFn := p.infixParseFns[p.peekToken.Type]
+		if infixFn == nil {
 			return leftExp
 		}
 
 		p.nextToken()
-		leftExp = infix(leftExp)
+		leftExp = infixFn(leftExp)
 	}
-
 	return leftExp
 }
 
@@ -514,13 +517,11 @@ func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
 }
 
 func (p *Parser) parsePostfixExpression(left ast.Expression) ast.Expression {
-	expression := &ast.PostfixExpression{
-		Token:    p.currToken,
+	return &ast.PostfixExpression{
+		Token:    p.currToken, // The `++` token
 		Operator: p.currToken.Literal,
 		Left:     left,
 	}
-
-	return expression
 }
 
 func (p *Parser) parseIfStatement() ast.Statement {
@@ -884,15 +885,17 @@ func (p *Parser) parseWhileStatement() ast.Statement {
 		return nil
 	}
 
-	// Parse the loop body
+	// Parse loop body
 	if p.peekTokenIs(token.NEWLINE) {
+		// MULTI-LINE body
 		p.nextToken() // consume NEWLINE
 		if !p.expectPeek(token.INDENT) {
 			return nil
 		}
 		stmt.Body = p.parseBlockStatement()
 	} else {
-		p.nextToken() // move to the statement after ':'
+		// SINGLE-LINE body
+		p.nextToken()
 		stmt.Body = &ast.BlockStatement{
 			Token:      p.currToken,
 			Statements: []ast.Statement{p.parseStatement()},

@@ -49,14 +49,7 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		// fmt.Printf("InfixExpression result: %v\n", result)
 		return result
 	case *ast.PostfixExpression:
-		if node.Operator == "++" || node.Operator == "--" {
-			return evalPostfixIncrementDecrement(node.Operator, node, env)
-		}
-		left := Eval(node.Left, env)
-		if isError(left) {
-			return left
-		}
-		return evalPostfixExpression(node.Operator, node, env)
+		return evalPostfixIncrementDecrement(node.Operator, node, env)
 		// Expressions
 	case *ast.IntegerLiteral:
 		return &object.Integer{Value: node.Value}
@@ -395,51 +388,6 @@ func evalBooleanInfixExpression(operator string, left, right object.Object) obje
 	}
 }
 
-func evalPostfixIncrementDecrement(
-	operator string,
-	node *ast.PostfixExpression,
-	env *object.Environment,
-) object.Object {
-	switch operand := node.Left.(type) {
-	case *ast.Identifier:
-		// Handle identifiers by modifying the environment variable
-		obj, ok := env.Get(operand.Value)
-		if !ok {
-			return newError("undefined variable '%s'", operand.Value)
-		}
-
-		if obj.Type() != object.INTEGER_OBJ {
-			return newError("cannot apply postfix '%s' operator to non-integer variable '%s'", operator, operand.Value)
-		}
-
-		intObj := obj.(*object.Integer)
-		oldValue := intObj.Value // Store the old value
-
-		if operator == "++" {
-			intObj.Value++
-		} else if operator == "--" {
-			intObj.Value--
-		}
-
-		env.Set(operand.Value, intObj)
-		return &object.Integer{Value: oldValue} // Return the old value
-
-	case *ast.IntegerLiteral:
-		// Handle integer literals by performing the operation and returning the new value
-		newValue := operand.Value
-		if operator == "++" {
-			newValue++
-		} else if operator == "--" {
-			newValue--
-		}
-		// Note: Literals cannot be modified in the environment, so we just return the new value
-		return &object.Integer{Value: newValue}
-
-	default:
-		return newError("postfix '%s' operator requires an integer or identifier", operator)
-	}
-}
-
 func evalPrefixIncrementDecrement(
 	operator string,
 	node *ast.PrefixExpression,
@@ -447,39 +395,66 @@ func evalPrefixIncrementDecrement(
 ) object.Object {
 	switch operand := node.Right.(type) {
 	case *ast.Identifier:
-		// Handle identifiers by modifying the environment variable
 		obj, ok := env.Get(operand.Value)
 		if !ok {
 			return newError("undefined variable '%s'", operand.Value)
 		}
 
-		if obj.Type() != object.INTEGER_OBJ {
-			return newError("cannot apply prefix '%s' operator to non-integer variable '%s'", operator, operand.Value)
+		intObj, ok := obj.(*object.Integer)
+		if !ok {
+			return newError("prefix '%s' operator requires an integer variable '%s'", operator, operand.Value)
 		}
 
-		intObj := obj.(*object.Integer)
-
 		if operator == "++" {
-			intObj.Value++
+			intObj.Value += 1
 		} else if operator == "--" {
-			intObj.Value--
+			intObj.Value -= 1
 		}
 
 		env.Set(operand.Value, intObj)
-		return intObj // Return the new value
-
-	case *ast.IntegerLiteral:
-		// Handle integer literals by performing the operation and returning the new value
-		newValue := operand.Value
-		if operator == "++" {
-			newValue++
-		} else if operator == "--" {
-			newValue--
-		}
-		return &object.Integer{Value: newValue}
+		return intObj
 
 	default:
 		return newError("prefix '%s' operator requires an integer or identifier", operator)
+	}
+}
+
+func evalPostfixIncrementDecrement(
+	operator string,
+	node *ast.PostfixExpression,
+	env *object.Environment,
+) object.Object {
+	switch operand := node.Left.(type) {
+	case *ast.Identifier:
+		// Fetch the variable from the environment
+		obj, ok := env.Get(operand.Value)
+		if !ok {
+			return newError("undefined variable '%s'", operand.Value)
+		}
+
+		intObj, ok := obj.(*object.Integer)
+		if !ok {
+			return newError("postfix '%s' operator requires an integer variable '%s'", operator, operand.Value)
+		}
+
+		// Store the old value to return
+		oldValue := intObj.Value
+
+		// Increment or decrement the value
+		if operator == "++" {
+			intObj.Value += 1
+		} else if operator == "--" {
+			intObj.Value -= 1
+		}
+
+		// Update the environment with the new value
+		env.Set(operand.Value, intObj)
+
+		// Return the old value (postfix behavior)
+		return &object.Integer{Value: oldValue}
+
+	default:
+		return newError("postfix '%s' operator requires an integer or identifier", operator)
 	}
 }
 
@@ -604,7 +579,7 @@ func evalIfExpression(ie *ast.IfStatement, env *object.Environment) object.Objec
 	return NONE
 }
 
-func isTruthy(obj object.Object) bool {
+/*func isTruthy(obj object.Object) bool {
 	switch obj {
 	case NONE:
 		return false
@@ -615,7 +590,7 @@ func isTruthy(obj object.Object) bool {
 	default:
 		return true
 	}
-}
+}*/
 
 func newError(format string, a ...interface{}) *object.Error {
 	return &object.Error{Message: fmt.Sprintf(format, a...)}
@@ -625,25 +600,43 @@ func isError(obj object.Object) bool {
 	return obj != nil && obj.Type() == object.ERROR_OBJ
 }
 
-func evalWhileStatement(ws *ast.WhileStatement, env *object.Environment) object.Object {
-	var result object.Object = NONE
+func evalWhileStatement(node *ast.WhileStatement, env *object.Environment) object.Object {
 	for {
-		condition := Eval(ws.Condition, env)
+		// Re-evaluate the condition in the current environment
+		condition := Eval(node.Condition, env)
 		if isError(condition) {
 			return condition
 		}
+
+		// Stop loop if condition evaluates to FALSE
 		if !isTruthy(condition) {
 			break
 		}
-		result = Eval(ws.Body, env)
+
+		// Evaluate the body
+		result := Eval(node.Body, env)
 		if result != nil {
-			rt := result.Type()
-			if rt == object.RETURN_VALUE_OBJ || rt == object.ERROR_OBJ {
+			if returnValue, ok := result.(*object.ReturnValue); ok {
+				return returnValue
+			}
+			if result.Type() == object.ERROR_OBJ {
 				return result
 			}
 		}
 	}
-	return result
+
+	return NONE
+}
+
+func isTruthy(obj object.Object) bool {
+	switch obj {
+	case TRUE:
+		return true
+	case FALSE, NONE:
+		return false
+	default:
+		return true
+	}
 }
 
 func evalForStatement(fs *ast.ForStatement, env *object.Environment) object.Object {
