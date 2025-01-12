@@ -2,8 +2,7 @@
 package lexer
 
 import (
-	"bytes"
-	"fmt"
+	"bytes" //"fmt"
 	"unicode"
 
 	"thecarrionlanguage/token"
