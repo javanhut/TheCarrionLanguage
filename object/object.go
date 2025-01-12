@@ -29,6 +29,7 @@ const (
 	BUILTIN_OBJ      = "BUILTIN"
 	HASH_OBJ         = "HASH"
 	TUPLE_OBJ        = "TUPLE"
+	SPELLBOOK_OBJ    = "SPELLBOOK"
 )
 
 type Integer struct {
@@ -194,5 +195,21 @@ func (t *Tuple) Inspect() string {
 	out.WriteString("(")
 	out.WriteString(strings.Join(elems, ", "))
 	out.WriteString(")")
+	return out.String()
+}
+
+type Spellbook struct {
+	Name    string
+	Methods map[string]*Function
+}
+
+func (s *Spellbook) Type() ObjectType { return "SPELLBOOK" }
+func (s *Spellbook) Inspect() string {
+	var out bytes.Buffer
+	out.WriteString(fmt.Sprintf("spellbook %s {\n", s.Name))
+	for name, method := range s.Methods {
+		out.WriteString(fmt.Sprintf("  %s: %s\n", name, method.Inspect()))
+	}
+	out.WriteString("}")
 	return out.String()
 }

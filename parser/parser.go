@@ -57,15 +57,22 @@ type (
 )
 
 type Parser struct {
-	l         *lexer.Lexer
-	currToken token.Token
-	peekToken token.Token
-	errors    []string
-
+	l                 *lexer.Lexer
+	currToken         token.Token
+	peekToken         token.Token
+	errors            []string
+	contextStack      []string
 	prefixParseFns    map[token.TokenType]prefixParseFn
 	infixParseFns     map[token.TokenType]infixParseFn
 	postfixParseFns   map[token.TokenType]postfixParseFn
 	statementParseFns map[token.TokenType]func() ast.Statement
+}
+
+func (p *Parser) isInsideSpellbook() bool {
+	if len(p.contextStack) == 0 {
+		return false
+	}
+	return p.contextStack[len(p.contextStack)-1] == "spellbook"
 }
 
 func New(l *lexer.Lexer) *Parser {
@@ -333,6 +340,13 @@ func (p *Parser) parseStatement() ast.Statement {
 		return nil
 	case token.WHILE:
 		return p.parseWhileStatement()
+	case token.SPELLBOOK:
+		return p.parseSpellbookDefinition()
+	case token.SPELL:
+		if p.isInsideSpellbook() {
+			return p.parseSpellDefinition()
+		}
+		return p.parseFunctionDefinition()
 	default:
 		if fn, ok := p.statementParseFns[p.currToken.Type]; ok {
 			return fn()
@@ -901,5 +915,76 @@ func (p *Parser) parseWhileStatement() ast.Statement {
 			Statements: []ast.Statement{p.parseStatement()},
 		}
 	}
+	return stmt
+}
+
+func (p *Parser) parseSpellbookDefinition() ast.Statement {
+	stmt := &ast.SpellbookDefinition{Token: p.currToken}
+
+	// Expect spellbook name
+	if !p.expectPeek(token.IDENT) {
+		return nil
+	}
+	stmt.Name = &ast.Identifier{Token: p.currToken, Value: p.currToken.Literal}
+
+	// Expect colon
+	if !p.expectPeek(token.COLON) {
+		return nil
+	}
+
+	// Handle indented block
+	if !p.expectPeek(token.NEWLINE) || !p.expectPeek(token.INDENT) {
+		return nil
+	}
+
+	stmt.Spells = []*ast.SpellDefinition{}
+	p.contextStack = append(p.contextStack, "spellbook")
+	for !p.currTokenIs(token.DEDENT) && !p.currTokenIs(token.EOF) {
+		if p.currTokenIs(token.SPELL) {
+			spell := p.parseSpellDefinition()
+			if spell != nil {
+				stmt.Spells = append(stmt.Spells, spell)
+			}
+		} else {
+			p.nextToken()
+		}
+	}
+	p.contextStack = p.contextStack[:len(p.contextStack)-1]
+
+	return stmt
+}
+
+func (p *Parser) parseSpellDefinition() *ast.SpellDefinition {
+	stmt := &ast.SpellDefinition{Token: p.currToken}
+
+	// Expect spell name
+	if !p.expectPeek(token.IDENT) {
+		return nil
+	}
+	stmt.Name = &ast.Identifier{Token: p.currToken, Value: p.currToken.Literal}
+
+	// Expect parameter list
+	if !p.expectPeek(token.LPAREN) {
+		return nil
+	}
+	stmt.Parameters = p.parseFunctionParameters()
+
+	// Expect colon
+	if !p.expectPeek(token.COLON) {
+		return nil
+	}
+
+	// Handle block
+	if p.peekTokenIs(token.NEWLINE) {
+		p.nextToken() // Consume newline
+		if !p.expectPeek(token.INDENT) {
+			return nil
+		}
+		stmt.Body = p.parseBlockStatement()
+	} else {
+		p.errors = append(p.errors, "expected indented block after 'spell'")
+		return nil
+	}
+
 	return stmt
 }

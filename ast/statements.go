@@ -181,3 +181,48 @@ func (ws *WhileStatement) String() string {
 	out.WriteString(ws.Body.String())
 	return out.String()
 }
+
+type SpellbookDefinition struct {
+	Token  token.Token // 'spellbook' token
+	Name   *Identifier
+	Spells []*SpellDefinition
+}
+
+func (sb *SpellbookDefinition) statementNode()       {}
+func (sb *SpellbookDefinition) TokenLiteral() string { return sb.Token.Literal }
+func (sb *SpellbookDefinition) String() string {
+	var out bytes.Buffer
+	out.WriteString("spellbook ")
+	out.WriteString(sb.Name.String())
+	out.WriteString(":\n")
+	for _, spell := range sb.Spells {
+		out.WriteString("    ")
+		out.WriteString(spell.String())
+		out.WriteString("\n")
+	}
+	return out.String()
+}
+
+type SpellDefinition struct {
+	Token      token.Token // 'spell' token
+	Name       *Identifier
+	Parameters []*Identifier
+	Body       *BlockStatement
+}
+
+func (s *SpellDefinition) statementNode()       {}
+func (s *SpellDefinition) TokenLiteral() string { return s.Token.Literal }
+func (s *SpellDefinition) String() string {
+	var out bytes.Buffer
+	out.WriteString("spell ")
+	out.WriteString(s.Name.String())
+	out.WriteString("(")
+	params := []string{}
+	for _, p := range s.Parameters {
+		params = append(params, p.String())
+	}
+	out.WriteString(strings.Join(params, ", "))
+	out.WriteString("):\n")
+	out.WriteString(s.Body.String())
+	return out.String()
+}

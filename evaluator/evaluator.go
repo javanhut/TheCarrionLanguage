@@ -2,6 +2,7 @@ package evaluator
 
 import (
 	"fmt"
+	"strings"
 
 	"thecarrionlanguage/ast"
 	"thecarrionlanguage/object"
@@ -108,20 +109,54 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 			return index
 		}
 		return evalIndexExpression(left, index)
+	case *ast.SpellbookDefinition:
+		methods := make(map[string]*object.Function)
+		for _, spell := range node.Spells {
+			fn := &object.Function{
+				Parameters: spell.Parameters,
+				Body:       spell.Body,
+				Env:        env,
+			}
+			methods[spell.Name.Value] = fn
+		}
+		spellbook := &object.Spellbook{
+			Name:    node.Name.Value,
+			Methods: methods,
+		}
+		env.Set(node.Name.Value, spellbook)
+		return spellbook
 
 	case *ast.CallExpression:
-		function := Eval(node.Function, env)
-		if isError(function) {
-			return function
+		if identifier, ok := node.Function.(*ast.Identifier); ok && strings.Contains(identifier.Value, ".") {
+			parts := strings.Split(identifier.Value, ".")
+			if len(parts) == 2 {
+				spellbookName := parts[0]
+				spellName := parts[1]
+
+				// Get the spellbook
+				spellbookObj, ok := env.Get(spellbookName)
+				if !ok {
+					return newError("undefined spellbook: %s", spellbookName)
+				}
+				spellbook, ok := spellbookObj.(*object.Spellbook)
+				if !ok {
+					return newError("%s is not a spellbook", spellbookName)
+				}
+
+				// Get the spell
+				spell, ok := spellbook.Methods[spellName]
+				if !ok {
+					return newError("undefined spell: %s in spellbook %s", spellName, spellbookName)
+				}
+
+				// Apply the spell
+				args := evalExpressions(node.Arguments, env)
+				if len(args) == 1 && isError(args[0]) {
+					return args[0]
+				}
+				return applyFunction(spell, args)
+			}
 		}
-
-		args := evalExpressions(node.Arguments, env)
-		if len(args) == 1 && isError(args[0]) {
-			return args[0]
-		}
-
-		return applyFunction(function, args)
-
 	}
 	return NONE
 }
