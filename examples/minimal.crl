@@ -1,0 +1,5 @@
+x = 0
+while x < 3:
+  print("Before increment: " + string(x))
+  x = x + 1
+  print("After increment: " + string(x))

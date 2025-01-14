@@ -682,9 +682,9 @@ func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 	block.Statements = []ast.Statement{}
 
 	// Consume the INDENT token
-	if p.currTokenIs(token.INDENT) {
+	/*if p.currTokenIs(token.INDENT) {
 		p.nextToken()
-	}
+	}*/
 
 	for !p.currTokenIs(token.DEDENT) && !p.currTokenIs(token.EOF) {
 		stmt := p.parseStatement()
@@ -879,42 +879,40 @@ func (p *Parser) parseFunctionParameters() []*ast.Identifier {
 }
 
 func (p *Parser) parseWhileStatement() ast.Statement {
+	// Create an empty WhileStatement node.
 	stmt := &ast.WhileStatement{Token: p.currToken}
 
-	// Parse the condition
+	// 1) Parse the condition
 	if p.peekTokenIs(token.LPAREN) {
-		p.nextToken() // consume '('
-		p.nextToken() // advance into condition
+		p.nextToken() // skip '('
+		p.nextToken() // move to first token in condition
 		stmt.Condition = p.parseExpression(LOWEST)
+		// Expect closing parenthesis
 		if !p.expectPeek(token.RPAREN) {
 			return nil
 		}
 	} else {
-		p.nextToken()
+		p.nextToken() // move to the expression start
 		stmt.Condition = p.parseExpression(LOWEST)
 	}
 
-	// Expect a colon after condition
+	// 2) Expect a colon
 	if !p.expectPeek(token.COLON) {
 		return nil
 	}
-
-	// Parse loop body
-	if p.peekTokenIs(token.NEWLINE) {
-		// MULTI-LINE body
-		p.nextToken() // consume NEWLINE
-		if !p.expectPeek(token.INDENT) {
-			return nil
-		}
-		stmt.Body = p.parseBlockStatement()
-	} else {
-		// SINGLE-LINE body
-		p.nextToken()
-		stmt.Body = &ast.BlockStatement{
-			Token:      p.currToken,
-			Statements: []ast.Statement{p.parseStatement()},
-		}
+	// 3) Consume optional newline(s)
+	// -------------------------
+	for p.peekTokenIs(token.NEWLINE) {
+		p.nextToken() // skip the newline
 	}
+
+	if p.peekTokenIs(token.INDENT) {
+		p.nextToken()                       // consume INDENT
+		stmt.Body = p.parseBlockStatement() // parse statements until DEDENT
+	} else {
+		stmt.Body = p.parseBlockStatement()
+	}
+
 	return stmt
 }
 

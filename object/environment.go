@@ -1,18 +1,16 @@
 package object
 
+// environment.go
 type Environment struct {
 	store map[string]Object
 	outer *Environment
 }
 
 func NewEnvironment() *Environment {
-	return &Environment{
-		store: make(map[string]Object),
-		outer: nil,
-	}
+	s := make(map[string]Object)
+	return &Environment{store: s, outer: nil}
 }
 
-// Add this function to create an environment that encloses another
 func NewEnclosedEnvironment(outer *Environment) *Environment {
 	env := NewEnvironment()
 	env.outer = outer
@@ -22,7 +20,7 @@ func NewEnclosedEnvironment(outer *Environment) *Environment {
 func (e *Environment) Get(name string) (Object, bool) {
 	obj, ok := e.store[name]
 	if !ok && e.outer != nil {
-		return e.outer.Get(name)
+		obj, ok = e.outer.Get(name)
 	}
 	return obj, ok
 }
@@ -30,4 +28,12 @@ func (e *Environment) Get(name string) (Object, bool) {
 func (e *Environment) Set(name string, val Object) Object {
 	e.store[name] = val
 	return val
+}
+
+func (e *Environment) GetNames() []string {
+	names := make([]string, 0)
+	for name := range e.store {
+		names = append(names, name)
+	}
+	return names
 }

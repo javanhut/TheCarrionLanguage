@@ -470,33 +470,37 @@ func evalPostfixIncrementDecrement(
 ) object.Object {
 	switch operand := node.Left.(type) {
 	case *ast.Identifier:
-		// Fetch the variable from the environment
+		// Get the current value from environment
 		obj, ok := env.Get(operand.Value)
 		if !ok {
 			return newError("undefined variable '%s'", operand.Value)
 		}
 
+		// Make sure it's an integer
 		intObj, ok := obj.(*object.Integer)
 		if !ok {
 			return newError("postfix '%s' operator requires an integer variable '%s'", operator, operand.Value)
 		}
 
-		// Store the old value to return
+		// Store old value to return (postfix behavior)
 		oldValue := intObj.Value
 
-		// Increment or decrement the value
+		// Create new value
+		var newValue int64
 		if operator == "++" {
-			intObj.Value += 1
+			newValue = oldValue + 1
 		} else if operator == "--" {
-			intObj.Value -= 1
+			newValue = oldValue - 1
 		}
 
-		// Update the environment with the new value
-		env.Set(operand.Value, intObj)
+		// Create new integer object and set it
+		newObj := &object.Integer{Value: newValue}
 
-		// Return the old value (postfix behavior)
+		// Update in current environment
+		env.Set(operand.Value, newObj)
+
+		// Return the original value (postfix behavior)
 		return &object.Integer{Value: oldValue}
-
 	default:
 		return newError("postfix '%s' operator requires an integer or identifier", operator)
 	}
@@ -623,19 +627,6 @@ func evalIfExpression(ie *ast.IfStatement, env *object.Environment) object.Objec
 	return NONE
 }
 
-/*func isTruthy(obj object.Object) bool {
-	switch obj {
-	case NONE:
-		return false
-	case TRUE:
-		return true
-	case FALSE:
-		return false
-	default:
-		return true
-	}
-}*/
-
 func newError(format string, a ...interface{}) *object.Error {
 	return &object.Error{Message: fmt.Sprintf(format, a...)}
 }
@@ -660,10 +651,8 @@ func evalWhileStatement(node *ast.WhileStatement, env *object.Environment) objec
 		// Evaluate the body
 		result := Eval(node.Body, env)
 		if result != nil {
-			if returnValue, ok := result.(*object.ReturnValue); ok {
-				return returnValue
-			}
-			if result.Type() == object.ERROR_OBJ {
+			rt := result.Type()
+			if rt == object.RETURN_VALUE_OBJ || rt == object.ERROR_OBJ {
 				return result
 			}
 		}
