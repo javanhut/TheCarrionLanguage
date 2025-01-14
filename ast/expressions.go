@@ -216,3 +216,15 @@ func (tl *TupleLiteral) String() string {
 	out.WriteString(")")
 	return out.String()
 }
+
+type DotExpression struct {
+	Token token.Token // The '.' token
+	Left  Expression  // The object being accessed
+	Right *Identifier // The method or property being accessed
+}
+
+func (de *DotExpression) expressionNode()      {}
+func (de *DotExpression) TokenLiteral() string { return de.Token.Literal }
+func (de *DotExpression) String() string {
+	return fmt.Sprintf("(%s.%s)", de.Left.String(), de.Right.String())
+}

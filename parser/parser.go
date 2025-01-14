@@ -129,6 +129,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.MULTASSGN, p.parseInfixExpression)
 	p.registerInfix(token.DIVASSGN, p.parseInfixExpression)
 	p.registerInfix(token.LBRACK, p.parseIndexExpression)
+	p.registerInfix(token.DOT, p.parseDotExpression)
 	// Register postfix parsers
 	p.registerPostfix(token.PLUS_INCREMENT, p.parsePostfixExpression)
 	p.registerPostfix(token.MINUS_DECREMENT, p.parsePostfixExpression)
@@ -139,6 +140,20 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerStatement(token.SPELL, p.parseFunctionDefinition)
 
 	return p
+}
+
+func (p *Parser) parseDotExpression(left ast.Expression) ast.Expression {
+	exp := &ast.DotExpression{ // Create a new DotExpression node
+		Token: p.currToken,
+		Left:  left, // The object being accessed (e.g., Test)
+	}
+
+	if !p.expectPeek(token.IDENT) {
+		return nil // Expecting a method or attribute name
+	}
+
+	exp.Right = &ast.Identifier{Token: p.currToken, Value: p.currToken.Literal}
+	return exp
 }
 
 func (p *Parser) parseParenExpression() ast.Expression {

@@ -1,0 +1,8 @@
+spellbook Test:
+    spell add(x, y):
+        return int(x) + int(y)
+
+x = 10
+y = 10
+print(Test.add(x, y))
+

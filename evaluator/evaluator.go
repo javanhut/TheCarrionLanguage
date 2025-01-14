@@ -2,7 +2,6 @@ package evaluator
 
 import (
 	"fmt"
-	"strings"
 
 	"thecarrionlanguage/ast"
 	"thecarrionlanguage/object"
@@ -98,7 +97,25 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		}
 		env.Set(node.Name.Value, fnObj)
 		return fnObj
+	case *ast.DotExpression:
+		left := Eval(node.Left, env)
+		if isError(left) {
+			return left
+		}
 
+		// Ensure the left expression is a Spellbook
+		spellbook, ok := left.(*object.Spellbook)
+		if !ok {
+			return newError("%s is not a spellbook", node.Left.String())
+		}
+
+		// Find the method in the spellbook
+		method, ok := spellbook.Methods[node.Right.Value]
+		if !ok {
+			return newError("undefined spell: %s in spellbook %s", node.Right.Value, spellbook.Name)
+		}
+
+		return method
 	case *ast.IndexExpression:
 		left := Eval(node.Left, env)
 		if isError(left) {
@@ -127,35 +144,32 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		return spellbook
 
 	case *ast.CallExpression:
-		if identifier, ok := node.Function.(*ast.Identifier); ok && strings.Contains(identifier.Value, ".") {
-			parts := strings.Split(identifier.Value, ".")
-			if len(parts) == 2 {
-				spellbookName := parts[0]
-				spellName := parts[1]
 
-				// Get the spellbook
-				spellbookObj, ok := env.Get(spellbookName)
-				if !ok {
-					return newError("undefined spellbook: %s", spellbookName)
-				}
-				spellbook, ok := spellbookObj.(*object.Spellbook)
-				if !ok {
-					return newError("%s is not a spellbook", spellbookName)
-				}
+		if identifier, ok := node.Function.(*ast.DotExpression); ok {
+			// Resolve the spellbook and the method being called
+			spellbookName := identifier.Left.String()
+			methodName := identifier.Right.String()
 
-				// Get the spell
-				spell, ok := spellbook.Methods[spellName]
-				if !ok {
-					return newError("undefined spell: %s in spellbook %s", spellName, spellbookName)
-				}
-
-				// Apply the spell
-				args := evalExpressions(node.Arguments, env)
-				if len(args) == 1 && isError(args[0]) {
-					return args[0]
-				}
-				return applyFunction(spell, args)
+			spellbookObj, ok := env.Get(spellbookName)
+			if !ok {
+				return newError("undefined spellbook: %s", spellbookName)
 			}
+
+			spellbook, ok := spellbookObj.(*object.Spellbook)
+			if !ok {
+				return newError("%s is not a spellbook", spellbookName)
+			}
+
+			spell, ok := spellbook.Methods[methodName]
+			if !ok {
+				return newError("undefined spell: %s in spellbook %s", methodName, spellbookName)
+			}
+
+			args := evalExpressions(node.Arguments, env)
+			if len(args) == 1 && isError(args[0]) {
+				return args[0]
+			}
+			return applyFunction(spell, args)
 		}
 		function := Eval(node.Function, env)
 		if isError(function) {
