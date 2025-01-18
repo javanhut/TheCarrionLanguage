@@ -45,6 +45,7 @@ var precedences = map[token.TokenType]int{
 	token.PLUS_INCREMENT:  POSTFIX,
 	token.MINUS_DECREMENT: POSTFIX,
 	token.LPAREN:          CALL,
+	token.DOT:             CALL,
 	token.LBRACK:          INDEX,
 	token.OR:              LOGICAL_OR,
 	token.AND:             LOGICAL_AND,
@@ -143,13 +144,14 @@ func New(l *lexer.Lexer) *Parser {
 }
 
 func (p *Parser) parseDotExpression(left ast.Expression) ast.Expression {
-	exp := &ast.DotExpression{ // Create a new DotExpression node
+	exp := &ast.DotExpression{
 		Token: p.currToken,
-		Left:  left, // The object being accessed (e.g., Test)
+		Left:  left,
 	}
 
+	// Expect the method or property name
 	if !p.expectPeek(token.IDENT) {
-		return nil // Expecting a method or attribute name
+		return nil
 	}
 
 	exp.Right = &ast.Identifier{Token: p.currToken, Value: p.currToken.Literal}
@@ -435,11 +437,10 @@ func (p *Parser) expectPeek(t token.TokenType) bool {
 	if p.peekTokenIs(t) {
 		p.nextToken()
 		return true
-	} else {
-		p.peekError(t)
-		fmt.Printf("expectPeek: expected %s, and got %s\n", t, p.peekToken.Type)
-		return false
 	}
+	msg := fmt.Sprintf("expected next token to be %s, got %s instead", t, p.peekToken.Type)
+	p.errors = append(p.errors, msg)
+	return false
 }
 
 func (p *Parser) parseExpression(precedence int) ast.Expression {

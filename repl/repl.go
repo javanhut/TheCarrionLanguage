@@ -232,7 +232,7 @@ func isIncompleteParse(errs []string) bool {
 }
 
 func printParserErrors(out io.Writer, errors []string) {
-	fmt.Fprint(out, ODINS_EYE)
+	// fmt.Fprint(out, ODINS_EYE)
 	io.WriteString(out, "Sorry Friend! Odin's eye sees all and you seem to have errors.\n")
 	io.WriteString(out, "Parser Errors:\n")
 	for _, msg := range errors {
