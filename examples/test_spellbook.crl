@@ -3,8 +3,8 @@ spellbook Example:
         return x + y
 
 
-a = 10
-b = 10
+a = int("10")
+b = int("10")
 example_obj = Example()
 example_obj.example_method(a,b)
 

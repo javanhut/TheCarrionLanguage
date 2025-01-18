@@ -155,18 +155,16 @@ func evalCallExpression(fn object.Object, args []object.Object) object.Object {
 		evaluated := Eval(fn.Body, extendedEnv)
 		return unwrapReturnValue(evaluated)
 	case *object.Spellbook:
-		// Create a new instance of the spellbook
 		instance := &object.Instance{
 			Spellbook: fn,
 			Env:       object.NewEnclosedEnvironment(fn.Env),
 		}
-
-		// If the spellbook has an init method, execute it
 		if fn.InitMethod != nil {
 			Eval(fn.InitMethod.Body, instance.Env)
 		}
-
 		return instance
+	case *object.Builtin:
+		return fn.Fn(args...)
 	default:
 		return newError("not a function: %s", fn.Type())
 	}
