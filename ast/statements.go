@@ -183,9 +183,10 @@ func (ws *WhileStatement) String() string {
 }
 
 type SpellbookDefinition struct {
-	Token  token.Token // 'spellbook' token
-	Name   *Identifier
-	Spells []*SpellDefinition
+	Token      token.Token           // The 'spellbook' token
+	Name       *Identifier           // Spellbook name
+	Methods    []*FunctionDefinition // List of methods (spells)
+	InitMethod *FunctionDefinition   // Optional `init` method
 }
 
 func (sb *SpellbookDefinition) statementNode()       {}
@@ -195,34 +196,15 @@ func (sb *SpellbookDefinition) String() string {
 	out.WriteString("spellbook ")
 	out.WriteString(sb.Name.String())
 	out.WriteString(":\n")
-	for _, spell := range sb.Spells {
+	if sb.InitMethod != nil {
 		out.WriteString("    ")
-		out.WriteString(spell.String())
+		out.WriteString(sb.InitMethod.String())
 		out.WriteString("\n")
 	}
-	return out.String()
-}
-
-type SpellDefinition struct {
-	Token      token.Token // 'spell' token
-	Name       *Identifier
-	Parameters []*Identifier
-	Body       *BlockStatement
-}
-
-func (s *SpellDefinition) statementNode()       {}
-func (s *SpellDefinition) TokenLiteral() string { return s.Token.Literal }
-func (s *SpellDefinition) String() string {
-	var out bytes.Buffer
-	out.WriteString("spell ")
-	out.WriteString(s.Name.String())
-	out.WriteString("(")
-	params := []string{}
-	for _, p := range s.Parameters {
-		params = append(params, p.String())
+	for _, method := range sb.Methods {
+		out.WriteString("    ")
+		out.WriteString(method.String())
+		out.WriteString("\n")
 	}
-	out.WriteString(strings.Join(params, ", "))
-	out.WriteString("):\n")
-	out.WriteString(s.Body.String())
 	return out.String()
 }

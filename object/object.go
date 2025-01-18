@@ -30,6 +30,7 @@ const (
 	HASH_OBJ         = "HASH"
 	TUPLE_OBJ        = "TUPLE"
 	SPELLBOOK_OBJ    = "SPELLBOOK"
+	INSTANCE_OBJ     = "INSTANCE"
 )
 
 type Integer struct {
@@ -198,18 +199,24 @@ func (t *Tuple) Inspect() string {
 	return out.String()
 }
 
+// Update Object (object.go)
 type Spellbook struct {
-	Name    string
-	Methods map[string]*Function
+	Name       string
+	Methods    map[string]*Function
+	InitMethod *Function
+	Env        *Environment // Add environment to store the spellbook's scope
 }
 
-func (s *Spellbook) Type() ObjectType { return "SPELLBOOK" }
+func (s *Spellbook) Type() ObjectType { return SPELLBOOK_OBJ }
 func (s *Spellbook) Inspect() string {
-	var out bytes.Buffer
-	out.WriteString(fmt.Sprintf("spellbook %s {\n", s.Name))
-	for name, method := range s.Methods {
-		out.WriteString(fmt.Sprintf("  %s: %s\n", name, method.Inspect()))
-	}
-	out.WriteString("}")
-	return out.String()
+	return fmt.Sprintf("<spellbook %s>", s.Name)
 }
+
+// Ensure Instance type implements Object
+type Instance struct {
+	Spellbook *Spellbook
+	Env       *Environment
+}
+
+func (i *Instance) Type() ObjectType { return INSTANCE_OBJ }
+func (i *Instance) Inspect() string  { return fmt.Sprintf("<instance of %s>", i.Spellbook.Name) }

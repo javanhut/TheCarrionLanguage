@@ -61,6 +61,8 @@ const (
 
 	// Keywords
 	VAR       TokenType = "VAR"
+	INIT      TokenType = "INIT"
+	SELF      TokenType = "SELF"
 	SPELL     TokenType = "SPELL"
 	SPELLBOOK TokenType = "SPELLBOOK"
 	TRUE      TokenType = "TRUE"
@@ -86,6 +88,8 @@ const (
 var keywords = map[string]TokenType{
 	"var":       VAR,
 	"spell":     SPELL,
+	"self":      SELF,
+	"init":      INIT,
 	"spellbook": SPELLBOOK,
 	"True":      TRUE,
 	"False":     FALSE,

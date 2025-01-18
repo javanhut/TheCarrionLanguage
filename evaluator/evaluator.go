@@ -98,24 +98,7 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		env.Set(node.Name.Value, fnObj)
 		return fnObj
 	case *ast.DotExpression:
-		left := Eval(node.Left, env)
-		if isError(left) {
-			return left
-		}
-
-		// Ensure the left expression is a Spellbook
-		spellbook, ok := left.(*object.Spellbook)
-		if !ok {
-			return newError("%s is not a spellbook", node.Left.String())
-		}
-
-		// Find the method in the spellbook
-		method, ok := spellbook.Methods[node.Right.Value]
-		if !ok {
-			return newError("undefined spell: %s in spellbook %s", node.Right.Value, spellbook.Name)
-		}
-
-		return method
+		return evalDotExpression(node, env)
 	case *ast.IndexExpression:
 		left := Eval(node.Left, env)
 		if isError(left) {
@@ -127,61 +110,83 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		}
 		return evalIndexExpression(left, index)
 	case *ast.SpellbookDefinition:
-		methods := make(map[string]*object.Function)
-		for _, spell := range node.Spells {
-			fn := &object.Function{
-				Parameters: spell.Parameters,
-				Body:       spell.Body,
-				Env:        env,
-			}
-			methods[spell.Name.Value] = fn
-		}
-		spellbook := &object.Spellbook{
-			Name:    node.Name.Value,
-			Methods: methods,
-		}
-		env.Set(node.Name.Value, spellbook)
-		return spellbook
-
+		return evalSpellbookDefinition(node, env)
 	case *ast.CallExpression:
-
-		if identifier, ok := node.Function.(*ast.DotExpression); ok {
-			// Resolve the spellbook and the method being called
-			spellbookName := identifier.Left.String()
-			methodName := identifier.Right.String()
-
-			spellbookObj, ok := env.Get(spellbookName)
-			if !ok {
-				return newError("undefined spellbook: %s", spellbookName)
-			}
-
-			spellbook, ok := spellbookObj.(*object.Spellbook)
-			if !ok {
-				return newError("%s is not a spellbook", spellbookName)
-			}
-
-			spell, ok := spellbook.Methods[methodName]
-			if !ok {
-				return newError("undefined spell: %s in spellbook %s", methodName, spellbookName)
-			}
-
-			args := evalExpressions(node.Arguments, env)
-			if len(args) == 1 && isError(args[0]) {
-				return args[0]
-			}
-			return applyFunction(spell, args)
-		}
-		function := Eval(node.Function, env)
-		if isError(function) {
-			return function
-		}
-		args := evalExpressions(node.Arguments, env)
-		if len(args) == 1 && isError(args[0]) {
-			return args[0]
-		}
-		return applyFunction(function, args)
+		return evalCallExpression(Eval(node.Function, env), evalExpressions(node.Arguments, env))
 	}
 	return NONE
+}
+
+func evalSpellbookDefinition(node *ast.SpellbookDefinition, env *object.Environment) object.Object {
+	methods := map[string]*object.Function{}
+
+	for _, method := range node.Methods {
+		fn := &object.Function{
+			Parameters: method.Parameters,
+			Body:       method.Body,
+			Env:        env,
+		}
+		methods[method.Name.Value] = fn
+	}
+
+	spellbook := &object.Spellbook{
+		Name:    node.Name.Value,
+		Methods: methods,
+		Env:     env, // Assign the environment
+	}
+
+	if node.InitMethod != nil {
+		initFn := &object.Function{
+			Parameters: node.InitMethod.Parameters,
+			Body:       node.InitMethod.Body,
+			Env:        env,
+		}
+		spellbook.InitMethod = initFn
+	}
+
+	env.Set(node.Name.Value, spellbook)
+	return spellbook
+}
+
+func evalCallExpression(fn object.Object, args []object.Object) object.Object {
+	switch fn := fn.(type) {
+	case *object.Function:
+		extendedEnv := extendFunctionEnv(fn, args)
+		evaluated := Eval(fn.Body, extendedEnv)
+		return unwrapReturnValue(evaluated)
+	case *object.Spellbook:
+		// Create a new instance of the spellbook
+		instance := &object.Instance{
+			Spellbook: fn,
+			Env:       object.NewEnclosedEnvironment(fn.Env),
+		}
+
+		// If the spellbook has an init method, execute it
+		if fn.InitMethod != nil {
+			Eval(fn.InitMethod.Body, instance.Env)
+		}
+
+		return instance
+	default:
+		return newError("not a function: %s", fn.Type())
+	}
+}
+
+func evalDotExpression(node *ast.DotExpression, env *object.Environment) object.Object {
+	left := Eval(node.Left, env)
+	if isError(left) {
+		return left
+	}
+
+	if instance, ok := left.(*object.Instance); ok {
+		method, ok := instance.Spellbook.Methods[node.Right.Value]
+		if !ok {
+			return newError("undefined method: %s", node.Right.Value)
+		}
+		return method
+	}
+
+	return newError("type error: %s is not callable", left.Type())
 }
 
 func evalHashLiteral(

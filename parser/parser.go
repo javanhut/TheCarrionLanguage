@@ -358,9 +358,6 @@ func (p *Parser) parseStatement() ast.Statement {
 	case token.SPELLBOOK:
 		return p.parseSpellbookDefinition()
 	case token.SPELL:
-		if p.isInsideSpellbook() {
-			return p.parseSpellDefinition()
-		}
 		return p.parseFunctionDefinition()
 	default:
 		if fn, ok := p.statementParseFns[p.currToken.Type]; ok {
@@ -934,69 +931,44 @@ func (p *Parser) parseWhileStatement() ast.Statement {
 func (p *Parser) parseSpellbookDefinition() ast.Statement {
 	stmt := &ast.SpellbookDefinition{Token: p.currToken}
 
-	// Expect spellbook name
+	// Expect the spellbook name
 	if !p.expectPeek(token.IDENT) {
 		return nil
 	}
 	stmt.Name = &ast.Identifier{Token: p.currToken, Value: p.currToken.Literal}
 
-	// Expect colon
+	// Expect a colon
 	if !p.expectPeek(token.COLON) {
 		return nil
 	}
 
-	// Handle indented block
-	if !p.expectPeek(token.NEWLINE) || !p.expectPeek(token.INDENT) {
-		return nil
-	}
+	// Parse methods and init
+	stmt.Methods = []*ast.FunctionDefinition{}
+	for p.peekTokenIs(token.SPELL) || p.peekTokenIs(token.INIT) {
+		p.nextToken()
 
-	stmt.Spells = []*ast.SpellDefinition{}
-	p.contextStack = append(p.contextStack, "spellbook")
-	for !p.currTokenIs(token.DEDENT) && !p.currTokenIs(token.EOF) {
-		if p.currTokenIs(token.SPELL) {
-			spell := p.parseSpellDefinition()
-			if spell != nil {
-				stmt.Spells = append(stmt.Spells, spell)
+		if p.currToken.Type == token.INIT {
+			if stmt.InitMethod != nil {
+				p.errors = append(p.errors, "Duplicate init method")
+				return nil
 			}
+
+			// Assert the type of parseFunctionDefinition to *ast.FunctionDefinition
+			fn, ok := p.parseFunctionDefinition().(*ast.FunctionDefinition)
+			if !ok {
+				p.errors = append(p.errors, "Invalid function definition in init method")
+				return nil
+			}
+			stmt.InitMethod = fn
 		} else {
-			p.nextToken()
+			// Assert the type of parseFunctionDefinition to *ast.FunctionDefinition
+			fn, ok := p.parseFunctionDefinition().(*ast.FunctionDefinition)
+			if !ok {
+				p.errors = append(p.errors, "Invalid function definition in spellbook method")
+				return nil
+			}
+			stmt.Methods = append(stmt.Methods, fn)
 		}
-	}
-	p.contextStack = p.contextStack[:len(p.contextStack)-1]
-
-	return stmt
-}
-
-func (p *Parser) parseSpellDefinition() *ast.SpellDefinition {
-	stmt := &ast.SpellDefinition{Token: p.currToken}
-
-	// Expect spell name
-	if !p.expectPeek(token.IDENT) {
-		return nil
-	}
-	stmt.Name = &ast.Identifier{Token: p.currToken, Value: p.currToken.Literal}
-
-	// Expect parameter list
-	if !p.expectPeek(token.LPAREN) {
-		return nil
-	}
-	stmt.Parameters = p.parseFunctionParameters()
-
-	// Expect colon
-	if !p.expectPeek(token.COLON) {
-		return nil
-	}
-
-	// Handle block
-	if p.peekTokenIs(token.NEWLINE) {
-		p.nextToken() // Consume newline
-		if !p.expectPeek(token.INDENT) {
-			return nil
-		}
-		stmt.Body = p.parseBlockStatement()
-	} else {
-		p.errors = append(p.errors, "expected indented block after 'spell'")
-		return nil
 	}
 
 	return stmt
