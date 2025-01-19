@@ -64,11 +64,7 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 	case *ast.Boolean:
 		return nativeBoolToBooleanObject(node.Value)
 	case *ast.AssignStatement:
-		val := Eval(node.Value, env)
-		if isError(val) {
-			return val
-		}
-		env.Set(node.Name.Value, val)
+		return evalAssignStatement(node, env)
 	case *ast.WhileStatement:
 		return evalWhileStatement(node, env)
 	case *ast.ForStatement:
@@ -117,6 +113,40 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 	return NONE
 }
 
+func evalAssignStatement(node *ast.AssignStatement, env *object.Environment) object.Object {
+	switch name := node.Name.(type) {
+	case *ast.Identifier:
+		val := Eval(node.Value, env)
+		if isError(val) {
+			return val
+		}
+		env.Set(name.Value, val)
+		return val
+
+	case *ast.DotExpression:
+		left := Eval(name.Left, env)
+		if isError(left) {
+			return left
+		}
+
+		instance, ok := left.(*object.Instance)
+		if !ok {
+			return newError("invalid assignment target: %s", left.Type())
+		}
+
+		val := Eval(node.Value, env)
+		if isError(val) {
+			return val
+		}
+
+		instance.Env.Set(name.Right.Value, val)
+		return val
+
+	default:
+		return newError("invalid assignment target: %T", node.Name)
+	}
+}
+
 func evalSpellbookDefinition(node *ast.SpellbookDefinition, env *object.Environment) object.Object {
 	methods := map[string]*object.Function{}
 
@@ -150,41 +180,70 @@ func evalSpellbookDefinition(node *ast.SpellbookDefinition, env *object.Environm
 
 func evalCallExpression(fn object.Object, args []object.Object) object.Object {
 	switch fn := fn.(type) {
-	case *object.Function:
-		extendedEnv := extendFunctionEnv(fn, args)
-		evaluated := Eval(fn.Body, extendedEnv)
-		return unwrapReturnValue(evaluated)
 	case *object.Spellbook:
+		// This is the case for calling the spellbook constructor, e.g. Person("Alice", 30)
 		instance := &object.Instance{
 			Spellbook: fn,
 			Env:       object.NewEnclosedEnvironment(fn.Env),
 		}
+		// If there's an init method, call it
 		if fn.InitMethod != nil {
-			Eval(fn.InitMethod.Body, instance.Env)
+			extendedEnv := extendFunctionEnv(fn.InitMethod, args)
+			extendedEnv.Set("self", instance)
+			Eval(fn.InitMethod.Body, extendedEnv)
 		}
 		return instance
+
+	case *object.Function:
+		// Normal function call (no bound instance)
+		extendedEnv := extendFunctionEnv(fn, args)
+		evaluated := Eval(fn.Body, extendedEnv)
+		return unwrapReturnValue(evaluated)
+
+	case *object.BoundMethod:
+		// *** THIS is how you set self in the method environment ***
+		extendedEnv := extendFunctionEnv(fn.Method, args)
+		extendedEnv.Set("self", fn.Instance)
+
+		evaluated := Eval(fn.Method.Body, extendedEnv)
+		return unwrapReturnValue(evaluated)
 	case *object.Builtin:
 		return fn.Fn(args...)
+
 	default:
 		return newError("not a function: %s", fn.Type())
 	}
 }
 
 func evalDotExpression(node *ast.DotExpression, env *object.Environment) object.Object {
-	left := Eval(node.Left, env)
-	if isError(left) {
-		return left
+	leftObj := Eval(node.Left, env)
+	if isError(leftObj) {
+		return leftObj
 	}
 
-	if instance, ok := left.(*object.Instance); ok {
-		method, ok := instance.Spellbook.Methods[node.Right.Value]
-		if !ok {
-			return newError("undefined method: %s", node.Right.Value)
-		}
-		return method
+	instance, ok := leftObj.(*object.Instance)
+	if !ok {
+		return newError("type error: %s is not an instance", leftObj.Type())
 	}
 
-	return newError("type error: %s is not callable", left.Type())
+	fieldOrMethodName := node.Right.Value
+
+	// If it's a field in instance.Env (like self.name)
+	if val, found := instance.Env.Get(fieldOrMethodName); found {
+		return val
+	}
+
+	// Otherwise, check if it's a method in instance.Spellbook.Methods
+	method, ok := instance.Spellbook.Methods[fieldOrMethodName]
+	if !ok {
+		return newError("undefined property or method: %s", fieldOrMethodName)
+	}
+
+	// Return a BoundMethod, DO NOT CALL THE METHOD:
+	return &object.BoundMethod{
+		Instance: instance,
+		Method:   method,
+	}
 }
 
 func evalHashLiteral(

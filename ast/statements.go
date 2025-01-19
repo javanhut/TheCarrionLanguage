@@ -2,29 +2,24 @@ package ast
 
 import (
 	"bytes"
+	"fmt"
 	"strings"
 
 	"thecarrionlanguage/token"
 )
 
 type AssignStatement struct {
-	Token    token.Token
-	Name     *Identifier
-	Operator string
-	Value    Expression
+	Token    token.Token // The token for the assignment operator (e.g. '=' or '+=')
+	Name     Expression  // The LHS of the assignment (Identifier, DotExpression, etc.)
+	Operator string      // e.g. "=" or "+="
+	Value    Expression  // The expression on the RHS
 }
 
+// Ensure AssignStatement satisfies Statement interface:
 func (as *AssignStatement) statementNode()       {}
 func (as *AssignStatement) TokenLiteral() string { return as.Token.Literal }
-
 func (as *AssignStatement) String() string {
-	var out bytes.Buffer
-	out.WriteString(as.Name.String())
-	out.WriteString(" = ")
-	if as.Value != nil {
-		out.WriteString(as.Value.String())
-	}
-	return out.String()
+	return fmt.Sprintf("%s %s %s", as.Name.String(), as.Operator, as.Value.String())
 }
 
 type ReturnStatement struct {

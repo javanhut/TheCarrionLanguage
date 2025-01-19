@@ -110,6 +110,14 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.EOF, func() ast.Expression { return nil })
 
 	p.registerPrefix(token.LPAREN, p.parseParenExpression)
+	p.registerPrefix(token.SELF, p.parseSelf)
+	p.registerPrefix(token.INIT, func() ast.Expression {
+		return &ast.Identifier{
+			Token: token.Token{Type: token.INIT, Literal: "init"},
+			Value: "init",
+		}
+	})
+
 	// Register infix parsers
 	p.registerInfix(token.PLUS, p.parseInfixExpression)
 	p.registerInfix(token.MINUS, p.parseInfixExpression)
@@ -141,6 +149,13 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerStatement(token.SPELL, p.parseFunctionDefinition)
 
 	return p
+}
+
+func (p *Parser) parseSelf() ast.Expression {
+	return &ast.Identifier{
+		Token: p.currToken,
+		Value: "self",
+	}
 }
 
 func (p *Parser) parseDotExpression(left ast.Expression) ast.Expression {
@@ -349,6 +364,7 @@ func (p *Parser) ParseProgram() *ast.Program {
 }
 
 func (p *Parser) parseStatement() ast.Statement {
+	// Handle special statements first:
 	switch p.currToken.Type {
 	case token.IF:
 		return p.parseIfStatement()
@@ -359,45 +375,83 @@ func (p *Parser) parseStatement() ast.Statement {
 		return p.parseWhileStatement()
 	case token.SPELLBOOK:
 		return p.parseSpellbookDefinition()
-	case token.SPELL:
+	case token.SPELL, token.INIT:
+		// function definition at top level
 		return p.parseFunctionDefinition()
-	default:
-		if fn, ok := p.statementParseFns[p.currToken.Type]; ok {
-			return fn()
-		}
-	}
-	// Handle assignment statements
-	if p.currToken.Type == token.IDENT && p.peekTokenIs(token.ASSIGN) {
-		return p.parseAssignmentStatement()
+	case token.FOR:
+		return p.parseForStatement()
+	case token.RETURN:
+		return p.parseReturnStatement()
+		// Add any other top-level statements here...
 	}
 
-	return p.parseExpressionStatement()
+	leftExpr := p.parseExpression(LOWEST)
+
+	// If next token is an assignment operator, finish as an assignment:
+	if p.peekTokenIs(token.ASSIGN) ||
+		p.peekTokenIs(token.INCREMENT) ||
+		p.peekTokenIs(token.DECREMENT) ||
+		p.peekTokenIs(token.MULTASSGN) ||
+		p.peekTokenIs(token.DIVASSGN) {
+		return p.finishAssignmentStatement(leftExpr)
+	}
+
+	// Else, it’s just an expression statement:
+	stmt := &ast.ExpressionStatement{
+		Token:      p.currToken, // or whatever token you want
+		Expression: leftExpr,
+	}
+
+	if p.peekTokenIs(token.NEWLINE) || p.peekTokenIs(token.SEMICOLON) {
+		p.nextToken()
+	}
+	return stmt
+}
+
+func (p *Parser) finishAssignmentStatement(leftExpr ast.Expression) ast.Statement {
+	// 1) Advance to the operator token
+	p.nextToken()
+	assignOp := p.currToken.Literal // e.g. "=" or "+="
+
+	// 2) Build the AssignStatement node, using 'Name' for the leftExpr
+	stmt := &ast.AssignStatement{
+		Token:    p.currToken, // The token for '=' (or '+=')
+		Name:     leftExpr,    // LHS expression (Identifier, DotExpression, etc.)
+		Operator: assignOp,
+	}
+
+	// 3) Parse the right-hand side
+	p.nextToken() // move past '='
+	stmt.Value = p.parseExpression(LOWEST)
+
+	// 4) Optionally consume trailing newline or semicolon
+	if p.peekTokenIs(token.NEWLINE) || p.peekTokenIs(token.SEMICOLON) {
+		p.nextToken()
+	}
+
+	return stmt
 }
 
 func (p *Parser) parseAssignmentStatement() *ast.AssignStatement {
 	stmt := &ast.AssignStatement{Token: p.currToken}
 
-	stmt.Name = &ast.Identifier{
-		Token: p.currToken,
-		Value: p.currToken.Literal,
-	}
-
-	if !p.expectPeek(token.ASSIGN) &&
-		!p.expectPeek(token.INCREMENT) &&
-		!p.expectPeek(token.DECREMENT) &&
-		!p.expectPeek(token.MULTASSGN) &&
-		!p.expectPeek(token.DIVASSGN) {
+	// Parse left-hand side (allow Identifier or DotExpression)
+	if p.currToken.Type == token.IDENT || p.currToken.Type == token.SELF {
+		stmt.Name = p.parseExpression(LOWEST)
+	} else {
+		p.errors = append(p.errors, "Invalid assignment target")
 		return nil
 	}
 
+	// Parse the assignment operator
+	if !p.expectPeek(token.ASSIGN) {
+		return nil
+	}
 	stmt.Operator = p.currToken.Literal
 
+	// Parse the right-hand side
 	p.nextToken()
 	stmt.Value = p.parseExpression(LOWEST)
-
-	if p.peekTokenIs(token.NEWLINE) {
-		p.nextToken()
-	}
 
 	return stmt
 }
@@ -820,38 +874,68 @@ func (p *Parser) parseForStatement() ast.Statement {
 func (p *Parser) parseFunctionDefinition() ast.Statement {
 	stmt := &ast.FunctionDefinition{Token: p.currToken}
 
-	// Expect the function name
-	if !p.expectPeek(token.IDENT) {
-		return nil
-	}
-	stmt.Name = &ast.Identifier{
-		Token: p.currToken,
-		Value: p.currToken.Literal,
+	// If current token is SPELL or INIT, we move one token ahead so we can see
+	// either 'init' or the actual function name. (In a bare 'init' case, p.currToken is already INIT.)
+	if p.currTokenIs(token.SPELL) {
+		// Move forward one token => could be INIT or IDENT
+		p.nextToken()
 	}
 
-	// Expect the parameter list
-	if !p.expectPeek(token.LPAREN) {
+	// Now p.currToken might be `INIT` or `IDENT`.
+	if p.currToken.Type == token.INIT {
+		// It's the special "init" function
+		stmt.Name = &ast.Identifier{
+			Token: p.currToken,
+			Value: "init",
+		}
+	} else if p.currToken.Type == token.IDENT {
+		// Normal named function
+		stmt.Name = &ast.Identifier{
+			Token: p.currToken,
+			Value: p.currToken.Literal,
+		}
+	} else {
+		// We expected either INIT or IDENT
+		p.errors = append(p.errors, "Expected function name or 'init' after 'spell'")
 		return nil
 	}
+
+	// Expect '(' next
+	if !p.expectPeek(token.LPAREN) {
+		p.errors = append(p.errors, "Expected '(' after function name")
+		return nil
+	}
+	// Parse the parameter list
 	stmt.Parameters = p.parseFunctionParameters()
 
+	// Expect ':'
 	if !p.expectPeek(token.COLON) {
+		p.errors = append(p.errors, "Expected ':' after parameter list")
 		return nil
 	}
 
-	// Check the next token after COLON
-	p.nextToken()
+	// Now parse the function body (single-line or multi-line)
+	p.nextToken() // consume ':' => move on
 
 	if p.currTokenIs(token.NEWLINE) {
-		// We expect an INDENT if it's a multiline function
-		if !p.expectPeek(token.INDENT) {
-			return nil
+		// We likely have an indented block
+		if p.peekTokenIs(token.INDENT) {
+			p.nextToken() // consume INDENT
+			stmt.Body = p.parseBlockStatement()
+		} else {
+			// We have a newline but no INDENT => maybe a single statement
+			singleStmt := p.parseStatement()
+			stmt.Body = &ast.BlockStatement{
+				Token:      p.currToken,
+				Statements: []ast.Statement{singleStmt},
+			}
 		}
-		stmt.Body = p.parseBlockStatement()
 	} else {
-		// Inline statement (function with a single statement)
+		// No newline => single-line function body
+		singleStmt := p.parseStatement()
 		stmt.Body = &ast.BlockStatement{
-			Statements: []ast.Statement{p.parseStatement()},
+			Token:      p.currToken,
+			Statements: []ast.Statement{singleStmt},
 		}
 	}
 
@@ -932,43 +1016,95 @@ func (p *Parser) parseWhileStatement() ast.Statement {
 func (p *Parser) parseSpellbookDefinition() ast.Statement {
 	stmt := &ast.SpellbookDefinition{Token: p.currToken}
 
-	// Expect the spellbook name
+	// Expect "spellbook Name"
 	if !p.expectPeek(token.IDENT) {
 		return nil
 	}
 	stmt.Name = &ast.Identifier{Token: p.currToken, Value: p.currToken.Literal}
 
-	// Expect a colon
+	// Expect colon => "spellbook Name:"
 	if !p.expectPeek(token.COLON) {
 		return nil
 	}
 
-	// Parse methods and init
+	// Prepare to collect methods
 	stmt.Methods = []*ast.FunctionDefinition{}
-	for p.peekTokenIs(token.SPELL) || p.peekTokenIs(token.INIT) {
+
+	// Check if next token is NEWLINE => possible multi-line block
+	if p.peekTokenIs(token.NEWLINE) {
+		// Consume the newline
 		p.nextToken()
 
-		if p.currToken.Type == token.INIT {
-			if stmt.InitMethod != nil {
-				p.errors = append(p.errors, "Duplicate init method")
-				return nil
-			}
+		// If we now see an INDENT, treat it as a multi-line block
+		if p.peekTokenIs(token.INDENT) {
+			// Consume INDENT
+			p.nextToken()
 
-			// Assert the type of parseFunctionDefinition to *ast.FunctionDefinition
-			fn, ok := p.parseFunctionDefinition().(*ast.FunctionDefinition)
-			if !ok {
-				p.errors = append(p.errors, "Invalid function definition in init method")
-				return nil
+			// Push "spellbook" context
+			p.contextStack = append(p.contextStack, "spellbook")
+			defer func() {
+				// Pop the context once we exit
+				p.contextStack = p.contextStack[:len(p.contextStack)-1]
+			}()
+
+			// Parse each statement until DEDENT/EOF.
+			// We expect only `spell` or `init` inside the block, but
+			// the parser will keep going until we see DEDENT.
+			for !p.currTokenIs(token.DEDENT) && !p.currTokenIs(token.EOF) {
+				if p.currTokenIs(token.SPELL) || p.currTokenIs(token.INIT) {
+					fnStmt := p.parseFunctionDefinition()
+					if fnStmt == nil {
+						p.errors = append(p.errors, "Invalid function definition in spellbook")
+					} else {
+						fnDef := fnStmt.(*ast.FunctionDefinition)
+						if fnDef.Name.Value == "init" {
+							// Only one init allowed
+							if stmt.InitMethod != nil {
+								p.errors = append(p.errors, "Duplicate init method in spellbook")
+							} else {
+								stmt.InitMethod = fnDef
+							}
+						} else {
+							stmt.Methods = append(stmt.Methods, fnDef)
+						}
+					}
+				} else {
+					// Something else in the spellbook block, which we don't allow
+					if p.currToken.Type != token.NEWLINE &&
+						p.currToken.Type != token.INDENT &&
+						p.currToken.Type != token.DEDENT {
+						msg := fmt.Sprintf(
+							"Unexpected token %q inside spellbook; expected 'spell' or 'init'.",
+							p.currToken.Literal)
+						p.errors = append(p.errors, msg)
+					}
+				}
+				p.nextToken()
 			}
-			stmt.InitMethod = fn
+			// Done with multi‐line block
 		} else {
-			// Assert the type of parseFunctionDefinition to *ast.FunctionDefinition
-			fn, ok := p.parseFunctionDefinition().(*ast.FunctionDefinition)
-			if !ok {
-				p.errors = append(p.errors, "Invalid function definition in spellbook method")
-				return nil
+			// We got a newline but no indent => treat as an empty block
+		}
+	} else {
+		// Single-line style: "spellbook Person: spell init(...): ... etc."
+		// Let’s parse as many `spell` or `init` definitions as appear on the same line
+		for p.peekTokenIs(token.SPELL) || p.peekTokenIs(token.INIT) {
+			p.nextToken()
+			fnStmt := p.parseFunctionDefinition()
+			if fnStmt == nil {
+				p.errors = append(p.errors, "Invalid function definition in single-line spellbook")
+				return stmt
 			}
-			stmt.Methods = append(stmt.Methods, fn)
+			fnDef := fnStmt.(*ast.FunctionDefinition)
+			if fnDef.Name.Value == "init" {
+				if stmt.InitMethod != nil {
+					p.errors = append(p.errors, "Duplicate init method in spellbook")
+				} else {
+					stmt.InitMethod = fnDef
+				}
+			} else {
+				stmt.Methods = append(stmt.Methods, fnDef)
+			}
 		}
 	}
 

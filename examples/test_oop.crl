@@ -1,0 +1,10 @@
+spellbook Person:
+    spell init(name):
+        self.name = name
+
+    spell greet():
+        return "Name: " + self.name
+
+p = Person("Alice")
+print(p.greet())
+
