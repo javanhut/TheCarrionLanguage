@@ -1,0 +1,16 @@
+spellbook Calculator:
+  spell add(x, y):
+    return int(x) + int(y)
+
+  spell subtract(x,y):
+    return int(x) - int(y)
+
+  spell multiply(x,y):
+    return int(x) * int(y)
+
+
+calc = Calculator()
+a = 10
+b = 10
+
+print("A * B = " + string(calc.multiply(a,b)))
