@@ -203,3 +203,18 @@ func (sb *SpellbookDefinition) String() string {
 	}
 	return out.String()
 }
+
+type ImportStatement struct {
+	Token     token.Token
+	FilePath  *StringLiteral
+	ClassName *Identifier
+}
+
+func (is *ImportStatement) statementNode()       {}
+func (is *ImportStatement) TokenLiteral() string { return is.Token.Literal }
+func (is *ImportStatement) String() string {
+	if is.ClassName != nil {
+		return fmt.Sprintf("import %s.%s", is.FilePath.Value, is.ClassName.String())
+	}
+	return fmt.Sprintf("import %s", is.FilePath.Value)
+}

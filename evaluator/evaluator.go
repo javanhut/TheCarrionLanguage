@@ -2,15 +2,19 @@ package evaluator
 
 import (
 	"fmt"
+	"os"
 
 	"thecarrionlanguage/ast"
+	"thecarrionlanguage/lexer"
 	"thecarrionlanguage/object"
+	"thecarrionlanguage/parser"
 )
 
 var (
-	NONE  = &object.None{Value: "None"}
-	TRUE  = &object.Boolean{Value: true}
-	FALSE = &object.Boolean{Value: false}
+	NONE          = &object.None{Value: "None"}
+	TRUE          = &object.Boolean{Value: true}
+	FALSE         = &object.Boolean{Value: false}
+	importedFiles = map[string]bool{}
 )
 
 func Eval(node ast.Node, env *object.Environment) object.Object {
@@ -69,7 +73,8 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		return evalWhileStatement(node, env)
 	case *ast.ForStatement:
 		return evalForStatement(node, env)
-
+	case *ast.ImportStatement:
+		return evalImportStatement(node, env)
 	case *ast.Identifier:
 		return evalIdentifier(node, env)
 	case *ast.ArrayLiteral:
@@ -778,4 +783,55 @@ func evalForStatement(fs *ast.ForStatement, env *object.Environment) object.Obje
 	}
 
 	return result
+}
+
+func evalImportStatement(node *ast.ImportStatement, env *object.Environment) object.Object {
+	filePath := node.FilePath.Value + ".crl" // Append .crl extension
+	className := ""
+	if node.ClassName != nil {
+		className = node.ClassName.Value
+	}
+
+	// Check if the file is already imported
+	if importedFiles[filePath] {
+		return NONE
+	}
+	importedFiles[filePath] = true
+
+	// Load and parse the file
+	fileContent, err := os.ReadFile(filePath)
+	if err != nil {
+		return newError("could not import file: %s", err)
+	}
+
+	l := lexer.New(string(fileContent))
+	p := parser.New(l)
+	program := p.ParseProgram()
+
+	if len(p.Errors()) > 0 {
+		return newError("parsing errors in imported file: %v", p.Errors())
+	}
+
+	// Evaluate the program in a new environment
+	importEnv := object.NewEnclosedEnvironment(env)
+	Eval(program, importEnv)
+
+	// If a class name is specified, import only that class
+	if className != "" {
+		val, ok := importEnv.Get(className)
+		if !ok || val.Type() != object.SPELLBOOK_OBJ {
+			return newError("class '%s' not found in file '%s'", className, filePath)
+		}
+		env.Set(className, val)
+	} else {
+		// Import all spellbooks from the file
+		for _, name := range importEnv.GetNames() {
+			val, _ := importEnv.Get(name)
+			if val.Type() == object.SPELLBOOK_OBJ {
+				env.Set(name, val)
+			}
+		}
+	}
+
+	return NONE
 }

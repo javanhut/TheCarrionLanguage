@@ -1,0 +1,6 @@
+import "examples/math"
+
+
+math = Math()
+print(math.add(5,10))
+

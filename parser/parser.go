@@ -117,7 +117,6 @@ func New(l *lexer.Lexer) *Parser {
 			Value: "init",
 		}
 	})
-
 	// Register infix parsers
 	p.registerInfix(token.PLUS, p.parseInfixExpression)
 	p.registerInfix(token.MINUS, p.parseInfixExpression)
@@ -147,6 +146,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerStatement(token.IF, p.parseIfStatement)
 	p.registerStatement(token.FOR, p.parseForStatement)
 	p.registerStatement(token.SPELL, p.parseFunctionDefinition)
+	p.registerStatement(token.IMPORT, p.parseImportStatement)
 
 	return p
 }
@@ -382,6 +382,8 @@ func (p *Parser) parseStatement() ast.Statement {
 		return p.parseForStatement()
 	case token.RETURN:
 		return p.parseReturnStatement()
+	case token.IMPORT:
+		return p.parseImportStatement()
 		// Add any other top-level statements here...
 	}
 
@@ -1105,6 +1107,37 @@ func (p *Parser) parseSpellbookDefinition() ast.Statement {
 			} else {
 				stmt.Methods = append(stmt.Methods, fnDef)
 			}
+		}
+	}
+
+	return stmt
+}
+
+func (p *Parser) parseImportStatement() ast.Statement {
+	stmt := &ast.ImportStatement{Token: p.currToken}
+
+	if !p.expectPeek(token.STRING) {
+		p.errors = append(p.errors, "expected file path string after 'import'")
+		return nil
+	}
+
+	// Parse the file path
+	filePath := p.currToken.Literal
+	stmt.FilePath = &ast.StringLiteral{
+		Token: p.currToken,
+		Value: filePath,
+	}
+
+	// Check for the optional class name
+	if p.peekTokenIs(token.DOT) {
+		p.nextToken() // Consume '.'
+		if !p.expectPeek(token.IDENT) {
+			p.errors = append(p.errors, "expected class name after '.' in import statement")
+			return nil
+		}
+		stmt.ClassName = &ast.Identifier{
+			Token: p.currToken,
+			Value: p.currToken.Literal,
 		}
 	}
 

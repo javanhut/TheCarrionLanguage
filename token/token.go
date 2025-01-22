@@ -77,6 +77,7 @@ const (
 	SKIP      TokenType = "SKIP"
 	IGNORE    TokenType = "IGNORE"
 	RETURN    TokenType = "RETURN"
+	IMPORT    TokenType = "IMPORT"
 	//	RANGE     TokenType = "RANGE"
 	NONE TokenType = "NONE"
 	// Logical Operators
@@ -86,6 +87,7 @@ const (
 )
 
 var keywords = map[string]TokenType{
+	"import":    IMPORT,
 	"var":       VAR,
 	"spell":     SPELL,
 	"self":      SELF,
