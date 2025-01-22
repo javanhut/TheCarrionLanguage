@@ -4,8 +4,12 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/peterh/liner"
+
 	"thecarrionlanguage/object"
 )
+
+var LineReader *liner.State
 
 var builtins = map[string]*object.Builtin{
 	"len": {
@@ -34,6 +38,36 @@ var builtins = map[string]*object.Builtin{
 		},
 	},
 
+	"input": {
+		Fn: func(args ...object.Object) object.Object {
+			// Optional prompt argument
+			prompt := ""
+			if len(args) > 0 {
+				if str, ok := args[0].(*object.String); ok {
+					prompt = str.Value
+				}
+			}
+
+			// 2) If we have a liner.State, call lineReader.Prompt(...)
+			if LineReader != nil {
+				userInput, err := LineReader.Prompt(prompt)
+				if err != nil {
+					return &object.Error{Message: "error reading input: " + err.Error()}
+				}
+				// Optionally add to liner history right here:
+				if userInput != "" {
+					LineReader.AppendHistory(userInput)
+				}
+				return &object.String{Value: userInput}
+			}
+
+			// 3) If for some reason we have no lineReader, fallback to normal STDIN logic:
+			fmt.Print(prompt)
+			var input string
+			fmt.Scanln(&input) // Or use bufio, etc.
+			return &object.String{Value: input}
+		},
+	},
 	"type": {
 		Fn: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
@@ -86,7 +120,7 @@ var builtins = map[string]*object.Builtin{
 			}
 		},
 	},
-	"string": {
+	"str": {
 		Fn: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
 				return newError("wrong number of arguments. got=%d, want=1", len(args))

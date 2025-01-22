@@ -48,7 +48,12 @@ const ODINS_EYE = `
 
 func Start(in io.Reader, out io.Writer) {
 	line := liner.NewLiner()
-	defer line.Close()
+	evaluator.LineReader = line
+
+	defer func() {
+		line.Close()
+		evaluator.LineReader = nil
+	}()
 	env := object.NewEnvironment()
 
 	// Optional: Set a custom tab completion function

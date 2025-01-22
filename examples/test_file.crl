@@ -1,10 +1,10 @@
-a  = "1"
-b  = "2"
+a  = input("Enter first number: ")
+b  = input("Enter second number: ")
 
 spell add(x,y):
     return int(x) + int(y)
 spell multiply(x,y):
     return int(x) * int(y)
 
-print("The result is " + string(add(a,b)) + "\n")
-print("The result is " + string(multiply(a, b)))
+print("The result is " + str(add(a,b)) + "\n")
+print("The result is " + str(multiply(a, b)))
