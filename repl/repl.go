@@ -266,7 +266,7 @@ func ProcessFile(filePath string, out io.Writer, env *object.Environment) error 
 	}
 
 	evaluated := evaluator.Eval(program, env)
-	if evaluated != nil {
+	if evaluated != nil && evaluated.Type() != object.NONE_OBJ {
 		fmt.Fprintf(out, "%s\n", evaluated.Inspect())
 	}
 	return nil
