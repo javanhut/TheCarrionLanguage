@@ -9,4 +9,5 @@ spellbook Person:
 
 p = Person("Bob", 30)
 print(p.print_name())
-print(p.print_age())
+//Ignore this
+print(str(p.print_age()) + "\n")
