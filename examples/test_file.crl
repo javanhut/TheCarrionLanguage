@@ -7,4 +7,4 @@ spell multiply(x,y):
     return int(x) * int(y)
 
 print("The result is " + str(add(a,b)) + "\n")
-print("The result is " + str(multiply(a, b)))
+print("The result is " + str(multiply(a, b)) + "\n")
