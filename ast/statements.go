@@ -8,20 +8,21 @@ import (
 	"thecarrionlanguage/token"
 )
 
+// AssignStatement represents assignments like `x = 5` or `obj.field += 1`.
 type AssignStatement struct {
-	Token    token.Token // The token for the assignment operator (e.g. '=' or '+=')
+	Token    token.Token // The token for the assignment operator (e.g. '=', '+=', '-=', etc.)
 	Name     Expression  // The LHS of the assignment (Identifier, DotExpression, etc.)
 	Operator string      // e.g. "=" or "+="
 	Value    Expression  // The expression on the RHS
 }
 
-// Ensure AssignStatement satisfies Statement interface:
 func (as *AssignStatement) statementNode()       {}
 func (as *AssignStatement) TokenLiteral() string { return as.Token.Literal }
 func (as *AssignStatement) String() string {
 	return fmt.Sprintf("%s %s %s", as.Name.String(), as.Operator, as.Value.String())
 }
 
+// ReturnStatement represents a `return` statement.
 type ReturnStatement struct {
 	Token       token.Token
 	ReturnValue Expression
@@ -31,16 +32,14 @@ func (rs *ReturnStatement) statementNode()       {}
 func (rs *ReturnStatement) TokenLiteral() string { return rs.Token.Literal }
 func (rs *ReturnStatement) String() string {
 	var out strings.Builder
-
 	out.WriteString(rs.TokenLiteral() + " ")
-
 	if rs.ReturnValue != nil {
 		out.WriteString(rs.ReturnValue.String())
 	}
-
 	return out.String()
 }
 
+// BlockStatement represents a block of statements enclosed by { } or newlines/indent in a block.
 type BlockStatement struct {
 	Token      token.Token
 	Statements []Statement
@@ -50,15 +49,14 @@ func (bs *BlockStatement) statementNode()       {}
 func (bs *BlockStatement) TokenLiteral() string { return bs.Token.Literal }
 func (bs *BlockStatement) String() string {
 	var out strings.Builder
-
 	for _, s := range bs.Statements {
 		out.WriteString(s.String())
 		out.WriteString("\n")
 	}
-
 	return out.String()
 }
 
+// ExpressionStatement wraps an expression in a statement context.
 type ExpressionStatement struct {
 	Token      token.Token
 	Expression Expression
@@ -73,6 +71,14 @@ func (es *ExpressionStatement) String() string {
 	return ""
 }
 
+// OtherwiseBranch holds the condition and consequence for an 'otherwise' branch.
+type OtherwiseBranch struct {
+	Token       token.Token
+	Condition   Expression
+	Consequence *BlockStatement
+}
+
+// IfStatement represents an if/otherwise/.../else structure.
 type IfStatement struct {
 	Token             token.Token // The 'if' token
 	Condition         Expression
@@ -83,14 +89,26 @@ type IfStatement struct {
 
 func (is *IfStatement) statementNode()       {}
 func (is *IfStatement) TokenLiteral() string { return is.Token.Literal }
+
+// String() now prints "otherwise" instead of "elif".
 func (is *IfStatement) String() string {
 	var out strings.Builder
 
+	// "if condition:"
 	out.WriteString("if ")
 	out.WriteString(is.Condition.String())
 	out.WriteString(":\n")
 	out.WriteString(is.Consequence.String())
 
+	// Handle any 'otherwise' branch
+	for _, branch := range is.OtherwiseBranches {
+		out.WriteString("otherwise ")
+		out.WriteString(branch.Condition.String())
+		out.WriteString(":\n")
+		out.WriteString(branch.Consequence.String())
+	}
+
+	// Handle an "else:" branch if present
 	if is.Alternative != nil {
 		out.WriteString("else:\n")
 		out.WriteString(is.Alternative.String())
@@ -99,12 +117,7 @@ func (is *IfStatement) String() string {
 	return out.String()
 }
 
-type OtherwiseBranch struct {
-	Token       token.Token
-	Condition   Expression
-	Consequence *BlockStatement
-}
-
+// ForStatement represents a for-loop: for x in iterable: ...
 type ForStatement struct {
 	Token       token.Token
 	Variable    *Identifier // Loop variable
@@ -133,6 +146,7 @@ func (fs *ForStatement) String() string {
 	return out.String()
 }
 
+// FunctionDefinition represents a named function definition.
 type FunctionDefinition struct {
 	Token      token.Token // The 'SPELL' token
 	Name       *Identifier
@@ -160,8 +174,9 @@ func (fd *FunctionDefinition) String() string {
 	return out.String()
 }
 
+// WhileStatement represents a while-loop.
 type WhileStatement struct {
-	Token     token.Token // The 'while' token
+	Token     token.Token
 	Condition Expression
 	Body      *BlockStatement
 }
@@ -177,11 +192,12 @@ func (ws *WhileStatement) String() string {
 	return out.String()
 }
 
+// SpellbookDefinition represents a grouping of methods in a named 'spellbook'.
 type SpellbookDefinition struct {
-	Token      token.Token           // The 'spellbook' token
-	Name       *Identifier           // Spellbook name
-	Methods    []*FunctionDefinition // List of methods (spells)
-	InitMethod *FunctionDefinition   // Optional `init` method
+	Token      token.Token
+	Name       *Identifier
+	Methods    []*FunctionDefinition
+	InitMethod *FunctionDefinition
 }
 
 func (sb *SpellbookDefinition) statementNode()       {}
@@ -191,6 +207,7 @@ func (sb *SpellbookDefinition) String() string {
 	out.WriteString("spellbook ")
 	out.WriteString(sb.Name.String())
 	out.WriteString(":\n")
+
 	if sb.InitMethod != nil {
 		out.WriteString("    ")
 		out.WriteString(sb.InitMethod.String())
@@ -204,6 +221,7 @@ func (sb *SpellbookDefinition) String() string {
 	return out.String()
 }
 
+// ImportStatement represents an import statement.
 type ImportStatement struct {
 	Token     token.Token
 	FilePath  *StringLiteral
