@@ -29,10 +29,13 @@ Currently the language is in development.
 and
 * python style: i += 1 (Currently a bug i need to fix in parser)
 
-
 notation. 
 
 It has similar syntax to python but no typing just yet will have optional type hint eventually.
+
+# Comments:
+
+Comments in carrion are either // or /* */ i just like using those so idc if you like # functions i like those and it's my language.
 
 
 
@@ -41,16 +44,20 @@ It has similar syntax to python but no typing just yet will have optional type h
 
 "Example syntax":
 ```python
+// This is just a comment
 spell foobar(x, y):
     return x + y
 ```
 
 # Current Functionality
--  The carrion language is similar to python but it has some differences i prefer. 
-- The interpreter works but OOP features haven't been implemented yet
-- No standard library yet but will be implemented with OOP
+- Works of a tree walking paradigm
+- The carrion language is similar to python but it has some differences i prefer. 
+- The interpreter works 
+- Some OOP functions
+- Munin standard library (limited)
 - Programs can be written and parsed/evaluated via the interpreter 
-- Working Interactive REPL
+- Working REPL
+- OS and File functions
 
 # Run REPL
 ```bash
@@ -87,6 +94,9 @@ go build .
 
 - range() - makes a range function from any numbers 
 
+- os and file functions from golang but wrapped in Carrion Lang.
+
+
 # Loops
 * Currently for and while loops are supported 
 - For Loops work like python for loops 
@@ -94,7 +104,7 @@ go build .
 
 *Notes: Currently no support for list comprehensions like in python
 
-File type:
+# File type:
 - .crl
 
 # Classes and Imports
@@ -104,27 +114,68 @@ File type:
 # Example of how spellbooks are implemented
 ```python
 
-spellbook Example:
-    init(example):
-        self.example = example
-    spell example_method():
-        return self.example
+spellbook Foobar:
+    init(foo):
+        self.foo = foo
+    spell foobar_method():
+        return self.foo
 
-example  = Example("example value")
-print(example.example_method())
+foo  = Foobar("foobar")
+print(foo.foobar_method())
 ```
 
 # Imports also work but are based on file name
 
 ```python
 import "example/example"
-
 example = Example("example value")
 
 example.example_method()
 ```
 
-* Notes: The init method is used as a contructor however Currently there is a bug with setting multiple self params i'm trying to fix it
+* Note: Once you import a file you have access to it's methods by calling in the class name.
+
+# OOP part of Spellbooks
+Spellbooks are Carrion's classes.
+Not all OOP aspects are implemented but some are.
+You can declare self from any method and set them in the init.
+
+The construct method can be used as spell init() or init() both work just a preference.
+e.g.
+init() constructor:
+
+```python
+spellbook Foobar:
+    init(foo, bar):
+        self.foo = foo
+        self.bar = bar
+    spell print_foo():
+        return self.foo
+    spell print_bar():
+        return self.bar
+
+foo = Foobar("foo","bar")
+foo.print_foo()
+foo.print_bar()
+```
+
+spell init() constructor:
+
+```python
+spellbook Foobar:
+    spell init(foo, bar):
+        self.foo = foo
+        self.bar = bar
+    spell print_foo():
+        return self.foo
+    spell print_bar():
+        return self.bar
+
+foo = Foobar("foo","bar")
+foo.print_foo()
+foo.print_bar()
+```
+
 
 # Built in Go. 
 * Needs go to build interpreter
@@ -133,16 +184,22 @@ example.example_method()
 ```bash
 ./thecarrionlanguage examples/test_file.crl
 ```
+# Standard Library - Munin
+
+## Current Implementation
+- OS and File Functionality
+- Basic Math Functions
+
 
 # Future Updates
 - Possible list comprehensions
 - Fix to self params
 - More OOP integration
-- Standard Munin library
 - Build and alias the carrion language
-- File I/O
 - Build setup
-
+- JIT Compiler and VM
+- Error Handling
+- Generic Functions and Abstracts
 
 # Author
 - Javan Hutchinson
