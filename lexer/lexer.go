@@ -107,9 +107,16 @@ func (l *Lexer) NextToken() token.Token {
 		return newToken(token.ASTERISK, '*')
 
 	case '/':
-		if l.peekChar() == '=' {
+		next := l.peekChar()
+		if next == '=' {
 			l.charIndex += 2
 			return token.Token{Type: token.DIVASSGN, Literal: "/="}
+		} else if next == '/' {
+			l.skipLineComment()
+			return l.NextToken()
+		} else if next == '*' {
+			l.skipBlockComment()
+			return l.NextToken()
 		}
 		l.charIndex++
 		return newToken(token.SLASH, '/')
@@ -215,6 +222,38 @@ func (l *Lexer) NextToken() token.Token {
 	}
 }
 
+// skipLineComment moves charIndex to the end of the current line
+func (l *Lexer) skipLineComment() {
+	l.charIndex = len(l.currLine)
+}
+
+// skipBlockComment consumes everything until '*/' or EOF (end-of-file)
+func (l *Lexer) skipBlockComment() {
+	// We've already seen the '/*', so move past those two chars
+	l.charIndex += 2
+
+	for {
+		// If we reach end of this line, go to the next line
+		if l.charIndex >= len(l.currLine) {
+			l.advanceLine() // move to next line, reset charIndex=0, etc.
+			if l.finished {
+				// We've hit EOF in the middle of a block comment
+				return
+			}
+			continue
+		}
+
+		// If we see '*/', consume it and return
+		if l.currLine[l.charIndex] == '*' && l.peekChar() == '/' {
+			l.charIndex += 2
+			return
+		}
+
+		// Otherwise, just move forward
+		l.charIndex++
+	}
+}
+
 func (l *Lexer) handleIndentChange(newIndent int) token.Token {
 	// Get the current top of indentation stack
 	currentIndent := l.indentStack[len(l.indentStack)-1]
@@ -290,23 +329,62 @@ func measureIndent(line string) int {
 }
 
 func (l *Lexer) readString() token.Token {
-	l.charIndex++ // skip quote
+	// Move past the opening double-quote
+	l.charIndex++
+
 	var sb strings.Builder
+
+loop:
 	for {
+		// If we run out of line, treat it as an unclosed string
 		if l.charIndex >= len(l.currLine) {
-			// EOL => unclosed string
-			break
+			break loop
 		}
+
 		ch := l.currLine[l.charIndex]
+
+		// Closing quote?
 		if ch == '"' {
-			// closing quote
 			l.charIndex++
-			break
+			break loop
 		}
-		sb.WriteByte(ch)
+
+		// Check for escape sequences
+		if ch == '\\' {
+			// Skip the backslash
+			l.charIndex++
+			if l.charIndex >= len(l.currLine) {
+				// Nothing after the backslash => incomplete escape
+				break loop
+			}
+			esc := l.currLine[l.charIndex]
+			switch esc {
+			case 'n':
+				sb.WriteByte('\n')
+			case 't':
+				sb.WriteByte('\t')
+			case 'r':
+				sb.WriteByte('\r')
+			case '\\':
+				sb.WriteByte('\\')
+			case '"':
+				sb.WriteByte('"')
+			default:
+				// For unrecognized escapes (e.g. \q), just add the raw character
+				sb.WriteByte(esc)
+			}
+		} else {
+			// Normal character, add it to the string
+			sb.WriteByte(ch)
+		}
+
 		l.charIndex++
 	}
-	return token.Token{Type: token.STRING, Literal: sb.String()}
+
+	return token.Token{
+		Type:    token.STRING,
+		Literal: sb.String(),
+	}
 }
 
 func (l *Lexer) readIdentifier() token.Token {

@@ -1,10 +1,11 @@
+// ignore me im a useless comment 
 x = 3
 if x < 1:
     x++
-    print(x)
+    print(str(x) + "\n")
 otherwise x >= 2:
     x--
-    print(x)
+    print(str(x) + "\n")
 else:
-    print(x)
+    print(str(x) + "\n")
 
