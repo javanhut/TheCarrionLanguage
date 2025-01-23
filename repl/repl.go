@@ -189,7 +189,7 @@ func Start(in io.Reader, out io.Writer, env *object.Environment) {
 
 			evaluated, complete := tryParseAndEval(input, out, env)
 			if complete {
-				if evaluated != nil {
+				if evaluated != nil && evaluated.Type() != object.NONE_OBJ {
 					fmt.Fprintf(out, "%s\n", evaluated.Inspect())
 				}
 				inputBuffer.Reset()
