@@ -1,0 +1,12 @@
+spellbook Person:
+  init(name, age):
+    self.name = name
+    self.age = age
+  spell print_name():
+    return self.name
+  spell print_age():
+    return self.age
+
+p = Person("Bob", 30)
+print(p.print_name())
+print(p.print_age())
