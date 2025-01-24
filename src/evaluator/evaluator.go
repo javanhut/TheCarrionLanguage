@@ -131,30 +131,67 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 	return NONE
 }
 
+// evaluator/evaluator.go
 func evalRaiseStatement(node *ast.RaiseStatement, env *object.Environment) object.Object {
 	errObj := Eval(node.Error, env)
-	if isError(errObj) {
-		return errObj
+
+	// If it's already a CustomError, return it as-is
+	if customErr, ok := errObj.(*object.CustomError); ok {
+		return customErr
 	}
-	return &object.Error{Message: errObj.Inspect()}
+
+	// Otherwise, treat it as a message and wrap it in a default error
+	if strObj, ok := errObj.(*object.String); ok {
+		return &object.CustomError{
+			Name:    "Error",      // Default error type
+			Message: strObj.Value, // Message
+			Details: nil,          // No additional details
+		}
+	}
+
+	// For unsupported types, raise a type error
+	return &object.Error{
+		Message: fmt.Sprintf("cannot raise non-error object: %s", errObj.Type()),
+	}
 }
 
 func evalAttemptStatement(node *ast.AttemptStatement, env *object.Environment) object.Object {
+	// Evaluate the try block
 	result := Eval(node.TryBlock, env)
 
-	// Check for errors and handle `ensnare` or `resolve` blocks
+	// Check if the result is an error
 	if isError(result) {
+		customErr, isCustomErr := result.(*object.CustomError)
+
 		for _, ensnare := range node.EnsnareClauses {
-			condition := ensnare.Condition
-			if condition == nil || isTruthy(Eval(condition, env)) {
+			// If there's no condition, it catches all errors
+			if ensnare.Condition == nil {
 				return Eval(ensnare.Consequence, env)
+			}
+
+			// Evaluate the condition
+			condition := Eval(ensnare.Condition, env)
+			if isError(condition) {
+				return condition
+			}
+
+			// If it's a CustomError, check the type
+			if isCustomErr {
+				if conditionObj, ok := condition.(*object.String); ok {
+					if conditionObj.Value == customErr.Name {
+						return Eval(ensnare.Consequence, env)
+					}
+				}
 			}
 		}
 
-		// If no `ensnare` handled it, check for `resolve`
+		// If no ensnare clause matches, check for a resolve block
 		if node.ResolveBlock != nil {
 			return Eval(node.ResolveBlock, env)
 		}
+
+		// If no ensnare or resolve block handles the error, propagate it
+		return result
 	}
 
 	return result

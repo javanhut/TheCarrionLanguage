@@ -5,10 +5,11 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
-	"thecarrionlanguage/src/object"
 	"time"
 
 	"github.com/peterh/liner"
+
+	"thecarrionlanguage/src/object"
 )
 
 var LineReader *liner.State
@@ -574,6 +575,32 @@ var builtins = map[string]*object.Builtin{
 				return newError("error checking fileExists for '%s': %s", pathArg.Value, err)
 			}
 			return &object.Boolean{Value: true}
+		},
+	},
+	// Error Handling Methods
+	"Error": {
+		Fn: func(args ...object.Object) object.Object {
+			if len(args) < 1 || len(args) > 2 {
+				return newError("Error requires 1 or 2 arguments: name, [message]")
+			}
+			name, ok := args[0].(*object.String)
+			if !ok {
+				return newError("Error name must be a string")
+			}
+
+			var message string
+			if len(args) == 2 {
+				msg, ok := args[1].(*object.String)
+				if ok {
+					message = msg.Value
+				}
+			}
+
+			return &object.CustomError{
+				Name:    name.Value,
+				Message: message,
+				Details: make(map[string]object.Object),
+			}
 		},
 	},
 }

@@ -1,11 +1,11 @@
-
-spell risky_operation(x):
-  return x / 20
+spellbook ValueError:
+    spell init(message):
+        self.message = message
 
 attempt:
-  if risky_operation(10) != 2:
-    print("problem")
-ensnare:
-  print("something else")
+    raise ValueError("Invalid value provided")
+ensnare (ValueError):
+    print("Caught a ValueError")
 resolve:
-  print("An error occured: Division by Zero error")
+    print("Cleanup complete")
+
