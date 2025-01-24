@@ -2,18 +2,18 @@ package evaluator
 
 import (
 	"fmt"
-	"io/ioutil"
-	"os"
 	"path/filepath"
+
 	"thecarrionlanguage/src/lexer"
+	"thecarrionlanguage/src/munin"
 	"thecarrionlanguage/src/object"
 	"thecarrionlanguage/src/parser"
 )
 
 // LoadMuninStdlib loads all .crl files from the given directory into the provided env.
-func LoadMuninStdlib(env *object.Environment, muninDir string) error {
+func LoadMuninStdlib(env *object.Environment) error {
 	// Read all items in the muninDir
-	entries, err := ioutil.ReadDir(muninDir)
+	entries, err := munin.MuninFs.ReadDir(".")
 	if err != nil {
 		return fmt.Errorf("failed to read munin dir: %w", err)
 	}
@@ -21,11 +21,10 @@ func LoadMuninStdlib(env *object.Environment, muninDir string) error {
 	// Iterate over each item, looking for .crl files
 	for _, entry := range entries {
 		if !entry.IsDir() && filepath.Ext(entry.Name()) == ".crl" {
-			filePath := filepath.Join(muninDir, entry.Name())
 			// Read the .crl file
-			content, err := os.ReadFile(filePath)
+			content, err := munin.MuninFs.ReadFile(entry.Name())
 			if err != nil {
-				return fmt.Errorf("failed to read file %s: %w", filePath, err)
+				return fmt.Errorf("failed to read file %s: %w", entry.Name(), err)
 			}
 
 			// Lex & parse
@@ -35,14 +34,14 @@ func LoadMuninStdlib(env *object.Environment, muninDir string) error {
 
 			// Check parse errors
 			if len(p.Errors()) > 0 {
-				return fmt.Errorf("parse errors in %s: %v", filePath, p.Errors())
+				return fmt.Errorf("parse errors in %s: %v", entry.Name(), p.Errors())
 			}
 
 			// Evaluate the program in the global environment
 			result := Eval(program, env)
 			// If evaluation produced an error object, return that
 			if isError(result) {
-				return fmt.Errorf("runtime error in %s: %s", filePath, result.Inspect())
+				return fmt.Errorf("runtime error in %s: %s", entry.Name(), result.Inspect())
 			}
 		}
 	}

@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+
 	"thecarrionlanguage/src/evaluator"
 	"thecarrionlanguage/src/object"
 	"thecarrionlanguage/src/repl"
@@ -31,7 +32,7 @@ func main() {
 	env := object.NewEnvironment()
 
 	// Attempt to load the standard library from "munin/" folder
-	err := evaluator.LoadMuninStdlib(env, "src/munin")
+	err := evaluator.LoadMuninStdlib(env)
 	if err != nil {
 		fmt.Printf("Error loading Munin standard library: %v\n", err)
 		// You might decide to exit here or continue without the stdlib
