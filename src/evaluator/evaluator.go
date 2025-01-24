@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"os"
+
 	"thecarrionlanguage/src/ast"
 	"thecarrionlanguage/src/lexer"
 	"thecarrionlanguage/src/object"
@@ -120,10 +121,24 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		return evalIndexExpression(left, index)
 	case *ast.SpellbookDefinition:
 		return evalSpellbookDefinition(node, env)
+	case *ast.AttemptStatement:
+		return evalAttemptStatement(node, env)
 	case *ast.CallExpression:
 		return evalCallExpression(Eval(node.Function, env), evalExpressions(node.Arguments, env))
 	}
 	return NONE
+}
+
+func evalAttemptStatement(node *ast.AttemptStatement, env *object.Environment) object.Object {
+	// Evaluate the try block
+	result := Eval(node.TryBlock, env)
+
+	// If an error occurs and a resolve block exists, execute the resolve block
+	if isError(result) && node.ResolveBlock != nil {
+		return Eval(node.ResolveBlock, env)
+	}
+
+	return result
 }
 
 func evalMatchStatement(ms *ast.MatchStatement, env *object.Environment) object.Object {

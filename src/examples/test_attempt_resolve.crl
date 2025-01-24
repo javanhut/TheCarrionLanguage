@@ -1,0 +1,11 @@
+
+spell risky_operation(x):
+  return x / 20
+
+attempt:
+  if risky_operation(10) != 2:
+    print("problem")
+ensnare:
+  print("something else")
+resolve:
+  print("An error occured: Division by Zero error")

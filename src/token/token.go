@@ -82,6 +82,9 @@ const (
 	IMPORT    TokenType = "IMPORT"
 	MATCH     TokenType = "MATCH"
 	CASE      TokenType = "CASE"
+	ATTEMPT   TokenType = "ATTEMPT"
+	RESOLVE   TokenType = "RESOLVE"
+	ENSNARE   TokenType = "ENSNARE"
 	//	RANGE     TokenType = "RANGE"
 	NONE TokenType = "NONE"
 	// Logical Operators
@@ -114,6 +117,9 @@ var keywords = map[string]TokenType{
 	"or":        OR,
 	"not":       NOT,
 	"return":    RETURN,
+	"attempt":   ATTEMPT,
+	"resolve":   RESOLVE,
+	"ensnare":   ENSNARE,
 	//"range":     RANGE,
 	"None": NONE,
 }

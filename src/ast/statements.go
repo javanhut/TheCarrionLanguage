@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"strings"
+
 	"thecarrionlanguage/src/token"
 )
 
@@ -150,6 +151,9 @@ type Parameter struct {
 	DefaultValue Expression
 }
 
+func (p *Parameter) expressionNode()      {}
+func (p *Parameter) TokenLiteral() string { return "Parameter" }
+
 func (p *Parameter) String() string {
 	if p.DefaultValue != nil {
 		return fmt.Sprintf("%s=%s", p.Name.String(), p.DefaultValue.String())
@@ -285,5 +289,71 @@ func (cc *CaseClause) String() string {
 	out.WriteString(cc.Condition.String())
 	out.WriteString(":\n")
 	out.WriteString(cc.Body.String())
+	return out.String()
+}
+
+type AttemptStatement struct {
+	Token          token.Token // The token.ATTEMPT
+	TryBlock       *BlockStatement
+	EnsnareClauses []EnsnareClause // 0..N ensnare(...) blocks
+	ResolveBlock   *BlockStatement // Optional resolve: block
+}
+
+func (as *AttemptStatement) TokenLiteral() string {
+	return as.Token.Literal
+}
+
+func (as *AttemptStatement) statementNode() {}
+
+func (as *AttemptStatement) String() string {
+	var out strings.Builder
+
+	// attempt:
+	out.WriteString("attempt:\n")
+	if as.TryBlock != nil {
+		out.WriteString(as.TryBlock.String())
+	}
+
+	// ensnare(...) blocks
+	for _, e := range as.EnsnareClauses {
+		out.WriteString("ensnare")
+		if e.Condition != nil {
+			out.WriteString(" (")
+			out.WriteString(e.Condition.String())
+			out.WriteString(")")
+		}
+		out.WriteString(":\n")
+		if e.Consequence != nil {
+			out.WriteString(e.Consequence.String())
+		}
+	}
+
+	// optional resolve:
+	if as.ResolveBlock != nil {
+		out.WriteString("resolve:\n")
+		out.WriteString(as.ResolveBlock.String())
+	}
+
+	return out.String()
+}
+
+type EnsnareClause struct {
+	Token       token.Token // token.ENSNARE
+	Condition   Expression  // optional expression (e.g. the error type)
+	Consequence *BlockStatement
+}
+
+func (ec *EnsnareClause) String() string {
+	var out strings.Builder
+	out.WriteString("ensnare")
+	if ec.Condition != nil {
+		out.WriteString(" (")
+		out.WriteString(ec.Condition.String())
+		out.WriteString(")")
+	}
+	out.WriteString(":\n")
+	if ec.Consequence != nil {
+		out.WriteString(ec.Consequence.String())
+	}
 	return out.String()
 }

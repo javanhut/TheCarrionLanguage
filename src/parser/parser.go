@@ -3,6 +3,7 @@ package parser
 import (
 	"fmt"
 	"strconv"
+
 	"thecarrionlanguage/src/ast"
 	"thecarrionlanguage/src/lexer"
 	"thecarrionlanguage/src/token"
@@ -112,6 +113,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.DEDENT, func() ast.Expression { return nil })
 	p.registerPrefix(token.EOF, func() ast.Expression { return nil })
 	p.registerPrefix(token.OTHERWISE, p.parseOtherwise)
+	p.registerPrefix(token.ENSNARE, func() ast.Expression { return nil })
 	p.registerPrefix(token.LPAREN, p.parseParenExpression)
 	p.registerPrefix(token.SELF, p.parseSelf)
 	p.registerPrefix(token.INIT, func() ast.Expression {
@@ -152,8 +154,146 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerStatement(token.SPELL, p.parseFunctionDefinition)
 	p.registerStatement(token.IMPORT, p.parseImportStatement)
 	p.registerStatement(token.MATCH, p.parseMatchStatement)
+	p.registerStatement(token.ATTEMPT, p.parseAttemptStatement)
+	p.registerStatement(token.RESOLVE, p.parseResolveStatement)
+	p.registerStatement(token.ENSNARE, p.parseEnsnareStatement)
 
 	return p
+}
+
+func (p *Parser) parseAttemptStatement() ast.Statement {
+	// 1) Create the AttemptStatement node
+	stmt := &ast.AttemptStatement{
+		Token:          p.currToken, // This is token.ATTEMPT
+		EnsnareClauses: []ast.EnsnareClause{},
+	}
+
+	// 2) Expect a colon after `attempt`
+	if !p.expectPeek(token.COLON) {
+		return nil
+	}
+
+	// 3) Parse the main try-block (either inline or multi-line)
+	if p.peekTokenIs(token.NEWLINE) {
+		// Consume the newline
+		p.nextToken()
+
+		// If we see INDENT => multi-line block
+		if p.peekTokenIs(token.INDENT) {
+			p.nextToken() // consume INDENT
+			stmt.TryBlock = p.parseBlockStatement()
+		} else {
+			// Single statement on a new line with no indent
+			stmt.TryBlock = &ast.BlockStatement{
+				Token:      p.currToken,
+				Statements: []ast.Statement{p.parseStatement()},
+			}
+		}
+	} else {
+		// Inline style: `attempt: someStatement`
+		p.nextToken()
+		stmt.TryBlock = &ast.BlockStatement{
+			Token:      p.currToken,
+			Statements: []ast.Statement{p.parseStatement()},
+		}
+	}
+
+	// 4) Parse zero or more `ensnare(...)` blocks
+	for p.peekTokenIs(token.ENSNARE) {
+		// Consume the 'ensnare' token
+		p.nextToken()
+		ensnareClause := ast.EnsnareClause{Token: p.currToken}
+
+		// Optional parentheses around the condition (like ensnare(SomeError))
+		if p.peekTokenIs(token.LPAREN) {
+			p.nextToken() // consume '('
+			p.nextToken() // move to first token of condition
+			ensnareClause.Condition = p.parseExpression(LOWEST)
+
+			// Must close the parentheses
+			if !p.expectPeek(token.RPAREN) {
+				return nil
+			}
+		} else {
+			// If you allow a bare expression after ensnare
+			// e.g. `ensnare SomeError:`
+			p.nextToken()
+			ensnareClause.Condition = p.parseExpression(LOWEST)
+		}
+
+		// Expect a colon
+		if !p.expectPeek(token.COLON) {
+			return nil
+		}
+
+		// Parse inline or multi-line block
+		if p.peekTokenIs(token.NEWLINE) {
+			p.nextToken() // consume NEWLINE
+			if p.peekTokenIs(token.INDENT) {
+				p.nextToken() // consume INDENT
+				ensnareClause.Consequence = p.parseBlockStatement()
+			} else {
+				// Single statement after newline
+				ensnareClause.Consequence = &ast.BlockStatement{
+					Token:      p.currToken,
+					Statements: []ast.Statement{p.parseStatement()},
+				}
+			}
+		} else {
+			// Inline single statement: `ensnare X: doSomething()`
+			p.nextToken()
+			ensnareClause.Consequence = &ast.BlockStatement{
+				Token:      p.currToken,
+				Statements: []ast.Statement{p.parseStatement()},
+			}
+		}
+
+		stmt.EnsnareClauses = append(stmt.EnsnareClauses, ensnareClause)
+	}
+
+	// 5) Parse optional `resolve:` block (similar to “finally” or “else”)
+	if p.peekTokenIs(token.RESOLVE) {
+		p.nextToken() // consume 'resolve'
+
+		// Must have a colon after resolve
+		if !p.expectPeek(token.COLON) {
+			return nil
+		}
+
+		// Inline or multi-line
+		if p.peekTokenIs(token.NEWLINE) {
+			p.nextToken() // consume NEWLINE
+			if p.peekTokenIs(token.INDENT) {
+				p.nextToken() // consume INDENT
+				stmt.ResolveBlock = p.parseBlockStatement()
+			} else {
+				// Single statement after newline
+				stmt.ResolveBlock = &ast.BlockStatement{
+					Token:      p.currToken,
+					Statements: []ast.Statement{p.parseStatement()},
+				}
+			}
+		} else {
+			// Inline single statement
+			p.nextToken()
+			stmt.ResolveBlock = &ast.BlockStatement{
+				Token:      p.currToken,
+				Statements: []ast.Statement{p.parseStatement()},
+			}
+		}
+	}
+
+	return stmt
+}
+
+func (p *Parser) parseEnsnareStatement() ast.Statement {
+	p.errors = append(p.errors, "Unexpected 'ensnare' outside of 'attempt' block")
+	return nil
+}
+
+func (p *Parser) parseResolveStatement() ast.Statement {
+	p.errors = append(p.errors, "Unexpected 'resolve' outside of 'attempt' block")
+	return nil
 }
 
 func (p *Parser) parseNoneLiteral() ast.Expression {
@@ -508,7 +648,10 @@ func (p *Parser) parseStatement() ast.Statement {
 		return p.parseImportStatement()
 	case token.MATCH:
 		return p.parseMatchStatement()
-		// Add any other top-level statements here...
+	case token.ATTEMPT:
+		return p.parseAttemptStatement()
+	case token.RESOLVE:
+		return p.parseResolveStatement()
 	}
 
 	leftExpr := p.parseExpression(LOWEST)

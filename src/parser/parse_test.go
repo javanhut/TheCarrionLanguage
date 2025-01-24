@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"thecarrionlanguage/ast"
-	"thecarrionlanguage/lexer"
+	"thecarrionlanguage/src/ast"
+	"thecarrionlanguage/src/lexer"
 )
 
 func TestIntegerLiteralExpression(t *testing.T) {
@@ -755,5 +755,79 @@ func TestParsingHashLiteralsWithExpressions(t *testing.T) {
 			continue
 		}
 		testFunc(value)
+	}
+}
+
+func TestAttemptStatement(t *testing.T) {
+	input := `
+attempt:
+    x = 5
+    do_something()
+ensnare(TypeError):
+    print("Got a type error")
+ensnare:
+    print("Got something else")
+resolve:
+    print("Done with attempt")
+`
+
+	l := lexer.New(input)
+	p := New(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p) // You can define a helper function to check parser errors.
+
+	if len(program.Statements) != 1 {
+		t.Fatalf("program.Statements does not contain 1 statement. got=%d",
+			len(program.Statements))
+	}
+
+	// Assert the single statement is an *ast.AttemptStatement
+	attemptStmt, ok := program.Statements[0].(*ast.AttemptStatement)
+	if !ok {
+		t.Fatalf("program.Statements[0] is not *ast.AttemptStatement. got=%T",
+			program.Statements[0])
+	}
+
+	// Check the TryBlock
+	if attemptStmt.TryBlock == nil {
+		t.Fatalf("attemptStmt.TryBlock is nil; expected a block")
+	}
+	// Optionally, assert how many statements are in the TryBlock
+	if len(attemptStmt.TryBlock.Statements) != 2 {
+		t.Fatalf("expected 2 statements in the try block, got=%d",
+			len(attemptStmt.TryBlock.Statements))
+	}
+
+	// Check the EnsnareClauses
+	if len(attemptStmt.EnsnareClauses) != 2 {
+		t.Fatalf("expected 2 ensnare clauses, got=%d",
+			len(attemptStmt.EnsnareClauses))
+	}
+
+	// 1st ensnare: ensnare(TypeError)
+	firstEnsnare := attemptStmt.EnsnareClauses[0]
+	if firstEnsnare.Condition == nil {
+		t.Errorf("firstEnsnare.Condition is nil; expected an expression for `TypeError`")
+	}
+	if firstEnsnare.Consequence == nil {
+		t.Errorf("firstEnsnare.Consequence is nil; expected a block statement")
+	}
+
+	// 2nd ensnare: ensnare:
+	secondEnsnare := attemptStmt.EnsnareClauses[1]
+	if secondEnsnare.Condition == nil {
+		t.Logf("secondEnsnare.Condition is nil as expected for a bare ensnare")
+	}
+	if secondEnsnare.Consequence == nil {
+		t.Errorf("secondEnsnare.Consequence is nil; expected a block statement")
+	}
+
+	// Check the resolve block
+	if attemptStmt.ResolveBlock == nil {
+		t.Fatalf("attemptStmt.ResolveBlock is nil; expected a resolve block")
+	}
+	if len(attemptStmt.ResolveBlock.Statements) != 1 {
+		t.Fatalf("expected 1 statement in resolve block, got=%d",
+			len(attemptStmt.ResolveBlock.Statements))
 	}
 }
