@@ -1,0 +1,5 @@
+spell default(name="Carrion"):
+  return name
+
+name = default()
+print(name)

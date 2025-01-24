@@ -146,11 +146,23 @@ func (fs *ForStatement) String() string {
 	return out.String()
 }
 
+type Parameter struct {
+	Name         *Identifier
+	DefaultValue Expression
+}
+
+func (p *Parameter) String() string {
+	if p.DefaultValue != nil {
+		return fmt.Sprintf("%s=%s", p.Name.String(), p.DefaultValue.String())
+	}
+	return p.Name.String()
+}
+
 // FunctionDefinition represents a named function definition.
 type FunctionDefinition struct {
 	Token      token.Token // The 'SPELL' token
 	Name       *Identifier
-	Parameters []*Identifier
+	Parameters []*Parameter
 	Body       *BlockStatement
 }
 
