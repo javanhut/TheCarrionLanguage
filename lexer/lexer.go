@@ -160,7 +160,9 @@ func (l *Lexer) NextToken() token.Token {
 	case ';':
 		l.charIndex++
 		return newToken(token.SEMICOLON, ';')
-
+	case '_':
+		l.charIndex++
+		return newToken(token.UNDERSCORE, '_')
 	case '(':
 		l.charIndex++
 		return newToken(token.LPAREN, '(')

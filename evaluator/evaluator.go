@@ -75,6 +75,8 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		return evalForStatement(node, env)
 	case *ast.ImportStatement:
 		return evalImportStatement(node, env)
+	case *ast.MatchStatement:
+		return evalMatchStatement(node, env)
 	case *ast.Identifier:
 		return evalIdentifier(node, env)
 	case *ast.ArrayLiteral:
@@ -116,6 +118,50 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		return evalCallExpression(Eval(node.Function, env), evalExpressions(node.Arguments, env))
 	}
 	return NONE
+}
+
+func evalMatchStatement(ms *ast.MatchStatement, env *object.Environment) object.Object {
+	matchValue := Eval(ms.MatchValue, env)
+	if isError(matchValue) {
+		return matchValue
+	}
+
+	for _, caseClause := range ms.Cases {
+		caseCondition := Eval(caseClause.Condition, env)
+		if isError(caseCondition) {
+			return caseCondition
+		}
+
+		// Compare with isEqual(...) or however you prefer
+		if isEqual(matchValue, caseCondition) {
+			// As soon as we find a match, evaluate and return
+			return Eval(caseClause.Body, env)
+		}
+	}
+
+	// If no case matched, look for default case
+	if ms.Default != nil {
+		return Eval(ms.Default.Body, env)
+	}
+
+	return NONE // no matches, no default => return None
+}
+
+func isEqual(obj1, obj2 object.Object) bool {
+	switch obj1 := obj1.(type) {
+	case *object.Integer:
+		if obj2, ok := obj2.(*object.Integer); ok {
+			return obj1.Value == obj2.Value
+		}
+	case *object.String:
+		if obj2, ok := obj2.(*object.String); ok {
+			return obj1.Value == obj2.Value
+		}
+	// Add more cases for other types (e.g., Float, Boolean, etc.)
+	default:
+		return false
+	}
+	return false
 }
 
 func evalAssignStatement(node *ast.AssignStatement, env *object.Environment) object.Object {
@@ -412,11 +458,12 @@ func evalBlockStatement(block *ast.BlockStatement, env *object.Environment) obje
 		if result != nil {
 			rt := result.Type()
 			if rt == object.RETURN_VALUE_OBJ || rt == object.ERROR_OBJ {
-				return result
+				return result // Propagate return/error up
 			}
 		}
 	}
-	return result
+
+	return result // Return the last evaluated value (or nil if empty block)
 }
 
 func nativeBoolToBooleanObject(input bool) *object.Boolean {

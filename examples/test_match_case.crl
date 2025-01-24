@@ -1,0 +1,7 @@
+match 5:
+  case 1:
+    print("One")
+  case 5:
+    print("Five")
+  case _:
+    print("Default")
