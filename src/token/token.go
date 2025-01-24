@@ -115,7 +115,7 @@ var keywords = map[string]TokenType{
 	"not":       NOT,
 	"return":    RETURN,
 	//"range":     RANGE,
-	"none": NONE,
+	"None": NONE,
 }
 
 func LookupIdent(ident string) TokenType {

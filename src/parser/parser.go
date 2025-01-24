@@ -106,6 +106,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.STRING, p.parseStringLiteral)
 	p.registerPrefix(token.LBRACK, p.parseArrayLiteral)
 	p.registerPrefix(token.LBRACE, p.parseHashLiteral)
+	p.registerPrefix(token.NONE, p.parseNoneLiteral)
 	p.registerPrefix(token.NEWLINE, func() ast.Expression { return nil })
 	p.registerPrefix(token.INDENT, func() ast.Expression { return nil })
 	p.registerPrefix(token.DEDENT, func() ast.Expression { return nil })
@@ -153,6 +154,10 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerStatement(token.MATCH, p.parseMatchStatement)
 
 	return p
+}
+
+func (p *Parser) parseNoneLiteral() ast.Expression {
+	return &ast.NoneLiteral{Token: p.currToken}
 }
 
 func (p *Parser) parseMatchStatement() ast.Statement {

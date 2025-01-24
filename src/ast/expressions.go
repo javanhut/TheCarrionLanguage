@@ -227,3 +227,11 @@ func (de *DotExpression) TokenLiteral() string { return de.Token.Literal }
 func (de *DotExpression) String() string {
 	return fmt.Sprintf("(%s.%s)", de.Left.String(), de.Right.String())
 }
+
+type NoneLiteral struct {
+	Token token.Token
+}
+
+func (nl *NoneLiteral) expressionNode()      {}
+func (nl *NoneLiteral) TokenLiteral() string { return nl.Token.Literal }
+func (nl *NoneLiteral) String() string       { return "None" }

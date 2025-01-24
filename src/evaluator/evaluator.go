@@ -63,6 +63,8 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		return &object.Integer{Value: node.Value}
 	case *ast.FloatLiteral:
 		return &object.Float{Value: node.Value}
+	case *ast.NoneLiteral:
+		return object.NONE
 	case *ast.ReturnStatement:
 		val := Eval(node.ReturnValue, env)
 		if isError(val) {
@@ -441,6 +443,9 @@ func evalIdentifier(node *ast.Identifier, env *object.Environment) object.Object
 	if builtin, ok := builtins[node.Value]; ok {
 		return builtin
 	}
+	if node.Value == "None" {
+		return object.NONE
+	}
 	return newError("identifier not found: " + node.Value)
 }
 
@@ -515,7 +520,14 @@ func evalInfixExpression(
 		return evalBooleanInfixExpression(operator, left, right)
 	case left.Type() == object.STRING_OBJ && right.Type() == object.STRING_OBJ:
 		return evalStringInfixExpression(operator, left, right)
-
+	case left == object.NONE && right == object.NONE:
+		return nativeBoolToBooleanObject(operator == "==")
+	case left == object.NONE || right == object.NONE:
+		if operator == "==" {
+			return nativeBoolToBooleanObject(false)
+		} else if operator == "!=" {
+			return nativeBoolToBooleanObject(true)
+		}
 	case left.Type() != right.Type():
 		return newError("type mismatch: %s %s %s", left.Type(), operator, right.Type())
 	case left.Type() == object.FLOAT_OBJ || right.Type() == object.FLOAT_OBJ:
@@ -535,10 +547,15 @@ func evalInfixExpression(
 		default:
 			return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 		}
-	default:
-		// fmt.Printf("Error: type mismatch or unknown operator\n")
-		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 	}
+
+	// Fallback return for unmatched cases
+	return newError(
+		"unknown operator or type mismatch: %s %s %s",
+		left.Type(),
+		operator,
+		right.Type(),
+	)
 }
 
 func toFloat(obj object.Object) float64 {

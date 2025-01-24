@@ -32,6 +32,8 @@ const (
 	INSTANCE_OBJ     = "INSTANCE"
 )
 
+var NONE = &None{}
+
 type Integer struct {
 	Value int64
 }
