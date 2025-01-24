@@ -16,7 +16,7 @@
 ⠀⠀⠀⠀⠀⠀⠀⠸⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠉⠙⠛⠋⠉⠉⠀⠀⠀⠀⠀⠀⠀⠀
 ```
-### The Carrion programming language is a python like programming language written in Go. It is meant to be a fun project. it's interpreted and dynamically typed 
+### The Carrion programming language is a dynamically typed programming language written in Go. It's supposed to be similar to python with some syntax changes and functionality that i like. Don't beintimidated. It's meant to be easy to learn it just has a fun crow theme! 
 
 
 ## Notes:
@@ -39,15 +39,24 @@ Comments in carrion are either // or /* */ i just like using those so idc if you
 
 
 
-* Methods are defined as spells
-
-
 "Example syntax":
+
 ```python
 // This is just a comment
 spell foobar(x, y):
     return x + y
 ```
+
+# Defaults
+
+Spells work just like methods in python if you're familar with python if not here's an example
+
+```python
+spell foobar(name="foobar"):
+    return name
+```
+
+This allows you to set default arguments in the parameters.
 
 # Current Functionality
 - Works of a tree walking paradigm
@@ -130,9 +139,6 @@ match foo:
 
 *Notes: Currently no support for list comprehensions like in python
 
-# File type:
-- .crl
-
 # Classes and Imports
 * Currently Classes are implemented as well as Imports
 - Classes in Carrion are known as "Spellbooks" and the Methods are spells within those Spellbooks
@@ -168,7 +174,8 @@ You can declare self from any method and set them in the init.
 
 The construct method can be used as spell init() or init() both work just a preference.
 e.g.
-init() constructor:
+
+# With init: init() constructor:
 
 ```python
 spellbook Foobar:
@@ -185,7 +192,7 @@ foo.print_foo()
 foo.print_bar()
 ```
 
-spell init() constructor:
+# With spell init: spell init() constructor:
 
 ```python
 spellbook Foobar:
@@ -216,6 +223,9 @@ foo.print_bar()
 - OS and File Functionality
 - Basic Math Functions
 
+# File type:
+- .crl
+
 
 # Future Updates
 - Possible list comprehensions
@@ -226,8 +236,8 @@ foo.print_bar()
 - JIT Compiler and VM
 - Error Handling
 - Generic Functions and Abstracts
-- String formatter and Defaults
-- Type hint
+- String formatter
+- Type hints:
 
 # Author
 - Javan Hutchinson
