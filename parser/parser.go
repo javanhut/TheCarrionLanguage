@@ -1046,37 +1046,48 @@ func (p *Parser) parseFunctionDefinition() ast.Statement {
 	return stmt
 }
 
-func (p *Parser) parseFunctionParameters() []*ast.Identifier {
-	identifiers := []*ast.Identifier{}
+func (p *Parser) parseFunctionParameters() []*ast.Parameter {
+	parameters := []*ast.Parameter{}
 
+	// Check for empty parameter list
 	if p.peekTokenIs(token.RPAREN) {
 		p.nextToken()
-		return identifiers
+		return parameters
 	}
 
-	p.nextToken()
-
-	ident := &ast.Identifier{
-		Token: p.currToken,
-		Value: p.currToken.Literal,
+	// Parse each parameter
+	p.nextToken() // Move to the first parameter
+	param := &ast.Parameter{
+		Name: &ast.Identifier{Token: p.currToken, Value: p.currToken.Literal},
 	}
-	identifiers = append(identifiers, ident)
+	if p.peekTokenIs(token.ASSIGN) {
+		p.nextToken() // Consume '='
+		p.nextToken() // Move to the default value
+		param.DefaultValue = p.parseExpression(LOWEST)
+	}
+	parameters = append(parameters, param)
 
+	// Handle additional parameters separated by commas
 	for p.peekTokenIs(token.COMMA) {
-		p.nextToken()
-		p.nextToken()
-		ident := &ast.Identifier{
-			Token: p.currToken,
-			Value: p.currToken.Literal,
+		p.nextToken() // Consume the comma
+		p.nextToken() // Move to the next parameter
+		param := &ast.Parameter{
+			Name: &ast.Identifier{Token: p.currToken, Value: p.currToken.Literal},
 		}
-		identifiers = append(identifiers, ident)
+		if p.peekTokenIs(token.ASSIGN) {
+			p.nextToken() // Consume '='
+			p.nextToken() // Move to the default value
+			param.DefaultValue = p.parseExpression(LOWEST)
+		}
+		parameters = append(parameters, param)
 	}
 
+	// Ensure the parameter list ends with a closing parenthesis
 	if !p.expectPeek(token.RPAREN) {
 		return nil
 	}
 
-	return identifiers
+	return parameters
 }
 
 func (p *Parser) parseWhileStatement() ast.Statement {

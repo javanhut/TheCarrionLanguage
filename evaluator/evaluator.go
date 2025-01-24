@@ -403,11 +403,19 @@ func applyFunction(fn object.Object, args []object.Object) object.Object {
 }
 
 func extendFunctionEnv(fn *object.Function, args []object.Object) *object.Environment {
-	// Create a new child environment so function variables don’t pollute outer env
 	env := object.NewEnclosedEnvironment(fn.Env)
 
 	for i, param := range fn.Parameters {
-		env.Set(param.Value, args[i])
+		// If an argument is provided, use it
+		if i < len(args) {
+			env.Set(param.Name.Value, args[i])
+		} else if param.DefaultValue != nil {
+			// If no argument is provided, use the default value
+			defaultVal := Eval(param.DefaultValue, env)
+			env.Set(param.Name.Value, defaultVal)
+		} else {
+			env.Set(param.Name.Value, NONE) // No default value
+		}
 	}
 
 	return env

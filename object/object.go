@@ -76,7 +76,7 @@ func (e *Error) Type() ObjectType { return ERROR_OBJ }
 func (e *Error) Inspect() string  { return "ERROR: " + e.Message }
 
 type Function struct {
-	Parameters []*ast.Identifier
+	Parameters []*ast.Parameter
 	Body       *ast.BlockStatement
 	Env        *Environment
 }

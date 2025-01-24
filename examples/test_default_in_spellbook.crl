@@ -1,0 +1,10 @@
+spellbook Default:
+  init(default="Carrion"):
+    self.default = default
+  spell print_language():
+    lang = "The name of this programming language is " + self.default
+    return lang
+
+default = Default()
+string_default = default.print_language()
+print(string_default)
