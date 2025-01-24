@@ -27,7 +27,7 @@ chmod +x setup
 ```
 
 # Documentation
-[The Carrion Language](./docs/CARRION.md)
+Link to documentation -> [The Carrion Programming Language](./docs/CARRION.md)
 
 # File type:
 - .crl

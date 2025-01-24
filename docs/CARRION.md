@@ -71,10 +71,9 @@ This allows you to set default arguments in the parameters.
 
 # Run REPL
 ```bash
-go build .
-./thecarrionlanguage
+carrion
 ```
-- Note: Run thecarrionlanguage without a file to run REPL
+- Note: Run carrion without a file to run REPL
 
 # Data Types Currently supported:
  - Arrays
@@ -212,7 +211,7 @@ foo.print_bar()
 
 # Example file run.
 ```bash
-./thecarrionlanguage examples/test_file.crl
+carrion examples/test_file.crl
 ```
 # Standard Library - Munin
 
