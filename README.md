@@ -1,4 +1,4 @@
-# The Carrion Programming Language ver 0.0.1
+# The Carrion Programming Language ver 0.1.0
 ```bash
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣀⣀⣀⠀⠀⠀⠀⠀⠀⠀⠀
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣴⣿⣿⡟⠋⢻⣷⣄⡀⠀⠀⠀⠀⠀
@@ -22,8 +22,13 @@
 
 # Installation
 ```bash
-chmod +x setup
+chmod +x setup.sh
 ./setup.sh
+```
+
+# Uninstall
+```bash
+./install/uninstall.sh
 ```
 
 # Documentation
@@ -35,15 +40,12 @@ Link to documentation -> [The Carrion Programming Language](./docs/CARRION.md)
 
 # Future Updates
 - Possible list comprehensions
-- Fix to self params
 - More OOP integration
-- Build and alias the carrion language
-- Build setup
 - JIT Compiler and VM
 - Error Handling
 - Generic Functions and Abstracts
 - String formatter
-- Type hints:
+- Type hints
 
 # Author
 - Javan Hutchinson
