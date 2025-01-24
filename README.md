@@ -27,7 +27,7 @@ Currently the language is in development.
 
 * c style prefix and postfix increment: ++i and i++
 and
-* python style: i += 1 (Currently a bug i need to fix in parser)
+* python style: i += 1
 
 notation. 
 
