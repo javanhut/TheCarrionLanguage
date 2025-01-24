@@ -2,6 +2,7 @@ package evaluator
 
 import (
 	"fmt"
+	"math"
 	"os"
 
 	"thecarrionlanguage/ast"
@@ -39,6 +40,10 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		return evalPrefixExpression(node.Operator, node, env)
 
 	case *ast.InfixExpression:
+		if node.Operator == "+=" || node.Operator == "-=" ||
+			node.Operator == "*=" || node.Operator == "/=" {
+			return evalCompoundAssignment(node, env)
+		}
 		right := Eval(node.Right, env)
 		if isError(right) {
 			// fmt.Printf("Error in right operand: %v\n", right)
@@ -49,7 +54,7 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 			// fmt.Printf("Error in left operand: %v\n", left)
 			return left
 		}
-		result := evalInfixExpression(node.Operator, left, right)
+		result := evalInfixExpression(node.Operator, left, right, env)
 		// fmt.Printf("InfixExpression result: %v\n", result)
 		return result
 	case *ast.PostfixExpression:
@@ -167,6 +172,7 @@ func isEqual(obj1, obj2 object.Object) bool {
 func evalAssignStatement(node *ast.AssignStatement, env *object.Environment) object.Object {
 	switch name := node.Name.(type) {
 	case *ast.Identifier:
+		// Handle compound assignment operators (+=, -=, *=, /=)
 		val := Eval(node.Value, env)
 		if isError(val) {
 			return val
@@ -175,6 +181,7 @@ func evalAssignStatement(node *ast.AssignStatement, env *object.Environment) obj
 		return val
 
 	case *ast.DotExpression:
+		// Handle assignments to object properties
 		left := Eval(name.Left, env)
 		if isError(left) {
 			return left
@@ -498,7 +505,11 @@ func evalPrefixExpression(
 	}
 }
 
-func evalInfixExpression(operator string, left, right object.Object) object.Object {
+func evalInfixExpression(
+	operator string,
+	left, right object.Object,
+	env *object.Environment,
+) object.Object {
 	// fmt.Printf("InfixExpression operator: %s, left: %v, right: %v\n", operator, left, right)
 	switch {
 	case left.Type() == object.INTEGER_OBJ && right.Type() == object.INTEGER_OBJ:
@@ -522,6 +533,8 @@ func evalInfixExpression(operator string, left, right object.Object) object.Obje
 			return &object.Float{Value: leftVal * rightVal}
 		case "/":
 			return &object.Float{Value: leftVal / rightVal}
+		case "**":
+			return &object.Float{Value: math.Pow(leftVal, rightVal)}
 		default:
 			return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 		}
@@ -719,24 +732,102 @@ func evalIntegerInfixExpression(
 		return nativeBoolToBooleanObject(leftVal < rightVal)
 	case ">":
 		return nativeBoolToBooleanObject(leftVal > rightVal)
+	case "**":
+		return &object.Integer{Value: int64(math.Pow(float64(leftVal), float64(rightVal)))}
 	case "==":
 		return nativeBoolToBooleanObject(leftVal == rightVal)
 	case "!=":
 		return nativeBoolToBooleanObject(leftVal != rightVal)
-	case "+=":
-		return &object.Integer{Value: leftVal + rightVal}
-	case "*=":
-		return &object.Integer{Value: leftVal * rightVal}
-	case "-=":
-		return &object.Integer{Value: leftVal - rightVal}
-	case "/=":
-		return &object.Integer{Value: leftVal / rightVal}
 	case ">=":
 		return nativeBoolToBooleanObject(leftVal >= rightVal)
 	case "<=":
 		return nativeBoolToBooleanObject(leftVal <= rightVal)
 	default:
 		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
+	}
+}
+
+func evalCompoundAssignment(node *ast.InfixExpression, env *object.Environment) object.Object {
+	// Evaluate the right-hand side
+	rightVal := Eval(node.Right, env)
+	if isError(rightVal) {
+		return rightVal
+	}
+
+	// The left side must be an AST expression (often an Identifier, Dot, or Index).
+	switch leftNode := node.Left.(type) {
+	case *ast.Identifier:
+		// 1. Look up the current value of x in environment
+		currVal, ok := env.Get(leftNode.Value)
+		if !ok {
+			return newError("undefined variable: %s", leftNode.Value)
+		}
+		// 2. Apply the arithmetic
+		newVal := applyCompoundOperator(node.Operator, currVal, rightVal)
+		if isError(newVal) {
+			return newVal
+		}
+		// 3. Store back into environment
+		env.Set(leftNode.Value, newVal)
+		return newVal
+
+	// (Optional) If you want to allow `arr[0] += 5` or `obj.field += 5`, handle
+	// *ast.IndexExpression or *ast.DotExpression similarly here.
+
+	default:
+		return newError("invalid assignment target: %T", leftNode)
+	}
+}
+
+// ----------------------------------------------------
+// NEW: applyCompoundOperator for +=, -=, etc.
+// ----------------------------------------------------
+func applyCompoundOperator(operator string, leftVal, rightVal object.Object) object.Object {
+	switch l := leftVal.(type) {
+	case *object.Integer:
+		rInt, ok := rightVal.(*object.Integer)
+		if !ok {
+			return newError("type mismatch: expected INTEGER, got %s", rightVal.Type())
+		}
+		switch operator {
+		case "+=":
+			return &object.Integer{Value: l.Value + rInt.Value}
+		case "-=":
+			return &object.Integer{Value: l.Value - rInt.Value}
+		case "*=":
+			return &object.Integer{Value: l.Value * rInt.Value}
+		case "/=":
+			if rInt.Value == 0 {
+				return newError("division by zero")
+			}
+			return &object.Integer{Value: l.Value / rInt.Value}
+		default:
+			return newError("unknown operator: %s", operator)
+		}
+
+	case *object.Float:
+		rFloat, ok := rightVal.(*object.Float)
+		if !ok {
+			return newError("type mismatch: expected FLOAT, got %s", rightVal.Type())
+		}
+		switch operator {
+		case "+=":
+			return &object.Float{Value: l.Value + rFloat.Value}
+		case "-=":
+			return &object.Float{Value: l.Value - rFloat.Value}
+		case "*=":
+			return &object.Float{Value: l.Value * rFloat.Value}
+		case "/=":
+			if rFloat.Value == 0 {
+				return newError("division by zero")
+			}
+			return &object.Float{Value: l.Value / rFloat.Value}
+		default:
+			return newError("unknown operator: %s", operator)
+		}
+
+	default:
+		return newError("unsupported type for compound assignment: %s", leftVal.Type())
 	}
 }
 

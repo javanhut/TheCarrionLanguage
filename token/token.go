@@ -28,6 +28,7 @@ const (
 	ASTERISK        TokenType = "*"
 	SLASH           TokenType = "/"
 	MOD             TokenType = "%"
+	EXPONENT        TokenType = "**"
 	INCREMENT       TokenType = "+="
 	DECREMENT       TokenType = "-="
 	MULTASSGN       TokenType = "*="

@@ -102,6 +102,9 @@ func (l *Lexer) NextToken() token.Token {
 		if l.peekChar() == '=' {
 			l.charIndex += 2
 			return token.Token{Type: token.MULTASSGN, Literal: "*="}
+		} else if l.peekChar() == '*' {
+			l.charIndex += 2
+			return token.Token{Type: token.EXPONENT, Literal: "**"}
 		}
 		l.charIndex++
 		return newToken(token.ASTERISK, '*')

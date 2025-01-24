@@ -35,7 +35,7 @@ var builtins = map[string]*object.Builtin{
 	"print": {
 		Fn: func(args ...object.Object) object.Object {
 			for _, arg := range args {
-				fmt.Print(arg.Inspect(), " ")
+				fmt.Println(arg.Inspect(), " ")
 			}
 			return &object.None{}
 		},
