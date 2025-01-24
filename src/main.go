@@ -32,11 +32,12 @@ func main() {
 	env := object.NewEnvironment()
 
 	// Attempt to load the standard library from "munin/" folder
-	err := evaluator.LoadMuninStdlib(env)
-	if err != nil {
-		fmt.Printf("Error loading Munin standard library: %v\n", err)
-		// You might decide to exit here or continue without the stdlib
+	// 2) Load the embedded stdlib
+	if err := evaluator.LoadMuninStdlib(env); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to load stdlib: %v\n", err)
+		os.Exit(1)
 	}
+
 	if len(os.Args) > 1 {
 		repl.Start(os.Stdin, os.Stdout, env)
 	} else {
