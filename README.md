@@ -99,8 +99,34 @@ go build .
 
 # Loops
 * Currently for and while loops are supported 
-- For Loops work like python for loops 
+- For Loops work like python for loops
+```python
+for x in range(10):
+    print(x)
+```
 - While loops work like python while loops
+```python
+x = 10
+while x < 20:
+    print(x)
+    x++
+```
+
+# Match/Case
+Match case works similar to python you declare a match and a case for and use an underscore as a default.
+e.g.
+```python 
+foo = "foobar"
+
+match foo:
+    case "foo":
+        print("foo")
+    case "bar":
+        print("bar")
+    _:
+        print("foobar")
+
+```
 
 *Notes: Currently no support for list comprehensions like in python
 
@@ -200,6 +226,12 @@ foo.print_bar()
 - JIT Compiler and VM
 - Error Handling
 - Generic Functions and Abstracts
+- String formatter and Defaults
+- Type hint
 
 # Author
 - Javan Hutchinson
+
+
+# For issues:
+Shove it file a issue i may or may not look at it haha jk i probably will.

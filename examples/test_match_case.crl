@@ -1,7 +1,10 @@
-match 5:
-  case 1:
-    print("One")
-  case 5:
-    print("Five")
-  case _:
+x = 10
+
+
+match x:
+  case 10:
+    print("Ten")
+  case 20:
+    print("Twenty")
+  _:
     print("Default")
