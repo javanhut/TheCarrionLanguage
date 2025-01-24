@@ -157,8 +157,24 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerStatement(token.ATTEMPT, p.parseAttemptStatement)
 	p.registerStatement(token.RESOLVE, p.parseResolveStatement)
 	p.registerStatement(token.ENSNARE, p.parseEnsnareStatement)
+	p.registerStatement(token.RAISE, p.parseRaiseStatement)
 
 	return p
+}
+
+func (p *Parser) parseRaiseStatement() ast.Statement {
+	stmt := &ast.RaiseStatement{Token: p.currToken}
+
+	// Expect an expression after `raise` (e.g., raise "error message")
+	p.nextToken()
+	stmt.Error = p.parseExpression(LOWEST)
+
+	// Optionally consume a newline or semicolon
+	if p.peekTokenIs(token.NEWLINE) || p.peekTokenIs(token.SEMICOLON) {
+		p.nextToken()
+	}
+
+	return stmt
 }
 
 func (p *Parser) parseAttemptStatement() ast.Statement {
@@ -652,6 +668,8 @@ func (p *Parser) parseStatement() ast.Statement {
 		return p.parseAttemptStatement()
 	case token.RESOLVE:
 		return p.parseResolveStatement()
+	case token.RAISE:
+		return p.parseRaiseStatement()
 	}
 
 	leftExpr := p.parseExpression(LOWEST)

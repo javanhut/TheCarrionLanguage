@@ -85,6 +85,7 @@ const (
 	ATTEMPT   TokenType = "ATTEMPT"
 	RESOLVE   TokenType = "RESOLVE"
 	ENSNARE   TokenType = "ENSNARE"
+	RAISE     TokenType = "RAISE"
 	//	RANGE     TokenType = "RANGE"
 	NONE TokenType = "NONE"
 	// Logical Operators
@@ -120,6 +121,7 @@ var keywords = map[string]TokenType{
 	"attempt":   ATTEMPT,
 	"resolve":   RESOLVE,
 	"ensnare":   ENSNARE,
+	"raise":     RAISE,
 	//"range":     RANGE,
 	"None": NONE,
 }

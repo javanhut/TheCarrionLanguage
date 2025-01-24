@@ -357,3 +357,15 @@ func (ec *EnsnareClause) String() string {
 	}
 	return out.String()
 }
+
+// ast/statements.go
+type RaiseStatement struct {
+	Token token.Token // The `raise` token
+	Error Expression  // The error to raise
+}
+
+func (rs *RaiseStatement) statementNode()       {}
+func (rs *RaiseStatement) TokenLiteral() string { return rs.Token.Literal }
+func (rs *RaiseStatement) String() string {
+	return fmt.Sprintf("raise %s", rs.Error.String())
+}

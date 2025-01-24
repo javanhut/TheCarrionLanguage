@@ -84,6 +84,8 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		return evalImportStatement(node, env)
 	case *ast.MatchStatement:
 		return evalMatchStatement(node, env)
+	case *ast.RaiseStatement:
+		return evalRaiseStatement(node, env)
 	case *ast.Identifier:
 		return evalIdentifier(node, env)
 	case *ast.ArrayLiteral:
@@ -129,13 +131,30 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 	return NONE
 }
 
+func evalRaiseStatement(node *ast.RaiseStatement, env *object.Environment) object.Object {
+	errObj := Eval(node.Error, env)
+	if isError(errObj) {
+		return errObj
+	}
+	return &object.Error{Message: errObj.Inspect()}
+}
+
 func evalAttemptStatement(node *ast.AttemptStatement, env *object.Environment) object.Object {
-	// Evaluate the try block
 	result := Eval(node.TryBlock, env)
 
-	// If an error occurs and a resolve block exists, execute the resolve block
-	if isError(result) && node.ResolveBlock != nil {
-		return Eval(node.ResolveBlock, env)
+	// Check for errors and handle `ensnare` or `resolve` blocks
+	if isError(result) {
+		for _, ensnare := range node.EnsnareClauses {
+			condition := ensnare.Condition
+			if condition == nil || isTruthy(Eval(condition, env)) {
+				return Eval(ensnare.Consequence, env)
+			}
+		}
+
+		// If no `ensnare` handled it, check for `resolve`
+		if node.ResolveBlock != nil {
+			return Eval(node.ResolveBlock, env)
+		}
 	}
 
 	return result
