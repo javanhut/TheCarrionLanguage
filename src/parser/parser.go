@@ -3,10 +3,9 @@ package parser
 import (
 	"fmt"
 	"strconv"
-
-	"thecarrionlanguage/ast"
-	"thecarrionlanguage/lexer"
-	"thecarrionlanguage/token"
+	"thecarrionlanguage/src/ast"
+	"thecarrionlanguage/src/lexer"
+	"thecarrionlanguage/src/token"
 )
 
 const (

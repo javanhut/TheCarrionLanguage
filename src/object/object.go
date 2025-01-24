@@ -5,8 +5,7 @@ import (
 	"fmt"
 	"hash/fnv"
 	"strings"
-
-	"thecarrionlanguage/ast"
+	"thecarrionlanguage/src/ast"
 )
 
 type ObjectType string

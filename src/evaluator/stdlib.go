@@ -5,10 +5,9 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-
-	"thecarrionlanguage/lexer"
-	"thecarrionlanguage/object"
-	"thecarrionlanguage/parser"
+	"thecarrionlanguage/src/lexer"
+	"thecarrionlanguage/src/object"
+	"thecarrionlanguage/src/parser"
 )
 
 // LoadMuninStdlib loads all .crl files from the given directory into the provided env.

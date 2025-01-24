@@ -4,11 +4,10 @@ import (
 	"fmt"
 	"math"
 	"os"
-
-	"thecarrionlanguage/ast"
-	"thecarrionlanguage/lexer"
-	"thecarrionlanguage/object"
-	"thecarrionlanguage/parser"
+	"thecarrionlanguage/src/ast"
+	"thecarrionlanguage/src/lexer"
+	"thecarrionlanguage/src/object"
+	"thecarrionlanguage/src/parser"
 )
 
 var (

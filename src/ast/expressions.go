@@ -5,8 +5,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-
-	"thecarrionlanguage/token"
+	"thecarrionlanguage/src/token"
 )
 
 type Identifier struct {

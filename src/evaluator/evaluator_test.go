@@ -2,10 +2,9 @@ package evaluator
 
 import (
 	"testing"
-
-	"thecarrionlanguage/lexer"
-	"thecarrionlanguage/object"
-	"thecarrionlanguage/parser"
+	"thecarrionlanguage/src/lexer"
+	"thecarrionlanguage/src/object"
+	"thecarrionlanguage/src/parser"
 )
 
 func TestEvalIntegerExpression(t *testing.T) {

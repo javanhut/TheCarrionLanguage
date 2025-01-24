@@ -3,8 +3,7 @@ package lexer
 
 import (
 	"testing"
-
-	"thecarrionlanguage/token"
+	"thecarrionlanguage/src/token"
 )
 
 func TestNextToken(t *testing.T) {

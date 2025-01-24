@@ -2,9 +2,8 @@ package lexer
 
 import (
 	"strings"
+	"thecarrionlanguage/src/token"
 	"unicode"
-
-	"thecarrionlanguage/token"
 )
 
 type Lexer struct {

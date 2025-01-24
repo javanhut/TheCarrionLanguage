@@ -5,13 +5,12 @@ import (
 	"io"
 	"os"
 	"strings"
+	"thecarrionlanguage/src/evaluator"
+	"thecarrionlanguage/src/lexer"
+	"thecarrionlanguage/src/object"
+	"thecarrionlanguage/src/parser"
 
 	"github.com/peterh/liner"
-
-	"thecarrionlanguage/evaluator"
-	"thecarrionlanguage/lexer"
-	"thecarrionlanguage/object"
-	"thecarrionlanguage/parser"
 )
 
 const ODINS_EYE = `

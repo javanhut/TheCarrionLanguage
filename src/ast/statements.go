@@ -4,8 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"strings"
-
-	"thecarrionlanguage/token"
+	"thecarrionlanguage/src/token"
 )
 
 // AssignStatement represents assignments like `x = 5` or `obj.field += 1`.

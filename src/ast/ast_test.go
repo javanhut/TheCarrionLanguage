@@ -2,8 +2,7 @@ package ast
 
 import (
 	"testing"
-
-	"thecarrionlanguage/token"
+	"thecarrionlanguage/src/token"
 )
 
 func TestString(t *testing.T) {

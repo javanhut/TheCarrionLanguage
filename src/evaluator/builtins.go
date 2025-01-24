@@ -5,11 +5,10 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
+	"thecarrionlanguage/src/object"
 	"time"
 
 	"github.com/peterh/liner"
-
-	"thecarrionlanguage/object"
 )
 
 var LineReader *liner.State
