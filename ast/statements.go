@@ -236,3 +236,43 @@ func (is *ImportStatement) String() string {
 	}
 	return fmt.Sprintf("import %s", is.FilePath.Value)
 }
+
+type MatchStatement struct {
+	Token      token.Token   // The "match" token
+	MatchValue Expression    // The value being matched
+	Cases      []*CaseClause // List of case clauses
+	Default    *CaseClause   // Default case (optional)
+}
+
+func (ms *MatchStatement) statementNode()       {}
+func (ms *MatchStatement) TokenLiteral() string { return ms.Token.Literal }
+func (ms *MatchStatement) String() string {
+	var out bytes.Buffer
+	out.WriteString("match ")
+	out.WriteString(ms.MatchValue.String())
+	out.WriteString(":\n")
+	for _, c := range ms.Cases {
+		out.WriteString(c.String())
+	}
+	if ms.Default != nil {
+		out.WriteString(ms.Default.String())
+	}
+	return out.String()
+}
+
+type CaseClause struct {
+	Token     token.Token     // The "case" or "_" token
+	Condition Expression      // The case condition
+	Body      *BlockStatement // The body of the case
+}
+
+func (cc *CaseClause) statementNode()       {}
+func (cc *CaseClause) TokenLiteral() string { return cc.Token.Literal }
+func (cc *CaseClause) String() string {
+	var out bytes.Buffer
+	out.WriteString("case ")
+	out.WriteString(cc.Condition.String())
+	out.WriteString(":\n")
+	out.WriteString(cc.Body.String())
+	return out.String()
+}

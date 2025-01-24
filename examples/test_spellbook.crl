@@ -6,5 +6,5 @@ spellbook Example:
 a = int("10")
 b = int("10")
 example_obj = Example()
-example_obj.example_method(a,b)
+print(example_obj.example_method(a,b))
 

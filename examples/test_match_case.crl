@@ -1,0 +1,10 @@
+x = 10
+
+
+match x:
+  case 10:
+    print("Ten")
+  case 20:
+    print("Twenty")
+  _:
+    print("Default")

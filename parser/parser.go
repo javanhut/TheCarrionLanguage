@@ -94,6 +94,8 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.BANG, p.parsePrefixExpression)
 	p.registerPrefix(token.PLUS_INCREMENT, p.parsePrefixExpression)
 	p.registerPrefix(token.MINUS_DECREMENT, p.parsePrefixExpression)
+	p.registerPrefix(token.CASE, func() ast.Expression { return nil })
+	p.registerPrefix(token.UNDERSCORE, func() ast.Expression { return nil })
 	// p.registerPrefix(token.LPAREN, p.parseGroupedExpression)
 	p.registerPrefix(token.TRUE, p.parseBoolean)
 	p.registerPrefix(token.FALSE, p.parseBoolean)
@@ -147,8 +149,117 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerStatement(token.FOR, p.parseForStatement)
 	p.registerStatement(token.SPELL, p.parseFunctionDefinition)
 	p.registerStatement(token.IMPORT, p.parseImportStatement)
+	p.registerStatement(token.MATCH, p.parseMatchStatement)
 
 	return p
+}
+
+func (p *Parser) parseMatchStatement() ast.Statement {
+	stmt := &ast.MatchStatement{Token: p.currToken}
+
+	// 1) Move to the expression after 'match' (e.g. 5)
+	p.nextToken()
+	stmt.MatchValue = p.parseExpression(LOWEST)
+
+	// 2) Expect a colon after the match value
+	if !p.expectPeek(token.COLON) {
+		return nil
+	}
+
+	// --- START FIX: skip any NEWLINE(s), then optional INDENT
+	p.skipNewlines() // <— Utility function that keeps doing p.nextToken() while peek is NEWLINE
+	if p.peekTokenIs(token.INDENT) {
+		p.nextToken()
+	}
+	// --- END FIX
+
+	stmt.Cases = []*ast.CaseClause{} // Initialize an empty slice of case clauses
+
+	// 3) Parse zero or more `case <expr>:` blocks
+	for p.peekTokenIs(token.CASE) {
+		// "case"
+		p.nextToken() // consume CASE
+		caseClause := &ast.CaseClause{Token: p.currToken}
+
+		// Next token should be the condition expression
+		p.nextToken()
+		caseClause.Condition = p.parseExpression(LOWEST)
+
+		// Then a colon after the condition
+		if !p.expectPeek(token.COLON) {
+			return nil
+		}
+
+		// Now parse the body (inline or multiline)
+		if p.peekTokenIs(token.NEWLINE) {
+			p.nextToken() // consume NEWLINE
+			if p.peekTokenIs(token.INDENT) {
+				p.nextToken() // consume INDENT
+				caseClause.Body = p.parseBlockStatement()
+			} else {
+				// Single-line body after newline but no indent
+				caseClause.Body = &ast.BlockStatement{
+					Token:      p.currToken,
+					Statements: []ast.Statement{p.parseStatement()},
+				}
+			}
+		} else {
+			// Inline body on the same line: case X: print(...)
+			p.nextToken()
+			caseClause.Body = &ast.BlockStatement{
+				Token:      p.currToken,
+				Statements: []ast.Statement{p.parseStatement()},
+			}
+		}
+
+		// Append this case to the match statement
+		stmt.Cases = append(stmt.Cases, caseClause)
+
+		// Now we loop back to see if there's another case, or possibly the default `_:` pattern
+	}
+
+	// 4) Look for a default case: `_:`
+	//    (Or if you want `case _:` as the default, check for `CASE` + `UNDERSCORE`).
+	if p.peekTokenIs(token.UNDERSCORE) {
+		// Consume '_'
+		p.nextToken()
+		defaultClause := &ast.CaseClause{Token: p.currToken}
+
+		if !p.expectPeek(token.COLON) {
+			return nil
+		}
+
+		// Parse default body (inline or multiline)
+		if p.peekTokenIs(token.NEWLINE) {
+			p.nextToken() // consume NEWLINE
+			if p.peekTokenIs(token.INDENT) {
+				p.nextToken() // consume INDENT
+				defaultClause.Body = p.parseBlockStatement()
+			} else {
+				defaultClause.Body = &ast.BlockStatement{
+					Token:      p.currToken,
+					Statements: []ast.Statement{p.parseStatement()},
+				}
+			}
+		} else {
+			// Inline
+			p.nextToken()
+			defaultClause.Body = &ast.BlockStatement{
+				Token:      p.currToken,
+				Statements: []ast.Statement{p.parseStatement()},
+			}
+		}
+
+		stmt.Default = defaultClause
+	}
+
+	return stmt
+}
+
+func (p *Parser) skipNewlines() {
+	for p.peekTokenIs(token.NEWLINE) {
+		p.nextToken()
+	}
 }
 
 func (p *Parser) parseOtherwise() ast.Expression {
@@ -389,6 +500,8 @@ func (p *Parser) parseStatement() ast.Statement {
 		return p.parseReturnStatement()
 	case token.IMPORT:
 		return p.parseImportStatement()
+	case token.MATCH:
+		return p.parseMatchStatement()
 		// Add any other top-level statements here...
 	}
 

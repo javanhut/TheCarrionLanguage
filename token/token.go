@@ -52,12 +52,13 @@ const (
 	PIPE      TokenType = "|"
 	DOT       TokenType = "."
 
-	LPAREN TokenType = "("
-	RPAREN TokenType = ")"
-	LBRACE TokenType = "{"
-	RBRACE TokenType = "}"
-	LBRACK TokenType = "["
-	RBRACK TokenType = "]"
+	LPAREN     TokenType = "("
+	RPAREN     TokenType = ")"
+	LBRACE     TokenType = "{"
+	RBRACE     TokenType = "}"
+	LBRACK     TokenType = "["
+	RBRACK     TokenType = "]"
+	UNDERSCORE TokenType = "_"
 
 	// Keywords
 	VAR       TokenType = "VAR"
@@ -78,6 +79,8 @@ const (
 	IGNORE    TokenType = "IGNORE"
 	RETURN    TokenType = "RETURN"
 	IMPORT    TokenType = "IMPORT"
+	MATCH     TokenType = "MATCH"
+	CASE      TokenType = "CASE"
 	//	RANGE     TokenType = "RANGE"
 	NONE TokenType = "NONE"
 	// Logical Operators
@@ -88,6 +91,8 @@ const (
 
 var keywords = map[string]TokenType{
 	"import":    IMPORT,
+	"match":     MATCH,
+	"case":      CASE,
 	"var":       VAR,
 	"spell":     SPELL,
 	"self":      SELF,
