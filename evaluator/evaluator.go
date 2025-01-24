@@ -54,7 +54,7 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 			// fmt.Printf("Error in left operand: %v\n", left)
 			return left
 		}
-		result := evalInfixExpression(node.Operator, left, right, env)
+		result := evalInfixExpression(node.Operator, left, right)
 		// fmt.Printf("InfixExpression result: %v\n", result)
 		return result
 	case *ast.PostfixExpression:
@@ -172,7 +172,6 @@ func isEqual(obj1, obj2 object.Object) bool {
 func evalAssignStatement(node *ast.AssignStatement, env *object.Environment) object.Object {
 	switch name := node.Name.(type) {
 	case *ast.Identifier:
-		// Handle compound assignment operators (+=, -=, *=, /=)
 		val := Eval(node.Value, env)
 		if isError(val) {
 			return val
@@ -508,7 +507,6 @@ func evalPrefixExpression(
 func evalInfixExpression(
 	operator string,
 	left, right object.Object,
-	env *object.Environment,
 ) object.Object {
 	// fmt.Printf("InfixExpression operator: %s, left: %v, right: %v\n", operator, left, right)
 	switch {
@@ -779,9 +777,6 @@ func evalCompoundAssignment(node *ast.InfixExpression, env *object.Environment) 
 	}
 }
 
-// ----------------------------------------------------
-// NEW: applyCompoundOperator for +=, -=, etc.
-// ----------------------------------------------------
 func applyCompoundOperator(operator string, leftVal, rightVal object.Object) object.Object {
 	switch l := leftVal.(type) {
 	case *object.Integer:
