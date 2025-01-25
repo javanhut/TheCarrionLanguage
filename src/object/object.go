@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"hash/fnv"
 	"strings"
+
 	"thecarrionlanguage/src/ast"
 )
 
@@ -30,6 +31,7 @@ const (
 	TUPLE_OBJ        = "TUPLE"
 	SPELLBOOK_OBJ    = "SPELLBOOK"
 	INSTANCE_OBJ     = "INSTANCE"
+	NAMESPACE_OBJ    = "NAMESPACE"
 )
 
 var NONE = &None{}
@@ -221,3 +223,12 @@ type Instance struct {
 
 func (i *Instance) Type() ObjectType { return INSTANCE_OBJ }
 func (i *Instance) Inspect() string  { return fmt.Sprintf("<instance of %s>", i.Spellbook.Name) }
+
+// object/object.go
+
+type Namespace struct {
+	Env *Environment // Holds all exported members of the imported module
+}
+
+func (n *Namespace) Type() ObjectType { return "NAMESPACE" }
+func (n *Namespace) Inspect() string  { return "<namespace>" }

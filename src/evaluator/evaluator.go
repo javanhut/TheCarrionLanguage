@@ -368,6 +368,12 @@ func evalDotExpression(node *ast.DotExpression, env *object.Environment) object.
 	if isError(leftObj) {
 		return leftObj
 	}
+	if namespace, ok := leftObj.(*object.Namespace); ok {
+		if val, ok := namespace.Env.Get(node.Right.Value); ok {
+			return val
+		}
+		return newError("namespace has no member '%s'", node.Right.Value)
+	}
 
 	instance, ok := leftObj.(*object.Instance)
 	if !ok {
@@ -1036,16 +1042,14 @@ func evalForStatement(fs *ast.ForStatement, env *object.Environment) object.Obje
 	return result
 }
 
+// evaluator/evaluator.go
+
 func evalImportStatement(node *ast.ImportStatement, env *object.Environment) object.Object {
-	filePath := node.FilePath.Value + ".crl" // Append .crl extension
-	className := ""
-	if node.ClassName != nil {
-		className = node.ClassName.Value
-	}
+	filePath := node.FilePath.Value + ".crl"
 
 	// Check if the file is already imported
 	if importedFiles[filePath] {
-		return NONE
+		return object.NONE
 	}
 	importedFiles[filePath] = true
 
@@ -1067,15 +1071,14 @@ func evalImportStatement(node *ast.ImportStatement, env *object.Environment) obj
 	importEnv := object.NewEnclosedEnvironment(env)
 	Eval(program, importEnv)
 
-	// If a class name is specified, import only that class
-	if className != "" {
-		val, ok := importEnv.Get(className)
-		if !ok || val.Type() != object.SPELLBOOK_OBJ {
-			return newError("class '%s' not found in file '%s'", className, filePath)
-		}
-		env.Set(className, val)
+	// Create a namespace to hold all exported members
+	namespace := &object.Namespace{Env: importEnv}
+
+	// Set the alias in the current environment
+	if node.Alias != nil {
+		env.Set(node.Alias.Value, namespace)
 	} else {
-		// Import all spellbooks from the file
+		// If no alias, import all spellbooks into the current environment
 		for _, name := range importEnv.GetNames() {
 			val, _ := importEnv.Get(name)
 			if val.Type() == object.SPELLBOOK_OBJ {
@@ -1084,5 +1087,5 @@ func evalImportStatement(node *ast.ImportStatement, env *object.Environment) obj
 		}
 	}
 
-	return NONE
+	return object.NONE
 }

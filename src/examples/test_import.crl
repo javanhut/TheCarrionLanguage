@@ -1,6 +1,6 @@
-import "examples/math"
+import "src/examples/math" as m
 
 
-math = Math()
-print(math.add(5,10))
+math = m.Math()
+print(math.add(10,20))
 

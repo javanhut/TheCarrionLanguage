@@ -236,18 +236,26 @@ func (sb *SpellbookDefinition) String() string {
 	return out.String()
 }
 
-// ImportStatement represents an import statement.
 type ImportStatement struct {
-	Token     token.Token
+	Token     token.Token // The 'import' token
 	FilePath  *StringLiteral
 	ClassName *Identifier
+	Alias     *Identifier // Optional alias for the imported class
 }
 
 func (is *ImportStatement) statementNode()       {}
 func (is *ImportStatement) TokenLiteral() string { return is.Token.Literal }
 func (is *ImportStatement) String() string {
 	if is.ClassName != nil {
-		return fmt.Sprintf("import %s.%s", is.FilePath.Value, is.ClassName.String())
+		if is.Alias != nil {
+			return fmt.Sprintf(
+				"import %s.%s as %s",
+				is.FilePath.Value,
+				is.ClassName.Value,
+				is.Alias.Value,
+			)
+		}
+		return fmt.Sprintf("import %s.%s", is.FilePath.Value, is.ClassName.Value)
 	}
 	return fmt.Sprintf("import %s", is.FilePath.Value)
 }
@@ -300,11 +308,32 @@ type AttemptStatement struct {
 	ResolveBlock   *BlockStatement  // Optional resolve block
 }
 
-// EnsnareClause represents an ensnare block (similar to catch).
 type EnsnareClause struct {
 	Token       token.Token // The 'ensnare' token
-	Condition   Expression  // Optional condition (e.g., error type)
+	Condition   Expression  // The condition (e.g., ValueError)
+	Alias       *Identifier // Optional alias for the exception
 	Consequence *BlockStatement
+}
+
+func (ec *EnsnareClause) statementNode()       {}
+func (ec *EnsnareClause) TokenLiteral() string { return ec.Token.Literal }
+func (ec *EnsnareClause) String() string {
+	var out strings.Builder
+	out.WriteString("ensnare")
+	if ec.Condition != nil {
+		out.WriteString(" (")
+		out.WriteString(ec.Condition.String())
+		out.WriteString(")")
+	}
+	if ec.Alias != nil {
+		out.WriteString(" as ")
+		out.WriteString(ec.Alias.Value)
+	}
+	out.WriteString(":\n")
+	if ec.Consequence != nil {
+		out.WriteString(ec.Consequence.String())
+	}
+	return out.String()
 }
 
 func (as *AttemptStatement) statementNode()       {}

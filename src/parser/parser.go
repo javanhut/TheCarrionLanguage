@@ -114,6 +114,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.EOF, func() ast.Expression { return nil })
 	p.registerPrefix(token.OTHERWISE, p.parseOtherwise)
 	p.registerPrefix(token.ENSNARE, func() ast.Expression { return nil })
+	p.registerPrefix(token.AS, func() ast.Expression { return nil })
 	p.registerPrefix(token.LPAREN, p.parseParenExpression)
 	p.registerPrefix(token.SELF, p.parseSelf)
 	p.registerPrefix(token.INIT, func() ast.Expression {
@@ -178,34 +179,24 @@ func (p *Parser) parseRaiseStatement() ast.Statement {
 }
 
 func (p *Parser) parseAttemptStatement() ast.Statement {
-	stmt := &ast.AttemptStatement{
-		Token:          p.currToken, // This is token.ATTEMPT
-		EnsnareClauses: []*ast.EnsnareClause{},
-	}
+	stmt := &ast.AttemptStatement{Token: p.currToken}
 
-	// Expect a colon after `attempt`
+	// Parse the try block
 	if !p.expectPeek(token.COLON) {
 		return nil
 	}
-
-	// Parse the main try-block (either inline or multi-line)
 	if p.peekTokenIs(token.NEWLINE) {
-		// Consume the newline
-		p.nextToken()
-
-		// If we see INDENT => multi-line block
+		p.nextToken() // Consume NEWLINE
 		if p.peekTokenIs(token.INDENT) {
-			p.nextToken() // consume INDENT
+			p.nextToken() // Consume INDENT
 			stmt.TryBlock = p.parseBlockStatement()
 		} else {
-			// Single statement on a new line with no indent
 			stmt.TryBlock = &ast.BlockStatement{
 				Token:      p.currToken,
 				Statements: []ast.Statement{p.parseStatement()},
 			}
 		}
 	} else {
-		// Inline style: `attempt: someStatement`
 		p.nextToken()
 		stmt.TryBlock = &ast.BlockStatement{
 			Token:      p.currToken,
@@ -213,49 +204,52 @@ func (p *Parser) parseAttemptStatement() ast.Statement {
 		}
 	}
 
-	// Parse zero or more `ensnare(...)` blocks
+	// Parse ensnare clauses
 	for p.peekTokenIs(token.ENSNARE) {
-		// Consume the 'ensnare' token
-		p.nextToken()
+		p.nextToken() // Consume 'ensnare'
 		ensnareClause := &ast.EnsnareClause{Token: p.currToken}
 
-		// Optional parentheses around the condition (like ensnare(SomeError))
+		// Parse condition
 		if p.peekTokenIs(token.LPAREN) {
-			p.nextToken() // consume '('
-			p.nextToken() // move to first token of condition
+			p.nextToken() // Consume '('
+			p.nextToken() // Move to condition
 			ensnareClause.Condition = p.parseExpression(LOWEST)
-
-			// Must close the parentheses
 			if !p.expectPeek(token.RPAREN) {
 				return nil
 			}
 		} else {
-			// If you allow a bare expression after ensnare
-			// e.g. `ensnare SomeError:`
 			p.nextToken()
 			ensnareClause.Condition = p.parseExpression(LOWEST)
 		}
 
-		// Expect a colon
+		// Parse alias (if any)
+		if p.peekTokenIs(token.AS) {
+			p.nextToken() // Consume 'as'
+			if !p.expectPeek(token.IDENT) {
+				return nil
+			}
+			ensnareClause.Alias = &ast.Identifier{
+				Token: p.currToken,
+				Value: p.currToken.Literal,
+			}
+		}
+
+		// Parse consequence
 		if !p.expectPeek(token.COLON) {
 			return nil
 		}
-
-		// Parse inline or multi-line block
 		if p.peekTokenIs(token.NEWLINE) {
-			p.nextToken() // consume NEWLINE
+			p.nextToken() // Consume NEWLINE
 			if p.peekTokenIs(token.INDENT) {
-				p.nextToken() // consume INDENT
+				p.nextToken() // Consume INDENT
 				ensnareClause.Consequence = p.parseBlockStatement()
 			} else {
-				// Single statement after newline
 				ensnareClause.Consequence = &ast.BlockStatement{
 					Token:      p.currToken,
 					Statements: []ast.Statement{p.parseStatement()},
 				}
 			}
 		} else {
-			// Inline single statement: `ensnare X: doSomething()`
 			p.nextToken()
 			ensnareClause.Consequence = &ast.BlockStatement{
 				Token:      p.currToken,
@@ -266,30 +260,24 @@ func (p *Parser) parseAttemptStatement() ast.Statement {
 		stmt.EnsnareClauses = append(stmt.EnsnareClauses, ensnareClause)
 	}
 
-	// Parse optional `resolve:` block (similar to “finally” or “else”)
+	// Parse resolve block (if any)
 	if p.peekTokenIs(token.RESOLVE) {
-		p.nextToken() // consume 'resolve'
-
-		// Must have a colon after resolve
+		p.nextToken() // Consume 'resolve'
 		if !p.expectPeek(token.COLON) {
 			return nil
 		}
-
-		// Inline or multi-line
 		if p.peekTokenIs(token.NEWLINE) {
-			p.nextToken() // consume NEWLINE
+			p.nextToken() // Consume NEWLINE
 			if p.peekTokenIs(token.INDENT) {
-				p.nextToken() // consume INDENT
+				p.nextToken() // Consume INDENT
 				stmt.ResolveBlock = p.parseBlockStatement()
 			} else {
-				// Single statement after newline
 				stmt.ResolveBlock = &ast.BlockStatement{
 					Token:      p.currToken,
 					Statements: []ast.Statement{p.parseStatement()},
 				}
 			}
 		} else {
-			// Inline single statement
 			p.nextToken()
 			stmt.ResolveBlock = &ast.BlockStatement{
 				Token:      p.currToken,
@@ -1392,29 +1380,28 @@ func (p *Parser) parseSpellbookDefinition() ast.Statement {
 	return stmt
 }
 
+// parser/parser.go
 func (p *Parser) parseImportStatement() ast.Statement {
 	stmt := &ast.ImportStatement{Token: p.currToken}
 
+	// Parse the file path
 	if !p.expectPeek(token.STRING) {
 		p.errors = append(p.errors, "expected file path string after 'import'")
 		return nil
 	}
-
-	// Parse the file path
-	filePath := p.currToken.Literal
 	stmt.FilePath = &ast.StringLiteral{
 		Token: p.currToken,
-		Value: filePath,
+		Value: p.currToken.Literal,
 	}
 
-	// Check for the optional class name
-	if p.peekTokenIs(token.DOT) {
-		p.nextToken() // Consume '.'
+	// Check for 'as' alias
+	if p.peekTokenIs(token.AS) {
+		p.nextToken() // Consume 'as'
 		if !p.expectPeek(token.IDENT) {
-			p.errors = append(p.errors, "expected class name after '.' in import statement")
+			p.errors = append(p.errors, "expected alias name after 'as'")
 			return nil
 		}
-		stmt.ClassName = &ast.Identifier{
+		stmt.Alias = &ast.Identifier{
 			Token: p.currToken,
 			Value: p.currToken.Literal,
 		}
