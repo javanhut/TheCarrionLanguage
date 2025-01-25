@@ -292,19 +292,23 @@ func (cc *CaseClause) String() string {
 	return out.String()
 }
 
+// AttemptStatement represents an attempt/ensnare/resolve block.
 type AttemptStatement struct {
-	Token          token.Token // The token.ATTEMPT
+	Token          token.Token // The 'attempt' token
 	TryBlock       *BlockStatement
-	EnsnareClauses []EnsnareClause // 0..N ensnare(...) blocks
-	ResolveBlock   *BlockStatement // Optional resolve: block
+	EnsnareClauses []*EnsnareClause // List of ensnare clauses
+	ResolveBlock   *BlockStatement  // Optional resolve block
 }
 
-func (as *AttemptStatement) TokenLiteral() string {
-	return as.Token.Literal
+// EnsnareClause represents an ensnare block (similar to catch).
+type EnsnareClause struct {
+	Token       token.Token // The 'ensnare' token
+	Condition   Expression  // Optional condition (e.g., error type)
+	Consequence *BlockStatement
 }
 
-func (as *AttemptStatement) statementNode() {}
-
+func (as *AttemptStatement) statementNode()       {}
+func (as *AttemptStatement) TokenLiteral() string { return as.Token.Literal }
 func (as *AttemptStatement) String() string {
 	var out strings.Builder
 
@@ -334,27 +338,6 @@ func (as *AttemptStatement) String() string {
 		out.WriteString(as.ResolveBlock.String())
 	}
 
-	return out.String()
-}
-
-type EnsnareClause struct {
-	Token       token.Token // token.ENSNARE
-	Condition   Expression  // optional expression (e.g. the error type)
-	Consequence *BlockStatement
-}
-
-func (ec *EnsnareClause) String() string {
-	var out strings.Builder
-	out.WriteString("ensnare")
-	if ec.Condition != nil {
-		out.WriteString(" (")
-		out.WriteString(ec.Condition.String())
-		out.WriteString(")")
-	}
-	out.WriteString(":\n")
-	if ec.Consequence != nil {
-		out.WriteString(ec.Consequence.String())
-	}
 	return out.String()
 }
 

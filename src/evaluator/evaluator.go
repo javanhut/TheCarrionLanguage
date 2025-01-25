@@ -131,67 +131,86 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 	return NONE
 }
 
-// evaluator/evaluator.go
 func evalRaiseStatement(node *ast.RaiseStatement, env *object.Environment) object.Object {
 	errObj := Eval(node.Error, env)
-
-	// If it's already a CustomError, return it as-is
-	if customErr, ok := errObj.(*object.CustomError); ok {
-		return customErr
+	if isError(errObj) {
+		return errObj
 	}
 
-	// Otherwise, treat it as a message and wrap it in a default error
-	if strObj, ok := errObj.(*object.String); ok {
+	// Handle spellbook instances as custom errors
+	if instance, ok := errObj.(*object.Instance); ok {
+		// Extract message from the instance if available
+		message := ""
+		if msg, ok := instance.Env.Get("message"); ok {
+			if msgStr, ok := msg.(*object.String); ok {
+				message = msgStr.Value
+			}
+		}
 		return &object.CustomError{
-			Name:    "Error",      // Default error type
-			Message: strObj.Value, // Message
-			Details: nil,          // No additional details
+			Name:      instance.Spellbook.Name, // Use the spellbook name as the error name
+			Message:   message,
+			ErrorType: instance.Spellbook, // Reference to the spellbook (class)
+			Instance:  instance,           // Instance of the error
 		}
 	}
 
-	// For unsupported types, raise a type error
-	return &object.Error{
-		Message: fmt.Sprintf("cannot raise non-error object: %s", errObj.Type()),
+	// Handle string-based errors
+	if str, ok := errObj.(*object.String); ok {
+		return object.NewCustomError("Error", str.Value)
 	}
+
+	return newError("cannot raise non-error object: %s", errObj.Type())
 }
 
 func evalAttemptStatement(node *ast.AttemptStatement, env *object.Environment) object.Object {
+	var result object.Object
+
 	// Evaluate the try block
-	result := Eval(node.TryBlock, env)
+	tryResult := Eval(node.TryBlock, env)
 
-	// Check if the result is an error
-	if isError(result) {
-		customErr, isCustomErr := result.(*object.CustomError)
+	// Check if there's an error and handle ensnare
+	if isError(tryResult) {
+		if customErr, ok := tryResult.(*object.CustomError); ok {
+			// Iterate over ensnare clauses
+			for _, ensnare := range node.EnsnareClauses {
+				// Evaluate the condition (e.g., ValueError)
+				condition := Eval(ensnare.Condition, env)
+				if isError(condition) {
+					result = condition
+					break
+				}
 
-		for _, ensnare := range node.EnsnareClauses {
-			// If there's no condition, it catches all errors
-			if ensnare.Condition == nil {
-				return Eval(ensnare.Consequence, env)
-			}
-
-			// Evaluate the condition
-			condition := Eval(ensnare.Condition, env)
-			if isError(condition) {
-				return condition
-			}
-
-			// If it's a CustomError, check the type
-			if isCustomErr {
-				if conditionObj, ok := condition.(*object.String); ok {
-					if conditionObj.Value == customErr.Name {
-						return Eval(ensnare.Consequence, env)
+				// Check if the condition is a spellbook (class)
+				if spellbook, ok := condition.(*object.Spellbook); ok {
+					// Match error type to spellbook
+					if customErr.ErrorType == spellbook { // Use ErrorType field instead of Type() method
+						result = Eval(ensnare.Consequence, env)
+						break
+					}
+				} else if str, ok := condition.(*object.String); ok {
+					// Fallback for string-based error names
+					if customErr.Name == str.Value {
+						result = Eval(ensnare.Consequence, env)
+						break
 					}
 				}
 			}
 		}
 
-		// If no ensnare clause matches, check for a resolve block
-		if node.ResolveBlock != nil {
-			return Eval(node.ResolveBlock, env)
+		// If no ensnare matched, keep the original error
+		if result == nil {
+			result = tryResult
 		}
+	} else {
+		result = tryResult
+	}
 
-		// If no ensnare or resolve block handles the error, propagate it
-		return result
+	// Always execute resolve block (similar to "finally")
+	if node.ResolveBlock != nil {
+		resolveResult := Eval(node.ResolveBlock, env)
+		if isError(resolveResult) {
+			return resolveResult
+		}
 	}
 
 	return result
@@ -940,8 +959,12 @@ func newError(format string, a ...interface{}) *object.Error {
 	return &object.Error{Message: fmt.Sprintf(format, a...)}
 }
 
+// Add this updated isError function
 func isError(obj object.Object) bool {
-	return obj != nil && obj.Type() == object.ERROR_OBJ
+	if obj == nil {
+		return false
+	}
+	return obj.Type() == object.ERROR_OBJ || obj.Type() == object.CUSTOM_ERROR_OBJ
 }
 
 func evalWhileStatement(node *ast.WhileStatement, env *object.Environment) object.Object {

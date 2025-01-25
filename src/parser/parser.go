@@ -178,18 +178,17 @@ func (p *Parser) parseRaiseStatement() ast.Statement {
 }
 
 func (p *Parser) parseAttemptStatement() ast.Statement {
-	// 1) Create the AttemptStatement node
 	stmt := &ast.AttemptStatement{
 		Token:          p.currToken, // This is token.ATTEMPT
-		EnsnareClauses: []ast.EnsnareClause{},
+		EnsnareClauses: []*ast.EnsnareClause{},
 	}
 
-	// 2) Expect a colon after `attempt`
+	// Expect a colon after `attempt`
 	if !p.expectPeek(token.COLON) {
 		return nil
 	}
 
-	// 3) Parse the main try-block (either inline or multi-line)
+	// Parse the main try-block (either inline or multi-line)
 	if p.peekTokenIs(token.NEWLINE) {
 		// Consume the newline
 		p.nextToken()
@@ -214,11 +213,11 @@ func (p *Parser) parseAttemptStatement() ast.Statement {
 		}
 	}
 
-	// 4) Parse zero or more `ensnare(...)` blocks
+	// Parse zero or more `ensnare(...)` blocks
 	for p.peekTokenIs(token.ENSNARE) {
 		// Consume the 'ensnare' token
 		p.nextToken()
-		ensnareClause := ast.EnsnareClause{Token: p.currToken}
+		ensnareClause := &ast.EnsnareClause{Token: p.currToken}
 
 		// Optional parentheses around the condition (like ensnare(SomeError))
 		if p.peekTokenIs(token.LPAREN) {
@@ -267,7 +266,7 @@ func (p *Parser) parseAttemptStatement() ast.Statement {
 		stmt.EnsnareClauses = append(stmt.EnsnareClauses, ensnareClause)
 	}
 
-	// 5) Parse optional `resolve:` block (similar to “finally” or “else”)
+	// Parse optional `resolve:` block (similar to “finally” or “else”)
 	if p.peekTokenIs(token.RESOLVE) {
 		p.nextToken() // consume 'resolve'
 
