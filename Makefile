@@ -1,71 +1,58 @@
-# Makefile for building and pushing a Docker image to Docker Hub
-# with a user-supplied version/tag (no hard-coding).
-#
-# Also supports an OS parameter (OS=windows, OS=mac, OS=linux, etc.)
-# Default is OS=linux if none is provided.
+# Makefile snippet
 
-# --- Variables --- #
-# Default OS if none is provided
-OS ?= linux
-
-# Docker Hub repo: e.g. "username/carrionlanguage"
+# Existing variables
 USER_NAME ?= username
 IMAGE_NAME ?= carrionlanguage
-
-# Default Docker image tag/version
 VERSION ?= latest
 
-# --- Phony Targets --- #
-.PHONY: build push run clean install uninstall
+.PHONY: build push run clean install uninstall build-source build-linux build-windows
 
-## Build the Docker image
+# 1) Build a tarball of the uncompiled source
+build-source:
+	tar -czf carrion-src.tar.gz --exclude .git .
+
+# 2) Build the Linux binary + tarball
+build-linux:
+	GOOS=linux GOARCH=amd64 go build -o carrion ./src
+	tar -czf carrion_linux_amd64.tar.gz carrion
+
+# 3) Build the Windows binary + zip
+build-windows:
+	GOOS=windows GOARCH=amd64 go build -o carrion.exe ./src
+	zip carrion_windows_amd64.zip carrion.exe
+
+# Existing Docker image build
 build:
-	@echo "-------------------------------------------"
-	@echo "Building Docker image for OS=$(OS)"
-	@echo "Version Tag: $(VERSION)"
-	@echo "-------------------------------------------"
+	@echo "Building Docker image with tags:"
+	@echo "  - $(IMAGE_NAME):$(VERSION)"
+	@echo "  - $(IMAGE_NAME):latest"
 	docker build \
-		--build-arg TARGET_OS=$(OS) \
 		-t "$(USER_NAME)/$(IMAGE_NAME):$(VERSION)" \
 		-t "$(USER_NAME)/$(IMAGE_NAME):latest" \
 		.
 
-## Push the image to Docker Hub
+# Existing Docker push
 push:
-	@echo "-------------------------------------------"
-	@echo "Pushing Docker image for OS=$(OS)"
-	@echo "Version Tag: $(VERSION)"
-	@echo "-------------------------------------------"
+	@echo "Pushing Docker image to Docker Hub:"
+	@echo "  - $(IMAGE_NAME):$(VERSION)"
+	@echo "  - $(IMAGE_NAME):latest"
 	docker push "$(USER_NAME)/$(IMAGE_NAME):$(VERSION)"
 	docker push "$(USER_NAME)/$(IMAGE_NAME):latest"
 
-## Run the container (example: open a bash shell)
+# (Optional) run, clean, install, uninstall remain unchanged
 run:
-	@echo "-------------------------------------------"
-	@echo "Running Docker image for OS=$(OS) with tag $(VERSION)"
-	@echo "-------------------------------------------"
 	docker run --rm -it "$(USER_NAME)/$(IMAGE_NAME):$(VERSION)" bash
 
-## Remove local images (if you want to reclaim space)
 clean:
-	@echo "-------------------------------------------"
-	@echo "Cleaning local Docker images for OS=$(OS) with tag $(VERSION)"
-	@echo "-------------------------------------------"
 	docker rmi -f "$(USER_NAME)/$(IMAGE_NAME):$(VERSION)" || true
 	docker rmi -f "$(USER_NAME)/$(IMAGE_NAME):latest" || true
 
-## Install Carrion locally (calls your install script)
 install:
-	@echo "-------------------------------------------"
-	@echo "Installing Carrion on OS=$(OS)"
-	@echo "-------------------------------------------"
-	# Adjust paths/scripts to match your project layout.
-	@./install/install.sh $(OS)
+	@echo "Installing Carrion Language...."
+	@./setup.sh
+	@./install/install.sh
 
-## Uninstall Carrion locally (calls your uninstall script)
 uninstall:
-	@echo "-------------------------------------------"
-	@echo "Uninstalling Carrion on OS=$(OS)"
-	@echo "-------------------------------------------"
-	@./install/uninstall.sh $(OS)
+	@echo "Uninstalling Carrion from disk..."
+	@./install/uninstall.sh
 
