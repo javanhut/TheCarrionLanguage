@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"math"
 	"os"
-
 	"thecarrionlanguage/src/ast"
 	"thecarrionlanguage/src/lexer"
 	"thecarrionlanguage/src/object"
 	"thecarrionlanguage/src/parser"
+	"thecarrionlanguage/src/token"
 )
 
 var (
@@ -86,6 +86,8 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		return evalMatchStatement(node, env)
 	case *ast.RaiseStatement:
 		return evalRaiseStatement(node, env)
+	case *ast.ArcaneSpellbook:
+		return evalArcaneSpellbook(node, env)
 	case *ast.Identifier:
 		return evalIdentifier(node, env)
 	case *ast.ArrayLiteral:
@@ -125,10 +127,35 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		return evalSpellbookDefinition(node, env)
 	case *ast.AttemptStatement:
 		return evalAttemptStatement(node, env)
+	case *ast.IgnoreStatement:
+		return object.NONE
 	case *ast.CallExpression:
 		return evalCallExpression(Eval(node.Function, env), evalExpressions(node.Arguments, env))
 	}
 	return NONE
+}
+
+func evalArcaneSpellbook(node *ast.ArcaneSpellbook, env *object.Environment) object.Object {
+	methods := make(map[string]*object.Function)
+
+	for _, method := range node.Methods {
+		methods[method.Name.Value] = &object.Function{
+			Parameters: method.Parameters,
+			Body:       method.Body,
+			Env:        env,
+		}
+	}
+
+	// Create the spellbook and mark it as arcane
+	spellbook := &object.Spellbook{
+		Name:     node.Name.Value,
+		Methods:  methods,
+		Env:      env,
+		IsArcane: true, // Add an `IsArcane` field to object.Spellbook
+	}
+
+	env.Set(node.Name.Value, spellbook)
+	return spellbook
 }
 
 func evalRaiseStatement(node *ast.RaiseStatement, env *object.Environment) object.Object {
@@ -298,6 +325,31 @@ func evalAssignStatement(node *ast.AssignStatement, env *object.Environment) obj
 func evalSpellbookDefinition(node *ast.SpellbookDefinition, env *object.Environment) object.Object {
 	methods := map[string]*object.Function{}
 
+	if node.Token.Type == token.ARCANE {
+		return newError("cannot instantiat arcane spellbook", node.Name.Value)
+	}
+
+	if node.Inherits != nil {
+		parent, ok := env.Get(node.Inherits.Value)
+		if !ok {
+			return newError("parent class not found: %s", node.Inherits.Value)
+		}
+		if parentSpellbook, ok := parent.(*object.Spellbook); ok {
+			for name, method := range parentSpellbook.Methods {
+				methods[name] = method // Copy parent methods
+			}
+		}
+	}
+
+	// Add child methods (overriding parent)
+	for _, method := range node.Methods {
+		methods[method.Name.Value] = &object.Function{
+			Parameters: method.Parameters,
+			Body:       method.Body,
+			Env:        env,
+		}
+	}
+
 	for _, method := range node.Methods {
 		fn := &object.Function{
 			Parameters: method.Parameters,
@@ -330,6 +382,11 @@ func evalCallExpression(fn object.Object, args []object.Object) object.Object {
 	switch fn := fn.(type) {
 	case *object.Spellbook:
 		// This is the case for calling the spellbook constructor, e.g. Person("Alice", 30)
+
+		if fn.IsArcane {
+			return newError("cannot instantiate arcane spellbook: %s", fn.Name)
+		}
+
 		instance := &object.Instance{
 			Spellbook: fn,
 			Env:       object.NewEnclosedEnvironment(fn.Env),

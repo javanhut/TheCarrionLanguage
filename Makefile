@@ -4,6 +4,7 @@
 USER_NAME ?= username
 IMAGE_NAME ?= carrionlanguage
 VERSION ?= latest
+OS ?= linux
 
 .PHONY: build push run clean install uninstall build-source build-linux build-windows
 
@@ -50,7 +51,7 @@ clean:
 install:
 	@echo "Installing Carrion Language...."
 	@./setup.sh
-	@./install/install.sh
+	@./install/install.sh "$(OS)"
 
 uninstall:
 	@echo "Uninstalling Carrion from disk..."

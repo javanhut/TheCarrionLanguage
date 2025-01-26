@@ -1,0 +1,12 @@
+arcane spellbook Animal:
+    @arcanespell
+    spell speak():
+        ignore
+
+spellbook Dog(Animal):
+    spell speak():
+        print("Woof!")
+
+// Regular spellbooks can still be instantiated
+dog = Dog()
+dog.speak()

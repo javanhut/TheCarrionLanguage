@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"hash/fnv"
 	"strings"
-
 	"thecarrionlanguage/src/ast"
 )
 
@@ -208,6 +207,7 @@ type Spellbook struct {
 	Methods    map[string]*Function
 	InitMethod *Function
 	Env        *Environment // Add environment to store the spellbook's scope
+	IsArcane   bool
 }
 
 func (s *Spellbook) Type() ObjectType { return SPELLBOOK_OBJ }

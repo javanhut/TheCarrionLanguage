@@ -163,6 +163,11 @@ func (l *Lexer) NextToken() token.Token {
 		l.charIndex++
 		return newToken(token.SEMICOLON, ';')
 	case '_':
+		nxt := l.peekChar()
+		if nxt == '_' {
+			l.charIndex += 2
+			return token.Token{Type: token.DUNDER, Literal: "__"}
+		}
 		l.charIndex++
 		return newToken(token.UNDERSCORE, '_')
 	case '(':
