@@ -1,0 +1,22 @@
+spellbook OS:
+  spell run(command, args=[], captureOutput=False):
+    return osRunCommand(command, args, captureOutput)
+  spell getenv(key):
+    return osGetEnv(key)
+  spell setenv(key, value):
+    return osSetEnv(key, value)
+  spell cwd():
+    return osGetCwd()
+  spell chdir(path):
+    return osChdir(path)
+  spell sleep(seconds):
+    return osSleep(seconds)
+  spell listdir(path="."):
+    return osListDir(path)
+  spell remove(path):
+    return osRemove(path)
+  spell mkdir(path, perm=0755):
+    return osMkdir(path, perm)
+  spell expandEnv(str):
+    return osExpandEnv(str)
+

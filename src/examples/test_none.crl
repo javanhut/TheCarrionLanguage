@@ -1,0 +1,8 @@
+x = None
+
+if x == None:
+  print("None")
+otherwise type(x) == type(1):
+  print("Integer")
+else:
+  print("Something else")

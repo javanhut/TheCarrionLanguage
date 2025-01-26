@@ -1,5 +1,15 @@
-# The Carrion Programming Language ver 0.1.0
-```bash
+package main
+
+import (
+	"fmt"
+	"os"
+
+	"thecarrionlanguage/src/evaluator"
+	"thecarrionlanguage/src/object"
+	"thecarrionlanguage/src/repl"
+)
+
+const CROW_IMAGE = `
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣀⣀⣀⠀⠀⠀⠀⠀⠀⠀⠀
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣴⣿⣿⡟⠋⢻⣷⣄⡀⠀⠀⠀⠀⠀
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣤⣾⣿⣷⣿⣿⣿⣿⣿⣶⣾⣿⣿⠿⠿⠿⠶⠄⠀
@@ -14,42 +24,24 @@
 ⠀⠀⠀⠀⠀⠀⠀⠀⢰⣿⣿⣿⣿⣿⣿⣿⣿⡀⠀⠀⠀⠑⠀⠀⠀⠀⠀⠀⠀⠀
 ⠀⠀⠀⠀⠀⠀⠀⠀⣿⣿⣿⣿⣿⣿⣿⣿⣿⣇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 ⠀⠀⠀⠀⠀⠀⠀⠸⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠉⠙⠛⠋⠉⠉⠀⠀⠀⠀⠀⠀⠀⠀
-```
-### The Carrion programming language is a dynamically typed programming language written in Go. It's supposed to be similar to python with some syntax changes and functionality that i like. Don't beintimidated. It's meant to be easy to learn it just has a fun crow theme! 
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠉⠙⠛⠋⠉⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+  `
 
+func main() {
+	// Create a global environment
+	env := object.NewEnvironment()
 
+	// Attempt to load the standard library from "munin/" folder
+	// 2) Load the embedded stdlib
+	if err := evaluator.LoadMuninStdlib(env); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to load stdlib: %v\n", err)
+		os.Exit(1)
+	}
 
-# Installation
-```bash
-chmod +x setup.sh
-./setup.sh
-```
-
-# Uninstall
-```bash
-./install/uninstall.sh
-```
-
-# Documentation
-Link to documentation -> [The Carrion Programming Language](./docs/CARRION.md)
-
-# File type:
-- .crl
-
-
-# Future Updates
-- Possible list comprehensions
-- More OOP integration
-- JIT Compiler and VM
-- Error Handling
-- Generic Functions and Abstracts
-- String formatter
-- Type hints
-
-# Author
-- Javan Hutchinson
-
-
-# For issues:
-Shove it file a issue i may or may not look at it haha jk i probably will.
+	if len(os.Args) > 1 {
+		repl.Start(os.Stdin, os.Stdout, env)
+	} else {
+		fmt.Printf("%s\n", CROW_IMAGE)
+		repl.Start(os.Stdin, os.Stdout, env)
+	}
+}

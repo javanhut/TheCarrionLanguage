@@ -1,0 +1,6 @@
+x = 10
+
+if x < 100:
+    raise "Value smaller than 100"
+else:
+    print("No problem")

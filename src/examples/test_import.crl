@@ -1,0 +1,6 @@
+import "src/examples/math" as m
+
+
+math = m.Math()
+print(math.add(10,20))
+

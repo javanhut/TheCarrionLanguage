@@ -1,0 +1,12 @@
+// Define a custom error
+spellbook ValueError:
+    spell init(message):
+        self.message = message
+
+// Raise a custom error
+attempt:
+    raise ValueError("Invalid value")
+ensnare (ValueError):
+    print("Caught ValueError:")
+resolve:
+    print("This will always run")
