@@ -9,7 +9,7 @@ VERSION ?= latest
 
 # 1) Build a tarball of the uncompiled source
 build-source:
-	tar -czf carrion-src.tar.gz --exclude .git .
+	git archive --format=tar.gz -o carrion-src.tar.gz HEAD	
 
 # 2) Build the Linux binary + tarball
 build-linux:

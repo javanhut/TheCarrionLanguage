@@ -78,3 +78,5 @@ Link to documentation -> [The Carrion Programming Language](./docs/CARRION.md)
 
 # For issues:
 Shove it file a issue i may or may not look at it haha jk i probably will.
+
+[![Carrion Language Build & Release](https://github.com/javanhut/TheCarrionLanguage/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/javanhut/TheCarrionLanguage/actions/workflows/release.yml)
