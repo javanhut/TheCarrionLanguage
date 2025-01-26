@@ -9,24 +9,19 @@ jobs:
   build-and-release:
     runs-on: ubuntu-latest
 
-    # 1) Define environment variables at the job level
-    #    The DOCKER_USERNAME/DOCKER_PASSWORD values come from GitHub Secrets.
     env:
       DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
       DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
 
     steps:
-      # 2) Check out your repo
       - name: Check out code
         uses: actions/checkout@v3
 
-      # 3) Set up Go (optional, if your project needs it)
       - name: Set up Go
         uses: actions/setup-go@v3
         with:
           go-version: "1.23"
 
-      # 4) Extract version from the tag.
       - name: Extract version from tag
         id: version_info
         run: |
@@ -34,55 +29,37 @@ jobs:
           VERSION="${RAW_VERSION#v}"        # e.g. "1.0.0"
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
-      # 5) Build artifacts (source tar, Linux tarball, Windows zip) via Make
+      # New step: Update version in README
+      - name: Update README version
+        run: |
+          sed -i "s/{{VERSION}}/$VERSION/g" README.md
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          git add README.md
+          git commit -m "Update README to version $VERSION"
+          git push
+
       - name: Build Artifacts
         run: |
           make build-source
           make build-linux
           make build-windows
 
-      # 6) Docker login using the secret environment variables
       - name: Docker login
         run: |
           echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
 
-      # 7) Build + push Docker image with Make (pass the secret username + version)
       - name: Docker build and push
         run: |
           make build USER_NAME=$DOCKER_USERNAME VERSION=${{ env.VERSION }}
           make push USER_NAME=$DOCKER_USERNAME VERSION=${{ env.VERSION }}
 
-      # 8) Create a GitHub Release and upload artifacts...
-      #    (Same pattern as before—omitted here for brevity)
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
+      - name: Create Release and Upload Assets
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
-          release_name: "Carrion Release ${{ env.VERSION }}"
-        env:
-          GITHUB_TOKEN: ${{ secrets.BUILD_GITHUB_TOKEN }}
-
-      - name: Upload source tarball
-        uses: actions/upload-release-asset@v1
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: carrion-src.tar.gz
-          asset_name: carrion-src.tar.gz
-          asset_content_type: application/gzip
-
-      - name: Upload Linux tarball
-        uses: actions/upload-release-asset@v1
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: carrion_linux_amd64.tar.gz
-          asset_name: carrion_linux_amd64.tar.gz
-          asset_content_type: application/gzip
-
-      - name: Upload Windows zip
-        uses: actions/upload-release-asset@v1
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: carrion_windows_amd64.zip
-          asset_name: carrion_windows_amd64.zip
-          asset_content_type: application/zip
+          name: "Carrion Release ${{ env.VERSION }}"
+          files: |
+            carrion-src.tar.gz
+            carrion_linux_amd64.tar.gz
+            carrion_windows_amd64.zip
