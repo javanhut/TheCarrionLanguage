@@ -16,6 +16,9 @@ jobs:
     steps:
       - name: Check out code
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Needed to access branch history
+          persist-credentials: true  # Required for subsequent pushes
 
       - name: Set up Go
         uses: actions/setup-go@v3
@@ -29,15 +32,21 @@ jobs:
           VERSION="${RAW_VERSION#v}"        # e.g. "1.0.0"
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
-      # New step: Update version in README
       - name: Update README version
         run: |
+          # Update version in README
           sed -i "s/{{VERSION}}/$VERSION/g" README.md
+          
+          # Configure Git
           git config --global user.name "GitHub Actions"
           git config --global user.email "actions@github.com"
+          
+          # Commit changes
           git add README.md
-          git commit -m "Update README to version $VERSION"
-          git push
+          git commit -m "📚 Update README to version $VERSION"
+          
+          # Push to main branch
+          git push origin HEAD:main
 
       - name: Build Artifacts
         run: |
