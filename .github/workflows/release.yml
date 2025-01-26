@@ -61,7 +61,7 @@ jobs:
           tag_name: ${{ github.ref_name }}
           release_name: "Carrion Release ${{ env.VERSION }}"
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.BUILD_GITHUB_TOKEN }}
 
       - name: Upload source tarball
         uses: actions/upload-release-asset@v1
