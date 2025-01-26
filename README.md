@@ -1,6 +1,6 @@
 # The Carrion Programming language
-**Latest version:** {{VERSION}}
-[![Release](https://img.shields.io/badge/version-{{VERSION}}-blue.svg)]()
+**Latest version:** 0.1.0
+[![Release](https://img.shields.io/badge/version-0.1.0-blue.svg)]()
 ```bash
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣀⣀⣀⠀⠀⠀⠀⠀⠀⠀⠀
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣴⣿⣿⡟⠋⢻⣷⣄⡀⠀⠀⠀⠀⠀
