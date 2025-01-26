@@ -16,6 +16,3 @@ fi
 chmod +x install/install.sh
 chmod +x install/uninstall.sh
 
-# 3) Run install.sh
-./install/install.sh
-

@@ -21,14 +21,39 @@
 
 
 # Installation
+Installation uses linux by default but you can change the os. 
+
+
+## Linux (Default)
 ```bash
-chmod +x setup.sh
-./setup.sh
+make install
+```
+## Mac
+```bash
+make install OS=mac
 ```
 
-# Uninstall
+## Windows
 ```bash
-./install/uninstall.sh
+make install OS=windows
+```
+
+
+# Removal/uninstall
+
+
+## Linux (Default)
+```bash
+make uninstall
+```
+## Mac
+```bash
+make uninstall OS=mac
+```
+
+## Windows
+```bash
+make uninstall OS=windows
 ```
 
 # Documentation
