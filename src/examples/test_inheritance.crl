@@ -1,0 +1,13 @@
+spellbook Test:
+  spell print_test():
+    return "Test 1"
+
+
+spellbook Inherit(Test):
+  init(name):
+    self.name = name
+
+
+test1 = Inherit()
+print(test1.print_test())
+

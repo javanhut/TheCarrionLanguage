@@ -325,55 +325,66 @@ func evalAssignStatement(node *ast.AssignStatement, env *object.Environment) obj
 func evalSpellbookDefinition(node *ast.SpellbookDefinition, env *object.Environment) object.Object {
 	methods := map[string]*object.Function{}
 
-	if node.Token.Type == token.ARCANE {
-		return newError("cannot instantiat arcane spellbook", node.Name.Value)
-	}
-
+	// If inheriting from a parent, copy its methods
+	var parentSpellbook *object.Spellbook
 	if node.Inherits != nil {
-		parent, ok := env.Get(node.Inherits.Value)
+		parentObj, ok := env.Get(node.Inherits.Value)
 		if !ok {
-			return newError("parent class not found: %s", node.Inherits.Value)
+			return newError("parent spellbook '%s' not found", node.Inherits.Value)
 		}
-		if parentSpellbook, ok := parent.(*object.Spellbook); ok {
-			for name, method := range parentSpellbook.Methods {
-				methods[name] = method // Copy parent methods
-			}
+		parentSpellbook, ok = parentObj.(*object.Spellbook)
+		if !ok {
+			return newError("'%s' is not a spellbook", node.Inherits.Value)
+		}
+
+		// Copy parent methods
+		for name, method := range parentSpellbook.Methods {
+			methods[name] = method
 		}
 	}
 
-	// Add child methods (overriding parent)
-	for _, method := range node.Methods {
-		methods[method.Name.Value] = &object.Function{
-			Parameters: method.Parameters,
-			Body:       method.Body,
-			Env:        env,
-		}
-	}
-
+	// Define methods for the current spellbook
 	for _, method := range node.Methods {
 		fn := &object.Function{
 			Parameters: method.Parameters,
 			Body:       method.Body,
 			Env:        env,
 		}
+		if method.Token.Type == token.ARCANESPELL {
+			fn.IsAbstract = true
+		}
 		methods[method.Name.Value] = fn
 	}
 
-	spellbook := &object.Spellbook{
-		Name:    node.Name.Value,
-		Methods: methods,
-		Env:     env, // Assign the environment
-	}
-
-	if node.InitMethod != nil {
-		initFn := &object.Function{
-			Parameters: node.InitMethod.Parameters,
-			Body:       node.InitMethod.Body,
-			Env:        env,
+	// Check if any abstract methods in parent are unimplemented
+	if parentSpellbook != nil {
+		for name, method := range parentSpellbook.Methods {
+			if method.IsAbstract {
+				if _, ok := methods[name]; !ok {
+					return newError(
+						"spellbook '%s' must implement abstract method '%s'",
+						node.Name.Value, name,
+					)
+				}
+			}
 		}
-		spellbook.InitMethod = initFn
 	}
 
+	// Create the spellbook
+	spellbook := &object.Spellbook{
+		Name:       node.Name.Value,
+		Methods:    methods,
+		InitMethod: nil,
+		Env:        env,
+		Inherits:   parentSpellbook,
+		IsArcane:   false, // This is not an arcane spellbook
+	}
+
+	if node.Token.Type == token.ARCANE {
+		spellbook.IsArcane = true
+	}
+
+	// Set the spellbook in the environment
 	env.Set(node.Name.Value, spellbook)
 	return spellbook
 }
@@ -381,17 +392,17 @@ func evalSpellbookDefinition(node *ast.SpellbookDefinition, env *object.Environm
 func evalCallExpression(fn object.Object, args []object.Object) object.Object {
 	switch fn := fn.(type) {
 	case *object.Spellbook:
-		// This is the case for calling the spellbook constructor, e.g. Person("Alice", 30)
-
 		if fn.IsArcane {
 			return newError("cannot instantiate arcane spellbook: %s", fn.Name)
 		}
 
+		// Create a new instance
 		instance := &object.Instance{
 			Spellbook: fn,
 			Env:       object.NewEnclosedEnvironment(fn.Env),
 		}
-		// If there's an init method, call it
+
+		// Call the init method if it exists
 		if fn.InitMethod != nil {
 			extendedEnv := extendFunctionEnv(fn.InitMethod, args)
 			extendedEnv.Set("self", instance)
@@ -399,22 +410,26 @@ func evalCallExpression(fn object.Object, args []object.Object) object.Object {
 		}
 		return instance
 
-	case *object.Function:
-		// Normal function call (no bound instance)
-		extendedEnv := extendFunctionEnv(fn, args)
-		evaluated := Eval(fn.Body, extendedEnv)
-		return unwrapReturnValue(evaluated)
-
 	case *object.BoundMethod:
-		// *** THIS is how you set self in the method environment ***
+		// Bind self and evaluate the method body
 		extendedEnv := extendFunctionEnv(fn.Method, args)
 		extendedEnv.Set("self", fn.Instance)
 
+		// Check for abstract methods
+		if fn.Method.IsAbstract {
+			return newError("cannot call abstract method ")
+		}
+
 		evaluated := Eval(fn.Method.Body, extendedEnv)
+		return unwrapReturnValue(evaluated)
+
+	case *object.Function:
+		// Evaluate regular functions
+		extendedEnv := extendFunctionEnv(fn, args)
+		evaluated := Eval(fn.Body, extendedEnv)
 		return unwrapReturnValue(evaluated)
 	case *object.Builtin:
 		return fn.Fn(args...)
-
 	default:
 		return newError("not a function: %s", fn.Type())
 	}
@@ -425,32 +440,45 @@ func evalDotExpression(node *ast.DotExpression, env *object.Environment) object.
 	if isError(leftObj) {
 		return leftObj
 	}
-	if namespace, ok := leftObj.(*object.Namespace); ok {
-		if val, ok := namespace.Env.Get(node.Right.Value); ok {
-			return val
+
+	// Handle super
+	if node.Left.String() == "super" {
+		instance, ok := env.Get("self")
+		if !ok || instance == nil {
+			return newError("'super' can only be used in an instance method")
 		}
-		return newError("namespace has no member '%s'", node.Right.Value)
+
+		inst, ok := instance.(*object.Instance)
+		if !ok {
+			return newError("'super' must be used in an instance of a spellbook")
+		}
+
+		if inst.Spellbook == nil || inst.Spellbook.Inherits == nil {
+			return newError("no parent class found for 'super'")
+		}
+
+		parentMethod, ok := inst.Spellbook.Inherits.Methods[node.Right.Value]
+		if !ok {
+			return newError("no method '%s' found in parent class", node.Right.Value)
+		}
+
+		return &object.BoundMethod{
+			Instance: inst,
+			Method:   parentMethod,
+		}
 	}
 
+	// Regular dot expression
 	instance, ok := leftObj.(*object.Instance)
 	if !ok {
-		return newError("type error: %s is not an instance", leftObj.Type())
+		return newError("'%s' is not an instance", leftObj.Type())
 	}
 
-	fieldOrMethodName := node.Right.Value
-
-	// If it's a field in instance.Env (like self.name)
-	if val, found := instance.Env.Get(fieldOrMethodName); found {
-		return val
-	}
-
-	// Otherwise, check if it's a method in instance.Spellbook.Methods
-	method, ok := instance.Spellbook.Methods[fieldOrMethodName]
+	method, ok := instance.Spellbook.Methods[node.Right.Value]
 	if !ok {
-		return newError("undefined property or method: %s", fieldOrMethodName)
+		return newError("undefined method: '%s'", node.Right.Value)
 	}
 
-	// Return a BoundMethod, DO NOT CALL THE METHOD:
 	return &object.BoundMethod{
 		Instance: instance,
 		Method:   method,

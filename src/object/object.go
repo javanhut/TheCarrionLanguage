@@ -81,6 +81,7 @@ type Function struct {
 	Parameters []*ast.Parameter
 	Body       *ast.BlockStatement
 	Env        *Environment
+	IsAbstract bool
 }
 
 func (f *Function) Inspect() string {
@@ -206,6 +207,7 @@ type Spellbook struct {
 	Name       string
 	Methods    map[string]*Function
 	InitMethod *Function
+	Inherits   *Spellbook
 	Env        *Environment // Add environment to store the spellbook's scope
 	IsArcane   bool
 }

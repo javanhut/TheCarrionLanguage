@@ -118,6 +118,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.ARCANESPELL, func() ast.Expression { return nil })
 	p.registerPrefix(token.LPAREN, p.parseParenExpression)
 	p.registerPrefix(token.SELF, p.parseSelf)
+	p.registerPrefix(token.SUPER, p.parseSuperExpression)
 	p.registerPrefix(token.INIT, func() ast.Expression {
 		return &ast.Identifier{
 			Token: token.Token{Type: token.INIT, Literal: "init"},
@@ -163,6 +164,14 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerStatement(token.ARCANE, p.parseArcaneSpellbook)
 	p.registerStatement(token.IGNORE, p.parseIgnoreStatement)
 	return p
+}
+
+func (p *Parser) parseSuperExpression() ast.Expression {
+	// Just treat "super" as a special Identifier node
+	return &ast.Identifier{
+		Token: p.currToken,
+		Value: "super",
+	}
 }
 
 func (p *Parser) parseIgnoreStatement() ast.Statement {

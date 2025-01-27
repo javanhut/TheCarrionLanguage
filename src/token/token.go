@@ -90,6 +90,7 @@ const (
 	AS          TokenType = "AS"
 	ARCANE      TokenType = "ARCANE"
 	ARCANESPELL TokenType = "ARCANESPELL"
+	SUPER       TokenType = "SUPER"
 	//	RANGE     TokenType = "RANGE"
 	NONE TokenType = "NONE"
 	// Logical Operators
@@ -129,6 +130,7 @@ var keywords = map[string]TokenType{
 	"as":          AS,
 	"arcane":      ARCANE,
 	"arcanespell": ARCANESPELL,
+	"super":       SUPER,
 
 	//"range":     RANGE,
 	"None": NONE,
