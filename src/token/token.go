@@ -45,6 +45,7 @@ const (
 	AMPERSAND       TokenType = "&"
 	HASH            TokenType = "#"
 	AT              TokenType = "@"
+	DUNDER          TokenType = "__"
 
 	// Delimiters
 	COMMA     TokenType = ","
@@ -62,31 +63,34 @@ const (
 	UNDERSCORE TokenType = "_"
 
 	// Keywords
-	VAR       TokenType = "VAR"
-	INIT      TokenType = "INIT"
-	SELF      TokenType = "SELF"
-	SPELL     TokenType = "SPELL"
-	SPELLBOOK TokenType = "SPELLBOOK"
-	TRUE      TokenType = "TRUE"
-	FALSE     TokenType = "FALSE"
-	IF        TokenType = "IF"
-	OTHERWISE TokenType = "OTHERWISE"
-	ELSE      TokenType = "ELSE"
-	FOR       TokenType = "FOR"
-	IN        TokenType = "IN"
-	WHILE     TokenType = "WHILE"
-	STOP      TokenType = "STOP"
-	SKIP      TokenType = "SKIP"
-	IGNORE    TokenType = "IGNORE"
-	RETURN    TokenType = "RETURN"
-	IMPORT    TokenType = "IMPORT"
-	MATCH     TokenType = "MATCH"
-	CASE      TokenType = "CASE"
-	ATTEMPT   TokenType = "ATTEMPT"
-	RESOLVE   TokenType = "RESOLVE"
-	ENSNARE   TokenType = "ENSNARE"
-	RAISE     TokenType = "RAISE"
-	AS        TokenType = "AS"
+	VAR         TokenType = "VAR"
+	INIT        TokenType = "INIT"
+	SELF        TokenType = "SELF"
+	SPELL       TokenType = "SPELL"
+	SPELLBOOK   TokenType = "SPELLBOOK"
+	TRUE        TokenType = "TRUE"
+	FALSE       TokenType = "FALSE"
+	IF          TokenType = "IF"
+	OTHERWISE   TokenType = "OTHERWISE"
+	ELSE        TokenType = "ELSE"
+	FOR         TokenType = "FOR"
+	IN          TokenType = "IN"
+	WHILE       TokenType = "WHILE"
+	STOP        TokenType = "STOP"
+	SKIP        TokenType = "SKIP"
+	IGNORE      TokenType = "IGNORE"
+	RETURN      TokenType = "RETURN"
+	IMPORT      TokenType = "IMPORT"
+	MATCH       TokenType = "MATCH"
+	CASE        TokenType = "CASE"
+	ATTEMPT     TokenType = "ATTEMPT"
+	RESOLVE     TokenType = "RESOLVE"
+	ENSNARE     TokenType = "ENSNARE"
+	RAISE       TokenType = "RAISE"
+	AS          TokenType = "AS"
+	ARCANE      TokenType = "ARCANE"
+	ARCANESPELL TokenType = "ARCANESPELL"
+	SUPER       TokenType = "SUPER"
 	//	RANGE     TokenType = "RANGE"
 	NONE TokenType = "NONE"
 	// Logical Operators
@@ -96,34 +100,38 @@ const (
 )
 
 var keywords = map[string]TokenType{
-	"import":    IMPORT,
-	"match":     MATCH,
-	"case":      CASE,
-	"var":       VAR,
-	"spell":     SPELL,
-	"self":      SELF,
-	"init":      INIT,
-	"spellbook": SPELLBOOK,
-	"True":      TRUE,
-	"False":     FALSE,
-	"if":        IF,
-	"otherwise": OTHERWISE,
-	"else":      ELSE,
-	"for":       FOR,
-	"in":        IN,
-	"while":     WHILE,
-	"stop":      STOP,
-	"skip":      SKIP,
-	"ignore":    IGNORE,
-	"and":       AND,
-	"or":        OR,
-	"not":       NOT,
-	"return":    RETURN,
-	"attempt":   ATTEMPT,
-	"resolve":   RESOLVE,
-	"ensnare":   ENSNARE,
-	"raise":     RAISE,
-	"as":        AS,
+	"import":      IMPORT,
+	"match":       MATCH,
+	"case":        CASE,
+	"var":         VAR,
+	"spell":       SPELL,
+	"self":        SELF,
+	"init":        INIT,
+	"spellbook":   SPELLBOOK,
+	"True":        TRUE,
+	"False":       FALSE,
+	"if":          IF,
+	"otherwise":   OTHERWISE,
+	"else":        ELSE,
+	"for":         FOR,
+	"in":          IN,
+	"while":       WHILE,
+	"stop":        STOP,
+	"skip":        SKIP,
+	"ignore":      IGNORE,
+	"and":         AND,
+	"or":          OR,
+	"not":         NOT,
+	"return":      RETURN,
+	"attempt":     ATTEMPT,
+	"resolve":     RESOLVE,
+	"ensnare":     ENSNARE,
+	"raise":       RAISE,
+	"as":          AS,
+	"arcane":      ARCANE,
+	"arcanespell": ARCANESPELL,
+	"super":       SUPER,
+
 	//"range":     RANGE,
 	"None": NONE,
 }

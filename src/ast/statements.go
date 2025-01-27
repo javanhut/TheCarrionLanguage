@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"strings"
-
 	"thecarrionlanguage/src/token"
 )
 
@@ -211,6 +210,7 @@ func (ws *WhileStatement) String() string {
 type SpellbookDefinition struct {
 	Token      token.Token
 	Name       *Identifier
+	Inherits   *Identifier
 	Methods    []*FunctionDefinition
 	InitMethod *FunctionDefinition
 }
@@ -381,3 +381,56 @@ func (rs *RaiseStatement) TokenLiteral() string { return rs.Token.Literal }
 func (rs *RaiseStatement) String() string {
 	return fmt.Sprintf("raise %s", rs.Error.String())
 }
+
+type ArcaneSpell struct {
+	Token      token.Token // '@arcanespell' token
+	Name       *Identifier
+	Parameters []*Parameter
+	Body       *BlockStatement // Can be nil for abstract methods
+}
+
+func (as *ArcaneSpell) expressionNode()      {}
+func (as *ArcaneSpell) TokenLiteral() string { return as.Token.Literal }
+func (as *ArcaneSpell) String() string {
+	var out bytes.Buffer
+	out.WriteString("@arcanespell ")
+	out.WriteString(as.Name.String())
+	out.WriteString("(")
+	params := []string{}
+	for _, p := range as.Parameters {
+		params = append(params, p.String())
+	}
+	out.WriteString(strings.Join(params, ", "))
+	out.WriteString(")")
+	return out.String()
+}
+
+type ArcaneSpellbook struct {
+	Token      token.Token // 'arcane' token
+	Name       *Identifier
+	Methods    []*ArcaneSpell // Use ArcaneSpell instead of FunctionDefinition
+	InitMethod *FunctionDefinition
+}
+
+func (asb *ArcaneSpellbook) statementNode()       {}
+func (asb *ArcaneSpellbook) TokenLiteral() string { return asb.Token.Literal }
+func (asb *ArcaneSpellbook) String() string {
+	var out bytes.Buffer
+	out.WriteString("arcane spellbook ")
+	out.WriteString(asb.Name.String())
+	out.WriteString(":\n")
+	for _, method := range asb.Methods {
+		out.WriteString("    ")
+		out.WriteString(method.String())
+		out.WriteString("\n")
+	}
+	return out.String()
+}
+
+type IgnoreStatement struct {
+	Token token.Token
+}
+
+func (is *IgnoreStatement) statementNode()       {}
+func (is *IgnoreStatement) TokenLiteral() string { return is.Token.Literal }
+func (is *IgnoreStatement) String() string       { return "ignore" }

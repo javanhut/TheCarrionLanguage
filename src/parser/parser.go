@@ -3,7 +3,6 @@ package parser
 import (
 	"fmt"
 	"strconv"
-
 	"thecarrionlanguage/src/ast"
 	"thecarrionlanguage/src/lexer"
 	"thecarrionlanguage/src/token"
@@ -115,8 +114,11 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.OTHERWISE, p.parseOtherwise)
 	p.registerPrefix(token.ENSNARE, func() ast.Expression { return nil })
 	p.registerPrefix(token.AS, func() ast.Expression { return nil })
+	p.registerPrefix(token.AT, func() ast.Expression { return nil })
+	p.registerPrefix(token.ARCANESPELL, func() ast.Expression { return nil })
 	p.registerPrefix(token.LPAREN, p.parseParenExpression)
 	p.registerPrefix(token.SELF, p.parseSelf)
+	p.registerPrefix(token.SUPER, p.parseSuperExpression)
 	p.registerPrefix(token.INIT, func() ast.Expression {
 		return &ast.Identifier{
 			Token: token.Token{Type: token.INIT, Literal: "init"},
@@ -159,8 +161,56 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerStatement(token.RESOLVE, p.parseResolveStatement)
 	p.registerStatement(token.ENSNARE, p.parseEnsnareStatement)
 	p.registerStatement(token.RAISE, p.parseRaiseStatement)
-
+	p.registerStatement(token.ARCANE, p.parseArcaneSpellbook)
+	p.registerStatement(token.IGNORE, p.parseIgnoreStatement)
 	return p
+}
+
+func (p *Parser) parseSuperExpression() ast.Expression {
+	// Just treat "super" as a special Identifier node
+	return &ast.Identifier{
+		Token: p.currToken,
+		Value: "super",
+	}
+}
+
+func (p *Parser) parseIgnoreStatement() ast.Statement {
+	return &ast.IgnoreStatement{Token: p.currToken}
+}
+
+func (p *Parser) parseArcaneSpellbook() ast.Statement {
+	stmt := &ast.ArcaneSpellbook{Token: p.currToken} // 'arcane' token
+
+	// Expect 'spellbook' and class name
+	if !p.expectPeek(token.SPELLBOOK) || !p.expectPeek(token.IDENT) {
+		return nil
+	}
+	stmt.Name = &ast.Identifier{Token: p.currToken, Value: p.currToken.Literal}
+
+	// Expect colon
+	if !p.expectPeek(token.COLON) {
+		return nil
+	}
+
+	// Parse abstract methods
+	for p.peekTokenIs(token.ARCANESPELL) {
+		p.nextToken() // Consume '@arcanespell'
+		method := &ast.ArcaneSpell{Token: p.currToken}
+		if !p.expectPeek(token.IDENT) {
+			return nil
+		}
+		method.Name = &ast.Identifier{Token: p.currToken, Value: p.currToken.Literal}
+
+		// Parse parameters (if any)
+		if p.peekTokenIs(token.LPAREN) {
+			p.nextToken() // Consume '('
+			method.Parameters = p.parseFunctionParameters()
+		}
+
+		stmt.Methods = append(stmt.Methods, method)
+	}
+
+	return stmt
 }
 
 func (p *Parser) parseRaiseStatement() ast.Statement {
@@ -657,6 +707,10 @@ func (p *Parser) parseStatement() ast.Statement {
 		return p.parseResolveStatement()
 	case token.RAISE:
 		return p.parseRaiseStatement()
+	case token.ARCANE:
+		return p.parseArcaneSpellbook()
+	case token.IGNORE:
+		return p.parseIgnoreStatement()
 	}
 
 	leftExpr := p.parseExpression(LOWEST)
@@ -1290,6 +1344,15 @@ func (p *Parser) parseSpellbookDefinition() ast.Statement {
 		return nil
 	}
 	stmt.Name = &ast.Identifier{Token: p.currToken, Value: p.currToken.Literal}
+
+	if p.peekTokenIs(token.LPAREN) {
+		p.nextToken() // Skip '('
+		p.nextToken() // Parent class name
+		stmt.Inherits = &ast.Identifier{Token: p.currToken, Value: p.currToken.Literal}
+		if !p.expectPeek(token.RPAREN) {
+			return nil
+		}
+	}
 
 	// Expect colon => "spellbook Name:"
 	if !p.expectPeek(token.COLON) {
