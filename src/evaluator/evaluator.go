@@ -421,7 +421,10 @@ func evalCallExpression(fn object.Object, args []object.Object) object.Object {
 
 	case *object.BoundMethod:
 		extendedEnv := extendFunctionEnv(fn.Method, args)
-		extendedEnv.Set("self", fn.Instance) // Setting self in bound methods
+		extendedEnv.Set("self", fn.Instance)
+		if fn.Method.IsAbstract {
+			return newError("Cannot call abstract method")
+		}
 		evaluated := Eval(fn.Method.Body, extendedEnv)
 		return unwrapReturnValue(evaluated)
 
@@ -443,6 +446,31 @@ func evalDotExpression(node *ast.DotExpression, env *object.Environment) object.
 	leftObj := Eval(node.Left, env)
 	if isError(leftObj) {
 		return leftObj
+	}
+
+	if node.Left.String() == "super" {
+		instance, ok := env.Get("self")
+		if !ok || instance == nil {
+			return newError("'super' can only be used in an instance method")
+		}
+
+		inst, ok := instance.(*object.Instance)
+		if !ok {
+			return newError("'super' must be used in an instance of a spellbook")
+		}
+
+		if inst.Spellbook == nil || inst.Spellbook.Inherits == nil {
+			return newError("no parent class found for 'super'")
+		}
+
+		parentMethod, ok := inst.Spellbook.Inherits.Methods[node.Right.Value]
+		if !ok {
+			return newError("no method '%s' found in parent class", node.Right.Value)
+		}
+		return &object.BoundMethod{
+			Instance: inst,
+			Method:   parentMethod,
+		}
 	}
 
 	instance, ok := leftObj.(*object.Instance)

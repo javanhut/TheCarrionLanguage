@@ -179,38 +179,97 @@ func (p *Parser) parseIgnoreStatement() ast.Statement {
 }
 
 func (p *Parser) parseArcaneSpellbook() ast.Statement {
-	stmt := &ast.ArcaneSpellbook{Token: p.currToken} // 'arcane' token
+	// `p.currToken` is ARCANE at this point.
+	stmt := &ast.ArcaneSpellbook{Token: p.currToken}
 
-	// Expect 'spellbook' and class name
-	if !p.expectPeek(token.SPELLBOOK) || !p.expectPeek(token.IDENT) {
+	// Expect `spellbook`, then the name, then `:`
+	if !p.expectPeek(token.SPELLBOOK) {
+		return nil
+	}
+	if !p.expectPeek(token.IDENT) {
 		return nil
 	}
 	stmt.Name = &ast.Identifier{Token: p.currToken, Value: p.currToken.Literal}
 
-	// Expect colon
 	if !p.expectPeek(token.COLON) {
 		return nil
 	}
 
-	// Parse abstract methods
-	for p.peekTokenIs(token.ARCANESPELL) {
-		p.nextToken() // Consume '@arcanespell'
-		method := &ast.ArcaneSpell{Token: p.currToken}
-		if !p.expectPeek(token.IDENT) {
-			return nil
-		}
-		method.Name = &ast.Identifier{Token: p.currToken, Value: p.currToken.Literal}
+	// Optionally parse a newline + INDENT here, just like other blocks:
+	p.skipNewlines()
+	if p.peekTokenIs(token.INDENT) {
+		p.nextToken() // consume the INDENT
+	}
 
-		// Parse parameters (if any)
-		if p.peekTokenIs(token.LPAREN) {
-			p.nextToken() // Consume '('
-			method.Parameters = p.parseFunctionParameters()
-		}
+	// Now parse zero or more arcane methods (lines with `@arcanespell ...`)
+	stmt.Methods = []*ast.ArcaneSpell{}
 
-		stmt.Methods = append(stmt.Methods, method)
+	// Keep looking ahead while we see `@`
+	for p.peekTokenIs(token.AT) {
+		// parseArcaneMethod will handle `@arcanespell spell foo() ...`
+		method := p.parseArcaneMethod()
+		if method != nil {
+			stmt.Methods = append(stmt.Methods, method)
+		}
+		// after method parse, we might skip newlines, etc.
+		p.skipNewlines()
 	}
 
 	return stmt
+}
+
+func (p *Parser) parseArcaneMethod() *ast.ArcaneSpell {
+	// We enter here *after* we've confirmed p.peekTokenIs(token.AT),
+	// so first consume the '@'
+	p.nextToken() // now p.currToken.Type == token.AT
+
+	// Next token must be IDENT "arcanespell"
+	if !p.expectPeek(token.ARCANESPELL) {
+		p.errors = append(p.errors, "expected 'arcanespell' after '@'")
+		return nil
+	}
+	if p.currToken.Literal != "arcanespell" {
+		p.errors = append(p.errors, "expected 'arcanespell' after '@', got "+p.currToken.Literal)
+		return nil
+	}
+
+	for p.peekTokenIs(token.NEWLINE) {
+		p.nextToken() // consume the newline(s)
+	}
+	// Now we expect the `spell` keyword
+	if !p.expectPeek(token.SPELL) {
+		p.errors = append(p.errors, "expected 'spell' after '@arcanespell'")
+		return nil
+	}
+
+	// p.currToken is now SPELL, so create our ArcaneSpell node
+	arcMethod := &ast.ArcaneSpell{Token: p.currToken}
+
+	// Next token should be the method name
+	if !p.expectPeek(token.IDENT) {
+		p.errors = append(p.errors, "expected method name after 'spell'")
+		return nil
+	}
+	arcMethod.Name = &ast.Identifier{Token: p.currToken, Value: p.currToken.Literal}
+
+	// Optionally parse `(...)` parameters
+	if p.peekTokenIs(token.LPAREN) {
+		p.nextToken() // consume '('
+		arcMethod.Parameters = p.parseFunctionParameters()
+	}
+
+	// Optionally parse a colon + block if you want arcane spells to have bodies or not.
+	// If they are purely abstract, you might ignore this.
+	// In your code, you do something like:
+	if p.peekTokenIs(token.COLON) {
+		p.nextToken() // consume ':'
+		// Possibly parse a block or a single statement
+		// But in many "abstract method" setups, there's no real body
+		// e.g. "ignore" or a no-op
+		// We'll skip that here if you want it truly abstract
+	}
+
+	return arcMethod
 }
 
 func (p *Parser) parseRaiseStatement() ast.Statement {
