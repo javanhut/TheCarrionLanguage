@@ -209,6 +209,152 @@ foo.print_foo()
 foo.print_bar()
 ```
 
+# OOP- Object Oriented Programming
+Finally i know you're wondering is this functional or object oriented. Big reveal it's object oriented no surprise.
+So inspired by python it's no surprise.
+
+## Abstraction
+In Carrion Language there is abstract classes but they are labeled by the keyword arcane.
+
+To declare an arcane spellbook you declare it as follows:
+
+```python
+arcane spellbook Foo:
+    init();
+        ignore
+
+```
+
+The arcane keyword is used to declare abstract classes.
+
+For abstracted method they are labeled as arcane spells but uses the @ symbol and a decorator format as follows:
+
+
+```python
+arcane spellbook Foo:
+    @arcanespell
+    spell foobar():
+        ignore
+```
+
+You're probably wondering about the ignore. Yes ignore is the keyword that indicates a empty method and that it doesn't need a body statement. You're welcome
+
+
+## Inheritance
+Inheritance is pretty similar to python. Currently the super method isn't implemented but you can share resources with self and inheriting from parent class.
+
+```python
+spellbook Parent:
+    spell parent_method():
+        ignore
+
+spellbook Child(Parent):
+    init():
+        ignore
+
+child = Child()
+child.parent_method()
+```
+
+Pretty simple no?
+
+## Encapsulation
+For Encapsulation i took inspiration from python again i love me some dunder method.
+Protected are declare by '__' double underscore while private are declared by '_' a singular underscore:
+
+e.g Protected:
+```python
+spellbook Foo:
+    init(var="foobar"):
+        self.var = var
+
+    spell __protected_spell():
+        return self.var
+
+    spell return_protected():
+        return str(self.__protected_spell())
+
+foobar = Foo()
+foobar.return_protected()
+
+```
+* Accessing the protected spell outside of class will cause error.
+
+
+e.g Private:
+```python
+spellbook Foo:
+    init(var="foobar"):
+        self.var = var
+
+    spell _private_spell():
+        return self.var
+
+    spell return_private():
+        return str(self._private_spell())
+
+foobar = Foo()
+foobar.return_private()
+
+```
+* Accessing the private spell outside of class will cause error.
+
+## Polymorphism
+
+Last OOP concept.
+You can overwrite spells from inherited parents.
+
+```python
+spellbook Parent:
+    init(name="parent"):
+        self.name = name
+    spell parent_method():
+        return self.name
+
+
+spellbook Child(Parent):
+    init(name="child"):
+        self.name = name
+    spell parent_method(child_age="age"):
+        return "Name: " + str(self.name) + "/t Age: " + child_age
+```
+
+Yay i'm a genius.
+
+Anyways
+
+
+# Error Handling
+Yeah but it's only partially implemented:
+You have 3 keywords for errors **attempt**, **ensnare**, **resolve**
+
+Attempt is the original case want to work. If it doesn't you can ensnare the error.
+This allows you to catch a raised error and handle it accordingly.
+Finally resolve just finishes the functionality that if specified will always run after error.
+
+```python
+
+// Custom error
+ // Define a custom error
+spellbook ValueError:
+    spell init(message):
+        self.message = message
+
+// Raise a custom error
+attempt:
+    raise ValueError("Invalid value")
+ensnare (ValueError):
+    print("Caught ValueError!")
+ensnare:
+    print("Base case generic error")
+resolve:
+    print("This will finish method")
+```
+
+Raise is the keyword to throw an error because i love you and its easy.
+
+
+
 # Example file run.
 ```bash
 carrion examples/test_file.crl

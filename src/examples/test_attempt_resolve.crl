@@ -7,6 +7,6 @@ spellbook ValueError:
 attempt:
     raise ValueError("Invalid value")
 ensnare (ValueError):
-    print("Caught ValueError:")
+    print("Caught ValueError.")
 resolve:
     print("This will always run")
