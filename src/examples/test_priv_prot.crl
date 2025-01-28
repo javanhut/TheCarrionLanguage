@@ -1,0 +1,12 @@
+spellbook Example:
+  init(name):
+    self.name = name
+
+  spell __access_name():
+    return self.name
+
+  spell print_name():
+    print("Name: " + str(self.__access_name()))
+
+ex = Example("foobar")
+ex.print_name()

@@ -78,10 +78,12 @@ func (e *Error) Type() ObjectType { return ERROR_OBJ }
 func (e *Error) Inspect() string  { return "ERROR: " + e.Message }
 
 type Function struct {
-	Parameters []*ast.Parameter
-	Body       *ast.BlockStatement
-	Env        *Environment
-	IsAbstract bool
+	Parameters  []*ast.Parameter
+	Body        *ast.BlockStatement
+	Env         *Environment
+	IsAbstract  bool
+	IsPrivate   bool
+	IsProtected bool
 }
 
 func (f *Function) Inspect() string {

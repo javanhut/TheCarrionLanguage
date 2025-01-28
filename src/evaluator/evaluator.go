@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"strings"
 	"thecarrionlanguage/src/ast"
 	"thecarrionlanguage/src/lexer"
 	"thecarrionlanguage/src/object"
@@ -350,6 +351,12 @@ func evalSpellbookDefinition(node *ast.SpellbookDefinition, env *object.Environm
 			Body:       method.Body,
 			Env:        env,
 		}
+		if strings.HasPrefix(method.Name.Value, "__") {
+			fn.IsPrivate = true
+		} else if strings.HasPrefix(method.Name.Value, "_") {
+			fn.IsProtected = true
+		}
+
 		if method.Token.Type == token.ARCANESPELL {
 			fn.IsAbstract = true
 		}
@@ -421,7 +428,10 @@ func evalCallExpression(fn object.Object, args []object.Object) object.Object {
 
 	case *object.BoundMethod:
 		extendedEnv := extendFunctionEnv(fn.Method, args)
-		extendedEnv.Set("self", fn.Instance) // Setting self in bound methods
+		extendedEnv.Set("self", fn.Instance)
+		if fn.Method.IsAbstract {
+			return newError("Cannot call abstract method")
+		}
 		evaluated := Eval(fn.Method.Body, extendedEnv)
 		return unwrapReturnValue(evaluated)
 
@@ -445,6 +455,31 @@ func evalDotExpression(node *ast.DotExpression, env *object.Environment) object.
 		return leftObj
 	}
 
+	if node.Left.String() == "super" {
+		instance, ok := env.Get("self")
+		if !ok || instance == nil {
+			return newError("'super' can only be used in an instance method")
+		}
+
+		inst, ok := instance.(*object.Instance)
+		if !ok {
+			return newError("'super' must be used in an instance of a spellbook")
+		}
+
+		if inst.Spellbook == nil || inst.Spellbook.Inherits == nil {
+			return newError("no parent class found for 'super'")
+		}
+
+		parentMethod, ok := inst.Spellbook.Inherits.Methods[node.Right.Value]
+		if !ok {
+			return newError("no method '%s' found in parent class", node.Right.Value)
+		}
+		return &object.BoundMethod{
+			Instance: inst,
+			Method:   parentMethod,
+		}
+	}
+
 	instance, ok := leftObj.(*object.Instance)
 	if !ok {
 		return newError("type error: %s is not an instance", leftObj.Type())
@@ -463,10 +498,52 @@ func evalDotExpression(node *ast.DotExpression, env *object.Environment) object.
 		return newError("undefined property or method: %s", fieldOrMethodName)
 	}
 
+	if method.IsPrivate && !sameClass(env, instance.Spellbook) {
+		return newError(
+			"private method '%s' not accessible outside its defining class",
+			fieldOrMethodName,
+		)
+	}
+	if method.IsProtected && !sameOrSubclass(env, instance.Spellbook) {
+		return newError("protected method '%s' not accessible here", fieldOrMethodName)
+	}
+
 	return &object.BoundMethod{
 		Instance: instance,
 		Method:   method,
 	}
+}
+
+func sameClass(env *object.Environment, target *object.Spellbook) bool {
+	callerSelf, ok := env.Get("self")
+	if !ok {
+		return false
+	}
+	callerInst, ok := callerSelf.(*object.Instance)
+	if !ok {
+		return false
+	}
+	return callerInst.Spellbook == target
+}
+
+func sameOrSubclass(env *object.Environment, target *object.Spellbook) bool {
+	callerSelf, ok := env.Get("self")
+	if !ok {
+		return false
+	}
+	callerInst, ok := callerSelf.(*object.Instance)
+	if !ok {
+		return false
+	}
+
+	sb := callerInst.Spellbook
+	for sb != nil {
+		if sb == target {
+			return true
+		}
+		sb = sb.Inherits
+	}
+	return false
 }
 
 func evalHashLiteral(

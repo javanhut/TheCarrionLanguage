@@ -1,0 +1,17 @@
+spellbook Test:
+  init(name):
+    self.name = name
+  spell __should_be_protected():
+    return self.name
+  spell _should_be_priv():
+    return self.name
+  spell return_protected():
+    value = self.__should_be_protected()
+    print(str(value))
+  spell return_priv():
+    print(str(self._should_be_priv()))
+
+
+test = Test("foobar")
+test.return_priv()
+test.return_protected()
