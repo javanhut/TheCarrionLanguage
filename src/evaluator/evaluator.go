@@ -65,6 +65,8 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		return &object.Integer{Value: node.Value}
 	case *ast.FloatLiteral:
 		return &object.Float{Value: node.Value}
+	case *ast.FStringLiteral:
+		return evalFStringLiteral(node, env)
 	case *ast.NoneLiteral:
 		return object.NONE
 	case *ast.ReturnStatement:
@@ -134,6 +136,25 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		return evalCallExpression(Eval(node.Function, env), evalExpressions(node.Arguments, env))
 	}
 	return NONE
+}
+
+func evalFStringLiteral(fslit *ast.FStringLiteral, env *object.Environment) object.Object {
+	var sb strings.Builder
+
+	for _, part := range fslit.Parts {
+		switch p := part.(type) {
+		case *ast.FStringText:
+			sb.WriteString(p.Value)
+		case *ast.FStringExpr:
+			val := Eval(p.Expr, env)
+			if isError(val) {
+				return val
+			}
+			sb.WriteString(val.Inspect())
+		}
+	}
+
+	return &object.String{Value: sb.String()}
 }
 
 func evalArcaneSpellbook(node *ast.ArcaneSpellbook, env *object.Environment) object.Object {

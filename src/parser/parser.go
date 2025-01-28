@@ -3,6 +3,7 @@ package parser
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"thecarrionlanguage/src/ast"
 	"thecarrionlanguage/src/lexer"
 	"thecarrionlanguage/src/token"
@@ -117,6 +118,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.LPAREN, p.parseParenExpression)
 	p.registerPrefix(token.SELF, p.parseSelf)
 	p.registerPrefix(token.SUPER, p.parseSuperExpression)
+	p.registerPrefix(token.FSTRING, p.parseFStringLiteral)
 	p.registerPrefix(token.INIT, func() ast.Expression {
 		return &ast.Identifier{
 			Token: token.Token{Type: token.INIT, Literal: "init"},
@@ -162,6 +164,90 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerStatement(token.ARCANE, p.parseArcaneSpellbook)
 	p.registerStatement(token.IGNORE, p.parseIgnoreStatement)
 	return p
+}
+
+func (p *Parser) parseFStringLiteral() ast.Expression {
+	// p.currToken is a FSTRING token, whose Literal is the raw inside
+	raw := p.currToken.Literal
+
+	fslit := &ast.FStringLiteral{
+		Token: p.currToken,
+		Parts: []ast.FStringPart{},
+	}
+
+	// We'll parse out all segments.
+	// e.g. "Hello {name}, {5+3}" =>
+	//  text "Hello ", expr "name", text ", ", expr "5+3"
+
+	var builder strings.Builder
+	i := 0
+	for i < len(raw) {
+		ch := raw[i]
+
+		if ch == '{' {
+			// first, store the text accumulated so far
+			if builder.Len() > 0 {
+				fslit.Parts = append(fslit.Parts, &ast.FStringText{Value: builder.String()})
+				builder.Reset()
+			}
+
+			// find matching '}'
+			end := findMatchingBrace(raw, i+1)
+			if end < 0 {
+				// error: no closing brace
+				p.errors = append(p.errors, "Unclosed brace in f-string")
+				return fslit
+			}
+			exprStr := raw[i+1 : end] // content inside { ... }
+
+			// parse exprStr as an expression
+			expr := p.parseFStringExpression(exprStr)
+			fslit.Parts = append(fslit.Parts, &ast.FStringExpr{Expr: expr})
+
+			i = end + 1 // skip past '}'
+		} else {
+			// just a normal character
+			builder.WriteByte(ch)
+			i++
+		}
+	}
+	// leftover text
+	if builder.Len() > 0 {
+		fslit.Parts = append(fslit.Parts, &ast.FStringText{Value: builder.String()})
+	}
+
+	return fslit
+}
+
+// Helper to find the next '}' that is not nested.
+// For simplicity, we won't handle nested braces or escaping.
+func findMatchingBrace(s string, start int) int {
+	for i := start; i < len(s); i++ {
+		if s[i] == '}' {
+			return i
+		}
+	}
+	return -1 // not found
+}
+
+// parseFStringExpression uses a mini-lexer+parser pass to parse the expression inside { }.
+func (p *Parser) parseFStringExpression(exprStr string) ast.Expression {
+	// We can create a new Lexer and Parser for this substring:
+	l := lexer.New(
+		exprStr,
+	) // You'd write a custom constructor that pretends exprStr is a full line
+	subParser := New(l)
+
+	// parse single expression
+	program := subParser.ParseProgram()
+	// if program has 1 statement which is an expressionStatement => get that expression
+	if len(program.Statements) == 1 {
+		if es, ok := program.Statements[0].(*ast.ExpressionStatement); ok {
+			return es.Expression
+		}
+	}
+	// fallback: return nil or some error expression
+	return nil
 }
 
 func (p *Parser) parseSuperExpression() ast.Expression {

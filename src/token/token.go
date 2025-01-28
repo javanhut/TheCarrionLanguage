@@ -91,6 +91,7 @@ const (
 	ARCANE      TokenType = "ARCANE"
 	ARCANESPELL TokenType = "ARCANESPELL"
 	SUPER       TokenType = "SUPER"
+	FSTRING     TokenType = "FSTRING"
 	//	RANGE     TokenType = "RANGE"
 	NONE TokenType = "NONE"
 	// Logical Operators

@@ -64,6 +64,16 @@ func (l *Lexer) NextToken() token.Token {
 		return l.NextToken() // skip
 	}
 
+	// Check for f-string
+	if ch == 'f' {
+		// peek next
+		if l.peekChar() == '"' {
+			// It's an f-string => parse it
+			l.charIndex++ // consume the 'f'
+			return l.readFString()
+		}
+	}
+
 	switch ch {
 	case '=':
 		if l.peekChar() == '=' {
@@ -117,7 +127,6 @@ func (l *Lexer) NextToken() token.Token {
 			l.charIndex++
 			return token.Token{Type: token.UNDERSCORE, Literal: "_"}
 		}
-
 	case '/':
 		next := l.peekChar()
 		if next == '=' {
@@ -230,6 +239,41 @@ func (l *Lexer) NextToken() token.Token {
 			l.charIndex++
 			return token.Token{Type: token.ILLEGAL, Literal: string(ch)}
 		}
+	}
+}
+
+func (l *Lexer) readFString() token.Token {
+	// We already consumed 'f' and the initial double-quote in NextToken()
+	// now we read until we see the matching quote or EOF
+
+	// skip the initial quote
+	l.charIndex++
+
+	var literal []rune
+
+	for {
+		if l.charIndex >= len(l.currLine) {
+			// end of line or file => treat as unclosed f-string
+			// you may want to handle multiline or produce an error
+			break
+		}
+		ch := rune(l.currLine[l.charIndex])
+		if ch == '"' {
+			// closing quote => done
+			break
+		}
+		literal = append(literal, ch)
+		l.charIndex++
+	}
+
+	// skip the closing quote
+	if l.charIndex < len(l.currLine) && l.currLine[l.charIndex] == '"' {
+		l.charIndex++
+	}
+
+	return token.Token{
+		Type:    token.FSTRING,
+		Literal: string(literal), // everything inside the quotes
 	}
 }
 
