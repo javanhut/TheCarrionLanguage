@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"strings"
 	"thecarrionlanguage/src/ast"
 	"thecarrionlanguage/src/lexer"
 	"thecarrionlanguage/src/object"
@@ -350,6 +351,12 @@ func evalSpellbookDefinition(node *ast.SpellbookDefinition, env *object.Environm
 			Body:       method.Body,
 			Env:        env,
 		}
+		if strings.HasPrefix(method.Name.Value, "__") {
+			fn.IsPrivate = true
+		} else if strings.HasPrefix(method.Name.Value, "_") {
+			fn.IsProtected = true
+		}
+
 		if method.Token.Type == token.ARCANESPELL {
 			fn.IsAbstract = true
 		}
@@ -491,10 +498,52 @@ func evalDotExpression(node *ast.DotExpression, env *object.Environment) object.
 		return newError("undefined property or method: %s", fieldOrMethodName)
 	}
 
+	if method.IsPrivate && !sameClass(env, instance.Spellbook) {
+		return newError(
+			"private method '%s' not accessible outside its defining class",
+			fieldOrMethodName,
+		)
+	}
+	if method.IsProtected && !sameOrSubclass(env, instance.Spellbook) {
+		return newError("protected method '%s' not accessible here", fieldOrMethodName)
+	}
+
 	return &object.BoundMethod{
 		Instance: instance,
 		Method:   method,
 	}
+}
+
+func sameClass(env *object.Environment, target *object.Spellbook) bool {
+	callerSelf, ok := env.Get("self")
+	if !ok {
+		return false
+	}
+	callerInst, ok := callerSelf.(*object.Instance)
+	if !ok {
+		return false
+	}
+	return callerInst.Spellbook == target
+}
+
+func sameOrSubclass(env *object.Environment, target *object.Spellbook) bool {
+	callerSelf, ok := env.Get("self")
+	if !ok {
+		return false
+	}
+	callerInst, ok := callerSelf.(*object.Instance)
+	if !ok {
+		return false
+	}
+
+	sb := callerInst.Spellbook
+	for sb != nil {
+		if sb == target {
+			return true
+		}
+		sb = sb.Inherits
+	}
+	return false
 }
 
 func evalHashLiteral(

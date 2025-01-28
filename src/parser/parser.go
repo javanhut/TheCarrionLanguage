@@ -95,14 +95,12 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.PLUS_INCREMENT, p.parsePrefixExpression)
 	p.registerPrefix(token.MINUS_DECREMENT, p.parsePrefixExpression)
 	p.registerPrefix(token.CASE, func() ast.Expression { return nil })
-	p.registerPrefix(token.UNDERSCORE, func() ast.Expression { return nil })
-	// p.registerPrefix(token.LPAREN, p.parseGroupedExpression)
 	p.registerPrefix(token.TRUE, p.parseBoolean)
 	p.registerPrefix(token.FALSE, p.parseBoolean)
 	p.registerPrefix(token.COLON, func() ast.Expression {
 		return nil
 	})
-
+	p.registerPrefix(token.UNDERSCORE, func() ast.Expression { return nil })
 	p.registerPrefix(token.STRING, p.parseStringLiteral)
 	p.registerPrefix(token.LBRACK, p.parseArrayLiteral)
 	p.registerPrefix(token.LBRACE, p.parseHashLiteral)

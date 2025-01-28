@@ -107,6 +107,16 @@ func (l *Lexer) NextToken() token.Token {
 		}
 		l.charIndex++
 		return newToken(token.ASTERISK, '*')
+	case '_':
+		// Check if next character continues an identifier
+		if l.peekCharIsLetterOrDigitOrUnderscore() {
+			// If so, read the entire identifier from here (including the initial '_')
+			return l.readIdentifier()
+		} else {
+			// It's a single underscore token
+			l.charIndex++
+			return token.Token{Type: token.UNDERSCORE, Literal: "_"}
+		}
 
 	case '/':
 		next := l.peekChar()
@@ -162,14 +172,6 @@ func (l *Lexer) NextToken() token.Token {
 	case ';':
 		l.charIndex++
 		return newToken(token.SEMICOLON, ';')
-	case '_':
-		nxt := l.peekChar()
-		if nxt == '_' {
-			l.charIndex += 2
-			return token.Token{Type: token.DUNDER, Literal: "__"}
-		}
-		l.charIndex++
-		return newToken(token.UNDERSCORE, '_')
 	case '(':
 		l.charIndex++
 		return newToken(token.LPAREN, '(')
@@ -229,6 +231,15 @@ func (l *Lexer) NextToken() token.Token {
 			return token.Token{Type: token.ILLEGAL, Literal: string(ch)}
 		}
 	}
+}
+
+func (l *Lexer) peekCharIsLetterOrDigitOrUnderscore() bool {
+	nxt := l.peekChar()
+	// If nxt == 0, means end of line => not a letter/digit
+	if nxt == 0 {
+		return false
+	}
+	return isLetterOrDigit(nxt) || nxt == '_'
 }
 
 // skipLineComment moves charIndex to the end of the current line
@@ -398,17 +409,16 @@ loop:
 
 func (l *Lexer) readIdentifier() token.Token {
 	start := l.charIndex
-	for l.charIndex < len(l.currLine) {
-		ch := l.currLine[l.charIndex]
-		if isLetter(ch) || isDigit(ch) {
-			l.charIndex++
-		} else {
-			break
-		}
+	for l.charIndex < len(l.currLine) && isLetterOrDigit(l.currLine[l.charIndex]) {
+		l.charIndex++
 	}
 	literal := l.currLine[start:l.charIndex]
-	tokType := token.LookupIdent(literal)
+	tokType := token.LookupIdent(literal) // check if it’s a keyword or else IDENT
 	return token.Token{Type: tokType, Literal: literal}
+}
+
+func isLetterOrDigit(ch byte) bool {
+	return isLetter(ch) || unicode.IsDigit(rune(ch))
 }
 
 func (l *Lexer) readNumber() token.Token {

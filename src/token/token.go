@@ -45,7 +45,7 @@ const (
 	AMPERSAND       TokenType = "&"
 	HASH            TokenType = "#"
 	AT              TokenType = "@"
-	DUNDER          TokenType = "__"
+	// DUNDER          TokenType = "__"
 
 	// Delimiters
 	COMMA     TokenType = ","
