@@ -796,10 +796,8 @@ func (p *Parser) parseStatement() ast.Statement {
 	case token.IGNORE:
 		return p.parseIgnoreStatement()
 	}
-
 	leftExpr := p.parseExpression(LOWEST)
-
-	if p.peekTokenIs(token.ASSIGN) ||
+	if p.peekTokenIs(token.COLON) || p.peekTokenIs(token.ASSIGN) ||
 		p.peekTokenIs(token.INCREMENT) ||
 		p.peekTokenIs(token.DECREMENT) ||
 		p.peekTokenIs(token.MULTASSGN) ||
@@ -819,22 +817,30 @@ func (p *Parser) parseStatement() ast.Statement {
 }
 
 func (p *Parser) finishAssignmentStatement(leftExpr ast.Expression) ast.Statement {
-	p.nextToken()
-	assignOp := p.currToken.Literal
-
+	var typeHint ast.Expression = nil
+	// If the left-hand side is an identifier, check for a colon.
+	if _, ok := leftExpr.(*ast.Identifier); ok {
+		if p.peekTokenIs(token.COLON) {
+			p.nextToken() // consume colon
+			if !p.expectPeek(token.IDENT) {
+				return nil
+			}
+			typeHint = &ast.Identifier{Token: p.currToken, Value: p.currToken.Literal}
+		}
+	}
+	// Now expect the assignment operator '='.
+	if !p.peekTokenIs(token.ASSIGN) {
+		return nil
+	}
+	p.nextToken() // now at the '=' token
 	stmt := &ast.AssignStatement{
 		Token:    p.currToken,
 		Name:     leftExpr,
-		Operator: assignOp,
+		Operator: p.currToken.Literal,
+		TypeHint: typeHint,
 	}
-
-	p.nextToken()
+	p.nextToken() // move past '='
 	stmt.Value = p.parseExpression(LOWEST)
-
-	if p.peekTokenIs(token.NEWLINE) || p.peekTokenIs(token.SEMICOLON) {
-		p.nextToken()
-	}
-
 	return stmt
 }
 
@@ -1316,41 +1322,52 @@ func (p *Parser) parseFunctionDefinition() ast.Statement {
 
 func (p *Parser) parseFunctionParameters() []*ast.Parameter {
 	parameters := []*ast.Parameter{}
-
 	if p.peekTokenIs(token.RPAREN) {
 		p.nextToken()
 		return parameters
 	}
-
-	p.nextToken()
+	// Parse the first parameter.
+	p.nextToken() // Now at parameter name.
 	param := &ast.Parameter{
 		Name: &ast.Identifier{Token: p.currToken, Value: p.currToken.Literal},
 	}
+	if p.peekTokenIs(token.COLON) {
+		p.nextToken() // consume ':'
+		if !p.expectPeek(token.IDENT) {
+			return nil
+		}
+		param.TypeHint = &ast.Identifier{Token: p.currToken, Value: p.currToken.Literal}
+	}
 	if p.peekTokenIs(token.ASSIGN) {
-		p.nextToken()
-		p.nextToken()
+		p.nextToken() // consume '='
+		p.nextToken() // move to the default value expression
 		param.DefaultValue = p.parseExpression(LOWEST)
 	}
 	parameters = append(parameters, param)
 
 	for p.peekTokenIs(token.COMMA) {
-		p.nextToken()
-		p.nextToken()
+		p.nextToken() // consume comma
+		p.nextToken() // parameter name
 		param := &ast.Parameter{
 			Name: &ast.Identifier{Token: p.currToken, Value: p.currToken.Literal},
 		}
+		if p.peekTokenIs(token.COLON) {
+			p.nextToken() // consume ':'
+			if !p.expectPeek(token.IDENT) {
+				return nil
+			}
+			param.TypeHint = &ast.Identifier{Token: p.currToken, Value: p.currToken.Literal}
+		}
 		if p.peekTokenIs(token.ASSIGN) {
-			p.nextToken()
-			p.nextToken()
+			p.nextToken() // consume '='
+			p.nextToken() // move to default value
 			param.DefaultValue = p.parseExpression(LOWEST)
 		}
 		parameters = append(parameters, param)
 	}
-
 	if !p.expectPeek(token.RPAREN) {
 		return nil
 	}
-
 	return parameters
 }
 

@@ -131,7 +131,8 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 	case *ast.IgnoreStatement:
 		return object.NONE
 	case *ast.CallExpression:
-		return evalCallExpression(Eval(node.Function, env), evalExpressions(node.Arguments, env))
+		return evalCallExpression(Eval(node.Function, env), evalExpressions(node.Arguments, env), env)
+
 	}
 	return NONE
 }
@@ -295,10 +296,22 @@ func isEqual(obj1, obj2 object.Object) bool {
 
 func evalAssignStatement(node *ast.AssignStatement, env *object.Environment) object.Object {
 	switch name := node.Name.(type) {
+
 	case *ast.Identifier:
 		val := Eval(node.Value, env)
 		if isError(val) {
 			return val
+		}
+		// If there is a type hint, check that the value's type matches.
+		if node.TypeHint != nil {
+			// We assume node.TypeHint is an *ast.Identifier whose value is the expected type name.
+			typeName := ""
+			if typeIdent, ok := node.TypeHint.(*ast.Identifier); ok {
+				typeName = typeIdent.Value
+			}
+			if !checkType(val, typeName) {
+				return newError("type error: expected %s but got %s", typeName, val.Type())
+			}
 		}
 		env.Set(name.Value, val)
 		return val
@@ -326,6 +339,31 @@ func evalAssignStatement(node *ast.AssignStatement, env *object.Environment) obj
 	default:
 		return newError("invalid assignment target: %T", node.Name)
 	}
+}
+
+func checkType(val object.Object, expectedType string) bool {
+	// Here you can define your mapping.
+	switch expectedType {
+	case "str":
+		return val.Type() == object.STRING_OBJ
+	case "int":
+		return val.Type() == object.INTEGER_OBJ
+	case "float":
+		return val.Type() == object.FLOAT_OBJ
+	case "bool":
+		return val.Type() == object.BOOLEAN_OBJ
+	// Add additional type names as needed.
+	default:
+		// If no known type is given, assume the check passes.
+		return true
+	}
+}
+
+func getGlobalEnv(env *object.Environment) *object.Environment {
+	for env.GetOuter() != nil {
+		env = env.GetOuter()
+	}
+	return env
 }
 
 func evalSpellbookDefinition(node *ast.SpellbookDefinition, env *object.Environment) object.Object {
@@ -403,42 +441,44 @@ func evalSpellbookDefinition(node *ast.SpellbookDefinition, env *object.Environm
 	return spellbook
 }
 
-func evalCallExpression(fn object.Object, args []object.Object) object.Object {
+func evalCallExpression(
+	fn object.Object,
+	args []object.Object,
+	env *object.Environment,
+) object.Object {
 	switch fn := fn.(type) {
-	case *object.Spellbook:
-		if fn.IsArcane {
-			return newError("cannot instantiate arcane spellbook: %s", fn.Name)
-		}
-
-		instance := &object.Instance{
-			Spellbook: fn,
-			Env:       object.NewEnclosedEnvironment(fn.Env),
-		}
-
-		if fn.InitMethod != nil {
-			extendedEnv := extendFunctionEnv(fn.InitMethod, args)
-			extendedEnv.Set("self", instance)
-			Eval(fn.InitMethod.Body, extendedEnv)
-		}
-		return instance
-
+	case *object.Function:
+		// Use the function’s closure environment instead of the current call-site env.
+		globalEnv := getGlobalEnv(fn.Env)
+		extendedEnv := extendFunctionEnv(fn, args, globalEnv)
+		evaluated := Eval(fn.Body, extendedEnv)
+		return unwrapReturnValue(evaluated)
 	case *object.BoundMethod:
-		extendedEnv := extendFunctionEnv(fn.Method, args)
+		globalEnv := getGlobalEnv(fn.Method.Env)
+		extendedEnv := extendFunctionEnv(fn.Method, args, globalEnv)
 		extendedEnv.Set("self", fn.Instance)
 		if fn.Method.IsAbstract {
 			return newError("Cannot call abstract method")
 		}
 		evaluated := Eval(fn.Method.Body, extendedEnv)
 		return unwrapReturnValue(evaluated)
-
-	case *object.Function:
-
-		extendedEnv := extendFunctionEnv(fn, args)
-		evaluated := Eval(fn.Body, extendedEnv)
-		return unwrapReturnValue(evaluated)
+	case *object.Spellbook:
+		if fn.IsArcane {
+			return newError("cannot instantiate arcane spellbook: %s", fn.Name)
+		}
+		instance := &object.Instance{
+			Spellbook: fn,
+			Env:       object.NewEnclosedEnvironment(fn.Env),
+		}
+		if fn.InitMethod != nil {
+			globalEnv := getGlobalEnv(fn.Env)
+			extendedEnv := extendFunctionEnv(fn.InitMethod, args, globalEnv)
+			extendedEnv.Set("self", instance)
+			Eval(fn.InitMethod.Body, extendedEnv)
+		}
+		return instance
 	case *object.Builtin:
 		return fn.Fn(args...)
-
 	default:
 		return newError("not a function: %s", fn.Type())
 	}
@@ -631,29 +671,29 @@ func evalExpressions(exps []ast.Expression, env *object.Environment) []object.Ob
 	return result
 }
 
-func applyFunction(fn object.Object, args []object.Object) object.Object {
-	switch fn := fn.(type) {
-	case *object.Function:
-		extendedEnv := extendFunctionEnv(fn, args)
-		evaluated := Eval(fn.Body, extendedEnv)
-		return unwrapReturnValue(evaluated)
-	case *object.Builtin:
-		return fn.Fn(args...)
-	default:
-		return newError("not a function: %s", fn.Type())
-	}
-}
-
-func extendFunctionEnv(fn *object.Function, args []object.Object) *object.Environment {
+func extendFunctionEnv(
+	fn *object.Function,
+	args []object.Object,
+	global *object.Environment,
+) *object.Environment {
 	env := object.NewEnclosedEnvironment(fn.Env)
 
 	for i, param := range fn.Parameters {
 		if i < len(args) {
 			env.Set(param.Name.Value, args[i])
 		} else if param.DefaultValue != nil {
-
-			defaultVal := Eval(param.DefaultValue, env)
-			env.Set(param.Name.Value, defaultVal)
+			// If the default value is a simple identifier, look it up in the global env.
+			if ident, ok := param.DefaultValue.(*ast.Identifier); ok {
+				if val, ok := global.Get(ident.Value); ok {
+					env.Set(param.Name.Value, val)
+				} else {
+					env.Set(param.Name.Value, newError("identifier not found: "+ident.Value))
+				}
+			} else {
+				// Otherwise, evaluate the default value in the function’s defining environment.
+				defaultVal := Eval(param.DefaultValue, fn.Env)
+				env.Set(param.Name.Value, defaultVal)
+			}
 		} else {
 			env.Set(param.Name.Value, NONE)
 		}

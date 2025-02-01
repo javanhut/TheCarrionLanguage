@@ -11,6 +11,7 @@ type AssignStatement struct {
 	Token    token.Token
 	Name     Expression
 	Operator string
+	TypeHint Expression
 	Value    Expression
 }
 
@@ -136,6 +137,7 @@ func (fs *ForStatement) String() string {
 
 type Parameter struct {
 	Name         *Identifier
+	TypeHint     Expression
 	DefaultValue Expression
 }
 
