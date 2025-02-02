@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 
-	"thecarrionlanguage/src/evaluator"
-	"thecarrionlanguage/src/object"
-	"thecarrionlanguage/src/repl"
+	"github.com/javanhut/TheCarrionLanguage/src/evaluator"
+	"github.com/javanhut/TheCarrionLanguage/src/object"
+	"github.com/javanhut/TheCarrionLanguage/src/repl"
 )
 
 const CROW_IMAGE = `

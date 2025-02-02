@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"hash/fnv"
 	"strings"
-	"thecarrionlanguage/src/ast"
+
+	"github.com/javanhut/TheCarrionLanguage/src/ast"
 )
 
 type ObjectType string

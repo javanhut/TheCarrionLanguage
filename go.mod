@@ -1,4 +1,4 @@
-module thecarrionlanguage
+module github.com/javanhut/TheCarrionLanguage
 
 go 1.23
 

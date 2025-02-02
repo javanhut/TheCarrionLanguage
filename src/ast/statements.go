@@ -4,7 +4,8 @@ import (
 	"bytes"
 	"fmt"
 	"strings"
-	"thecarrionlanguage/src/token"
+
+	"github.com/javanhut/TheCarrionLanguage/src/token"
 )
 
 type AssignStatement struct {

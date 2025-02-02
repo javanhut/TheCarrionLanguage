@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"thecarrionlanguage/src/ast"
-	"thecarrionlanguage/src/lexer"
+	"github.com/javanhut/TheCarrionLanguage/src/ast"
+	"github.com/javanhut/TheCarrionLanguage/src/lexer"
 )
 
 func TestIntegerLiteralExpression(t *testing.T) {

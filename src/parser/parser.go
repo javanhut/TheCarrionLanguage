@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"thecarrionlanguage/src/ast"
-	"thecarrionlanguage/src/lexer"
-	"thecarrionlanguage/src/token"
+
+	"github.com/javanhut/TheCarrionLanguage/src/ast"
+	"github.com/javanhut/TheCarrionLanguage/src/lexer"
+	"github.com/javanhut/TheCarrionLanguage/src/token"
 )
 
 const (
@@ -333,8 +334,8 @@ func (p *Parser) parseArcaneSpellbook() ast.Statement {
 }
 
 func (p *Parser) parseArcaneMethod() *ast.ArcaneSpell {
+	// Consume the "@" token has already been handled; now we expect the ARCANESPELL token.
 	p.nextToken()
-
 	if !p.expectPeek(token.ARCANESPELL) {
 		p.errors = append(p.errors, "expected 'arcanespell' after '@'")
 		return nil
@@ -344,28 +345,38 @@ func (p *Parser) parseArcaneMethod() *ast.ArcaneSpell {
 		return nil
 	}
 
+	// Skip any NEWLINE tokens.
 	for p.peekTokenIs(token.NEWLINE) {
 		p.nextToken()
 	}
 
-	if !p.expectPeek(token.SPELL) {
-		p.errors = append(p.errors, "expected 'spell' after '@arcanespell'")
+	// Now, the next token must be either SPELL or INIT.
+	if !p.peekTokenIs(token.SPELL) && !p.peekTokenIs(token.INIT) {
+		p.errors = append(p.errors, "expected 'spell' or 'init' after '@arcanespell'")
 		return nil
 	}
+	p.nextToken() // Consume the token (either SPELL or INIT)
 
+	// Create the ArcaneSpell node with the current token.
 	arcMethod := &ast.ArcaneSpell{Token: p.currToken}
-
-	if !p.expectPeek(token.IDENT) {
-		p.errors = append(p.errors, "expected method name after 'spell'")
-		return nil
+	if p.currToken.Type == token.SPELL {
+		// For a normal spell, we expect an identifier as the method name.
+		if !p.expectPeek(token.IDENT) {
+			p.errors = append(p.errors, "expected method name after 'spell'")
+			return nil
+		}
+		arcMethod.Name = &ast.Identifier{Token: p.currToken, Value: p.currToken.Literal}
+	} else if p.currToken.Type == token.INIT {
+		// For an init method, we set the method name automatically.
+		arcMethod.Name = &ast.Identifier{Token: p.currToken, Value: "init"}
 	}
-	arcMethod.Name = &ast.Identifier{Token: p.currToken, Value: p.currToken.Literal}
 
+	// Parse parameters if a '(' is present.
 	if p.peekTokenIs(token.LPAREN) {
 		p.nextToken()
 		arcMethod.Parameters = p.parseFunctionParameters()
 	}
-
+	// Consume an optional colon.
 	if p.peekTokenIs(token.COLON) {
 		p.nextToken()
 	}
