@@ -5,10 +5,11 @@ import (
 	"io"
 	"os"
 	"strings"
-	"thecarrionlanguage/src/evaluator"
-	"thecarrionlanguage/src/lexer"
-	"thecarrionlanguage/src/object"
-	"thecarrionlanguage/src/parser"
+
+	"github.com/javanhut/TheCarrionLanguage/src/evaluator"
+	"github.com/javanhut/TheCarrionLanguage/src/lexer"
+	"github.com/javanhut/TheCarrionLanguage/src/object"
+	"github.com/javanhut/TheCarrionLanguage/src/parser"
 
 	"github.com/peterh/liner"
 )

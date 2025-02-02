@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"thecarrionlanguage/src/lexer"
-	"thecarrionlanguage/src/munin"
-	"thecarrionlanguage/src/object"
-	"thecarrionlanguage/src/parser"
+	"github.com/javanhut/TheCarrionLanguage/src/lexer"
+	"github.com/javanhut/TheCarrionLanguage/src/munin"
+	"github.com/javanhut/TheCarrionLanguage/src/object"
+	"github.com/javanhut/TheCarrionLanguage/src/parser"
 )
 
 func LoadMuninStdlib(env *object.Environment) error {

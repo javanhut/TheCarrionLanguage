@@ -1,0 +1,13 @@
+arr = [1,2,3,4,5,6,7]
+
+for x in arr:
+    if x % 2 == 0:
+       skip
+    else:
+      print(x)
+
+for y in arr:
+    if y == 3:
+      stop
+    else:
+      print(y)

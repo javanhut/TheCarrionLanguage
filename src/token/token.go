@@ -16,10 +16,11 @@ const (
 	DEDENT  TokenType = "DEDENT"
 
 	// Identifiers and Literals
-	IDENT  TokenType = "IDENT"
-	INT    TokenType = "INT"
-	FLOAT  TokenType = "FLOAT"
-	STRING TokenType = "STRING"
+	IDENT     TokenType = "IDENT"
+	INT       TokenType = "INT"
+	FLOAT     TokenType = "FLOAT"
+	STRING    TokenType = "STRING"
+	DOCSTRING TokenType = "DOCSTRING"
 
 	// Operators
 	ASSIGN          TokenType = "="
@@ -91,12 +92,12 @@ const (
 	ARCANE      TokenType = "ARCANE"
 	ARCANESPELL TokenType = "ARCANESPELL"
 	SUPER       TokenType = "SUPER"
-	//	RANGE     TokenType = "RANGE"
-	NONE TokenType = "NONE"
-	// Logical Operators
-	AND TokenType = "AND"
-	OR  TokenType = "OR"
-	NOT TokenType = "NOT"
+	FSTRING     TokenType = "FSTRING"
+	CHECK       TokenType = "CHECK"
+	NONE        TokenType = "NONE"
+	AND         TokenType = "AND"
+	OR          TokenType = "OR"
+	NOT         TokenType = "NOT"
 )
 
 var keywords = map[string]TokenType{
@@ -131,6 +132,7 @@ var keywords = map[string]TokenType{
 	"arcane":      ARCANE,
 	"arcanespell": ARCANESPELL,
 	"super":       SUPER,
+	"check":       CHECK,
 
 	//"range":     RANGE,
 	"None": NONE,

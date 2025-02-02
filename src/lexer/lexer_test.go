@@ -3,7 +3,8 @@ package lexer
 
 import (
 	"testing"
-	"thecarrionlanguage/src/token"
+
+	"github.com/javanhut/TheCarrionLanguage/src/token"
 )
 
 func TestNextToken(t *testing.T) {

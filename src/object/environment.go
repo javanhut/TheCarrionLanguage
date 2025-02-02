@@ -37,3 +37,7 @@ func (e *Environment) GetNames() []string {
 	}
 	return names
 }
+
+func (e *Environment) GetOuter() *Environment {
+	return e.outer
+}

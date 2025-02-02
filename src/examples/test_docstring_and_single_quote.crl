@@ -1,0 +1,5 @@
+spell Example():
+  """This method shouldn't do anything when i call it nor return an error"""
+    ignore
+
+print(f'Single quote used here {Example()}')
