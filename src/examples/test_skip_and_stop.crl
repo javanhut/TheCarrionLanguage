@@ -1,0 +1,17 @@
+i = 0
+
+while i < 12:
+  if i % 2 == 0:
+    skip
+  otherwise i % 2 == 1:
+    print(i)
+  i++
+
+
+x = 0
+while x < 10:
+  if x == 3:
+    stop
+  else:
+    print(x)
+  x++

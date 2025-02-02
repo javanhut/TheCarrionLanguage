@@ -118,6 +118,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.SELF, p.parseSelf)
 	p.registerPrefix(token.SUPER, p.parseSuperExpression)
 	p.registerPrefix(token.FSTRING, p.parseFStringLiteral)
+
 	p.registerPrefix(token.DOCSTRING, p.parseDocStringLiteral)
 	p.registerPrefix(token.INIT, func() ast.Expression {
 		return &ast.Identifier{
@@ -163,7 +164,41 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerStatement(token.RAISE, p.parseRaiseStatement)
 	p.registerStatement(token.ARCANE, p.parseArcaneSpellbook)
 	p.registerStatement(token.IGNORE, p.parseIgnoreStatement)
+	p.registerStatement(token.STOP, p.parseStopStatement)
+	p.registerStatement(token.SKIP, p.parseSkipStatement)
+	p.registerStatement(token.CHECK, p.parseCheckStatement)
+
 	return p
+}
+
+func (p *Parser) parseStopStatement() ast.Statement {
+	// Create a new StopStatement node.
+	return &ast.StopStatement{Token: p.currToken}
+}
+
+func (p *Parser) parseSkipStatement() ast.Statement {
+	return &ast.SkipStatement{Token: p.currToken}
+}
+
+func (p *Parser) parseCheckStatement() ast.Statement {
+	stmt := &ast.CheckStatement{Token: p.currToken}
+	// Expect '('
+	if !p.expectPeek(token.LPAREN) {
+		return nil
+	}
+	p.nextToken() // Move to the condition expression
+	stmt.Condition = p.parseExpression(LOWEST)
+	// Expect ')'
+	if !p.expectPeek(token.RPAREN) {
+		return nil
+	}
+	// Optionally, if a comma is present, parse the message.
+	if p.peekTokenIs(token.COMMA) {
+		p.nextToken() // Consume the comma
+		p.nextToken() // Move to the message expression
+		stmt.Message = p.parseExpression(LOWEST)
+	}
+	return stmt
 }
 
 func (p *Parser) parseDocStringLiteral() ast.Expression {
@@ -795,6 +830,12 @@ func (p *Parser) parseStatement() ast.Statement {
 		return p.parseArcaneSpellbook()
 	case token.IGNORE:
 		return p.parseIgnoreStatement()
+	case token.SKIP:
+		return p.parseSkipStatement()
+	case token.STOP:
+		return p.parseStopStatement()
+	case token.CHECK:
+		return p.parseCheckStatement()
 	}
 	leftExpr := p.parseExpression(LOWEST)
 	if p.peekTokenIs(token.COLON) || p.peekTokenIs(token.ASSIGN) ||

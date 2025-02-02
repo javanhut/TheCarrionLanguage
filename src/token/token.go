@@ -93,12 +93,11 @@ const (
 	ARCANESPELL TokenType = "ARCANESPELL"
 	SUPER       TokenType = "SUPER"
 	FSTRING     TokenType = "FSTRING"
-	//	RANGE     TokenType = "RANGE"
-	NONE TokenType = "NONE"
-	// Logical Operators
-	AND TokenType = "AND"
-	OR  TokenType = "OR"
-	NOT TokenType = "NOT"
+	CHECK       TokenType = "CHECK"
+	NONE        TokenType = "NONE"
+	AND         TokenType = "AND"
+	OR          TokenType = "OR"
+	NOT         TokenType = "NOT"
 )
 
 var keywords = map[string]TokenType{
@@ -133,6 +132,7 @@ var keywords = map[string]TokenType{
 	"arcane":      ARCANE,
 	"arcanespell": ARCANESPELL,
 	"super":       SUPER,
+	"check":       CHECK,
 
 	//"range":     RANGE,
 	"None": NONE,

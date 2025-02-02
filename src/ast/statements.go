@@ -419,3 +419,42 @@ type IgnoreStatement struct {
 func (is *IgnoreStatement) statementNode()       {}
 func (is *IgnoreStatement) TokenLiteral() string { return is.Token.Literal }
 func (is *IgnoreStatement) String() string       { return "ignore" }
+
+// StopStatement represents a stop statement (like break).
+type StopStatement struct {
+	Token token.Token // The "stop" token
+}
+
+func (ss *StopStatement) statementNode()       {}
+func (ss *StopStatement) TokenLiteral() string { return ss.Token.Literal }
+func (ss *StopStatement) String() string       { return "stop" }
+
+// SkipStatement represents a skip statement (like continue).
+type SkipStatement struct {
+	Token token.Token // The "skip" token
+}
+
+func (s *SkipStatement) statementNode()       {}
+func (s *SkipStatement) TokenLiteral() string { return s.Token.Literal }
+func (s *SkipStatement) String() string       { return "skip" }
+
+// CheckStatement represents an assertion (check).
+type CheckStatement struct {
+	Token     token.Token // The "check" token
+	Condition Expression  // The condition to verify
+	Message   Expression  // Optional: a message if the check fails
+}
+
+func (cs *CheckStatement) statementNode()       {}
+func (cs *CheckStatement) TokenLiteral() string { return cs.Token.Literal }
+func (cs *CheckStatement) String() string {
+	var out bytes.Buffer
+	out.WriteString("check (")
+	out.WriteString(cs.Condition.String())
+	out.WriteString(")")
+	if cs.Message != nil {
+		out.WriteString(" : ")
+		out.WriteString(cs.Message.String())
+	}
+	return out.String()
+}

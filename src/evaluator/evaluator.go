@@ -30,6 +30,28 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		return evalBlockStatement(node, env)
 	case *ast.IfStatement:
 		return evalIfExpression(node, env)
+
+	case *ast.StopStatement:
+		return object.STOP
+	case *ast.SkipStatement:
+		return object.SKIP
+	case *ast.CheckStatement:
+		cond := Eval(node.Condition, env)
+		if isError(cond) {
+			return cond
+		}
+		if !isTruthy(cond) {
+			msg := "Assertion failed: " + node.Condition.String()
+			if node.Message != nil {
+				m := Eval(node.Message, env)
+				if !isError(m) {
+					msg = m.Inspect()
+				}
+			}
+			return newError(msg)
+		}
+		return object.NONE
+
 	case *ast.PrefixExpression:
 		if node.Operator == "++" || node.Operator == "--" {
 			return evalPrefixIncrementDecrement(node.Operator, node, env)
@@ -743,10 +765,14 @@ func evalBlockStatement(block *ast.BlockStatement, env *object.Environment) obje
 
 	for _, statement := range block.Statements {
 		result = Eval(statement, env)
-
 		if result != nil {
 			rt := result.Type()
-			if rt == object.RETURN_VALUE_OBJ || rt == object.ERROR_OBJ {
+			// Compare type strings:
+			if rt == object.RETURN_VALUE_OBJ ||
+				rt == object.ERROR_OBJ ||
+				rt == object.CUSTOM_ERROR_OBJ ||
+				rt == object.STOP.Type() ||
+				rt == object.SKIP.Type() {
 				return result
 			}
 		}
@@ -1136,25 +1162,51 @@ func isError(obj object.Object) bool {
 
 func evalWhileStatement(node *ast.WhileStatement, env *object.Environment) object.Object {
 	for {
-
+		// Evaluate the condition.
 		condition := Eval(node.Condition, env)
 		if isError(condition) {
 			return condition
 		}
-
 		if !isTruthy(condition) {
 			break
 		}
 
-		result := Eval(node.Body, env)
-		if result != nil {
-			rt := result.Type()
-			if rt == object.RETURN_VALUE_OBJ || rt == object.ERROR_OBJ {
-				return result
+		// Get the number of statements in the loop block.
+		n := len(node.Body.Statements)
+		var controlSignal object.Object = nil
+
+		// Evaluate all statements except the last one.
+		for i := 0; i < n-1; i++ {
+			res := Eval(node.Body.Statements[i], env)
+			// Check if we received a control signal.
+			rt := res.Type()
+			if rt == object.STOP.Type() || rt == object.SKIP.Type() ||
+				rt == object.RETURN_VALUE_OBJ || rt == object.ERROR_OBJ || rt == object.CUSTOM_ERROR_OBJ {
+				controlSignal = res
+				break
+			}
+		}
+
+		// Always evaluate the last statement (assumed to be the update).
+		if n > 0 {
+			_ = Eval(node.Body.Statements[n-1], env)
+		}
+
+		// Now act on the control signal, if any.
+		if controlSignal != nil {
+			rt := controlSignal.Type()
+			if rt == object.STOP.Type() {
+				break
+			}
+			if rt == object.SKIP.Type() {
+				continue
+			}
+			if rt == object.RETURN_VALUE_OBJ || rt == object.ERROR_OBJ ||
+				rt == object.CUSTOM_ERROR_OBJ {
+				return controlSignal
 			}
 		}
 	}
-
 	return NONE
 }
 
@@ -1180,12 +1232,42 @@ func evalForStatement(fs *ast.ForStatement, env *object.Environment) object.Obje
 	switch iter := iterable.(type) {
 	case *object.Array:
 		for _, elem := range iter.Elements {
+			// Set the loop variable.
 			env.Set(fs.Variable.Value, elem)
-			result = Eval(fs.Body, env)
-			if result != nil {
-				rt := result.Type()
-				if rt == object.RETURN_VALUE_OBJ || rt == object.ERROR_OBJ {
-					return result
+
+			// Determine how many statements are in the loop body.
+			n := len(fs.Body.Statements)
+			var controlSignal object.Object = nil
+
+			// Evaluate all statements except the last one.
+			// (We assume the last statement is the update.)
+			for i := 0; i < n-1; i++ {
+				res := Eval(fs.Body.Statements[i], env)
+				rt := res.Type()
+				// If we receive a control signal, record it and break.
+				if rt == object.STOP.Type() || rt == object.SKIP.Type() ||
+					rt == object.RETURN_VALUE_OBJ || rt == object.ERROR_OBJ || rt == object.CUSTOM_ERROR_OBJ {
+					controlSignal = res
+					break
+				}
+			}
+
+			// Always evaluate the last statement if it exists (the update clause).
+			if n > 0 {
+				_ = Eval(fs.Body.Statements[n-1], env)
+			}
+
+			// Now act on any control signal.
+			if controlSignal != nil {
+				rt := controlSignal.Type()
+				if rt == object.STOP.Type() {
+					break
+				}
+				if rt == object.SKIP.Type() {
+					continue
+				}
+				if rt == object.RETURN_VALUE_OBJ || rt == object.ERROR_OBJ || rt == object.CUSTOM_ERROR_OBJ {
+					return controlSignal
 				}
 			}
 		}
@@ -1196,7 +1278,6 @@ func evalForStatement(fs *ast.ForStatement, env *object.Environment) object.Obje
 	if fs.Alternative != nil {
 		result = Eval(fs.Alternative, env)
 	}
-
 	return result
 }
 
