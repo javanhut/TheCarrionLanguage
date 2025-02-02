@@ -9,7 +9,7 @@ import (
 
 	"github.com/peterh/liner"
 
-	"thecarrionlanguage/src/object"
+	"github.com/javanhut/TheCarrionLanguage/src/object"
 )
 
 var LineReader *liner.State

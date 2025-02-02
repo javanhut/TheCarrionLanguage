@@ -1,0 +1,3 @@
+val = ValueError("This is a test throw")
+
+raise val
