@@ -235,3 +235,51 @@ type NoneLiteral struct {
 func (nl *NoneLiteral) expressionNode()      {}
 func (nl *NoneLiteral) TokenLiteral() string { return nl.Token.Literal }
 func (nl *NoneLiteral) String() string       { return "None" }
+
+// FStringLiteral is the AST node for an f-string containing multiple parts.
+type FStringLiteral struct {
+	Token token.Token   // the FSTRING token (or the initial f" token)
+	Parts []FStringPart // each part is either text or an embedded expression
+}
+
+// FStringPart is an interface for "text" vs. "expression" segments.
+type FStringPart interface {
+	partNode()
+	String() string
+}
+
+// FStringText is a literal text segment in the f-string.
+type FStringText struct {
+	Value string
+}
+
+func (ft *FStringText) partNode()      {}
+func (ft *FStringText) String() string { return ft.Value }
+
+// FStringExpr wraps an AST Expression for the { ... } part.
+type FStringExpr struct {
+	Expr Expression
+}
+
+func (fe *FStringExpr) partNode() {}
+func (fe *FStringExpr) String() string {
+	if fe.Expr != nil {
+		return fe.Expr.String()
+	}
+	return ""
+}
+
+func (fsl *FStringLiteral) expressionNode() {}
+
+// Implement the Node interface on FStringLiteral
+func (fsl *FStringLiteral) TokenLiteral() string {
+	return fsl.Token.Literal
+}
+
+func (fsl *FStringLiteral) String() string {
+	var out bytes.Buffer
+	for _, part := range fsl.Parts {
+		out.WriteString(part.String())
+	}
+	return out.String()
+}

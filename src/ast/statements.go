@@ -7,12 +7,12 @@ import (
 	"thecarrionlanguage/src/token"
 )
 
-// AssignStatement represents assignments like `x = 5` or `obj.field += 1`.
 type AssignStatement struct {
-	Token    token.Token // The token for the assignment operator (e.g. '=', '+=', '-=', etc.)
-	Name     Expression  // The LHS of the assignment (Identifier, DotExpression, etc.)
-	Operator string      // e.g. "=" or "+="
-	Value    Expression  // The expression on the RHS
+	Token    token.Token
+	Name     Expression
+	Operator string
+	TypeHint Expression
+	Value    Expression
 }
 
 func (as *AssignStatement) statementNode()       {}
@@ -21,7 +21,6 @@ func (as *AssignStatement) String() string {
 	return fmt.Sprintf("%s %s %s", as.Name.String(), as.Operator, as.Value.String())
 }
 
-// ReturnStatement represents a `return` statement.
 type ReturnStatement struct {
 	Token       token.Token
 	ReturnValue Expression
@@ -38,7 +37,6 @@ func (rs *ReturnStatement) String() string {
 	return out.String()
 }
 
-// BlockStatement represents a block of statements enclosed by { } or newlines/indent in a block.
 type BlockStatement struct {
 	Token      token.Token
 	Statements []Statement
@@ -55,7 +53,6 @@ func (bs *BlockStatement) String() string {
 	return out.String()
 }
 
-// ExpressionStatement wraps an expression in a statement context.
 type ExpressionStatement struct {
 	Token      token.Token
 	Expression Expression
@@ -70,16 +67,14 @@ func (es *ExpressionStatement) String() string {
 	return ""
 }
 
-// OtherwiseBranch holds the condition and consequence for an 'otherwise' branch.
 type OtherwiseBranch struct {
 	Token       token.Token
 	Condition   Expression
 	Consequence *BlockStatement
 }
 
-// IfStatement represents an if/otherwise/.../else structure.
 type IfStatement struct {
-	Token             token.Token // The 'if' token
+	Token             token.Token
 	Condition         Expression
 	Consequence       *BlockStatement
 	OtherwiseBranches []OtherwiseBranch
@@ -89,17 +84,14 @@ type IfStatement struct {
 func (is *IfStatement) statementNode()       {}
 func (is *IfStatement) TokenLiteral() string { return is.Token.Literal }
 
-// String() now prints "otherwise" instead of "elif".
 func (is *IfStatement) String() string {
 	var out strings.Builder
 
-	// "if condition:"
 	out.WriteString("if ")
 	out.WriteString(is.Condition.String())
 	out.WriteString(":\n")
 	out.WriteString(is.Consequence.String())
 
-	// Handle any 'otherwise' branch
 	for _, branch := range is.OtherwiseBranches {
 		out.WriteString("otherwise ")
 		out.WriteString(branch.Condition.String())
@@ -107,7 +99,6 @@ func (is *IfStatement) String() string {
 		out.WriteString(branch.Consequence.String())
 	}
 
-	// Handle an "else:" branch if present
 	if is.Alternative != nil {
 		out.WriteString("else:\n")
 		out.WriteString(is.Alternative.String())
@@ -116,11 +107,10 @@ func (is *IfStatement) String() string {
 	return out.String()
 }
 
-// ForStatement represents a for-loop: for x in iterable: ...
 type ForStatement struct {
 	Token       token.Token
-	Variable    *Identifier // Loop variable
-	Iterable    Expression  // Iterable expression (e.g., range())
+	Variable    *Identifier
+	Iterable    Expression
 	Body        *BlockStatement
 	Alternative *BlockStatement
 }
@@ -147,6 +137,7 @@ func (fs *ForStatement) String() string {
 
 type Parameter struct {
 	Name         *Identifier
+	TypeHint     Expression
 	DefaultValue Expression
 }
 
@@ -160,12 +151,12 @@ func (p *Parameter) String() string {
 	return p.Name.String()
 }
 
-// FunctionDefinition represents a named function definition.
 type FunctionDefinition struct {
-	Token      token.Token // The 'SPELL' token
+	Token      token.Token
 	Name       *Identifier
 	Parameters []*Parameter
 	Body       *BlockStatement
+	DocString  *StringLiteral
 }
 
 func (fd *FunctionDefinition) statementNode()       {}
@@ -188,7 +179,6 @@ func (fd *FunctionDefinition) String() string {
 	return out.String()
 }
 
-// WhileStatement represents a while-loop.
 type WhileStatement struct {
 	Token     token.Token
 	Condition Expression
@@ -206,13 +196,13 @@ func (ws *WhileStatement) String() string {
 	return out.String()
 }
 
-// SpellbookDefinition represents a grouping of methods in a named 'spellbook'.
 type SpellbookDefinition struct {
 	Token      token.Token
 	Name       *Identifier
 	Inherits   *Identifier
 	Methods    []*FunctionDefinition
 	InitMethod *FunctionDefinition
+	DocString  *StringLiteral
 }
 
 func (sb *SpellbookDefinition) statementNode()       {}
@@ -237,10 +227,10 @@ func (sb *SpellbookDefinition) String() string {
 }
 
 type ImportStatement struct {
-	Token     token.Token // The 'import' token
+	Token     token.Token
 	FilePath  *StringLiteral
 	ClassName *Identifier
-	Alias     *Identifier // Optional alias for the imported class
+	Alias     *Identifier
 }
 
 func (is *ImportStatement) statementNode()       {}
@@ -261,10 +251,10 @@ func (is *ImportStatement) String() string {
 }
 
 type MatchStatement struct {
-	Token      token.Token   // The "match" token
-	MatchValue Expression    // The value being matched
-	Cases      []*CaseClause // List of case clauses
-	Default    *CaseClause   // Default case (optional)
+	Token      token.Token
+	MatchValue Expression
+	Cases      []*CaseClause
+	Default    *CaseClause
 }
 
 func (ms *MatchStatement) statementNode()       {}
@@ -284,9 +274,9 @@ func (ms *MatchStatement) String() string {
 }
 
 type CaseClause struct {
-	Token     token.Token     // The "case" or "_" token
-	Condition Expression      // The case condition
-	Body      *BlockStatement // The body of the case
+	Token     token.Token
+	Condition Expression
+	Body      *BlockStatement
 }
 
 func (cc *CaseClause) statementNode()       {}
@@ -300,18 +290,17 @@ func (cc *CaseClause) String() string {
 	return out.String()
 }
 
-// AttemptStatement represents an attempt/ensnare/resolve block.
 type AttemptStatement struct {
-	Token          token.Token // The 'attempt' token
+	Token          token.Token
 	TryBlock       *BlockStatement
-	EnsnareClauses []*EnsnareClause // List of ensnare clauses
-	ResolveBlock   *BlockStatement  // Optional resolve block
+	EnsnareClauses []*EnsnareClause
+	ResolveBlock   *BlockStatement
 }
 
 type EnsnareClause struct {
-	Token       token.Token // The 'ensnare' token
-	Condition   Expression  // The condition (e.g., ValueError)
-	Alias       *Identifier // Optional alias for the exception
+	Token       token.Token
+	Condition   Expression
+	Alias       *Identifier
 	Consequence *BlockStatement
 }
 
@@ -341,13 +330,11 @@ func (as *AttemptStatement) TokenLiteral() string { return as.Token.Literal }
 func (as *AttemptStatement) String() string {
 	var out strings.Builder
 
-	// attempt:
 	out.WriteString("attempt:\n")
 	if as.TryBlock != nil {
 		out.WriteString(as.TryBlock.String())
 	}
 
-	// ensnare(...) blocks
 	for _, e := range as.EnsnareClauses {
 		out.WriteString("ensnare")
 		if e.Condition != nil {
@@ -361,7 +348,6 @@ func (as *AttemptStatement) String() string {
 		}
 	}
 
-	// optional resolve:
 	if as.ResolveBlock != nil {
 		out.WriteString("resolve:\n")
 		out.WriteString(as.ResolveBlock.String())
@@ -370,10 +356,9 @@ func (as *AttemptStatement) String() string {
 	return out.String()
 }
 
-// ast/statements.go
 type RaiseStatement struct {
-	Token token.Token // The `raise` token
-	Error Expression  // The error to raise
+	Token token.Token
+	Error Expression
 }
 
 func (rs *RaiseStatement) statementNode()       {}
@@ -383,10 +368,10 @@ func (rs *RaiseStatement) String() string {
 }
 
 type ArcaneSpell struct {
-	Token      token.Token // '@arcanespell' token
+	Token      token.Token
 	Name       *Identifier
 	Parameters []*Parameter
-	Body       *BlockStatement // Can be nil for abstract methods
+	Body       *BlockStatement
 }
 
 func (as *ArcaneSpell) expressionNode()      {}
@@ -406,9 +391,9 @@ func (as *ArcaneSpell) String() string {
 }
 
 type ArcaneSpellbook struct {
-	Token      token.Token // 'arcane' token
+	Token      token.Token
 	Name       *Identifier
-	Methods    []*ArcaneSpell // Use ArcaneSpell instead of FunctionDefinition
+	Methods    []*ArcaneSpell
 	InitMethod *FunctionDefinition
 }
 
@@ -434,3 +419,42 @@ type IgnoreStatement struct {
 func (is *IgnoreStatement) statementNode()       {}
 func (is *IgnoreStatement) TokenLiteral() string { return is.Token.Literal }
 func (is *IgnoreStatement) String() string       { return "ignore" }
+
+// StopStatement represents a stop statement (like break).
+type StopStatement struct {
+	Token token.Token // The "stop" token
+}
+
+func (ss *StopStatement) statementNode()       {}
+func (ss *StopStatement) TokenLiteral() string { return ss.Token.Literal }
+func (ss *StopStatement) String() string       { return "stop" }
+
+// SkipStatement represents a skip statement (like continue).
+type SkipStatement struct {
+	Token token.Token // The "skip" token
+}
+
+func (s *SkipStatement) statementNode()       {}
+func (s *SkipStatement) TokenLiteral() string { return s.Token.Literal }
+func (s *SkipStatement) String() string       { return "skip" }
+
+// CheckStatement represents an assertion (check).
+type CheckStatement struct {
+	Token     token.Token // The "check" token
+	Condition Expression  // The condition to verify
+	Message   Expression  // Optional: a message if the check fails
+}
+
+func (cs *CheckStatement) statementNode()       {}
+func (cs *CheckStatement) TokenLiteral() string { return cs.Token.Literal }
+func (cs *CheckStatement) String() string {
+	var out bytes.Buffer
+	out.WriteString("check (")
+	out.WriteString(cs.Condition.String())
+	out.WriteString(")")
+	if cs.Message != nil {
+		out.WriteString(" : ")
+		out.WriteString(cs.Message.String())
+	}
+	return out.String()
+}
