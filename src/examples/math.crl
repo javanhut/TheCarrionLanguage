@@ -1,3 +1,8 @@
 spellbook Math:
   spell add(x, y):
     return int(x) + int(y)
+
+a = input("Enter first number: ")
+b = input("Enter second number: ")
+
+print(f"{a} + {b}  = {Math().add(a,b)}")

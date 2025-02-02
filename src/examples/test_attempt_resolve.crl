@@ -3,10 +3,12 @@ spellbook ValueError:
     spell init(message):
         self.message = message
 
-// Raise a custom error
+result = None
+
 attempt:
-    raise ValueError("Invalid value")
+    result = ValueError("Value Error")
+    raise result
 ensnare (ValueError):
-    print("Caught ValueError.")
+    print(f"Ensnared error: {result.message}")
 resolve:
     print("This will always run")

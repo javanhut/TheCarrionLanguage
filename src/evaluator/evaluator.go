@@ -21,7 +21,7 @@ var (
 
 func Eval(node ast.Node, env *object.Environment) object.Object {
 	switch node := node.(type) {
-	// Statements
+
 	case *ast.Program:
 		return evalProgram(node, env)
 	case *ast.ExpressionStatement:
@@ -30,6 +30,29 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		return evalBlockStatement(node, env)
 	case *ast.IfStatement:
 		return evalIfExpression(node, env)
+
+	case *ast.StopStatement:
+		return object.STOP
+	case *ast.SkipStatement:
+		return object.SKIP
+	case *ast.CheckStatement:
+		cond := Eval(node.Condition, env)
+		if isError(cond) {
+			return cond
+		}
+		if !isTruthy(cond) {
+			msg := "Assertion failed: " + node.Condition.String()
+			if node.Message != nil {
+				m := Eval(node.Message, env)
+				if !isError(m) {
+					msg = m.Inspect()
+				}
+			}
+			// Return a custom error with the name "AssertionError"
+			return object.NewCustomError("Assertion Check Failed: ", msg)
+		}
+		return object.NONE
+
 	case *ast.PrefixExpression:
 		if node.Operator == "++" || node.Operator == "--" {
 			return evalPrefixIncrementDecrement(node.Operator, node, env)
@@ -47,24 +70,24 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		}
 		right := Eval(node.Right, env)
 		if isError(right) {
-			// fmt.Printf("Error in right operand: %v\n", right)
 			return right
 		}
 		left := Eval(node.Left, env)
 		if isError(left) {
-			// fmt.Printf("Error in left operand: %v\n", left)
 			return left
 		}
 		result := evalInfixExpression(node.Operator, left, right)
-		// fmt.Printf("InfixExpression result: %v\n", result)
+
 		return result
 	case *ast.PostfixExpression:
 		return evalPostfixIncrementDecrement(node.Operator, node, env)
-		// Expressions
+
 	case *ast.IntegerLiteral:
 		return &object.Integer{Value: node.Value}
 	case *ast.FloatLiteral:
 		return &object.Float{Value: node.Value}
+	case *ast.FStringLiteral:
+		return evalFStringLiteral(node, env)
 	case *ast.NoneLiteral:
 		return object.NONE
 	case *ast.ReturnStatement:
@@ -131,9 +154,29 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 	case *ast.IgnoreStatement:
 		return object.NONE
 	case *ast.CallExpression:
-		return evalCallExpression(Eval(node.Function, env), evalExpressions(node.Arguments, env))
+		return evalCallExpression(Eval(node.Function, env), evalExpressions(node.Arguments, env), env)
+
 	}
 	return NONE
+}
+
+func evalFStringLiteral(fslit *ast.FStringLiteral, env *object.Environment) object.Object {
+	var sb strings.Builder
+
+	for _, part := range fslit.Parts {
+		switch p := part.(type) {
+		case *ast.FStringText:
+			sb.WriteString(p.Value)
+		case *ast.FStringExpr:
+			val := Eval(p.Expr, env)
+			if isError(val) {
+				return val
+			}
+			sb.WriteString(val.Inspect())
+		}
+	}
+
+	return &object.String{Value: sb.String()}
 }
 
 func evalArcaneSpellbook(node *ast.ArcaneSpellbook, env *object.Environment) object.Object {
@@ -147,12 +190,11 @@ func evalArcaneSpellbook(node *ast.ArcaneSpellbook, env *object.Environment) obj
 		}
 	}
 
-	// Create the spellbook and mark it as arcane
 	spellbook := &object.Spellbook{
 		Name:     node.Name.Value,
 		Methods:  methods,
 		Env:      env,
-		IsArcane: true, // Add an `IsArcane` field to object.Spellbook
+		IsArcane: true,
 	}
 
 	env.Set(node.Name.Value, spellbook)
@@ -165,9 +207,8 @@ func evalRaiseStatement(node *ast.RaiseStatement, env *object.Environment) objec
 		return errObj
 	}
 
-	// Handle spellbook instances as custom errors
 	if instance, ok := errObj.(*object.Instance); ok {
-		// Extract message from the instance if available
+
 		message := ""
 		if msg, ok := instance.Env.Get("message"); ok {
 			if msgStr, ok := msg.(*object.String); ok {
@@ -175,14 +216,13 @@ func evalRaiseStatement(node *ast.RaiseStatement, env *object.Environment) objec
 			}
 		}
 		return &object.CustomError{
-			Name:      instance.Spellbook.Name, // Use the spellbook name as the error name
+			Name:      instance.Spellbook.Name,
 			Message:   message,
-			ErrorType: instance.Spellbook, // Reference to the spellbook (class)
-			Instance:  instance,           // Instance of the error
+			ErrorType: instance.Spellbook,
+			Instance:  instance,
 		}
 	}
 
-	// Handle string-based errors
 	if str, ok := errObj.(*object.String); ok {
 		return object.NewCustomError("Error", str.Value)
 	}
@@ -193,30 +233,24 @@ func evalRaiseStatement(node *ast.RaiseStatement, env *object.Environment) objec
 func evalAttemptStatement(node *ast.AttemptStatement, env *object.Environment) object.Object {
 	var result object.Object
 
-	// Evaluate the try block
 	tryResult := Eval(node.TryBlock, env)
 
-	// Check if there's an error and handle ensnare
 	if isError(tryResult) {
 		if customErr, ok := tryResult.(*object.CustomError); ok {
-			// Iterate over ensnare clauses
 			for _, ensnare := range node.EnsnareClauses {
-				// Evaluate the condition (e.g., ValueError)
+
 				condition := Eval(ensnare.Condition, env)
 				if isError(condition) {
 					result = condition
 					break
 				}
 
-				// Check if the condition is a spellbook (class)
 				if spellbook, ok := condition.(*object.Spellbook); ok {
-					// Match error type to spellbook
-					if customErr.ErrorType == spellbook { // Use ErrorType field instead of Type() method
+					if customErr.ErrorType == spellbook {
 						result = Eval(ensnare.Consequence, env)
 						break
 					}
 				} else if str, ok := condition.(*object.String); ok {
-					// Fallback for string-based error names
 					if customErr.Name == str.Value {
 						result = Eval(ensnare.Consequence, env)
 						break
@@ -225,7 +259,6 @@ func evalAttemptStatement(node *ast.AttemptStatement, env *object.Environment) o
 			}
 		}
 
-		// If no ensnare matched, keep the original error
 		if result == nil {
 			result = tryResult
 		}
@@ -233,7 +266,6 @@ func evalAttemptStatement(node *ast.AttemptStatement, env *object.Environment) o
 		result = tryResult
 	}
 
-	// Always execute resolve block (similar to "finally")
 	if node.ResolveBlock != nil {
 		resolveResult := Eval(node.ResolveBlock, env)
 		if isError(resolveResult) {
@@ -256,19 +288,16 @@ func evalMatchStatement(ms *ast.MatchStatement, env *object.Environment) object.
 			return caseCondition
 		}
 
-		// Compare with isEqual(...) or however you prefer
 		if isEqual(matchValue, caseCondition) {
-			// As soon as we find a match, evaluate and return
 			return Eval(caseClause.Body, env)
 		}
 	}
 
-	// If no case matched, look for default case
 	if ms.Default != nil {
 		return Eval(ms.Default.Body, env)
 	}
 
-	return NONE // no matches, no default => return None
+	return NONE
 }
 
 func isEqual(obj1, obj2 object.Object) bool {
@@ -281,7 +310,7 @@ func isEqual(obj1, obj2 object.Object) bool {
 		if obj2, ok := obj2.(*object.String); ok {
 			return obj1.Value == obj2.Value
 		}
-	// Add more cases for other types (e.g., Float, Boolean, etc.)
+
 	default:
 		return false
 	}
@@ -290,16 +319,28 @@ func isEqual(obj1, obj2 object.Object) bool {
 
 func evalAssignStatement(node *ast.AssignStatement, env *object.Environment) object.Object {
 	switch name := node.Name.(type) {
+
 	case *ast.Identifier:
 		val := Eval(node.Value, env)
 		if isError(val) {
 			return val
 		}
+		// If there is a type hint, check that the value's type matches.
+		if node.TypeHint != nil {
+			// We assume node.TypeHint is an *ast.Identifier whose value is the expected type name.
+			typeName := ""
+			if typeIdent, ok := node.TypeHint.(*ast.Identifier); ok {
+				typeName = typeIdent.Value
+			}
+			if !checkType(val, typeName) {
+				return newError("type error: expected %s but got %s", typeName, val.Type())
+			}
+		}
 		env.Set(name.Value, val)
 		return val
 
 	case *ast.DotExpression:
-		// Handle assignments to object properties
+
 		left := Eval(name.Left, env)
 		if isError(left) {
 			return left
@@ -323,10 +364,34 @@ func evalAssignStatement(node *ast.AssignStatement, env *object.Environment) obj
 	}
 }
 
+func checkType(val object.Object, expectedType string) bool {
+	// Here you can define your mapping.
+	switch expectedType {
+	case "str":
+		return val.Type() == object.STRING_OBJ
+	case "int":
+		return val.Type() == object.INTEGER_OBJ
+	case "float":
+		return val.Type() == object.FLOAT_OBJ
+	case "bool":
+		return val.Type() == object.BOOLEAN_OBJ
+	// Add additional type names as needed.
+	default:
+		// If no known type is given, assume the check passes.
+		return true
+	}
+}
+
+func getGlobalEnv(env *object.Environment) *object.Environment {
+	for env.GetOuter() != nil {
+		env = env.GetOuter()
+	}
+	return env
+}
+
 func evalSpellbookDefinition(node *ast.SpellbookDefinition, env *object.Environment) object.Object {
 	methods := map[string]*object.Function{}
 
-	// If inheriting from a parent, copy its methods
 	var parentSpellbook *object.Spellbook
 	if node.Inherits != nil {
 		parentObj, ok := env.Get(node.Inherits.Value)
@@ -338,13 +403,11 @@ func evalSpellbookDefinition(node *ast.SpellbookDefinition, env *object.Environm
 			return newError("'%s' is not a spellbook", node.Inherits.Value)
 		}
 
-		// Copy parent methods
 		for name, method := range parentSpellbook.Methods {
 			methods[name] = method
 		}
 	}
 
-	// Define methods for the current spellbook
 	for _, method := range node.Methods {
 		fn := &object.Function{
 			Parameters: method.Parameters,
@@ -363,7 +426,6 @@ func evalSpellbookDefinition(node *ast.SpellbookDefinition, env *object.Environm
 		methods[method.Name.Value] = fn
 	}
 
-	// Check if any abstract methods in parent are unimplemented
 	if parentSpellbook != nil {
 		for name, method := range parentSpellbook.Methods {
 			if method.IsAbstract {
@@ -377,14 +439,13 @@ func evalSpellbookDefinition(node *ast.SpellbookDefinition, env *object.Environm
 		}
 	}
 
-	// Create the spellbook
 	spellbook := &object.Spellbook{
 		Name:       node.Name.Value,
 		Methods:    methods,
 		InitMethod: nil,
 		Env:        env,
 		Inherits:   parentSpellbook,
-		IsArcane:   false, // This is not an arcane spellbook
+		IsArcane:   false,
 	}
 
 	if node.Token.Type == token.ARCANE {
@@ -399,56 +460,53 @@ func evalSpellbookDefinition(node *ast.SpellbookDefinition, env *object.Environm
 		spellbook.InitMethod = initFn
 	}
 
-	// Set the spellbook in the environment
 	env.Set(node.Name.Value, spellbook)
 	return spellbook
 }
 
-// Analyzing evalCallExpression in the latest version
-func evalCallExpression(fn object.Object, args []object.Object) object.Object {
+func evalCallExpression(
+	fn object.Object,
+	args []object.Object,
+	env *object.Environment,
+) object.Object {
 	switch fn := fn.(type) {
-	case *object.Spellbook:
-		if fn.IsArcane {
-			return newError("cannot instantiate arcane spellbook: %s", fn.Name)
-		}
-
-		// Create a new instance
-		instance := &object.Instance{
-			Spellbook: fn,
-			Env:       object.NewEnclosedEnvironment(fn.Env),
-		}
-
-		// Call the init method if it exists
-		if fn.InitMethod != nil {
-			extendedEnv := extendFunctionEnv(fn.InitMethod, args)
-			extendedEnv.Set("self", instance) // Setting self here
-			Eval(fn.InitMethod.Body, extendedEnv)
-		}
-		return instance
-
+	case *object.Function:
+		// Use the function’s closure environment instead of the current call-site env.
+		globalEnv := getGlobalEnv(fn.Env)
+		extendedEnv := extendFunctionEnv(fn, args, globalEnv)
+		evaluated := Eval(fn.Body, extendedEnv)
+		return unwrapReturnValue(evaluated)
 	case *object.BoundMethod:
-		extendedEnv := extendFunctionEnv(fn.Method, args)
+		globalEnv := getGlobalEnv(fn.Method.Env)
+		extendedEnv := extendFunctionEnv(fn.Method, args, globalEnv)
 		extendedEnv.Set("self", fn.Instance)
 		if fn.Method.IsAbstract {
 			return newError("Cannot call abstract method")
 		}
 		evaluated := Eval(fn.Method.Body, extendedEnv)
 		return unwrapReturnValue(evaluated)
-
-	case *object.Function:
-		// Evaluate regular functions
-		extendedEnv := extendFunctionEnv(fn, args)
-		evaluated := Eval(fn.Body, extendedEnv)
-		return unwrapReturnValue(evaluated)
+	case *object.Spellbook:
+		if fn.IsArcane {
+			return newError("cannot instantiate arcane spellbook: %s", fn.Name)
+		}
+		instance := &object.Instance{
+			Spellbook: fn,
+			Env:       object.NewEnclosedEnvironment(fn.Env),
+		}
+		if fn.InitMethod != nil {
+			globalEnv := getGlobalEnv(fn.Env)
+			extendedEnv := extendFunctionEnv(fn.InitMethod, args, globalEnv)
+			extendedEnv.Set("self", instance)
+			Eval(fn.InitMethod.Body, extendedEnv)
+		}
+		return instance
 	case *object.Builtin:
 		return fn.Fn(args...)
-
 	default:
 		return newError("not a function: %s", fn.Type())
 	}
 }
 
-// Analyzing evalDotExpression in the latest version
 func evalDotExpression(node *ast.DotExpression, env *object.Environment) object.Object {
 	leftObj := Eval(node.Left, env)
 	if isError(leftObj) {
@@ -487,12 +545,10 @@ func evalDotExpression(node *ast.DotExpression, env *object.Environment) object.
 
 	fieldOrMethodName := node.Right.Value
 
-	// Check instance environment for fields first
 	if val, found := instance.Env.Get(fieldOrMethodName); found {
 		return val
 	}
 
-	// Check methods next
 	method, ok := instance.Spellbook.Methods[fieldOrMethodName]
 	if !ok {
 		return newError("undefined property or method: %s", fieldOrMethodName)
@@ -638,32 +694,31 @@ func evalExpressions(exps []ast.Expression, env *object.Environment) []object.Ob
 	return result
 }
 
-func applyFunction(fn object.Object, args []object.Object) object.Object {
-	switch fn := fn.(type) {
-	case *object.Function:
-		extendedEnv := extendFunctionEnv(fn, args)
-		evaluated := Eval(fn.Body, extendedEnv)
-		return unwrapReturnValue(evaluated)
-	case *object.Builtin:
-		return fn.Fn(args...)
-	default:
-		return newError("not a function: %s", fn.Type())
-	}
-}
-
-func extendFunctionEnv(fn *object.Function, args []object.Object) *object.Environment {
+func extendFunctionEnv(
+	fn *object.Function,
+	args []object.Object,
+	global *object.Environment,
+) *object.Environment {
 	env := object.NewEnclosedEnvironment(fn.Env)
 
 	for i, param := range fn.Parameters {
-		// If an argument is provided, use it
 		if i < len(args) {
 			env.Set(param.Name.Value, args[i])
 		} else if param.DefaultValue != nil {
-			// If no argument is provided, use the default value
-			defaultVal := Eval(param.DefaultValue, env)
-			env.Set(param.Name.Value, defaultVal)
+			// If the default value is a simple identifier, look it up in the global env.
+			if ident, ok := param.DefaultValue.(*ast.Identifier); ok {
+				if val, ok := global.Get(ident.Value); ok {
+					env.Set(param.Name.Value, val)
+				} else {
+					env.Set(param.Name.Value, newError("identifier not found: "+ident.Value))
+				}
+			} else {
+				// Otherwise, evaluate the default value in the function’s defining environment.
+				defaultVal := Eval(param.DefaultValue, fn.Env)
+				env.Set(param.Name.Value, defaultVal)
+			}
 		} else {
-			env.Set(param.Name.Value, NONE) // No default value
+			env.Set(param.Name.Value, NONE)
 		}
 	}
 
@@ -671,7 +726,6 @@ func extendFunctionEnv(fn *object.Function, args []object.Object) *object.Enviro
 }
 
 func unwrapReturnValue(obj object.Object) object.Object {
-	// if the function returned via `return`, unwrap the *object.ReturnValue
 	if returnValue, ok := obj.(*object.ReturnValue); ok {
 		return returnValue.Value
 	}
@@ -695,14 +749,12 @@ func evalProgram(program *ast.Program, env *object.Environment) object.Object {
 	var result object.Object
 
 	for _, statement := range program.Statements {
-		// fmt.Printf("Evaluating statement: %T\n", statement)
 		result = Eval(statement, env)
-		// fmt.Printf("Statement result: %v\n", result)
-		switch result := result.(type) {
+
+		switch result.(type) {
 		case *object.ReturnValue:
-			return result.Value
-		case *object.Error:
-			// fmt.Printf("Error found: %v\n", result)
+			return result.(*object.ReturnValue).Value
+		case *object.Error, *object.CustomError:
 			return result
 		}
 	}
@@ -714,16 +766,20 @@ func evalBlockStatement(block *ast.BlockStatement, env *object.Environment) obje
 
 	for _, statement := range block.Statements {
 		result = Eval(statement, env)
-
 		if result != nil {
 			rt := result.Type()
-			if rt == object.RETURN_VALUE_OBJ || rt == object.ERROR_OBJ {
-				return result // Propagate return/error up
+			// Compare type strings:
+			if rt == object.RETURN_VALUE_OBJ ||
+				rt == object.ERROR_OBJ ||
+				rt == object.CUSTOM_ERROR_OBJ ||
+				rt == object.STOP.Type() ||
+				rt == object.SKIP.Type() {
+				return result
 			}
 		}
 	}
 
-	return result // Return the last evaluated value (or nil if empty block)
+	return result
 }
 
 func nativeBoolToBooleanObject(input bool) *object.Boolean {
@@ -754,7 +810,6 @@ func evalInfixExpression(
 	operator string,
 	left, right object.Object,
 ) object.Object {
-	// fmt.Printf("InfixExpression operator: %s, left: %v, right: %v\n", operator, left, right)
 	switch {
 	case left.Type() == object.INTEGER_OBJ && right.Type() == object.INTEGER_OBJ:
 		return evalIntegerInfixExpression(operator, left, right)
@@ -791,7 +846,6 @@ func evalInfixExpression(
 		}
 	}
 
-	// Fallback return for unmatched cases
 	return newError(
 		"unknown operator or type mismatch: %s %s %s",
 		left.Type(),
@@ -807,7 +861,7 @@ func toFloat(obj object.Object) float64 {
 	case *object.Float:
 		return obj.Value
 	default:
-		return 0.0 // Shouldn't reach here
+		return 0.0
 	}
 }
 
@@ -875,22 +929,19 @@ func evalPostfixIncrementDecrement(
 ) object.Object {
 	switch operand := node.Left.(type) {
 	case *ast.Identifier:
-		// Get the current value from environment
+
 		obj, ok := env.Get(operand.Value)
 		if !ok {
 			return newError("undefined variable '%s'", operand.Value)
 		}
 
-		// Make sure it's an integer
 		intObj, ok := obj.(*object.Integer)
 		if !ok {
 			return newError("postfix '%s' operator requires an integer variable '%s'", operator, operand.Value)
 		}
 
-		// Store old value to return (postfix behavior)
 		oldValue := intObj.Value
 
-		// Create new value
 		var newValue int64
 		if operator == "++" {
 			newValue = oldValue + 1
@@ -898,13 +949,10 @@ func evalPostfixIncrementDecrement(
 			newValue = oldValue - 1
 		}
 
-		// Create new integer object and set it
 		newObj := &object.Integer{Value: newValue}
 
-		// Update in current environment
 		env.Set(operand.Value, newObj)
 
-		// Return the original value (postfix behavior)
 		return &object.Integer{Value: oldValue}
 	default:
 		return newError("postfix '%s' operator requires an integer or identifier", operator)
@@ -1004,31 +1052,26 @@ func evalIntegerInfixExpression(
 }
 
 func evalCompoundAssignment(node *ast.InfixExpression, env *object.Environment) object.Object {
-	// Evaluate the right-hand side
 	rightVal := Eval(node.Right, env)
 	if isError(rightVal) {
 		return rightVal
 	}
 
-	// The left side must be an AST expression (often an Identifier, Dot, or Index).
 	switch leftNode := node.Left.(type) {
 	case *ast.Identifier:
-		// 1. Look up the current value of x in environment
+
 		currVal, ok := env.Get(leftNode.Value)
 		if !ok {
 			return newError("undefined variable: %s", leftNode.Value)
 		}
-		// 2. Apply the arithmetic
+
 		newVal := applyCompoundOperator(node.Operator, currVal, rightVal)
 		if isError(newVal) {
 			return newVal
 		}
-		// 3. Store back into environment
+
 		env.Set(leftNode.Value, newVal)
 		return newVal
-
-	// (Optional) If you want to allow `arr[0] += 5` or `obj.field += 5`, handle
-	// *ast.IndexExpression or *ast.DotExpression similarly here.
 
 	default:
 		return newError("invalid assignment target: %T", leftNode)
@@ -1111,7 +1154,6 @@ func newError(format string, a ...interface{}) *object.Error {
 	return &object.Error{Message: fmt.Sprintf(format, a...)}
 }
 
-// Add this updated isError function
 func isError(obj object.Object) bool {
 	if obj == nil {
 		return false
@@ -1121,27 +1163,51 @@ func isError(obj object.Object) bool {
 
 func evalWhileStatement(node *ast.WhileStatement, env *object.Environment) object.Object {
 	for {
-		// Re-evaluate the condition in the current environment
+		// Evaluate the condition.
 		condition := Eval(node.Condition, env)
 		if isError(condition) {
 			return condition
 		}
-
-		// Stop loop if condition evaluates to FALSE
 		if !isTruthy(condition) {
 			break
 		}
 
-		// Evaluate the body
-		result := Eval(node.Body, env)
-		if result != nil {
-			rt := result.Type()
-			if rt == object.RETURN_VALUE_OBJ || rt == object.ERROR_OBJ {
-				return result
+		// Get the number of statements in the loop block.
+		n := len(node.Body.Statements)
+		var controlSignal object.Object = nil
+
+		// Evaluate all statements except the last one.
+		for i := 0; i < n-1; i++ {
+			res := Eval(node.Body.Statements[i], env)
+			// Check if we received a control signal.
+			rt := res.Type()
+			if rt == object.STOP.Type() || rt == object.SKIP.Type() ||
+				rt == object.RETURN_VALUE_OBJ || rt == object.ERROR_OBJ || rt == object.CUSTOM_ERROR_OBJ {
+				controlSignal = res
+				break
+			}
+		}
+
+		// Always evaluate the last statement (assumed to be the update).
+		if n > 0 {
+			_ = Eval(node.Body.Statements[n-1], env)
+		}
+
+		// Now act on the control signal, if any.
+		if controlSignal != nil {
+			rt := controlSignal.Type()
+			if rt == object.STOP.Type() {
+				break
+			}
+			if rt == object.SKIP.Type() {
+				continue
+			}
+			if rt == object.RETURN_VALUE_OBJ || rt == object.ERROR_OBJ ||
+				rt == object.CUSTOM_ERROR_OBJ {
+				return controlSignal
 			}
 		}
 	}
-
 	return NONE
 }
 
@@ -1167,12 +1233,42 @@ func evalForStatement(fs *ast.ForStatement, env *object.Environment) object.Obje
 	switch iter := iterable.(type) {
 	case *object.Array:
 		for _, elem := range iter.Elements {
+			// Set the loop variable.
 			env.Set(fs.Variable.Value, elem)
-			result = Eval(fs.Body, env)
-			if result != nil {
-				rt := result.Type()
-				if rt == object.RETURN_VALUE_OBJ || rt == object.ERROR_OBJ {
-					return result
+
+			// Determine how many statements are in the loop body.
+			n := len(fs.Body.Statements)
+			var controlSignal object.Object = nil
+
+			// Evaluate all statements except the last one.
+			// (We assume the last statement is the update.)
+			for i := 0; i < n-1; i++ {
+				res := Eval(fs.Body.Statements[i], env)
+				rt := res.Type()
+				// If we receive a control signal, record it and break.
+				if rt == object.STOP.Type() || rt == object.SKIP.Type() ||
+					rt == object.RETURN_VALUE_OBJ || rt == object.ERROR_OBJ || rt == object.CUSTOM_ERROR_OBJ {
+					controlSignal = res
+					break
+				}
+			}
+
+			// Always evaluate the last statement if it exists (the update clause).
+			if n > 0 {
+				_ = Eval(fs.Body.Statements[n-1], env)
+			}
+
+			// Now act on any control signal.
+			if controlSignal != nil {
+				rt := controlSignal.Type()
+				if rt == object.STOP.Type() {
+					break
+				}
+				if rt == object.SKIP.Type() {
+					continue
+				}
+				if rt == object.RETURN_VALUE_OBJ || rt == object.ERROR_OBJ || rt == object.CUSTOM_ERROR_OBJ {
+					return controlSignal
 				}
 			}
 		}
@@ -1180,26 +1276,20 @@ func evalForStatement(fs *ast.ForStatement, env *object.Environment) object.Obje
 		return newError("unsupported iterable type: %s", iterable.Type())
 	}
 
-	// Handle optional else block
 	if fs.Alternative != nil {
 		result = Eval(fs.Alternative, env)
 	}
-
 	return result
 }
-
-// evaluator/evaluator.go
 
 func evalImportStatement(node *ast.ImportStatement, env *object.Environment) object.Object {
 	filePath := node.FilePath.Value + ".crl"
 
-	// Check if the file is already imported
 	if importedFiles[filePath] {
 		return object.NONE
 	}
 	importedFiles[filePath] = true
 
-	// Load and parse the file
 	fileContent, err := os.ReadFile(filePath)
 	if err != nil {
 		return newError("could not import file: %s", err)
@@ -1213,18 +1303,14 @@ func evalImportStatement(node *ast.ImportStatement, env *object.Environment) obj
 		return newError("parsing errors in imported file: %v", p.Errors())
 	}
 
-	// Evaluate the program in a new environment
 	importEnv := object.NewEnclosedEnvironment(env)
 	Eval(program, importEnv)
 
-	// Create a namespace to hold all exported members
 	namespace := &object.Namespace{Env: importEnv}
 
-	// Set the alias in the current environment
 	if node.Alias != nil {
 		env.Set(node.Alias.Value, namespace)
 	} else {
-		// If no alias, import all spellbooks into the current environment
 		for _, name := range importEnv.GetNames() {
 			val, _ := importEnv.Get(name)
 			if val.Type() == object.SPELLBOOK_OBJ {

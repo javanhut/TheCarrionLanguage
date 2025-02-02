@@ -14,9 +14,6 @@ type Lexer struct {
 	currLine    string
 	finished    bool
 
-	// We keep track if we already returned an INDENT or DEDENT at the *start* of this line
-	// so we don't keep re-checking indentation in a loop.
-	// We'll see below how we use this to avoid recursion.
 	indentResolved bool
 }
 
@@ -25,7 +22,7 @@ func New(input string) *Lexer {
 
 	l := &Lexer{
 		lines:       rawLines,
-		indentStack: []int{0}, // base indent = 0
+		indentStack: []int{0},
 	}
 	if len(l.lines) == 0 {
 		l.finished = true
@@ -36,32 +33,36 @@ func New(input string) *Lexer {
 }
 
 func (l *Lexer) NextToken() token.Token {
-	// 1) If we've finished all lines, emit EOF
 	if l.finished {
 		return token.Token{Type: token.EOF, Literal: ""}
 	}
 
-	// 2) If we’re at the *start* of a line (charIndex=0) and indentation not yet resolved
 	if l.charIndex == 0 && !l.indentResolved {
-		l.indentResolved = true // Mark that we’ve handled indentation this line
+		l.indentResolved = true
 		newIndent := measureIndent(l.currLine)
 		return l.handleIndentChange(newIndent)
 	}
 
-	// 3) If we've reached the end of the current line -> emit NEWLINE, go to the next line
 	if l.charIndex >= len(l.currLine) {
 		tok := token.Token{Type: token.NEWLINE, Literal: "\\n"}
 		l.advanceLine()
 		return tok
 	}
 
-	// 4) Otherwise, we are mid-line -> scan a token
 	ch := l.currLine[l.charIndex]
 
-	// Skip horizontal whitespace
 	if isHorizontalWhitespace(ch) {
 		l.charIndex++
-		return l.NextToken() // skip
+		return l.NextToken()
+	}
+
+	if ch == 'f' {
+		next := l.peekChar()
+		if next == '"' || next == '\'' {
+			l.charIndex++
+			return l.readFString()
+		}
+		return l.readIdentifier()
 	}
 
 	switch ch {
@@ -108,16 +109,14 @@ func (l *Lexer) NextToken() token.Token {
 		l.charIndex++
 		return newToken(token.ASTERISK, '*')
 	case '_':
-		// Check if next character continues an identifier
+
 		if l.peekCharIsLetterOrDigitOrUnderscore() {
-			// If so, read the entire identifier from here (including the initial '_')
 			return l.readIdentifier()
 		} else {
-			// It's a single underscore token
+
 			l.charIndex++
 			return token.Token{Type: token.UNDERSCORE, Literal: "_"}
 		}
-
 	case '/':
 		next := l.peekChar()
 		if next == '=' {
@@ -217,7 +216,9 @@ func (l *Lexer) NextToken() token.Token {
 		return newToken(token.AT, '@')
 
 	case '"':
-		// read string
+
+		return l.readString()
+	case '\'':
 		return l.readString()
 
 	default:
@@ -226,97 +227,179 @@ func (l *Lexer) NextToken() token.Token {
 		} else if isDigit(ch) {
 			return l.readNumber()
 		} else {
-			// unknown char
+
 			l.charIndex++
 			return token.Token{Type: token.ILLEGAL, Literal: string(ch)}
 		}
 	}
 }
 
+func (l *Lexer) readFString() token.Token {
+	if l.charIndex >= len(l.currLine) {
+		return token.Token{Type: token.ILLEGAL, Literal: "unexpected end of line after f"}
+	}
+	openingQuote := l.currLine[l.charIndex]
+	l.charIndex++
+
+	isTriple := false
+	if l.charIndex+1 < len(l.currLine) &&
+		l.currLine[l.charIndex] == openingQuote &&
+		l.currLine[l.charIndex+1] == openingQuote {
+		isTriple = true
+		l.charIndex += 2
+	}
+
+	var sb strings.Builder
+
+	if isTriple {
+		for {
+
+			if l.charIndex >= len(l.currLine) {
+				sb.WriteByte('\n')
+				l.advanceLine()
+				if l.finished {
+					break
+				}
+				continue
+			}
+
+			if l.charIndex+2 < len(l.currLine) &&
+				l.currLine[l.charIndex] == openingQuote &&
+				l.currLine[l.charIndex+1] == openingQuote &&
+				l.currLine[l.charIndex+2] == openingQuote {
+				l.charIndex += 3
+				break
+			}
+			ch := l.currLine[l.charIndex]
+
+			if ch == '\\' {
+				l.charIndex++
+				if l.charIndex < len(l.currLine) {
+					esc := l.currLine[l.charIndex]
+					switch esc {
+					case 'n':
+						sb.WriteByte('\n')
+					case 't':
+						sb.WriteByte('\t')
+					case 'r':
+						sb.WriteByte('\r')
+					case '\\':
+						sb.WriteByte('\\')
+					case openingQuote:
+						sb.WriteByte(openingQuote)
+					default:
+						sb.WriteByte(esc)
+					}
+				}
+			} else {
+				sb.WriteByte(ch)
+			}
+			l.charIndex++
+		}
+	} else {
+		for {
+			if l.charIndex >= len(l.currLine) {
+				break
+			}
+			ch := l.currLine[l.charIndex]
+
+			if ch == openingQuote {
+				l.charIndex++
+				break
+			}
+			if ch == '\\' {
+				l.charIndex++
+				if l.charIndex < len(l.currLine) {
+					esc := l.currLine[l.charIndex]
+					switch esc {
+					case 'n':
+						sb.WriteByte('\n')
+					case 't':
+						sb.WriteByte('\t')
+					case 'r':
+						sb.WriteByte('\r')
+					case '\\':
+						sb.WriteByte('\\')
+					case openingQuote:
+						sb.WriteByte(openingQuote)
+					default:
+						sb.WriteByte(esc)
+					}
+				}
+			} else {
+				sb.WriteByte(ch)
+			}
+			l.charIndex++
+		}
+	}
+
+	return token.Token{
+		Type:    token.FSTRING,
+		Literal: sb.String(),
+	}
+}
+
 func (l *Lexer) peekCharIsLetterOrDigitOrUnderscore() bool {
 	nxt := l.peekChar()
-	// If nxt == 0, means end of line => not a letter/digit
+
 	if nxt == 0 {
 		return false
 	}
 	return isLetterOrDigit(nxt) || nxt == '_'
 }
 
-// skipLineComment moves charIndex to the end of the current line
 func (l *Lexer) skipLineComment() {
 	l.charIndex = len(l.currLine)
 }
 
-// skipBlockComment consumes everything until '*/' or EOF (end-of-file)
 func (l *Lexer) skipBlockComment() {
-	// We've already seen the '/*', so move past those two chars
 	l.charIndex += 2
 
 	for {
-		// If we reach end of this line, go to the next line
+
 		if l.charIndex >= len(l.currLine) {
-			l.advanceLine() // move to next line, reset charIndex=0, etc.
+			l.advanceLine()
 			if l.finished {
-				// We've hit EOF in the middle of a block comment
 				return
 			}
 			continue
 		}
 
-		// If we see '*/', consume it and return
 		if l.currLine[l.charIndex] == '*' && l.peekChar() == '/' {
 			l.charIndex += 2
 			return
 		}
 
-		// Otherwise, just move forward
 		l.charIndex++
 	}
 }
 
 func (l *Lexer) handleIndentChange(newIndent int) token.Token {
-	// Get the current top of indentation stack
 	currentIndent := l.indentStack[len(l.indentStack)-1]
 
 	if newIndent == currentIndent {
-		// same indentation: skip those spaces, proceed scanning
-		l.charIndex = newIndent
-		// Return the next token from the line (NOT calling NextToken again recursively).
-		// Instead, we just continue in NextToken after returning a "NOOP" or some placeholder.
-		// But we need to return a real token. Let's do a small trick: we forcibly skip
-		// returning an indentation token altogether and jump straight to scanning the line.
 
-		// The simplest trick: we forcibly move past indentation, then call NextToken again
-		// *but* from the calling function’s perspective (not recursive). We can do that by
-		// returning a special “SKIP_INDENT” token or something, and let NextToken re-check.
-		//
-		// Or we can do a small one-shot token that means "no indent change."
+		l.charIndex = newIndent
+
 		return token.Token{Type: token.NEWLINE, Literal: ""}
-		// Alternatively, you might do an invisible no-op token or something.
-		// The point is we do NOT call l.NextToken() here, to avoid recursion.
+
 	}
 
 	if newIndent > currentIndent {
-		// We have one or more new indent levels. Typically, we only do ONE indent at a time.
-		// But in case the user jumped e.g. from 0 spaces to 8 spaces, we either
-		// handle that in increments or just push a single new indent.
-		// Let’s do a single level approach:
+
 		l.indentStack = append(l.indentStack, newIndent)
 		l.charIndex = newIndent
 		return token.Token{Type: token.INDENT, Literal: ""}
 	}
 
-	// else if newIndent < currentIndent => DEDENT
-	// pop once
 	l.indentStack = l.indentStack[:len(l.indentStack)-1]
-	// If we still have more to dedent, we handle it on subsequent calls to NextToken.
-	// We'll return one DEDENT at a time each time NextToken gets called at line start.
+
 	return token.Token{Type: token.DEDENT, Literal: ""}
 }
 
 func (l *Lexer) advanceLine() {
 	l.lineIndex++
-	l.indentResolved = false // So we handle indentation on the new line
+	l.indentResolved = false
 	l.charIndex = 0
 	if l.lineIndex >= len(l.lines) {
 		l.finished = true
@@ -333,7 +416,6 @@ func (l *Lexer) peekChar() byte {
 	return l.currLine[l.charIndex+1]
 }
 
-// measureIndent counts how many leading spaces/tabs in the line.
 func measureIndent(line string) int {
 	count := 0
 	for _, ch := range line {
@@ -349,61 +431,109 @@ func measureIndent(line string) int {
 }
 
 func (l *Lexer) readString() token.Token {
-	// Move past the opening double-quote
+	quoteChar := l.currLine[l.charIndex]
+
 	l.charIndex++
+
+	isTriple := false
+	if l.charIndex+1 < len(l.currLine) &&
+		l.currLine[l.charIndex] == quoteChar &&
+		l.currLine[l.charIndex+1] == quoteChar {
+		isTriple = true
+
+		l.charIndex += 2
+	}
 
 	var sb strings.Builder
 
-loop:
-	for {
-		// If we run out of line, treat it as an unclosed string
-		if l.charIndex >= len(l.currLine) {
-			break loop
-		}
+	if isTriple {
 
-		ch := l.currLine[l.charIndex]
+		for {
 
-		// Closing quote?
-		if ch == '"' {
-			l.charIndex++
-			break loop
-		}
-
-		// Check for escape sequences
-		if ch == '\\' {
-			// Skip the backslash
-			l.charIndex++
 			if l.charIndex >= len(l.currLine) {
-				// Nothing after the backslash => incomplete escape
-				break loop
-			}
-			esc := l.currLine[l.charIndex]
-			switch esc {
-			case 'n':
 				sb.WriteByte('\n')
-			case 't':
-				sb.WriteByte('\t')
-			case 'r':
-				sb.WriteByte('\r')
-			case '\\':
-				sb.WriteByte('\\')
-			case '"':
-				sb.WriteByte('"')
-			default:
-				// For unrecognized escapes (e.g. \q), just add the raw character
-				sb.WriteByte(esc)
+				l.advanceLine()
+				if l.finished {
+					break
+				}
+				continue
 			}
-		} else {
-			// Normal character, add it to the string
-			sb.WriteByte(ch)
+
+			if l.charIndex+2 < len(l.currLine) &&
+				l.currLine[l.charIndex] == quoteChar &&
+				l.currLine[l.charIndex+1] == quoteChar &&
+				l.currLine[l.charIndex+2] == quoteChar {
+				l.charIndex += 3
+				break
+			}
+			ch := l.currLine[l.charIndex]
+			if ch == '\\' {
+				l.charIndex++
+				if l.charIndex < len(l.currLine) {
+					esc := l.currLine[l.charIndex]
+					switch esc {
+					case 'n':
+						sb.WriteByte('\n')
+					case 't':
+						sb.WriteByte('\t')
+					case 'r':
+						sb.WriteByte('\r')
+					case '\\':
+						sb.WriteByte('\\')
+					case byte(quoteChar):
+						sb.WriteByte(quoteChar)
+					default:
+						sb.WriteByte(esc)
+					}
+				}
+			} else {
+				sb.WriteByte(ch)
+			}
+			l.charIndex++
 		}
+		return token.Token{
+			Type:    token.DOCSTRING,
+			Literal: sb.String(),
+		}
+	} else {
 
-		l.charIndex++
-	}
-
-	return token.Token{
-		Type:    token.STRING,
-		Literal: sb.String(),
+		for {
+			if l.charIndex >= len(l.currLine) {
+				break
+			}
+			ch := l.currLine[l.charIndex]
+			if ch == quoteChar {
+				l.charIndex++
+				break
+			}
+			if ch == '\\' {
+				l.charIndex++
+				if l.charIndex < len(l.currLine) {
+					esc := l.currLine[l.charIndex]
+					switch esc {
+					case 'n':
+						sb.WriteByte('\n')
+					case 't':
+						sb.WriteByte('\t')
+					case 'r':
+						sb.WriteByte('\r')
+					case '\\':
+						sb.WriteByte('\\')
+					case byte(quoteChar):
+						sb.WriteByte(quoteChar)
+					default:
+						sb.WriteByte(esc)
+					}
+				}
+			} else {
+				sb.WriteByte(ch)
+			}
+			l.charIndex++
+		}
+		return token.Token{
+			Type:    token.STRING,
+			Literal: sb.String(),
+		}
 	}
 }
 
@@ -413,7 +543,7 @@ func (l *Lexer) readIdentifier() token.Token {
 		l.charIndex++
 	}
 	literal := l.currLine[start:l.charIndex]
-	tokType := token.LookupIdent(literal) // check if it’s a keyword or else IDENT
+	tokType := token.LookupIdent(literal)
 	return token.Token{Type: tokType, Literal: literal}
 }
 
@@ -428,7 +558,6 @@ func (l *Lexer) readNumber() token.Token {
 		ch := l.currLine[l.charIndex]
 		if ch == '.' {
 			if isFloat {
-				// second dot => break
 				break
 			}
 			isFloat = true

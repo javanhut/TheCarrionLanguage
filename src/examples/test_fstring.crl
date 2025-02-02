@@ -1,0 +1,5 @@
+string_value = "f string replacement"
+x = f"this is an f string {string_value}"
+
+
+print(x)

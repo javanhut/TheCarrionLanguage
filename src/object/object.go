@@ -236,3 +236,18 @@ type Namespace struct {
 
 func (n *Namespace) Type() ObjectType { return "NAMESPACE" }
 func (n *Namespace) Inspect() string  { return "<namespace>" }
+
+type Stop struct{}
+
+func (s *Stop) Type() ObjectType { return "STOP" }
+func (s *Stop) Inspect() string  { return "stop" }
+
+type Skip struct{}
+
+func (s *Skip) Type() ObjectType { return "SKIP" }
+func (s *Skip) Inspect() string  { return "skip" }
+
+var (
+	STOP = &Stop{}
+	SKIP = &Skip{}
+)
