@@ -101,11 +101,26 @@ carrion
 
 - input() - takes user input from terminal
 
-- range() - makes a range function from any numbers 
+- range() - makes a range function from any numbers
+
+- Error() - Base generic Error function
 
 - os and file functions from golang but wrapped in Carrion Lang.
 
+# Type Hints
+* For fun you can add in type hints for extra clarity i haven't implemented a checker yet but here is the Implementation.
 
+You can set a type hint for variables and parameters. 
+
+```python
+x: str = "Foo"
+
+spellbook Foo:
+    init(x:str = x):
+        self.x = x
+
+```
+As you can see you can set them no issue just doesn't mean much yet until i implement a checker and a vm and jit compiler.
 # Loops
 * Currently for and while loops are supported 
 - For Loops work like python for loops
@@ -352,7 +367,6 @@ resolve:
 ```
 
 Raise is the keyword to throw an error because i love you and its easy.
-
 
 
 # Example file run.

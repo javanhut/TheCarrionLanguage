@@ -1,6 +1,6 @@
 # The Carrion Programming language
-**Latest version:** 0.1.2
-[![Release](https://img.shields.io/badge/version-0.1.2-blue.svg)]()
+**Latest version:** {{VERSION}}
+[![Release](https://img.shields.io/badge/version-{{VERSION}}-blue.svg)]()
 ```bash
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣀⣀⣀⠀⠀⠀⠀⠀⠀⠀⠀
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣴⣿⣿⡟⠋⢻⣷⣄⡀⠀⠀⠀⠀⠀
@@ -67,12 +67,11 @@ Link to documentation -> [The Carrion Programming Language](./docs/CARRION.md)
 
 # Future Updates
 - Possible list comprehensions
-- More OOP integration
 - JIT Compiler and VM
-- Error Handling
 - Generic Functions and Abstracts
-- String formatter
-- Type hints
+- More to Standard Munin Library adding more generic functionality
+- Helper functions to repl and enhanced documentation
+- alising other programming languages
 
 # Author
 - Javan Hutchinson
@@ -84,4 +83,5 @@ Link to documentation -> [The Carrion Programming Language](./docs/CARRION.md)
 
 
 # For issues:
-Shove it file a issue i may or may not look at it haha jk i probably will.
+Email me at javanhut@carrionlang.com 
+I'll tell you personally to shove it haha jk you can also just file an issue. And no i'm not rewriting this is rust. I don't care i'm using go routines for concurrency and that's final.
