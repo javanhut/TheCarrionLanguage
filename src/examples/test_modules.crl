@@ -1,6 +1,0 @@
-m = Math()
-
-x = 10
-y = 10
-
-print(m.add(x,y))

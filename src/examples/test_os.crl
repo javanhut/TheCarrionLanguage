@@ -1,3 +1,0 @@
-os = OS()
-
-print(str(os.cwd()) + "\n")

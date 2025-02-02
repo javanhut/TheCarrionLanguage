@@ -1,3 +1,0 @@
-spellbook Math:
-  spell add(x,y):
-    return int(x)+ int(y)
