@@ -48,7 +48,8 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 					msg = m.Inspect()
 				}
 			}
-			return newError(msg)
+			// Return a custom error with the name "AssertionError"
+			return object.NewCustomError("Assertion Check Failed: ", msg)
 		}
 		return object.NONE
 

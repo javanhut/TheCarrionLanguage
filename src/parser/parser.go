@@ -182,22 +182,31 @@ func (p *Parser) parseSkipStatement() ast.Statement {
 
 func (p *Parser) parseCheckStatement() ast.Statement {
 	stmt := &ast.CheckStatement{Token: p.currToken}
+
 	// Expect '('
 	if !p.expectPeek(token.LPAREN) {
 		return nil
 	}
-	p.nextToken() // Move to the condition expression
+
+	p.nextToken() // Move to the condition expression.
 	stmt.Condition = p.parseExpression(LOWEST)
-	// Expect ')'
-	if !p.expectPeek(token.RPAREN) {
-		return nil
-	}
-	// Optionally, if a comma is present, parse the message.
+
+	// If there is a comma, then parse the message.
 	if p.peekTokenIs(token.COMMA) {
-		p.nextToken() // Consume the comma
-		p.nextToken() // Move to the message expression
+		p.nextToken() // Consume the comma.
+		p.nextToken() // Advance to the message expression.
 		stmt.Message = p.parseExpression(LOWEST)
+		// Now expect the closing ')'
+		if !p.expectPeek(token.RPAREN) {
+			return nil
+		}
+	} else {
+		// Otherwise, expect a right parenthesis immediately.
+		if !p.expectPeek(token.RPAREN) {
+			return nil
+		}
 	}
+
 	return stmt
 }
 
