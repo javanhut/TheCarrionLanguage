@@ -48,6 +48,30 @@ spell foobar(x, y):
     return x + y
 ```
 
+# Strings
+Strings in Carrion follow a similar convention to python
+Docstrings, formatted string and single and double quoted strings are support as well.
+
+All of these are valid:
+- """This is docstring """
+- "Double quoted string"
+- 'Single quoted string'
+- f"Formatted string"
+- f'Formatted single quoted string'
+
+* Note: The F Strings won't throw an error for not using a replacement char for it but hey it will eventually. probably better than using string concatenation
+
+### String concatenation
+ You can add strings together by using +
+E.g.
+```python
+x = "foo"
+y = "bar"
+
+result = x + y
+print(result)
+```
+
 # Defaults
 
 Spells work just like methods in python if you're familar with python if not here's an example
@@ -121,6 +145,8 @@ spellbook Foo:
 
 ```
 As you can see you can set them no issue just doesn't mean much yet until i implement a checker and a vm and jit compiler.
+
+
 # Loops
 * Currently for and while loops are supported 
 - For Loops work like python for loops
@@ -135,6 +161,31 @@ while x < 20:
     print(x)
     x++
 ```
+## Skip/Stop
+
+* For conditons inside a loop perhaps you might want to skip over something or stop execution based on a rule.
+This is where the keywords skip and stiop come in skip skips over a condition asn stop stops based on a condition.
+
+e.g.
+```python
+x = 0
+while x < 10:
+    if x % 2 == 0:
+        skip
+    else:
+        print(x)
+    x++
+// should return all odds
+i = 0
+while i < 10:
+    if x == 3:
+        stop
+    else:
+        print(i)
+// Should return 0,1,2
+
+```
+
 
 # Match/Case
 Match case works similar to python you declare a match and a case for and use an underscore as a default.
@@ -367,6 +418,19 @@ resolve:
 ```
 
 Raise is the keyword to throw an error because i love you and its easy.
+
+
+now There is some checks you can do here for error handling. You have literally a check statement. This statement will  check if a condition is true and return an error otherwise
+```python
+x = 10
+// Should pass
+check (x == 10, f"x should equal 10 got: {x}")
+
+// Should fail and raise assertion check error
+check (x == 12, f"x should equal 12 got: {x}")
+```
+See i really do love you makes sense right?
+
 
 
 # Example file run.
