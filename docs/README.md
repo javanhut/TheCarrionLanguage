@@ -1,24 +1,29 @@
 # Carrion Language Wiki
 
-Welcome to the official wiki for the **Carrion Language**, a modern, lightweight programming language.
+Welcome to the official wiki for the **Carrion Language**, a modern programming language inspired by python and written in GO.
+
 
 ## **Navigation Bar**
-[Home](README.md) | [Installation](installation/README.md) | [Basic Syntax](syntax/README.md) | [Data Types](data-types/README.md) | [Control Flow](control-flow/README.md) | [Functions & Methods](functions/README.md) | [Spellbooks](spellbooks/README.md) | [Standard Library](standard-library/README.md) | [File Handling](file-handling/README.md) | [Community](community.md)
+[Home](README.md) | [Installation](./carrion-language-wiki/Installation/README.md) | [Basic Syntax](./carrion-language-wiki/Syntax/README.md) | [Data Types](./carrion-language-wiki/Data-Types/README.md) | [Control Flow](./carrion-language-wiki/Control-Flow/README.md) | [Functions & Methods](./carrion-language-wiki/Functions/README.md) | [Spellbooks](./carrion-language-wiki/Spellbooks/README.md) | [Standard Library](./carrion-language-wiki/Munin-Standard-Library/README.md) | [Object Oriented Programming](./carrion-language-wiki/OOP/README)
 
 ## **Search**
 🔍 **Search the Wiki**
+```html
 <input type="text" id="search" placeholder="Search...">
+```
+
 
 ## **Table of Contents**
-
+- [Getting Started](./carrion-language-wiki/Getting-Started/README.md)
 - [Installation](./carrion-language-wiki/Installation/README.md)
-- [Basic Syntax](syntax/README.md)
-- [Data Types](data-types/README.md)
-- [Control Flow](control-flow/README.md)
-- [Functions & Methods](functions/README.md)
-- [Spellbooks (Classes)](spellbooks/README.md)
-- [Standard Library](standard-library/README.md)
-- [File Handling](file-handling/README.md)
-- [Community & Support](community.md)
+- [Basic Syntax](./carrion-language-wiki/Syntax/README.md)
+- [Data Types](./carrion-language-wiki/Data-Types/README.md)
+- [Control Flow](./carrion-language-wiki/Control-Flow/README.md)
+- [Functions & Methods](./carrion-language-wiki/Functions/README.md)
+- [Spellbooks (Classes)](./carrion-language-wiki/Spellbooks/README.md)
+- [Standard Library](./carrion-language-wiki/Munin-Standard-Library/README.md)
 
 ---
+
+Issues: 
+Email me @javanhut@carrionlang.com
