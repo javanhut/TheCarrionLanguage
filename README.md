@@ -1,6 +1,6 @@
 # The Carrion Programming language
-**Latest version:** 0.1.3
-[![Release](https://img.shields.io/badge/version-0.1.3-blue.svg)]()
+**Latest version:** {{VERSION}}
+[![Release](https://img.shields.io/badge/version-{{VERSION}}-blue.svg)]()
 ```bash
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣀⣀⣀⠀⠀⠀⠀⠀⠀⠀⠀
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣴⣿⣿⡟⠋⢻⣷⣄⡀⠀⠀⠀⠀⠀
@@ -24,42 +24,9 @@
 
 # Installation
 Installation uses linux by default but you can change the os. 
-
-
-## Linux (Default)
-```bash
-make install
-```
-## Mac
-```bash
-make install OS=mac
-```
-
-## Windows
-```bash
-make install OS=windows
-```
-
-
-# Removal/uninstall
-
-
-## Linux (Default)
-```bash
-make uninstall
-```
-## Mac
-```bash
-make uninstall OS=mac
-```
-
-## Windows
-```bash
-make uninstall OS=windows
-```
-
+Link to Installation -> [Installation](https://wiki.carrionlang.com/carrion-language-wiki/Installation/)
 # Documentation
-Link to documentation -> [The Carrion Programming Language](./docs/CARRION.md)
+Link to documentation -> [The Carrion Programming Language](https://wiki.carrionlang.com)
 
 # File type:
 - .crl
