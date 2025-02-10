@@ -1289,37 +1289,50 @@ func evalForStatement(fs *ast.ForStatement, env *object.Environment) object.Obje
 	switch iter := iterable.(type) {
 	case *object.Array:
 		for _, elem := range iter.Elements {
-
-			env.Set(fs.Variable.Value, elem)
-
-			n := len(fs.Body.Statements)
-			var controlSignal object.Object = nil
-
-			for i := 0; i < n-1; i++ {
-				res := Eval(fs.Body.Statements[i], env)
-				rt := res.Type()
-
-				if rt == object.STOP.Type() || rt == object.SKIP.Type() ||
-					rt == object.RETURN_VALUE_OBJ || rt == object.ERROR_OBJ || rt == object.CUSTOM_ERROR_OBJ {
-					controlSignal = res
-					break
+			// Determine if the loop variable is a single identifier or a tuple pattern.
+			switch varExpr := fs.Variable.(type) {
+			case *ast.Identifier:
+				// Single variable assignment.
+				env.Set(varExpr.Value, elem)
+			case *ast.TupleLiteral:
+				// Multiple variables: we expect 'elem' to be a tuple or an array.
+				var items []object.Object
+				if tupObj, ok := elem.(*object.Tuple); ok {
+					items = tupObj.Elements
+				} else if arrObj, ok := elem.(*object.Array); ok {
+					items = arrObj.Elements
+				} else {
+					return newError("cannot unpack non-iterable element: %s", elem.Type())
 				}
+				if len(varExpr.Elements) != len(items) {
+					return newError("unpacking mismatch: expected %d values, got %d", len(varExpr.Elements), len(items))
+				}
+				for i, target := range varExpr.Elements {
+					// We expect each target to be an identifier.
+					ident, ok := target.(*ast.Identifier)
+					if !ok {
+						return newError("invalid assignment target in for loop")
+					}
+					env.Set(ident.Value, items[i])
+				}
+			default:
+				// Fallback: convert the loop target to a string and use it as a key.
+				env.Set(fs.Variable.String(), elem)
 			}
 
-			if n > 0 {
-				_ = Eval(fs.Body.Statements[n-1], env)
-			}
-
-			if controlSignal != nil {
-				rt := controlSignal.Type()
+			// Evaluate the loop body (handle control signals, etc.).
+			// For example:
+			for _, stmt := range fs.Body.Statements {
+				result = Eval(stmt, env)
+				rt := result.Type()
 				if rt == object.STOP.Type() {
-					break
+					return NONE
 				}
 				if rt == object.SKIP.Type() {
-					continue
+					break
 				}
 				if rt == object.RETURN_VALUE_OBJ || rt == object.ERROR_OBJ || rt == object.CUSTOM_ERROR_OBJ {
-					return controlSignal
+					return result
 				}
 			}
 		}

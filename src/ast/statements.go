@@ -110,7 +110,7 @@ func (is *IfStatement) String() string {
 
 type ForStatement struct {
 	Token       token.Token
-	Variable    *Identifier
+	Variable    Expression // Now supports identifiers, tuple literals, etc.
 	Iterable    Expression
 	Body        *BlockStatement
 	Alternative *BlockStatement
@@ -421,29 +421,26 @@ func (is *IgnoreStatement) statementNode()       {}
 func (is *IgnoreStatement) TokenLiteral() string { return is.Token.Literal }
 func (is *IgnoreStatement) String() string       { return "ignore" }
 
-// StopStatement represents a stop statement (like break).
 type StopStatement struct {
-	Token token.Token // The "stop" token
+	Token token.Token
 }
 
 func (ss *StopStatement) statementNode()       {}
 func (ss *StopStatement) TokenLiteral() string { return ss.Token.Literal }
 func (ss *StopStatement) String() string       { return "stop" }
 
-// SkipStatement represents a skip statement (like continue).
 type SkipStatement struct {
-	Token token.Token // The "skip" token
+	Token token.Token
 }
 
 func (s *SkipStatement) statementNode()       {}
 func (s *SkipStatement) TokenLiteral() string { return s.Token.Literal }
 func (s *SkipStatement) String() string       { return "skip" }
 
-// CheckStatement represents an assertion (check).
 type CheckStatement struct {
-	Token     token.Token // The "check" token
-	Condition Expression  // The condition to verify
-	Message   Expression  // Optional: a message if the check fails
+	Token     token.Token
+	Condition Expression
+	Message   Expression
 }
 
 func (cs *CheckStatement) statementNode()       {}

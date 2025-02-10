@@ -1258,14 +1258,42 @@ func (p *Parser) parseCallArguments() []ast.Expression {
 func (p *Parser) parseForStatement() ast.Statement {
 	stmt := &ast.ForStatement{Token: p.currToken}
 
-	if !p.expectPeek(token.IDENT) {
+	// Consume the "for" token.
+	p.nextToken()
+
+	// Parse the loop target(s). We allow a comma-separated list.
+	var loopVars []ast.Expression
+
+	// Parse the first variable.
+	expr := p.parseExpression(LOWEST)
+	if expr == nil {
 		return nil
 	}
-	stmt.Variable = &ast.Identifier{
-		Token: p.currToken,
-		Value: p.currToken.Literal,
+	loopVars = append(loopVars, expr)
+
+	// While the next token is a comma, consume it and parse another expression.
+	for p.peekTokenIs(token.COMMA) {
+		p.nextToken() // consume the comma
+		p.nextToken() // advance to the next expression
+		expr = p.parseExpression(LOWEST)
+		if expr == nil {
+			return nil
+		}
+		loopVars = append(loopVars, expr)
 	}
 
+	// If only one variable was provided, use it directly.
+	// Otherwise, wrap them in a TupleLiteral. Here we use p.currToken as the token.
+	if len(loopVars) == 1 {
+		stmt.Variable = loopVars[0]
+	} else {
+		stmt.Variable = &ast.TupleLiteral{
+			Token:    p.currToken, // Using current token as a fallback
+			Elements: loopVars,
+		}
+	}
+
+	// Expect the 'in' keyword next.
 	if !p.expectPeek(token.IN) {
 		return nil
 	}
@@ -1277,6 +1305,7 @@ func (p *Parser) parseForStatement() ast.Statement {
 		return nil
 	}
 
+	// Parse the loop body.
 	if p.peekTokenIs(token.NEWLINE) {
 		p.nextToken()
 		if !p.expectPeek(token.INDENT) {
@@ -1291,6 +1320,7 @@ func (p *Parser) parseForStatement() ast.Statement {
 		}
 	}
 
+	// Optionally parse an "else" clause.
 	if p.peekTokenIs(token.ELSE) {
 		p.nextToken()
 		if !p.expectPeek(token.COLON) {
