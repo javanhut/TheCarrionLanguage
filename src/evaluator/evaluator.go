@@ -342,7 +342,7 @@ func isEqual(obj1, obj2 object.Object) bool {
 }
 
 func evalAssignStatement(node *ast.AssignStatement, env *object.Environment) object.Object {
-	switch name := node.Name.(type) {
+	switch target := node.Name.(type) {
 
 	case *ast.Identifier:
 		val := Eval(node.Value, env)
@@ -350,37 +350,53 @@ func evalAssignStatement(node *ast.AssignStatement, env *object.Environment) obj
 			return val
 		}
 
-		if node.TypeHint != nil {
-
-			typeName := ""
-			if typeIdent, ok := node.TypeHint.(*ast.Identifier); ok {
-				typeName = typeIdent.Value
-			}
-			if !checkType(val, typeName) {
-				return newError("type error: expected %s but got %s", typeName, val.Type())
-			}
-		}
-		env.Set(name.Value, val)
+		env.Set(target.Value, val)
 		return val
 
 	case *ast.DotExpression:
-
-		left := Eval(name.Left, env)
+		left := Eval(target.Left, env)
 		if isError(left) {
 			return left
 		}
-
 		instance, ok := left.(*object.Instance)
 		if !ok {
 			return newError("invalid assignment target: %s", left.Type())
 		}
+		val := Eval(node.Value, env)
+		if isError(val) {
+			return val
+		}
+		instance.Env.Set(target.Right.Value, val)
+		return val
+
+	case *ast.TupleLiteral:
 
 		val := Eval(node.Value, env)
 		if isError(val) {
 			return val
 		}
 
-		instance.Env.Set(name.Right.Value, val)
+		var values []object.Object
+		switch v := val.(type) {
+		case *object.Tuple:
+			values = v.Elements
+		case *object.Array:
+			values = v.Elements
+		default:
+			return newError("cannot unpack non-iterable type: %s", val.Type())
+		}
+
+		if len(target.Elements) != len(values) {
+			return newError("unpacking mismatch: expected %d values, got %d", len(target.Elements), len(values))
+		}
+
+		for i, expr := range target.Elements {
+			ident, ok := expr.(*ast.Identifier)
+			if !ok {
+				return newError("invalid assignment target in tuple assignment")
+			}
+			env.Set(ident.Value, values[i])
+		}
 		return val
 
 	default:
@@ -1289,13 +1305,13 @@ func evalForStatement(fs *ast.ForStatement, env *object.Environment) object.Obje
 	switch iter := iterable.(type) {
 	case *object.Array:
 		for _, elem := range iter.Elements {
-			// Determine if the loop variable is a single identifier or a tuple pattern.
+
 			switch varExpr := fs.Variable.(type) {
 			case *ast.Identifier:
-				// Single variable assignment.
+
 				env.Set(varExpr.Value, elem)
 			case *ast.TupleLiteral:
-				// Multiple variables: we expect 'elem' to be a tuple or an array.
+
 				var items []object.Object
 				if tupObj, ok := elem.(*object.Tuple); ok {
 					items = tupObj.Elements
@@ -1308,7 +1324,7 @@ func evalForStatement(fs *ast.ForStatement, env *object.Environment) object.Obje
 					return newError("unpacking mismatch: expected %d values, got %d", len(varExpr.Elements), len(items))
 				}
 				for i, target := range varExpr.Elements {
-					// We expect each target to be an identifier.
+
 					ident, ok := target.(*ast.Identifier)
 					if !ok {
 						return newError("invalid assignment target in for loop")
@@ -1316,12 +1332,10 @@ func evalForStatement(fs *ast.ForStatement, env *object.Environment) object.Obje
 					env.Set(ident.Value, items[i])
 				}
 			default:
-				// Fallback: convert the loop target to a string and use it as a key.
+
 				env.Set(fs.Variable.String(), elem)
 			}
 
-			// Evaluate the loop body (handle control signals, etc.).
-			// For example:
 			for _, stmt := range fs.Body.Statements {
 				result = Eval(stmt, env)
 				rt := result.Type()

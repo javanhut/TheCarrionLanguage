@@ -159,6 +159,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.LBRACK, p.parseIndexExpression)
 	p.registerInfix(token.DOT, p.parseDotExpression)
 
+	p.registerInfix(token.COMMA, p.parseCommaExpression)
 	p.registerInfix(token.LSHIFT, p.parseInfixExpression)
 	p.registerInfix(token.RSHIFT, p.parseInfixExpression)
 	p.registerInfix(token.AMPERSAND, p.parseInfixExpression)
@@ -185,6 +186,27 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerStatement(token.CHECK, p.parseCheckStatement)
 
 	return p
+}
+
+func (p *Parser) parseCommaExpression(left ast.Expression) ast.Expression {
+	var elements []ast.Expression
+	if tuple, ok := left.(*ast.TupleLiteral); ok {
+		elements = tuple.Elements
+	} else {
+		elements = append(elements, left)
+	}
+
+	p.nextToken()
+
+	right := p.parseExpression(LOWEST)
+	if right != nil {
+		elements = append(elements, right)
+	}
+
+	return &ast.TupleLiteral{
+		Token:    p.currToken,
+		Elements: elements,
+	}
 }
 
 func (p *Parser) parseStopStatement() ast.Statement {
@@ -899,12 +921,14 @@ func (p *Parser) finishAssignmentStatement(leftExpr ast.Expression) ast.Statemen
 		return nil
 	}
 	p.nextToken()
+
 	stmt := &ast.AssignStatement{
 		Token:    p.currToken,
 		Name:     leftExpr,
 		Operator: p.currToken.Literal,
 		TypeHint: typeHint,
 	}
+
 	p.nextToken()
 	stmt.Value = p.parseExpression(LOWEST)
 	return stmt
@@ -983,7 +1007,7 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 	for !p.peekTokenIs(token.NEWLINE) &&
 		!p.peekTokenIs(token.SEMICOLON) &&
 		!p.peekTokenIs(token.EOF) &&
-		precedence < p.peekPrecedence() {
+		(p.peekToken.Type == token.COMMA || precedence < p.peekPrecedence()) {
 
 		if postfixFn, ok := p.postfixParseFns[p.peekToken.Type]; ok {
 			p.nextToken()
@@ -995,7 +1019,6 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 		if infixFn == nil {
 			return leftExp
 		}
-
 		p.nextToken()
 		leftExp = infixFn(leftExp)
 	}
@@ -1258,23 +1281,19 @@ func (p *Parser) parseCallArguments() []ast.Expression {
 func (p *Parser) parseForStatement() ast.Statement {
 	stmt := &ast.ForStatement{Token: p.currToken}
 
-	// Consume the "for" token.
 	p.nextToken()
 
-	// Parse the loop target(s). We allow a comma-separated list.
 	var loopVars []ast.Expression
 
-	// Parse the first variable.
 	expr := p.parseExpression(LOWEST)
 	if expr == nil {
 		return nil
 	}
 	loopVars = append(loopVars, expr)
 
-	// While the next token is a comma, consume it and parse another expression.
 	for p.peekTokenIs(token.COMMA) {
-		p.nextToken() // consume the comma
-		p.nextToken() // advance to the next expression
+		p.nextToken()
+		p.nextToken()
 		expr = p.parseExpression(LOWEST)
 		if expr == nil {
 			return nil
@@ -1282,18 +1301,15 @@ func (p *Parser) parseForStatement() ast.Statement {
 		loopVars = append(loopVars, expr)
 	}
 
-	// If only one variable was provided, use it directly.
-	// Otherwise, wrap them in a TupleLiteral. Here we use p.currToken as the token.
 	if len(loopVars) == 1 {
 		stmt.Variable = loopVars[0]
 	} else {
 		stmt.Variable = &ast.TupleLiteral{
-			Token:    p.currToken, // Using current token as a fallback
+			Token:    p.currToken,
 			Elements: loopVars,
 		}
 	}
 
-	// Expect the 'in' keyword next.
 	if !p.expectPeek(token.IN) {
 		return nil
 	}
@@ -1305,7 +1321,6 @@ func (p *Parser) parseForStatement() ast.Statement {
 		return nil
 	}
 
-	// Parse the loop body.
 	if p.peekTokenIs(token.NEWLINE) {
 		p.nextToken()
 		if !p.expectPeek(token.INDENT) {
@@ -1320,7 +1335,6 @@ func (p *Parser) parseForStatement() ast.Statement {
 		}
 	}
 
-	// Optionally parse an "else" clause.
 	if p.peekTokenIs(token.ELSE) {
 		p.nextToken()
 		if !p.expectPeek(token.COLON) {
@@ -1417,6 +1431,15 @@ func (p *Parser) parseFunctionDefinition() ast.Statement {
 }
 
 func (p *Parser) parseFunctionParameters() []*ast.Parameter {
+	commaInfix := p.infixParseFns[token.COMMA]
+	delete(p.infixParseFns, token.COMMA)
+
+	defer func() {
+		if commaInfix != nil {
+			p.infixParseFns[token.COMMA] = commaInfix
+		}
+	}()
+
 	parameters := []*ast.Parameter{}
 	if p.peekTokenIs(token.RPAREN) {
 		p.nextToken()
