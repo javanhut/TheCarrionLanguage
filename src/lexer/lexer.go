@@ -138,7 +138,10 @@ func (l *Lexer) NextToken() token.Token {
 		return newToken(token.MOD, '%')
 
 	case '<':
-		if l.peekChar() == '=' {
+		if l.peekChar() == '<' { // check for left-shift
+			l.charIndex += 2
+			return token.Token{Type: token.LSHIFT, Literal: "<<"}
+		} else if l.peekChar() == '=' { // less than or equal
 			l.charIndex += 2
 			return token.Token{Type: token.LE, Literal: "<="}
 		}
@@ -146,12 +149,23 @@ func (l *Lexer) NextToken() token.Token {
 		return newToken(token.LT, '<')
 
 	case '>':
-		if l.peekChar() == '=' {
+		if l.peekChar() == '>' { // check for right-shift
+			l.charIndex += 2
+			return token.Token{Type: token.RSHIFT, Literal: ">>"}
+		} else if l.peekChar() == '=' { // greater than or equal
 			l.charIndex += 2
 			return token.Token{Type: token.GE, Literal: ">="}
 		}
 		l.charIndex++
 		return newToken(token.GT, '>')
+
+	case '^':
+		l.charIndex++
+		return newToken(token.XOR, '^')
+
+	case '~':
+		l.charIndex++
+		return newToken(token.TILDE, '~')
 
 	case '!':
 		if l.peekChar() == '=' {

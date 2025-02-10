@@ -49,7 +49,7 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 					msg = m.Inspect()
 				}
 			}
-			// Return a custom error with the name "AssertionError"
+
 			return object.NewCustomError("Assertion Check Failed: ", msg)
 		}
 		return object.NONE
@@ -349,9 +349,9 @@ func evalAssignStatement(node *ast.AssignStatement, env *object.Environment) obj
 		if isError(val) {
 			return val
 		}
-		// If there is a type hint, check that the value's type matches.
+
 		if node.TypeHint != nil {
-			// We assume node.TypeHint is an *ast.Identifier whose value is the expected type name.
+
 			typeName := ""
 			if typeIdent, ok := node.TypeHint.(*ast.Identifier); ok {
 				typeName = typeIdent.Value
@@ -389,7 +389,6 @@ func evalAssignStatement(node *ast.AssignStatement, env *object.Environment) obj
 }
 
 func checkType(val object.Object, expectedType string) bool {
-	// Here you can define your mapping.
 	switch expectedType {
 	case "str":
 		return val.Type() == object.STRING_OBJ
@@ -399,9 +398,9 @@ func checkType(val object.Object, expectedType string) bool {
 		return val.Type() == object.FLOAT_OBJ
 	case "bool":
 		return val.Type() == object.BOOLEAN_OBJ
-	// Add additional type names as needed.
+
 	default:
-		// If no known type is given, assume the check passes.
+
 		return true
 	}
 }
@@ -495,7 +494,7 @@ func evalCallExpression(
 ) object.Object {
 	switch fn := fn.(type) {
 	case *object.Function:
-		// Use the function’s closure environment instead of the current call-site env.
+
 		globalEnv := getGlobalEnv(fn.Env)
 		extendedEnv := extendFunctionEnv(fn, args, globalEnv)
 		evaluated := Eval(fn.Body, extendedEnv)
@@ -729,7 +728,6 @@ func extendFunctionEnv(
 		if i < len(args) {
 			env.Set(param.Name.Value, args[i])
 		} else if param.DefaultValue != nil {
-			// If the default value is a simple identifier, look it up in the global env.
 			if ident, ok := param.DefaultValue.(*ast.Identifier); ok {
 				if val, ok := global.Get(ident.Value); ok {
 					env.Set(param.Name.Value, val)
@@ -737,7 +735,7 @@ func extendFunctionEnv(
 					env.Set(param.Name.Value, newError("identifier not found: "+ident.Value))
 				}
 			} else {
-				// Otherwise, evaluate the default value in the function’s defining environment.
+
 				defaultVal := Eval(param.DefaultValue, fn.Env)
 				env.Set(param.Name.Value, defaultVal)
 			}
@@ -792,7 +790,7 @@ func evalBlockStatement(block *ast.BlockStatement, env *object.Environment) obje
 		result = Eval(statement, env)
 		if result != nil {
 			rt := result.Type()
-			// Compare type strings:
+
 			if rt == object.RETURN_VALUE_OBJ ||
 				rt == object.ERROR_OBJ ||
 				rt == object.CUSTOM_ERROR_OBJ ||
@@ -828,6 +826,18 @@ func evalPrefixExpression(
 			return right
 		}
 		return evalBangOperatorExpression(right, env)
+	case "~":
+		right := Eval(node.Right, env)
+		if isError(right) {
+			return right
+		}
+		intOperand, ok := right.(*object.Integer)
+		if !ok {
+			return newError("unsupported operand type for ~: %s", right.Type())
+		}
+
+		return &object.Integer{Value: ^intOperand.Value}
+
 	case "-":
 		right := Eval(node.Right, env)
 		return evalMinusPrefixOperatorExpression(right, env)
@@ -1076,6 +1086,18 @@ func evalIntegerInfixExpression(
 		return nativeBoolToBooleanObject(leftVal >= rightVal)
 	case "<=":
 		return nativeBoolToBooleanObject(leftVal <= rightVal)
+
+	case "<<":
+		return &object.Integer{Value: leftVal << uint(rightVal)}
+	case ">>":
+		return &object.Integer{Value: leftVal >> uint(rightVal)}
+	case "&":
+		return &object.Integer{Value: leftVal & rightVal}
+	case "^":
+		return &object.Integer{Value: leftVal ^ rightVal}
+	case "|":
+		return &object.Integer{Value: leftVal | rightVal}
+
 	default:
 		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 	}
@@ -1193,7 +1215,7 @@ func isError(obj object.Object) bool {
 
 func evalWhileStatement(node *ast.WhileStatement, env *object.Environment) object.Object {
 	for {
-		// Evaluate the condition.
+
 		condition := Eval(node.Condition, env)
 		if isError(condition) {
 			return condition
@@ -1202,14 +1224,12 @@ func evalWhileStatement(node *ast.WhileStatement, env *object.Environment) objec
 			break
 		}
 
-		// Get the number of statements in the loop block.
 		n := len(node.Body.Statements)
 		var controlSignal object.Object = nil
 
-		// Evaluate all statements except the last one.
 		for i := 0; i < n-1; i++ {
 			res := Eval(node.Body.Statements[i], env)
-			// Check if we received a control signal.
+
 			rt := res.Type()
 			if rt == object.STOP.Type() || rt == object.SKIP.Type() ||
 				rt == object.RETURN_VALUE_OBJ || rt == object.ERROR_OBJ || rt == object.CUSTOM_ERROR_OBJ {
@@ -1218,12 +1238,10 @@ func evalWhileStatement(node *ast.WhileStatement, env *object.Environment) objec
 			}
 		}
 
-		// Always evaluate the last statement (assumed to be the update).
 		if n > 0 {
 			_ = Eval(node.Body.Statements[n-1], env)
 		}
 
-		// Now act on the control signal, if any.
 		if controlSignal != nil {
 			rt := controlSignal.Type()
 			if rt == object.STOP.Type() {
@@ -1271,19 +1289,16 @@ func evalForStatement(fs *ast.ForStatement, env *object.Environment) object.Obje
 	switch iter := iterable.(type) {
 	case *object.Array:
 		for _, elem := range iter.Elements {
-			// Set the loop variable.
+
 			env.Set(fs.Variable.Value, elem)
 
-			// Determine how many statements are in the loop body.
 			n := len(fs.Body.Statements)
 			var controlSignal object.Object = nil
 
-			// Evaluate all statements except the last one.
-			// (We assume the last statement is the update.)
 			for i := 0; i < n-1; i++ {
 				res := Eval(fs.Body.Statements[i], env)
 				rt := res.Type()
-				// If we receive a control signal, record it and break.
+
 				if rt == object.STOP.Type() || rt == object.SKIP.Type() ||
 					rt == object.RETURN_VALUE_OBJ || rt == object.ERROR_OBJ || rt == object.CUSTOM_ERROR_OBJ {
 					controlSignal = res
@@ -1291,12 +1306,10 @@ func evalForStatement(fs *ast.ForStatement, env *object.Environment) object.Obje
 				}
 			}
 
-			// Always evaluate the last statement if it exists (the update clause).
 			if n > 0 {
 				_ = Eval(fs.Body.Statements[n-1], env)
 			}
 
-			// Now act on any control signal.
 			if controlSignal != nil {
 				rt := controlSignal.Type()
 				if rt == object.STOP.Type() {

@@ -51,6 +51,13 @@ var precedences = map[token.TokenType]int{
 	token.LBRACK:          INDEX,
 	token.OR:              LOGICAL_OR,
 	token.AND:             LOGICAL_AND,
+
+	token.LSHIFT: 6,
+
+	token.RSHIFT:    6,
+	token.AMPERSAND: 5,
+	token.XOR:       4,
+	token.PIPE:      3,
 }
 
 type (
@@ -102,6 +109,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.COLON, func() ast.Expression {
 		return nil
 	})
+	p.registerPrefix(token.TILDE, p.parsePrefixExpression)
 	p.registerPrefix(token.UNDERSCORE, func() ast.Expression { return nil })
 	p.registerPrefix(token.STRING, p.parseStringLiteral)
 	p.registerPrefix(token.LBRACK, p.parseArrayLiteral)
@@ -151,6 +159,12 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.LBRACK, p.parseIndexExpression)
 	p.registerInfix(token.DOT, p.parseDotExpression)
 
+	p.registerInfix(token.LSHIFT, p.parseInfixExpression)
+	p.registerInfix(token.RSHIFT, p.parseInfixExpression)
+	p.registerInfix(token.AMPERSAND, p.parseInfixExpression)
+	p.registerInfix(token.XOR, p.parseInfixExpression)
+	p.registerInfix(token.PIPE, p.parseInfixExpression)
+
 	p.registerPostfix(token.PLUS_INCREMENT, p.parsePostfixExpression)
 	p.registerPostfix(token.MINUS_DECREMENT, p.parsePostfixExpression)
 
@@ -174,7 +188,6 @@ func New(l *lexer.Lexer) *Parser {
 }
 
 func (p *Parser) parseStopStatement() ast.Statement {
-	// Create a new StopStatement node.
 	return &ast.StopStatement{Token: p.currToken}
 }
 
@@ -185,25 +198,22 @@ func (p *Parser) parseSkipStatement() ast.Statement {
 func (p *Parser) parseCheckStatement() ast.Statement {
 	stmt := &ast.CheckStatement{Token: p.currToken}
 
-	// Expect '('
 	if !p.expectPeek(token.LPAREN) {
 		return nil
 	}
 
-	p.nextToken() // Move to the condition expression.
+	p.nextToken()
 	stmt.Condition = p.parseExpression(LOWEST)
 
-	// If there is a comma, then parse the message.
 	if p.peekTokenIs(token.COMMA) {
-		p.nextToken() // Consume the comma.
-		p.nextToken() // Advance to the message expression.
+		p.nextToken()
+		p.nextToken()
 		stmt.Message = p.parseExpression(LOWEST)
-		// Now expect the closing ')'
+
 		if !p.expectPeek(token.RPAREN) {
 			return nil
 		}
 	} else {
-		// Otherwise, expect a right parenthesis immediately.
 		if !p.expectPeek(token.RPAREN) {
 			return nil
 		}
@@ -335,7 +345,6 @@ func (p *Parser) parseArcaneSpellbook() ast.Statement {
 }
 
 func (p *Parser) parseArcaneMethod() *ast.ArcaneSpell {
-	// Consume the "@" token has already been handled; now we expect the ARCANESPELL token.
 	p.nextToken()
 	if !p.expectPeek(token.ARCANESPELL) {
 		p.errors = append(p.errors, "expected 'arcanespell' after '@'")
@@ -346,38 +355,33 @@ func (p *Parser) parseArcaneMethod() *ast.ArcaneSpell {
 		return nil
 	}
 
-	// Skip any NEWLINE tokens.
 	for p.peekTokenIs(token.NEWLINE) {
 		p.nextToken()
 	}
 
-	// Now, the next token must be either SPELL or INIT.
 	if !p.peekTokenIs(token.SPELL) && !p.peekTokenIs(token.INIT) {
 		p.errors = append(p.errors, "expected 'spell' or 'init' after '@arcanespell'")
 		return nil
 	}
-	p.nextToken() // Consume the token (either SPELL or INIT)
+	p.nextToken()
 
-	// Create the ArcaneSpell node with the current token.
 	arcMethod := &ast.ArcaneSpell{Token: p.currToken}
 	if p.currToken.Type == token.SPELL {
-		// For a normal spell, we expect an identifier as the method name.
+
 		if !p.expectPeek(token.IDENT) {
 			p.errors = append(p.errors, "expected method name after 'spell'")
 			return nil
 		}
 		arcMethod.Name = &ast.Identifier{Token: p.currToken, Value: p.currToken.Literal}
 	} else if p.currToken.Type == token.INIT {
-		// For an init method, we set the method name automatically.
 		arcMethod.Name = &ast.Identifier{Token: p.currToken, Value: "init"}
 	}
 
-	// Parse parameters if a '(' is present.
 	if p.peekTokenIs(token.LPAREN) {
 		p.nextToken()
 		arcMethod.Parameters = p.parseFunctionParameters()
 	}
-	// Consume an optional colon.
+
 	if p.peekTokenIs(token.COLON) {
 		p.nextToken()
 	}
@@ -880,28 +884,28 @@ func (p *Parser) parseStatement() ast.Statement {
 
 func (p *Parser) finishAssignmentStatement(leftExpr ast.Expression) ast.Statement {
 	var typeHint ast.Expression = nil
-	// If the left-hand side is an identifier, check for a colon.
+
 	if _, ok := leftExpr.(*ast.Identifier); ok {
 		if p.peekTokenIs(token.COLON) {
-			p.nextToken() // consume colon
+			p.nextToken()
 			if !p.expectPeek(token.IDENT) {
 				return nil
 			}
 			typeHint = &ast.Identifier{Token: p.currToken, Value: p.currToken.Literal}
 		}
 	}
-	// Now expect the assignment operator '='.
+
 	if !p.peekTokenIs(token.ASSIGN) {
 		return nil
 	}
-	p.nextToken() // now at the '=' token
+	p.nextToken()
 	stmt := &ast.AssignStatement{
 		Token:    p.currToken,
 		Name:     leftExpr,
 		Operator: p.currToken.Literal,
 		TypeHint: typeHint,
 	}
-	p.nextToken() // move past '='
+	p.nextToken()
 	stmt.Value = p.parseExpression(LOWEST)
 	return stmt
 }
@@ -1388,41 +1392,41 @@ func (p *Parser) parseFunctionParameters() []*ast.Parameter {
 		p.nextToken()
 		return parameters
 	}
-	// Parse the first parameter.
-	p.nextToken() // Now at parameter name.
+
+	p.nextToken()
 	param := &ast.Parameter{
 		Name: &ast.Identifier{Token: p.currToken, Value: p.currToken.Literal},
 	}
 	if p.peekTokenIs(token.COLON) {
-		p.nextToken() // consume ':'
+		p.nextToken()
 		if !p.expectPeek(token.IDENT) {
 			return nil
 		}
 		param.TypeHint = &ast.Identifier{Token: p.currToken, Value: p.currToken.Literal}
 	}
 	if p.peekTokenIs(token.ASSIGN) {
-		p.nextToken() // consume '='
-		p.nextToken() // move to the default value expression
+		p.nextToken()
+		p.nextToken()
 		param.DefaultValue = p.parseExpression(LOWEST)
 	}
 	parameters = append(parameters, param)
 
 	for p.peekTokenIs(token.COMMA) {
-		p.nextToken() // consume comma
-		p.nextToken() // parameter name
+		p.nextToken()
+		p.nextToken()
 		param := &ast.Parameter{
 			Name: &ast.Identifier{Token: p.currToken, Value: p.currToken.Literal},
 		}
 		if p.peekTokenIs(token.COLON) {
-			p.nextToken() // consume ':'
+			p.nextToken()
 			if !p.expectPeek(token.IDENT) {
 				return nil
 			}
 			param.TypeHint = &ast.Identifier{Token: p.currToken, Value: p.currToken.Literal}
 		}
 		if p.peekTokenIs(token.ASSIGN) {
-			p.nextToken() // consume '='
-			p.nextToken() // move to default value
+			p.nextToken()
+			p.nextToken()
 			param.DefaultValue = p.parseExpression(LOWEST)
 		}
 		parameters = append(parameters, param)
