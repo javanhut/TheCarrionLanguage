@@ -49,7 +49,7 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 					msg = m.Inspect()
 				}
 			}
-			// Return a custom error with the name "AssertionError"
+
 			return object.NewCustomError("Assertion Check Failed: ", msg)
 		}
 		return object.NONE
@@ -69,6 +69,29 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 			node.Operator == "*=" || node.Operator == "/=" {
 			return evalCompoundAssignment(node, env)
 		}
+
+		if node.Operator == "and" {
+			left := Eval(node.Left, env)
+			if isError(left) {
+				return left
+			}
+			if !isTruthy(left) {
+				return left
+			}
+			return Eval(node.Right, env)
+		}
+
+		if node.Operator == "or" {
+			left := Eval(node.Left, env)
+			if isError(left) {
+				return left
+			}
+			if isTruthy(left) {
+				return left
+			}
+			return Eval(node.Right, env)
+		}
+
 		right := Eval(node.Right, env)
 		if isError(right) {
 			return right
@@ -319,45 +342,61 @@ func isEqual(obj1, obj2 object.Object) bool {
 }
 
 func evalAssignStatement(node *ast.AssignStatement, env *object.Environment) object.Object {
-	switch name := node.Name.(type) {
+	switch target := node.Name.(type) {
 
 	case *ast.Identifier:
 		val := Eval(node.Value, env)
 		if isError(val) {
 			return val
 		}
-		// If there is a type hint, check that the value's type matches.
-		if node.TypeHint != nil {
-			// We assume node.TypeHint is an *ast.Identifier whose value is the expected type name.
-			typeName := ""
-			if typeIdent, ok := node.TypeHint.(*ast.Identifier); ok {
-				typeName = typeIdent.Value
-			}
-			if !checkType(val, typeName) {
-				return newError("type error: expected %s but got %s", typeName, val.Type())
-			}
-		}
-		env.Set(name.Value, val)
+
+		env.Set(target.Value, val)
 		return val
 
 	case *ast.DotExpression:
-
-		left := Eval(name.Left, env)
+		left := Eval(target.Left, env)
 		if isError(left) {
 			return left
 		}
-
 		instance, ok := left.(*object.Instance)
 		if !ok {
 			return newError("invalid assignment target: %s", left.Type())
 		}
+		val := Eval(node.Value, env)
+		if isError(val) {
+			return val
+		}
+		instance.Env.Set(target.Right.Value, val)
+		return val
+
+	case *ast.TupleLiteral:
 
 		val := Eval(node.Value, env)
 		if isError(val) {
 			return val
 		}
 
-		instance.Env.Set(name.Right.Value, val)
+		var values []object.Object
+		switch v := val.(type) {
+		case *object.Tuple:
+			values = v.Elements
+		case *object.Array:
+			values = v.Elements
+		default:
+			return newError("cannot unpack non-iterable type: %s", val.Type())
+		}
+
+		if len(target.Elements) != len(values) {
+			return newError("unpacking mismatch: expected %d values, got %d", len(target.Elements), len(values))
+		}
+
+		for i, expr := range target.Elements {
+			ident, ok := expr.(*ast.Identifier)
+			if !ok {
+				return newError("invalid assignment target in tuple assignment")
+			}
+			env.Set(ident.Value, values[i])
+		}
 		return val
 
 	default:
@@ -366,7 +405,6 @@ func evalAssignStatement(node *ast.AssignStatement, env *object.Environment) obj
 }
 
 func checkType(val object.Object, expectedType string) bool {
-	// Here you can define your mapping.
 	switch expectedType {
 	case "str":
 		return val.Type() == object.STRING_OBJ
@@ -376,9 +414,9 @@ func checkType(val object.Object, expectedType string) bool {
 		return val.Type() == object.FLOAT_OBJ
 	case "bool":
 		return val.Type() == object.BOOLEAN_OBJ
-	// Add additional type names as needed.
+
 	default:
-		// If no known type is given, assume the check passes.
+
 		return true
 	}
 }
@@ -472,7 +510,7 @@ func evalCallExpression(
 ) object.Object {
 	switch fn := fn.(type) {
 	case *object.Function:
-		// Use the function’s closure environment instead of the current call-site env.
+
 		globalEnv := getGlobalEnv(fn.Env)
 		extendedEnv := extendFunctionEnv(fn, args, globalEnv)
 		evaluated := Eval(fn.Body, extendedEnv)
@@ -706,7 +744,6 @@ func extendFunctionEnv(
 		if i < len(args) {
 			env.Set(param.Name.Value, args[i])
 		} else if param.DefaultValue != nil {
-			// If the default value is a simple identifier, look it up in the global env.
 			if ident, ok := param.DefaultValue.(*ast.Identifier); ok {
 				if val, ok := global.Get(ident.Value); ok {
 					env.Set(param.Name.Value, val)
@@ -714,7 +751,7 @@ func extendFunctionEnv(
 					env.Set(param.Name.Value, newError("identifier not found: "+ident.Value))
 				}
 			} else {
-				// Otherwise, evaluate the default value in the function’s defining environment.
+
 				defaultVal := Eval(param.DefaultValue, fn.Env)
 				env.Set(param.Name.Value, defaultVal)
 			}
@@ -769,7 +806,7 @@ func evalBlockStatement(block *ast.BlockStatement, env *object.Environment) obje
 		result = Eval(statement, env)
 		if result != nil {
 			rt := result.Type()
-			// Compare type strings:
+
 			if rt == object.RETURN_VALUE_OBJ ||
 				rt == object.ERROR_OBJ ||
 				rt == object.CUSTOM_ERROR_OBJ ||
@@ -799,6 +836,24 @@ func evalPrefixExpression(
 	case "!":
 		right := Eval(node.Right, env)
 		return evalBangOperatorExpression(right, env)
+	case "not":
+		right := Eval(node.Right, env)
+		if isError(right) {
+			return right
+		}
+		return evalBangOperatorExpression(right, env)
+	case "~":
+		right := Eval(node.Right, env)
+		if isError(right) {
+			return right
+		}
+		intOperand, ok := right.(*object.Integer)
+		if !ok {
+			return newError("unsupported operand type for ~: %s", right.Type())
+		}
+
+		return &object.Integer{Value: ^intOperand.Value}
+
 	case "-":
 		right := Eval(node.Right, env)
 		return evalMinusPrefixOperatorExpression(right, env)
@@ -1047,6 +1102,18 @@ func evalIntegerInfixExpression(
 		return nativeBoolToBooleanObject(leftVal >= rightVal)
 	case "<=":
 		return nativeBoolToBooleanObject(leftVal <= rightVal)
+
+	case "<<":
+		return &object.Integer{Value: leftVal << uint(rightVal)}
+	case ">>":
+		return &object.Integer{Value: leftVal >> uint(rightVal)}
+	case "&":
+		return &object.Integer{Value: leftVal & rightVal}
+	case "^":
+		return &object.Integer{Value: leftVal ^ rightVal}
+	case "|":
+		return &object.Integer{Value: leftVal | rightVal}
+
 	default:
 		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 	}
@@ -1164,7 +1231,7 @@ func isError(obj object.Object) bool {
 
 func evalWhileStatement(node *ast.WhileStatement, env *object.Environment) object.Object {
 	for {
-		// Evaluate the condition.
+
 		condition := Eval(node.Condition, env)
 		if isError(condition) {
 			return condition
@@ -1173,14 +1240,12 @@ func evalWhileStatement(node *ast.WhileStatement, env *object.Environment) objec
 			break
 		}
 
-		// Get the number of statements in the loop block.
 		n := len(node.Body.Statements)
 		var controlSignal object.Object = nil
 
-		// Evaluate all statements except the last one.
 		for i := 0; i < n-1; i++ {
 			res := Eval(node.Body.Statements[i], env)
-			// Check if we received a control signal.
+
 			rt := res.Type()
 			if rt == object.STOP.Type() || rt == object.SKIP.Type() ||
 				rt == object.RETURN_VALUE_OBJ || rt == object.ERROR_OBJ || rt == object.CUSTOM_ERROR_OBJ {
@@ -1189,12 +1254,10 @@ func evalWhileStatement(node *ast.WhileStatement, env *object.Environment) objec
 			}
 		}
 
-		// Always evaluate the last statement (assumed to be the update).
 		if n > 0 {
 			_ = Eval(node.Body.Statements[n-1], env)
 		}
 
-		// Now act on the control signal, if any.
 		if controlSignal != nil {
 			rt := controlSignal.Type()
 			if rt == object.STOP.Type() {
@@ -1213,10 +1276,18 @@ func evalWhileStatement(node *ast.WhileStatement, env *object.Environment) objec
 }
 
 func isTruthy(obj object.Object) bool {
-	switch obj {
-	case TRUE:
-		return true
-	case FALSE, NONE:
+	switch obj := obj.(type) {
+	case *object.Boolean:
+		return obj.Value
+	case *object.String:
+		return len(obj.Value) > 0
+	case *object.Array:
+		return len(obj.Elements) > 0
+	case *object.Tuple:
+		return len(obj.Elements) > 0
+	case *object.Hash:
+		return len(obj.Pairs) > 0
+	case *object.None:
 		return false
 	default:
 		return true
@@ -1234,42 +1305,48 @@ func evalForStatement(fs *ast.ForStatement, env *object.Environment) object.Obje
 	switch iter := iterable.(type) {
 	case *object.Array:
 		for _, elem := range iter.Elements {
-			// Set the loop variable.
-			env.Set(fs.Variable.Value, elem)
 
-			// Determine how many statements are in the loop body.
-			n := len(fs.Body.Statements)
-			var controlSignal object.Object = nil
+			switch varExpr := fs.Variable.(type) {
+			case *ast.Identifier:
 
-			// Evaluate all statements except the last one.
-			// (We assume the last statement is the update.)
-			for i := 0; i < n-1; i++ {
-				res := Eval(fs.Body.Statements[i], env)
-				rt := res.Type()
-				// If we receive a control signal, record it and break.
-				if rt == object.STOP.Type() || rt == object.SKIP.Type() ||
-					rt == object.RETURN_VALUE_OBJ || rt == object.ERROR_OBJ || rt == object.CUSTOM_ERROR_OBJ {
-					controlSignal = res
-					break
+				env.Set(varExpr.Value, elem)
+			case *ast.TupleLiteral:
+
+				var items []object.Object
+				if tupObj, ok := elem.(*object.Tuple); ok {
+					items = tupObj.Elements
+				} else if arrObj, ok := elem.(*object.Array); ok {
+					items = arrObj.Elements
+				} else {
+					return newError("cannot unpack non-iterable element: %s", elem.Type())
 				}
+				if len(varExpr.Elements) != len(items) {
+					return newError("unpacking mismatch: expected %d values, got %d", len(varExpr.Elements), len(items))
+				}
+				for i, target := range varExpr.Elements {
+
+					ident, ok := target.(*ast.Identifier)
+					if !ok {
+						return newError("invalid assignment target in for loop")
+					}
+					env.Set(ident.Value, items[i])
+				}
+			default:
+
+				env.Set(fs.Variable.String(), elem)
 			}
 
-			// Always evaluate the last statement if it exists (the update clause).
-			if n > 0 {
-				_ = Eval(fs.Body.Statements[n-1], env)
-			}
-
-			// Now act on any control signal.
-			if controlSignal != nil {
-				rt := controlSignal.Type()
+			for _, stmt := range fs.Body.Statements {
+				result = Eval(stmt, env)
+				rt := result.Type()
 				if rt == object.STOP.Type() {
-					break
+					return NONE
 				}
 				if rt == object.SKIP.Type() {
-					continue
+					break
 				}
 				if rt == object.RETURN_VALUE_OBJ || rt == object.ERROR_OBJ || rt == object.CUSTOM_ERROR_OBJ {
-					return controlSignal
+					return result
 				}
 			}
 		}

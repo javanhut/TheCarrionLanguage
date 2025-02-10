@@ -43,7 +43,6 @@ var builtins = map[string]*object.Builtin{
 
 	"input": {
 		Fn: func(args ...object.Object) object.Object {
-			// Optional prompt argument
 			prompt := ""
 			if len(args) > 0 {
 				if str, ok := args[0].(*object.String); ok {
@@ -51,23 +50,21 @@ var builtins = map[string]*object.Builtin{
 				}
 			}
 
-			// 2) If we have a liner.State, call lineReader.Prompt(...)
 			if LineReader != nil {
 				userInput, err := LineReader.Prompt(prompt)
 				if err != nil {
 					return &object.Error{Message: "error reading input: " + err.Error()}
 				}
-				// Optionally add to liner history right here:
+
 				if userInput != "" {
 					LineReader.AppendHistory(userInput)
 				}
 				return &object.String{Value: userInput}
 			}
 
-			// 3) If for some reason we have no lineReader, fallback to normal STDIN logic:
 			fmt.Print(prompt)
 			var input string
-			fmt.Scanln(&input) // Or use bufio, etc.
+			fmt.Scanln(&input)
 			return &object.String{Value: input}
 		},
 	},
@@ -169,17 +166,16 @@ var builtins = map[string]*object.Builtin{
 		Fn: func(args ...object.Object) object.Object {
 			var start, stop, step int64
 
-			// Handle different argument cases
 			switch len(args) {
 			case 1:
-				// Single argument: range(stop)
+
 				stopObj, ok := args[0].(*object.Integer)
 				if !ok {
 					return newError("argument to `range` must be INTEGER, got=%s", args[0].Type())
 				}
 				start, stop, step = 0, stopObj.Value, 1
 			case 2:
-				// Two arguments: range(start, stop)
+
 				startObj, ok1 := args[0].(*object.Integer)
 				stopObj, ok2 := args[1].(*object.Integer)
 				if !ok1 || !ok2 {
@@ -191,7 +187,7 @@ var builtins = map[string]*object.Builtin{
 				}
 				start, stop, step = startObj.Value, stopObj.Value, 1
 			case 3:
-				// Three arguments: range(start, stop, step)
+
 				startObj, ok1 := args[0].(*object.Integer)
 				stopObj, ok2 := args[1].(*object.Integer)
 				stepObj, ok3 := args[2].(*object.Integer)
@@ -208,12 +204,10 @@ var builtins = map[string]*object.Builtin{
 				return newError("wrong number of arguments. got=%d, want=1..3", len(args))
 			}
 
-			// Validate step
 			if step == 0 {
 				return newError("step argument to `range` cannot be zero")
 			}
 
-			// Generate range
 			var elements []object.Object
 			if step > 0 {
 				for i := start; i < stop; i += step {
@@ -229,17 +223,62 @@ var builtins = map[string]*object.Builtin{
 		},
 	},
 
-	//------------------------------------------------
-	// OS-Related Built-Ins
-	//------------------------------------------------
+	"max": {
+		Fn: func(args ...object.Object) object.Object {
+			if len(args) == 0 {
+				return newError("max requires at least one argument")
+			}
 
-	// 1) Run an external command (with optional args)
+			var nums []float64
+			for _, arg := range args {
+				switch v := arg.(type) {
+				case *object.Integer:
+					nums = append(nums, float64(v.Value))
+				case *object.Float:
+					nums = append(nums, v.Value)
+				default:
+					return newError("max: unsupported type %s", arg.Type())
+				}
+			}
+
+			maxVal := nums[0]
+			for _, n := range nums[1:] {
+				if n > maxVal {
+					maxVal = n
+				}
+			}
+
+			if maxVal == float64(int64(maxVal)) {
+				return &object.Integer{Value: int64(maxVal)}
+			}
+			return &object.Float{Value: maxVal}
+		},
+	},
+
+	"abs": {
+		Fn: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newError("abs requires exactly one argument, got %d", len(args))
+			}
+			switch v := args[0].(type) {
+			case *object.Integer:
+				if v.Value < 0 {
+					return &object.Integer{Value: -v.Value}
+				}
+				return v
+			case *object.Float:
+				if v.Value < 0 {
+					return &object.Float{Value: -v.Value}
+				}
+				return v
+			default:
+				return newError("abs not supported for type %s", args[0].Type())
+			}
+		},
+	},
+
 	"osRunCommand": {
 		Fn: func(args ...object.Object) object.Object {
-			// Usage: osRunCommand("command", ["arg1","arg2"...], captureOutput?)
-			//  - 1st argument: String command, e.g. "ls" or "echo"
-			//  - 2nd argument (optional): Array of strings for arguments
-			//  - 3rd argument (optional): Boolean => if true, return command output
 			var command string
 			var cmdArgs []string
 			var capture bool
@@ -248,18 +287,15 @@ var builtins = map[string]*object.Builtin{
 				return newError("osRunCommand requires at least 1 argument (command)")
 			}
 
-			// command
 			strArg, ok := args[0].(*object.String)
 			if !ok {
 				return newError("osRunCommand command must be a STRING, got=%s", args[0].Type())
 			}
 			command = strArg.Value
 
-			// arguments (optional)
 			if len(args) > 1 {
 				arrArg, isArr := args[1].(*object.Array)
 				if isArr {
-					// Convert each element to string
 					for _, elem := range arrArg.Elements {
 						strElem, ok := elem.(*object.String)
 						if !ok {
@@ -270,7 +306,6 @@ var builtins = map[string]*object.Builtin{
 				}
 			}
 
-			// captureOutput (optional)
 			if len(args) > 2 {
 				boolArg, isBool := args[2].(*object.Boolean)
 				if !isBool {
@@ -279,7 +314,6 @@ var builtins = map[string]*object.Builtin{
 				capture = boolArg.Value
 			}
 
-			// Execute
 			cmd := exec.Command(command, cmdArgs...)
 			var outputBytes []byte
 			var err error
@@ -295,7 +329,6 @@ var builtins = map[string]*object.Builtin{
 				return newError("error running command '%s': %s", command, err)
 			}
 
-			// If we captured output, return as string, else return None
 			if capture {
 				return &object.String{Value: string(outputBytes)}
 			}
@@ -303,7 +336,6 @@ var builtins = map[string]*object.Builtin{
 		},
 	},
 
-	// 2) Get an environment variable
 	"osGetEnv": {
 		Fn: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
@@ -318,10 +350,8 @@ var builtins = map[string]*object.Builtin{
 		},
 	},
 
-	// 3) Set an environment variable
 	"osSetEnv": {
 		Fn: func(args ...object.Object) object.Object {
-			// usage: osSetEnv("KEY", "VALUE")
 			if len(args) != 2 {
 				return newError("osSetEnv requires 2 arguments: key, value")
 			}
@@ -338,7 +368,6 @@ var builtins = map[string]*object.Builtin{
 		},
 	},
 
-	// 4) Get current working directory
 	"osGetCwd": {
 		Fn: func(args ...object.Object) object.Object {
 			if len(args) != 0 {
@@ -352,7 +381,6 @@ var builtins = map[string]*object.Builtin{
 		},
 	},
 
-	// 5) Change directory
 	"osChdir": {
 		Fn: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
@@ -370,10 +398,8 @@ var builtins = map[string]*object.Builtin{
 		},
 	},
 
-	// 6) Sleep (pause execution) for X seconds
 	"osSleep": {
 		Fn: func(args ...object.Object) object.Object {
-			// usage: osSleep(2) => sleeps 2 seconds
 			if len(args) != 1 {
 				return newError("osSleep requires 1 argument: seconds (INT or FLOAT)")
 			}
@@ -382,7 +408,7 @@ var builtins = map[string]*object.Builtin{
 			case *object.Integer:
 				time.Sleep(time.Duration(val.Value) * time.Second)
 			case *object.Float:
-				// Convert float to int64 nanoseconds
+
 				nanos := int64(val.Value * 1_000_000_000)
 				time.Sleep(time.Duration(nanos))
 			default:
@@ -393,13 +419,11 @@ var builtins = map[string]*object.Builtin{
 		},
 	},
 
-	// 7) List directory contents
 	"osListDir": {
 		Fn: func(args ...object.Object) object.Object {
-			// usage: osListDir("path") => returns array of filenames
 			var dir string
 			if len(args) == 0 {
-				dir = "." // default to current directory
+				dir = "."
 			} else if len(args) == 1 {
 				strArg, ok := args[0].(*object.String)
 				if !ok {
@@ -423,10 +447,8 @@ var builtins = map[string]*object.Builtin{
 		},
 	},
 
-	// 8) Remove file or directory
 	"osRemove": {
 		Fn: func(args ...object.Object) object.Object {
-			// usage: osRemove("path")
 			if len(args) != 1 {
 				return newError("osRemove requires 1 argument: path")
 			}
@@ -442,10 +464,8 @@ var builtins = map[string]*object.Builtin{
 		},
 	},
 
-	// 9) Make directory
 	"osMkdir": {
 		Fn: func(args ...object.Object) object.Object {
-			// usage: osMkdir("path", 0755)
 			if len(args) < 1 || len(args) > 2 {
 				return newError("osMkdir requires 1 or 2 arguments: path, [perm int]")
 			}
@@ -469,10 +489,8 @@ var builtins = map[string]*object.Builtin{
 		},
 	},
 
-	// 10) Expand environment variables in a string
 	"osExpandEnv": {
 		Fn: func(args ...object.Object) object.Object {
-			// usage: osExpandEnv("Hello $USER, your home is $HOME")
 			if len(args) != 1 {
 				return newError("osExpandEnv requires 1 argument: string")
 			}
@@ -485,11 +503,6 @@ var builtins = map[string]*object.Builtin{
 		},
 	},
 
-	//------------------------------------------------
-	// File-Related Built-Ins
-	//------------------------------------------------
-
-	// 11) Read file
 	"fileRead": {
 		Fn: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
@@ -507,10 +520,8 @@ var builtins = map[string]*object.Builtin{
 		},
 	},
 
-	// 12) Write file (overwrite or create)
 	"fileWrite": {
 		Fn: func(args ...object.Object) object.Object {
-			// usage: fileWrite("path", "contents")
 			if len(args) != 2 {
 				return newError("fileWrite requires 2 arguments: path, content")
 			}
@@ -528,10 +539,8 @@ var builtins = map[string]*object.Builtin{
 		},
 	},
 
-	// 13) Append to file
 	"fileAppend": {
 		Fn: func(args ...object.Object) object.Object {
-			// usage: fileAppend("path", "contents to append")
 			if len(args) != 2 {
 				return newError("fileAppend requires 2 arguments: path, content")
 			}
@@ -555,7 +564,6 @@ var builtins = map[string]*object.Builtin{
 		},
 	},
 
-	// 14) Check if a path exists
 	"fileExists": {
 		Fn: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
@@ -571,13 +579,13 @@ var builtins = map[string]*object.Builtin{
 				if os.IsNotExist(err) {
 					return &object.Boolean{Value: false}
 				}
-				// Some other error
+
 				return newError("error checking fileExists for '%s': %s", pathArg.Value, err)
 			}
 			return &object.Boolean{Value: true}
 		},
 	},
-	// Error Handling Methods
+
 	"Error": {
 		Fn: func(args ...object.Object) object.Object {
 			if len(args) < 1 || len(args) > 2 {
@@ -601,6 +609,31 @@ var builtins = map[string]*object.Builtin{
 				Message: message,
 				Details: make(map[string]object.Object),
 			}
+		},
+	},
+	"enumerate": {
+		Fn: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newError("enumerate expects 1 argument, got %d", len(args))
+			}
+
+			arr, ok := args[0].(*object.Array)
+			if !ok {
+				return newError("enumerate expects an array, got %s", args[0].Type())
+			}
+			var enumerated []object.Object
+			for i, elem := range arr.Elements {
+
+				tuple := &object.Tuple{
+					Elements: []object.Object{
+						&object.Integer{Value: int64(i)},
+						elem,
+					},
+				}
+				enumerated = append(enumerated, tuple)
+			}
+
+			return &object.Array{Elements: enumerated}
 		},
 	},
 }
