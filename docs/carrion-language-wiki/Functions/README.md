@@ -1,4 +1,3 @@
-```markdown
 # Functions
 
 Carrion comes with **two main varieties** of functions:
@@ -50,4 +49,3 @@ The builtin functions for OS and I/O are wrapped in the Munin Standard Library s
 
 
 **Happy casting!**
-```
