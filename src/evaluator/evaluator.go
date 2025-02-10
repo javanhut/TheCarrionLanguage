@@ -69,6 +69,29 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 			node.Operator == "*=" || node.Operator == "/=" {
 			return evalCompoundAssignment(node, env)
 		}
+
+		if node.Operator == "and" {
+			left := Eval(node.Left, env)
+			if isError(left) {
+				return left
+			}
+			if !isTruthy(left) {
+				return left
+			}
+			return Eval(node.Right, env)
+		}
+
+		if node.Operator == "or" {
+			left := Eval(node.Left, env)
+			if isError(left) {
+				return left
+			}
+			if isTruthy(left) {
+				return left
+			}
+			return Eval(node.Right, env)
+		}
+
 		right := Eval(node.Right, env)
 		if isError(right) {
 			return right
@@ -799,6 +822,12 @@ func evalPrefixExpression(
 	case "!":
 		right := Eval(node.Right, env)
 		return evalBangOperatorExpression(right, env)
+	case "not":
+		right := Eval(node.Right, env)
+		if isError(right) {
+			return right
+		}
+		return evalBangOperatorExpression(right, env)
 	case "-":
 		right := Eval(node.Right, env)
 		return evalMinusPrefixOperatorExpression(right, env)
@@ -1213,10 +1242,18 @@ func evalWhileStatement(node *ast.WhileStatement, env *object.Environment) objec
 }
 
 func isTruthy(obj object.Object) bool {
-	switch obj {
-	case TRUE:
-		return true
-	case FALSE, NONE:
+	switch obj := obj.(type) {
+	case *object.Boolean:
+		return obj.Value
+	case *object.String:
+		return len(obj.Value) > 0
+	case *object.Array:
+		return len(obj.Elements) > 0
+	case *object.Tuple:
+		return len(obj.Elements) > 0
+	case *object.Hash:
+		return len(obj.Pairs) > 0
+	case *object.None:
 		return false
 	default:
 		return true
