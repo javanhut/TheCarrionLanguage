@@ -1,3 +1,4 @@
+<meta name="google-site-verification" content="7L-IkFjwJUUVamMg0bj1PwYOVcpowQyomYVhYM4e6lk" />
 # The Carrion Programming language
 **Latest version:** 0.1.4
 [![Release](https://img.shields.io/badge/version-0.1.4-blue.svg)]()
@@ -52,5 +53,3 @@ Link to documentation -> [The Carrion Programming Language](https://wiki.carrion
 # For issues:
 Email me at javanhut@carrionlang.com 
 I'll tell you personally to shove it haha jk you can also just file an issue. And no i'm not rewriting this is rust. I don't care i'm using go routines for concurrency and that's final.
-
-<meta name="google-site-verification" content="7L-IkFjwJUUVamMg0bj1PwYOVcpowQyomYVhYM4e6lk" />
