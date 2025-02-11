@@ -1023,7 +1023,8 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 	for !p.peekTokenIs(token.NEWLINE) &&
 		!p.peekTokenIs(token.SEMICOLON) &&
 		!p.peekTokenIs(token.EOF) &&
-		(p.peekToken.Type == token.COMMA || precedence < p.peekPrecedence()) {
+		!p.peekTokenIs(token.COMMA) && // stop if a comma is encountered
+		precedence < p.peekPrecedence() {
 
 		if postfixFn, ok := p.postfixParseFns[p.peekToken.Type]; ok {
 			p.nextToken()
