@@ -508,9 +508,13 @@ func evalCallExpression(
 	args []object.Object,
 	env *object.Environment,
 ) object.Object {
+	if len(args) == 1 {
+		if tup, ok := args[0].(*object.Tuple); ok {
+			args = tup.Elements
+		}
+	}
 	switch fn := fn.(type) {
 	case *object.Function:
-
 		globalEnv := getGlobalEnv(fn.Env)
 		extendedEnv := extendFunctionEnv(fn, args, globalEnv)
 		evaluated := Eval(fn.Body, extendedEnv)
@@ -771,11 +775,13 @@ func unwrapReturnValue(obj object.Object) object.Object {
 }
 
 func evalIdentifier(node *ast.Identifier, env *object.Environment) object.Object {
-	if val, ok := env.Get(node.Value); ok {
-		return val
-	}
+	// First check builtins.
 	if builtin, ok := builtins[node.Value]; ok {
 		return builtin
+	}
+	// Then check the environment.
+	if val, ok := env.Get(node.Value); ok {
+		return val
 	}
 	if node.Value == "None" {
 		return object.NONE

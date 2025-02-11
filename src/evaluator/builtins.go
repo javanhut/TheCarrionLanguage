@@ -12,6 +12,11 @@ import (
 	"github.com/javanhut/TheCarrionLanguage/src/object"
 )
 
+func flushInputBuffer() {
+	var discard string
+	fmt.Scanln(&discard)
+}
+
 var LineReader *liner.State
 
 var builtins = map[string]*object.Builtin{
@@ -65,6 +70,7 @@ var builtins = map[string]*object.Builtin{
 			fmt.Print(prompt)
 			var input string
 			fmt.Scanln(&input)
+			flushInputBuffer()
 			return &object.String{Value: input}
 		},
 	},
@@ -99,6 +105,28 @@ var builtins = map[string]*object.Builtin{
 			}
 		},
 	},
+	"to_int": {
+		Fn: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newError("wrong number of arguments. got=%d, want=1", len(args))
+			}
+			switch arg := args[0].(type) {
+			case *object.String:
+				value, err := strconv.Atoi(arg.Value)
+				if err != nil {
+					return newError("cannot convert string to int: %s", err)
+				}
+				return &object.Integer{Value: int64(value)}
+			case *object.Float:
+				return &object.Integer{Value: int64(arg.Value)}
+			case *object.Integer:
+				return arg
+			default:
+				return newError("cannot convert %s to int", arg.Type())
+			}
+		},
+	},
+
 	"float": {
 		Fn: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
