@@ -158,7 +158,6 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.DIVASSGN, p.parseInfixExpression)
 	p.registerInfix(token.LBRACK, p.parseIndexExpression)
 	p.registerInfix(token.DOT, p.parseDotExpression)
-
 	p.registerInfix(token.COMMA, p.parseCommaExpression)
 	p.registerInfix(token.LSHIFT, p.parseInfixExpression)
 	p.registerInfix(token.RSHIFT, p.parseInfixExpression)
@@ -710,19 +709,36 @@ func (p *Parser) parseParenExpression() ast.Expression {
 func (p *Parser) parseHashLiteral() ast.Expression {
 	hash := &ast.HashLiteral{Token: p.currToken}
 	hash.Pairs = make(map[ast.Expression]ast.Expression)
+
 	for !p.peekTokenIs(token.RBRACE) {
 		p.nextToken()
+
+		commaFn := p.infixParseFns[token.COMMA]
+		delete(p.infixParseFns, token.COMMA)
 		key := p.parseExpression(LOWEST)
+		if commaFn != nil {
+			p.infixParseFns[token.COMMA] = commaFn
+		}
+
 		if !p.expectPeek(token.COLON) {
 			return nil
 		}
 		p.nextToken()
+
+		commaFn = p.infixParseFns[token.COMMA]
+		delete(p.infixParseFns, token.COMMA)
 		value := p.parseExpression(LOWEST)
+		if commaFn != nil {
+			p.infixParseFns[token.COMMA] = commaFn
+		}
+
 		hash.Pairs[key] = value
+
 		if !p.peekTokenIs(token.RBRACE) && !p.expectPeek(token.COMMA) {
 			return nil
 		}
 	}
+
 	if !p.expectPeek(token.RBRACE) {
 		return nil
 	}
@@ -1007,7 +1023,8 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 	for !p.peekTokenIs(token.NEWLINE) &&
 		!p.peekTokenIs(token.SEMICOLON) &&
 		!p.peekTokenIs(token.EOF) &&
-		(p.peekToken.Type == token.COMMA || precedence < p.peekPrecedence()) {
+		!p.peekTokenIs(token.COMMA) && // stop if a comma is encountered
+		precedence < p.peekPrecedence() {
 
 		if postfixFn, ok := p.postfixParseFns[p.peekToken.Type]; ok {
 			p.nextToken()

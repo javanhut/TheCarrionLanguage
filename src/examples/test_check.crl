@@ -1,5 +1,3 @@
 x = 5
-check (x == 5, f"x must equal 5 returned val: {x}")
-check (x == 6, f"x must equal 6 returned val:  {x}")
-
-
+check(x == 5, f"x must equal 5 returned val: {x}")
+check(x == 6, f"x must equal 6 returned val:  {x}")
