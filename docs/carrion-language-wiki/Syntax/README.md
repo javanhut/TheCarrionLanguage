@@ -57,7 +57,7 @@ Carrion supports the following standard arithmetic operators:
 - `+=`  : Increment assignment (adds and then assigns)
 - `-=`  : Decrement assignment (subtracts and then assigns)
 - `*=`  : Multiplication assignment (multiplies and then assigns)
-/ `=`   : Division assignment (divides and then assigns)
+- `/=`   : Division assignment (divides and then assigns)
 
 #### Comparison Operators
 
@@ -67,8 +67,19 @@ Carrion supports the following standard arithmetic operators:
 - `<=`  : Less Than or Equal
 - `!=`  : Not Equal
 
-*Note: The logical operators `and` and `or` are scheduled for the minor update **0.1.5** and may not be available in earlier versions.*
-
 ---
 
-**Happy coding with Carrion!**
+
+#### Logical operators
+- `and`: AND
+- `or`: OR
+- `not`: NOT
+
+#### Bitwise Operators
+
+- `<<`: Left Shift
+- `>>`: Right Shift
+- `^` : XOR
+- `~` : NOT 
+- `&` : AND
+= `|` : OR

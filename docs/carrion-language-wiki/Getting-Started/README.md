@@ -1,32 +1,39 @@
-# Welcome to the wonderful world of coding!
+# Welcome to the World of Coding!
 
-
-If you know how to code in python this should be pretty similar syntax wise but if not don't worry it should be easy to follow.
+Whether you’re new to programming or already familiar with Python, you’re in the right place. This guide is designed to be easy to understand for everyone, regardless of your experience level.
 
 ## Introduction
 
-This is the Carrion Programming Language!
-It was inspired by python as it is a programming language i love and the Carrion Crow one of my favorite birds.
+Welcome to the **Carrion Programming Language**! This language was inspired by Python—a language many programmers love—and named after the Carrion Crow, one of my favorite birds.
 
-If you haven't installed Carrion yet you can click here --> [Install Carrion](../Installation/README.md) for the installation instructions.
+If you haven’t installed Carrion yet, you can find the [Installation Instructions here](../Installation/README.md).
 
-If you're new i'll explain alittle about programming here to get you on the same basis to start but if you aren't you can skip pass all of this and just llook at the documentation.
+For beginners, I'll explain some of the basics of programming to help you get started. If you already know your way around coding, feel free to skip ahead to the detailed documentation.
+
+Ready? Let’s dive in!
+
+When learning to code, it's helpful to think about three key questions: **Who?**, **What?**, and **Why?**.
+
+---
+
+### Who?
+
+**Who is learning to code?**  
+That’s you! Learning to code is a rewarding and fun challenge. People start coding for various reasons—whether it’s personal interest, career opportunities, or simply curiosity. There’s no "traditional" programmer, so don’t worry if you don't fit a specific mold. As the saying goes, “It always fits eventually!”
+
+---
+
+### What?
+
+**What is programming?**  
+Programming, or coding, is the process of solving problems by writing instructions for a computer. These instructions can create anything from games and apps to systems that control devices. In essence, when you program, you’re tackling a problem and finding a solution through code. It might sound simple at first, but you’ll see how much depth and creativity is involved as you continue.
+
+---
+
+### Why?
+
+**Why learn programming?**  
+Coding is an essential skill that will continue to be valuable in the future. Learning Carrion adds another tool to your toolkit—it doesn’t mean other languages are any less important. Every programming language has its strengths, and Carrion is here to offer simplicity and flexibility. While I’m not claiming it’s the best language out there, I hope you find it both useful and enjoyable.
 
 
-Ready? Let's get started. 
-
-As we come to the topic of coding there are some fundemental questions you must ask yourself the *Who?* ,the *What?*,and the *Why?* of programming languages.
-
-# Who?
-The who in this case is you the user. You are embarking on a journey to learn how to code which is amazingly fun and a interesting mental challenge.
-People learn to code for many different reasons be it interest, money, or curiousity. It leads you to the same path so if you don't feel like you favoritethe criterial of a "traditional programmer" don't worry no one does but like the quote from the Santa Clause "It always fits eventually."
-
-
-
-# What?
-
-Now we have established the who, then the what must be answered. What is programming? Why is it important? Why does it make so much money?
-Programming or Coding *"Described by some"* is the process of solving a problem programmatically with the use of software to completer some task. 
-That task can be many things like games, applications, or devices but the general basis is the same. You have a problem you need to solve and your goal is to solve the problem using code. Sounds simple right? Maybe not but it'll make more sense as we move forward!
-
-
+First step -> [Syntax](../Syntax/README.md)
