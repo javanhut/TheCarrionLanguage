@@ -26,4 +26,4 @@ docker pull javanhut/carrionlanguage:tagname
 **I always recommend pulling the latest build for most up to date features**
 
 
-Link to Docker Hub: [Carrion Docker Hub](https://hub.docker.com/repository/docker/javanhut/carrionlanguage/)
+Link to Docker Hub: [Carrion Docker Hub](https://hub.docker.com/r/javanhut/carrionlanguage)
