@@ -2,7 +2,7 @@
 
 Welcome to the **Carrion Programming Language** overview of Object-Oriented Programming (OOP). This guide will introduce you to the four main pillars of OOP in Carrion and link you to deeper explanations:
 
-1. [Encapsulation](./Encapsulation/README.md)
+1. [Encapsulation](./Encapulation/README.md)
 2. [Inheritance](./Inheritance/README.md)
 3. [Polymorphism](./Polymorphism/README.md)
 4. [Abstraction](./Abstraction/README.md)
