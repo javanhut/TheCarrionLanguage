@@ -17,6 +17,7 @@ Welcome to the official wiki for the **Carrion Language**, a modern programming 
 - [Functions](./carrion-language-wiki/Functions/README.md)
 - [Spells](./carrion-language-wiki/Spells/README.md)
 - [Spellbooks (Classes)](./carrion-language-wiki/Spellbooks/README.md)
+- [Object Oriented Programming](./carrion-language-wiki/OOP/README.md)
 - [Standard Library](./carrion-language-wiki/Munin-Standard-Library/README.md)
 - [Docker](./carrion-language-wiki/Docker/README.md) 
 
