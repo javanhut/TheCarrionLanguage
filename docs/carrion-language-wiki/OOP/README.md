@@ -17,3 +17,4 @@ In Carrion, classes are called **Spellbooks** and methods are known as **spells*
 4. **Abstraction**: Declaring abstract Spellbooks (`arcane spellbook`) and abstract spells (`@arcanespell`) that child Spellbooks must implement.
 
 Continue exploring these concepts in-depth by visiting the dedicated pages linked above!
+Each has a deeper dive into its implementation in Carrion.
