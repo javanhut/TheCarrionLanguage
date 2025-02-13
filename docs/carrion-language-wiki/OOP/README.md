@@ -2,10 +2,10 @@
 
 Welcome to the **Carrion Programming Language** overview of Object-Oriented Programming (OOP). This guide will introduce you to the four main pillars of OOP in Carrion and link you to deeper explanations:
 
-1. [Encapsulation](./encapsulation.md)
-2. [Inheritance](./inheritance.md)
-3. [Polymorphism](./polymorphism.md)
-4. [Abstraction](./abstraction.md)
+1. [Encapsulation](./Encapsulation/README.md)
+2. [Inheritance](./Inheritance/README.md)
+3. [Polymorphism](./Polymorphism/README.md)
+4. [Abstraction](./Abstraction/README.md)
 
 In Carrion, classes are called **Spellbooks** and methods are known as **spells**. Despite the thematic naming, Carrion’s OOP structure closely mirrors Python, with some unique keywords and features.
 
