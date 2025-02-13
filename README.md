@@ -23,11 +23,11 @@ Latest Version: 0.1.5 [![Release](https://img.shields.io/badge/version-0.1.5-blu
 ⠀⠀⠀⠀⠀⠀⠀⠸⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠉⠙⠛⠋⠉⠉⠀⠀⠀⠀⠀⠀⠀⠀
 ```
-Overview
+## Overview
 
 Carrion Programming Language is a modern, dynamically typed, interpreted language designed for both beginners and experienced developers. Inspired by Python and built in Go, Carrion offers a unique combination of readability, flexibility, and performance. Its engaging crow-themed aesthetic and innovative syntax enhancements set it apart as a fun, educational, and efficient language for rapid prototyping and software development.
 
-Key Features
+## Key Features
 
 Dynamic Typing & Interpretation:
 Experience the benefits of runtime type checking and an interpreter that supports a rapid development cycle.
@@ -45,33 +45,33 @@ Comprehensive Documentation:
 Detailed guides, tutorials, and examples are available to help you master the language quickly and efficiently.
 
 
-Installation
+## Installation
 
 Carrion is primarily designed for Linux environments, though installation instructions for other operating systems are provided. Get started quickly by following our detailed Installation Guide .
 
-Extensive Documentation
+## Extensive Documentation
 
 For in-depth information about syntax, data types, control flow, functions, and more, visit the Carrion Language Wiki . Our wiki offers a wealth of resources, making it easier for developers to learn, experiment, and contribute to the language.
 
-File Extension
+## File Extension
 
 Carrion source code files use the .crl extension, making it simple to identify and manage your projects.
 
-Future Enhancements
+## Future Enhancements
 
-Carrion is an evolving language with exciting future updates planned, including:
+- Carrion is an evolving language with exciting future updates planned, including:
 
-List Comprehensions: Simplify collection processing with Python-like concise syntax.
+- List Comprehensions: Simplify collection processing with Python-like concise syntax.
 
-JIT Compiler & Virtual Machine: Enhance runtime performance with just-in-time compilation.
+- JIT Compiler & Virtual Machine: Enhance runtime performance with just-in-time compilation.
 
-Generic Functions & Abstract Data Types: Improve code reuse and flexibility.
+- Generic Functions & Abstract Data Types: Improve code reuse and flexibility.
 
-Enhanced Standard Library: Expand built-in functionalities with a richer set of tools.
+- Enhanced Standard Library: Expand built-in functionalities with a richer set of tools.
 
-Interactive REPL and Improved Documentation: Streamline development with an enhanced REPL and comprehensive guides.
+- Interactive REPL and Improved Documentation: Streamline development with an enhanced REPL and comprehensive guides.
 
-Language Interoperability: Integrate and alias features from other popular programming languages for a seamless experience.
+- Language Interoperability: Integrate and alias features from other popular programming languages for a seamless experience.
 
 
 Build and Release Status
