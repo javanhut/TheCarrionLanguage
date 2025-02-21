@@ -14,5 +14,8 @@ spellbook Array:
     return count
   
   spell to_dict():
-    ignore
+    array_dict = {}
+    for k, v in enumerate(self.inner):
+        array_dict[str(k)] = v
+    self.inner = array_dict
 
