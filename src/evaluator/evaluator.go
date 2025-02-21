@@ -143,7 +143,8 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		if len(elements) == 1 && isError(elements[0]) {
 			return elements[0]
 		}
-		return &object.Array{Elements: elements}
+		arrayObj := &object.Array{Elements: elements}
+		return wrapBuiltinType(arrayObj, "Array", env)
 
 	case *ast.StringLiteral:
 		return &object.String{Value: node.Value}
@@ -679,6 +680,13 @@ func evalTupleLiteral(tl *ast.TupleLiteral, env *object.Environment) object.Obje
 }
 
 func evalIndexExpression(left, index object.Object) object.Object {
+	if inst, ok := left.(*object.Instance); ok {
+		inner, _ := inst.Env.Get("inner")
+		if inner != nil {
+			// Delegate the index operation to the inner object.
+			return evalIndexExpression(inner, index)
+		}
+	}
 	switch {
 	case left.Type() == object.TUPLE_OBJ:
 		return evalTupleIndexExpression(left, index)
@@ -868,10 +876,41 @@ func evalPrefixExpression(
 	}
 }
 
+func tryUnwrapArray(obj object.Object) (*object.Array, bool) {
+	switch v := obj.(type) {
+	case *object.Array:
+		// direct array
+		return v, true
+	case *object.Instance:
+		// is it an instance of the "Array" spellbook?
+		if v.Spellbook != nil && v.Spellbook.Name == "Array" {
+			// get the raw *object.Array from the instance’s .Env
+			// (assuming you store it under "inner")
+			inner, ok := v.Env.Get("inner")
+			if !ok {
+				return nil, false
+			}
+			arr, isArr := inner.(*object.Array)
+			return arr, isArr
+		}
+	}
+	return nil, false
+}
+
 func evalInfixExpression(
 	operator string,
 	left, right object.Object,
 ) object.Object {
+	leftArr, leftOk := tryUnwrapArray(left)
+	rightArr, rightOk := tryUnwrapArray(right)
+
+	// 2) If both unwrap to arrays and operator == "+" => concatenate
+	if leftOk && rightOk && operator == "+" {
+		// Perform the actual array-append
+		combined := append(leftArr.Elements, rightArr.Elements...)
+		return &object.Array{Elements: combined}
+	}
+
 	switch {
 	case left.Type() == object.INTEGER_OBJ && right.Type() == object.INTEGER_OBJ:
 		return evalIntegerInfixExpression(operator, left, right)
@@ -1304,6 +1343,14 @@ func evalForStatement(fs *ast.ForStatement, env *object.Environment) object.Obje
 	iterable := Eval(fs.Iterable, env)
 	if isError(iterable) {
 		return iterable
+	}
+
+	if inst, ok := iterable.(*object.Instance); ok {
+		if arr, arrOk := tryUnwrapArray(inst); arrOk {
+			iterable = arr
+		} else {
+			return newError("unsupported iterable instance: %s", inst.Spellbook.Name)
+		}
 	}
 
 	var result object.Object = NONE

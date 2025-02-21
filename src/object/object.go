@@ -227,9 +227,22 @@ type Instance struct {
 }
 
 func (i *Instance) Type() ObjectType { return INSTANCE_OBJ }
-func (i *Instance) Inspect() string  { return fmt.Sprintf("<instance of %s>", i.Spellbook.Name) }
 
-// object/object.go
+func (i *Instance) Inspect() string {
+	// 1. If it’s an instance of the "Array" spellbook:
+	if i.Spellbook != nil && i.Spellbook.Name == "Array" {
+		// 2. Grab i.Env.Get("inner"), which should be the *object.Array
+		if innerVal, ok := i.Env.Get("inner"); ok {
+			// 3. Call its Inspect() method (the array’s Inspect) or build your own string
+			return innerVal.Inspect()
+		}
+		// If no "inner" found, fallback
+		return "<empty array instance>"
+	}
+
+	// Otherwise fallback to the default:
+	return fmt.Sprintf("<instance of %s>", i.Spellbook.Name)
+}
 
 type Namespace struct {
 	Env *Environment // Holds all exported members of the imported module

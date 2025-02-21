@@ -1,0 +1,9 @@
+spellbook Array:
+  init(inner):
+    """Array spellbook full of methods related to Arrays"""
+    self.inner = inner
+
+  spell append(item):
+    self.inner = self.inner + [item]
+    return self
+
