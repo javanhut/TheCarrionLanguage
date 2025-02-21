@@ -1,0 +1,16 @@
+spellbook Map:
+  init(inner):
+    self.inner = inner
+  
+  spell keys():
+    k = []
+    for key in pairs(self.inner, "k"):
+        k.append(key)
+    return k
+
+  spell values():
+    v = []
+    for value in pairs(self.inner, "v"):
+        v.append(value)
+    return v
+

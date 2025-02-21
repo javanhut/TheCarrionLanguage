@@ -667,7 +667,8 @@ func evalHashLiteral(
 		hashed := hashKey.HashKey()
 		pairs[hashed] = object.HashPair{Key: key, Value: value}
 	}
-	return &object.Hash{Pairs: pairs}
+	hashObj := &object.Hash{Pairs: pairs}
+	return wrapBuiltinType(hashObj, "Map", env)
 }
 
 func evalTupleLiteral(tl *ast.TupleLiteral, env *object.Environment) object.Object {

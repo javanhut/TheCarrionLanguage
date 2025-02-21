@@ -7,3 +7,12 @@ spellbook Array:
     self.inner = self.inner + [item]
     return self
 
+  spell len():
+    count = 0
+    for i in self.inner:
+      count++
+    return count
+  
+  spell to_dict():
+    ignore
+
