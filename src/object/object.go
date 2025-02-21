@@ -230,7 +230,8 @@ func (i *Instance) Type() ObjectType { return INSTANCE_OBJ }
 
 func (i *Instance) Inspect() string {
 	// 1. If it’s an instance of the "Array" spellbook:
-	if i.Spellbook != nil && i.Spellbook.Name == "Array" {
+	if i.Spellbook != nil && i.Spellbook.Name == "Array" ||
+		i.Spellbook != nil && i.Spellbook.Name == "Map" {
 		// 2. Grab i.Env.Get("inner"), which should be the *object.Array
 		if innerVal, ok := i.Env.Get("inner"); ok {
 			// 3. Call its Inspect() method (the array’s Inspect) or build your own string

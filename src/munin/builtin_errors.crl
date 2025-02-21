@@ -28,4 +28,10 @@ spellbook RaiseError:
 
     spell throw():
         raise self.err(self.message)
-
+        
+spellbook KeyExistsError(Exception):
+  init(message: str = "Key already exists in map"):
+      self.message = message
+  
+  spell Type(type:str = "KeyExistsError"):
+    return type

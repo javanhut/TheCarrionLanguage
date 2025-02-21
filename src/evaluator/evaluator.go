@@ -399,6 +399,47 @@ func evalAssignStatement(node *ast.AssignStatement, env *object.Environment) obj
 			env.Set(ident.Value, values[i])
 		}
 		return val
+	case *ast.IndexExpression:
+		// Evaluate the left side (e.g. `dict`) and the index (e.g. `"key"`)
+		leftVal := Eval(target.Left, env)
+		if isError(leftVal) {
+			return leftVal
+		}
+		indexVal := Eval(target.Index, env)
+		if isError(indexVal) {
+			return indexVal
+		}
+		// Evaluate the right side — the value we want to store.
+		val := Eval(node.Value, env)
+		if isError(val) {
+			return val
+		}
+
+		// If leftVal is an instance of the "Map" spellbook, unwrap the raw *object.Hash
+		if inst, ok := leftVal.(*object.Instance); ok {
+			if inst.Spellbook != nil && inst.Spellbook.Name == "Map" {
+				if innerVal, found := inst.Env.Get("inner"); found {
+					leftVal = innerVal // replace leftVal with the raw *object.Hash
+				}
+			}
+		}
+
+		// Now we expect leftVal to be an *object.Hash if the user wrote dict["key"] = value
+		hashObj, ok := leftVal.(*object.Hash)
+		if !ok {
+			return newError("cannot index-assign to %s", leftVal.Type())
+		}
+
+		// The index must be hashable (e.g. a string, integer, etc.)
+		hKey, hashable := indexVal.(object.Hashable)
+		if !hashable {
+			return newError("unusable as hash key: %s", indexVal.Type())
+		}
+
+		// Assign the key/value in the raw hash map
+		hashObj.Pairs[hKey.HashKey()] = object.HashPair{Key: indexVal, Value: val}
+
+		return val
 
 	default:
 		return newError("invalid assignment target: %T", node.Name)

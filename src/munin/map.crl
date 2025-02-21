@@ -14,3 +14,11 @@ spellbook Map:
         v.append(value)
     return v
 
+  spell set(k, v):
+    new_dict = self.inner
+    new_dict[k] = v
+    self.inner = new_dict
+
+  spell get(k):
+    return self.inner[k]
+
