@@ -81,6 +81,16 @@ var builtins = map[string]*object.Builtin{
 			}
 
 			obj := args[0]
+
+			if inst, ok := obj.(*object.Instance); ok {
+				sb := inst.Spellbook
+				if sb != nil {
+					return &object.String{Value: "<spellbook " + sb.Name + ">"}
+				} else {
+					return &object.String{Value: "spellbook <unknown>"}
+				}
+			}
+
 			return &object.String{Value: string(obj.Type())}
 		},
 	},
