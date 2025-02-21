@@ -187,6 +187,100 @@ func New(l *lexer.Lexer) *Parser {
 	return p
 }
 
+func tokenFromExpression(expr ast.Expression) token.Token {
+	switch node := expr.(type) {
+	case *ast.Identifier:
+		return node.Token
+	case *ast.IntegerLiteral:
+		return node.Token
+	case *ast.StringLiteral:
+		return node.Token
+	case *ast.FloatLiteral:
+		return node.Token
+	case *ast.DotExpression:
+		return node.Token
+	// Add more cases as needed for other expression types.
+	default:
+		// As a fallback, return the current token from the parser,
+		// or you could return an ILLEGAL token.
+		return token.Token{Type: token.ILLEGAL, Literal: ""}
+	}
+}
+
+// parseAssignmentLHS parses an assignment left-hand side.
+// It first parses a generic expression and, if a comma is encountered,
+// aggregates additional expressions into a tuple literal.
+func (p *Parser) parseAssignmentLHS() ast.Expression {
+	// Parse a generic expression; this handles identifiers, dot expressions, etc.
+	expr := p.parseExpression(LOWEST)
+	if expr == nil {
+		return nil
+	}
+
+	// Check if there is a comma following; if not, return the expression as-is.
+	if !p.peekTokenIs(token.COMMA) {
+		return expr
+	}
+
+	var expressions []ast.Expression
+	expressions = append(expressions, expr)
+
+	// While there is a comma, consume it and parse the next expression.
+	for p.peekTokenIs(token.COMMA) {
+		p.nextToken() // Consume the comma.
+		// Now, ensure we skip any accidental extra commas.
+		for p.currToken.Type == token.COMMA {
+			p.nextToken()
+		}
+		// At this point, p.currToken should be the first token of the next expression.
+		nextExpr := p.parseExpression(LOWEST)
+		if nextExpr == nil {
+			p.errors = append(p.errors, "expected assignable expression after comma in assignment")
+			return nil
+		}
+		expressions = append(expressions, nextExpr)
+	}
+
+	return &ast.TupleLiteral{
+		Token:    tokenFromExpression(expressions[0]),
+		Elements: expressions,
+	}
+}
+
+// parseAssignmentRHS parses an assignment right-hand side,
+// gathering one or more expressions into a tuple literal if a comma is present.
+func (p *Parser) parseAssignmentRHS() ast.Expression {
+	var expressions []ast.Expression
+
+	exp := p.parseExpression(LOWEST)
+	if exp == nil {
+		return nil
+	}
+	expressions = append(expressions, exp)
+
+	for p.peekTokenIs(token.COMMA) {
+		p.nextToken() // Consume the comma.
+		// Skip any extra commas just in case.
+		for p.currToken.Type == token.COMMA {
+			p.nextToken()
+		}
+		nextExpr := p.parseExpression(LOWEST)
+		if nextExpr == nil {
+			p.errors = append(p.errors, "expected expression after comma in assignment")
+			return nil
+		}
+		expressions = append(expressions, nextExpr)
+	}
+
+	if len(expressions) == 1 {
+		return expressions[0]
+	}
+	return &ast.TupleLiteral{
+		Token:    tokenFromExpression(expressions[0]),
+		Elements: expressions,
+	}
+}
+
 func (p *Parser) parseCommaExpression(left ast.Expression) ast.Expression {
 	var elements []ast.Expression
 	if tuple, ok := left.(*ast.TupleLiteral); ok {
@@ -862,6 +956,9 @@ func (p *Parser) ParseProgram() *ast.Program {
 }
 
 func (p *Parser) parseStatement() ast.Statement {
+	if p.currToken.Type == token.NEWLINE || p.currToken.Type == token.EOF {
+		return nil
+	}
 	switch p.currToken.Type {
 	case token.IF:
 		return p.parseIfStatement()
@@ -900,7 +997,10 @@ func (p *Parser) parseStatement() ast.Statement {
 	case token.CHECK:
 		return p.parseCheckStatement()
 	}
-	leftExpr := p.parseExpression(LOWEST)
+	leftExpr := p.parseAssignmentLHS()
+	if leftExpr == nil {
+		return nil
+	}
 	if p.peekTokenIs(token.COLON) || p.peekTokenIs(token.ASSIGN) ||
 		p.peekTokenIs(token.INCREMENT) ||
 		p.peekTokenIs(token.DECREMENT) ||
@@ -946,7 +1046,7 @@ func (p *Parser) finishAssignmentStatement(leftExpr ast.Expression) ast.Statemen
 	}
 
 	p.nextToken()
-	stmt.Value = p.parseExpression(LOWEST)
+	stmt.Value = p.parseAssignmentRHS()
 	return stmt
 }
 
