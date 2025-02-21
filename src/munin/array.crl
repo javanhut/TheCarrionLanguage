@@ -19,3 +19,14 @@ spellbook Array:
         array_dict[str(k)] = v
     self.inner = array_dict
 
+  spell sort(type: str = "bubble"):
+    match type:
+      case "bubble":
+          n = self.inner.len()
+          for i in range(n):
+              for j in range(0, n - i -1):
+                if self.inner[j] > self.inner[j +1]:
+                  self.inner[j], self.inner[j + 1] = self.inner[j + 1], self.inner[j]
+      _:
+        print("Invalid sorting algorithm")
+

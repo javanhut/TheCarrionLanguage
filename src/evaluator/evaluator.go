@@ -400,46 +400,74 @@ func evalAssignStatement(node *ast.AssignStatement, env *object.Environment) obj
 		}
 		return val
 	case *ast.IndexExpression:
-		// Evaluate the left side (e.g. `dict`) and the index (e.g. `"key"`)
+		// 1) Evaluate the left side (e.g. `dict` or `arr`)
 		leftVal := Eval(target.Left, env)
 		if isError(leftVal) {
 			return leftVal
 		}
+
+		// 2) Evaluate the index (e.g. `"foo"` or `0`)
 		indexVal := Eval(target.Index, env)
 		if isError(indexVal) {
 			return indexVal
 		}
-		// Evaluate the right side — the value we want to store.
+
+		// 3) Evaluate the right side — the new value
 		val := Eval(node.Value, env)
 		if isError(val) {
 			return val
 		}
 
-		// If leftVal is an instance of the "Map" spellbook, unwrap the raw *object.Hash
+		// --- UNWRAP if it’s a "Map" or "Array" instance ---
+		//    so that leftVal becomes either *object.Hash or *object.Array
 		if inst, ok := leftVal.(*object.Instance); ok {
-			if inst.Spellbook != nil && inst.Spellbook.Name == "Map" {
-				if innerVal, found := inst.Env.Get("inner"); found {
-					leftVal = innerVal // replace leftVal with the raw *object.Hash
+			if inst.Spellbook != nil {
+				switch inst.Spellbook.Name {
+				case "Map":
+					if innerVal, found := inst.Env.Get("inner"); found {
+						leftVal = innerVal // raw *object.Hash
+					}
+				case "Array":
+					if innerVal, found := inst.Env.Get("inner"); found {
+						leftVal = innerVal // raw *object.Array
+					}
 				}
 			}
 		}
 
-		// Now we expect leftVal to be an *object.Hash if the user wrote dict["key"] = value
-		hashObj, ok := leftVal.(*object.Hash)
-		if !ok {
-			return newError("cannot index-assign to %s", leftVal.Type())
+		// --- 4) If it's a *object.Hash => do Map-style assignment ---
+		if hashObj, ok := leftVal.(*object.Hash); ok {
+			// The index must be hashable (string, int, etc.)
+			hKey, hashable := indexVal.(object.Hashable)
+			if !hashable {
+				return newError("unusable as hash key: %s", indexVal.Type())
+			}
+			// Insert/update the key in the hash
+			hashObj.Pairs[hKey.HashKey()] = object.HashPair{
+				Key:   indexVal,
+				Value: val,
+			}
+			return val
 		}
 
-		// The index must be hashable (e.g. a string, integer, etc.)
-		hKey, hashable := indexVal.(object.Hashable)
-		if !hashable {
-			return newError("unusable as hash key: %s", indexVal.Type())
+		// --- 5) If it's a *object.Array => do array-style assignment ---
+		if arrObj, ok := leftVal.(*object.Array); ok {
+			// The index must be an integer
+			idxObj, ok := indexVal.(*object.Integer)
+			if !ok {
+				return newError("array index must be an integer, got %s", indexVal.Type())
+			}
+			idx := idxObj.Value
+			if idx < 0 || idx >= int64(len(arrObj.Elements)) {
+				return newError("array index out of range: %d", idx)
+			}
+			// Assign the new value
+			arrObj.Elements[idx] = val
+			return val
 		}
 
-		// Assign the key/value in the raw hash map
-		hashObj.Pairs[hKey.HashKey()] = object.HashPair{Key: indexVal, Value: val}
-
-		return val
+		// --- Otherwise, we can’t handle this index assignment ---
+		return newError("cannot index-assign to %s", leftVal.Type())
 
 	default:
 		return newError("invalid assignment target: %T", node.Name)
