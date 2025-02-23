@@ -1346,7 +1346,7 @@ func isError(obj object.Object) bool {
 
 func evalWhileStatement(node *ast.WhileStatement, env *object.Environment) object.Object {
 	for {
-
+		// Evaluate the loop condition
 		condition := Eval(node.Condition, env)
 		if isError(condition) {
 			return condition
@@ -1355,39 +1355,38 @@ func evalWhileStatement(node *ast.WhileStatement, env *object.Environment) objec
 			break
 		}
 
-		n := len(node.Body.Statements)
-		var controlSignal object.Object = nil
+		var controlSignal object.Object
 
-		for i := 0; i < n-1; i++ {
-			res := Eval(node.Body.Statements[i], env)
-
-			rt := res.Type()
-			if rt == object.STOP.Type() || rt == object.SKIP.Type() ||
-				rt == object.RETURN_VALUE_OBJ || rt == object.ERROR_OBJ || rt == object.CUSTOM_ERROR_OBJ {
-				controlSignal = res
-				break
+		// Evaluate each statement in the body
+		for _, stmt := range node.Body.Statements {
+			result := Eval(stmt, env)
+			if isError(result) {
+				// Bubble up errors or custom errors
+				return result
+			}
+			if result != nil {
+				switch result.Type() {
+				case object.RETURN_VALUE_OBJ, object.ERROR_OBJ, object.CUSTOM_ERROR_OBJ:
+					// Immediately return if we have a return value, error, or custom error
+					return result
+				case object.STOP.Type():
+					// Break out of the entire while loop
+					return object.NONE
+				case object.SKIP.Type():
+					// Skip the rest of the body statements; continue to the next iteration
+					controlSignal = result
+					break
+				}
 			}
 		}
 
-		if n > 0 {
-			_ = Eval(node.Body.Statements[n-1], env)
-		}
-
-		if controlSignal != nil {
-			rt := controlSignal.Type()
-			if rt == object.STOP.Type() {
-				break
-			}
-			if rt == object.SKIP.Type() {
-				continue
-			}
-			if rt == object.RETURN_VALUE_OBJ || rt == object.ERROR_OBJ ||
-				rt == object.CUSTOM_ERROR_OBJ {
-				return controlSignal
-			}
+		// If a 'skip' was encountered, go to the next iteration
+		if controlSignal == object.SKIP {
+			continue
 		}
 	}
-	return NONE
+
+	return object.NONE
 }
 
 func isTruthy(obj object.Object) bool {
@@ -1410,77 +1409,103 @@ func isTruthy(obj object.Object) bool {
 }
 
 func evalForStatement(fs *ast.ForStatement, env *object.Environment) object.Object {
-	iterable := Eval(fs.Iterable, env)
-	if isError(iterable) {
-		return iterable
+	// Evaluate the iterable
+	iterableObj := Eval(fs.Iterable, env)
+	if isError(iterableObj) {
+		return iterableObj
 	}
 
-	if inst, ok := iterable.(*object.Instance); ok {
-		if arr, arrOk := tryUnwrapArray(inst); arrOk {
-			iterable = arr
-		} else {
-			return newError("unsupported iterable instance: %s", inst.Spellbook.Name)
-		}
+	// For example, if it’s an array (or an “Array” instance), unwrap it:
+	arr, ok := tryUnwrapArray(iterableObj)
+	if !ok {
+		// If it's not an array, you might handle other types or return an error:
+		return newError("cannot iterate over %s", iterableObj.Type())
 	}
 
-	var result object.Object = NONE
+	// Loop over the array’s elements
+	for _, elem := range arr.Elements {
 
-	switch iter := iterable.(type) {
-	case *object.Array:
-		for _, elem := range iter.Elements {
+		// Assign the current element to the loop variable
+		switch varNode := fs.Variable.(type) {
+		// Single identifier, e.g. `for x in arr:`
+		case *ast.Identifier:
+			env.Set(varNode.Value, elem)
 
-			switch varExpr := fs.Variable.(type) {
-			case *ast.Identifier:
+		// Tuple destructuring, e.g. `for (a, b) in someListOfTuples:`
+		case *ast.TupleLiteral:
+			// Evaluate length mismatch, etc.
+			tupleVal, isTuple := elem.(*object.Tuple)
+			arrayVal, isArray := elem.(*object.Array)
+			var items []object.Object
 
-				env.Set(varExpr.Value, elem)
-			case *ast.TupleLiteral:
-
-				var items []object.Object
-				if tupObj, ok := elem.(*object.Tuple); ok {
-					items = tupObj.Elements
-				} else if arrObj, ok := elem.(*object.Array); ok {
-					items = arrObj.Elements
-				} else {
-					return newError("cannot unpack non-iterable element: %s", elem.Type())
-				}
-				if len(varExpr.Elements) != len(items) {
-					return newError("unpacking mismatch: expected %d values, got %d", len(varExpr.Elements), len(items))
-				}
-				for i, target := range varExpr.Elements {
-
-					ident, ok := target.(*ast.Identifier)
-					if !ok {
-						return newError("invalid assignment target in for loop")
-					}
-					env.Set(ident.Value, items[i])
-				}
-			default:
-
-				env.Set(fs.Variable.String(), elem)
+			if isTuple {
+				items = tupleVal.Elements
+			} else if isArray {
+				items = arrayVal.Elements
+			} else {
+				return newError("cannot unpack non-tuple/array element: got %s", elem.Type())
 			}
 
-			for _, stmt := range fs.Body.Statements {
-				result = Eval(stmt, env)
-				rt := result.Type()
-				if rt == object.STOP.Type() {
-					return NONE
+			if len(varNode.Elements) != len(items) {
+				return newError(
+					"unpacking mismatch: expected %d values, got %d",
+					len(varNode.Elements), len(items),
+				)
+			}
+
+			// Assign each item to the corresponding identifier in the tuple
+			for i, expr := range varNode.Elements {
+				ident, ok := expr.(*ast.Identifier)
+				if !ok {
+					return newError("invalid assignment target in for loop tuple")
 				}
-				if rt == object.SKIP.Type() {
+				env.Set(ident.Value, items[i])
+			}
+
+		default:
+			return newError("invalid loop variable type: %T", fs.Variable)
+		}
+
+		// Now evaluate each statement in the loop body
+		var controlSignal object.Object
+		for _, stmt := range fs.Body.Statements {
+			result := Eval(stmt, env)
+			if isError(result) {
+				// Immediately bubble up the error
+				return result
+			}
+			if result != nil {
+				switch result.Type() {
+				case object.STOP.Type():
+					// Break out of the entire for-loop
+					return object.NONE
+				case object.SKIP.Type():
+					// Skip to the next iteration (like `continue`)
+					controlSignal = result
 					break
-				}
-				if rt == object.RETURN_VALUE_OBJ || rt == object.ERROR_OBJ || rt == object.CUSTOM_ERROR_OBJ {
+				case object.RETURN_VALUE_OBJ, object.ERROR_OBJ, object.CUSTOM_ERROR_OBJ:
+					// Return, error, or custom error => bubble up immediately
 					return result
 				}
 			}
 		}
-	default:
-		return newError("unsupported iterable type: %s", iterable.Type())
+
+		// If we encountered a 'skip' (continue), move on to next iteration
+		if controlSignal == object.SKIP {
+			continue
+		}
 	}
 
+	// If the for-loop finishes normally (no STOP or RETURN), and there’s an ‘else’ block:
 	if fs.Alternative != nil {
-		result = Eval(fs.Alternative, env)
+		altVal := Eval(fs.Alternative, env)
+		if isError(altVal) {
+			return altVal
+		}
+		return altVal
 	}
-	return result
+
+	return object.NONE
 }
 
 func evalImportStatement(node *ast.ImportStatement, env *object.Environment) object.Object {
