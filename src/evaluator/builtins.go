@@ -664,4 +664,55 @@ var builtins = map[string]*object.Builtin{
 			return &object.Array{Elements: enumerated}
 		},
 	},
+
+	"pairs": {
+		Fn: func(args ...object.Object) object.Object {
+			if len(args) < 1 || len(args) > 2 {
+				return newError("pairs expects 1 or 2 arguments, got=%d", len(args))
+			}
+			// The first argument must be a hash.
+			hashObj, ok := args[0].(*object.Hash)
+			if !ok {
+				return newError(
+					"pairs expects a HASH as the first argument, got %s",
+					args[0].Type(),
+				)
+			}
+
+			// Determine the filter string if provided.
+			filter := ""
+			if len(args) == 2 {
+				filterArg, ok := args[1].(*object.String)
+				if !ok {
+					return newError(
+						"pairs second argument must be a STRING filter, got %s",
+						args[1].Type(),
+					)
+				}
+				filter = filterArg.Value
+			}
+
+			// Iterate over the hash's pairs.
+			var result []object.Object
+			for _, pair := range hashObj.Pairs {
+				switch filter {
+				case "":
+					// Default: return both key and value in a tuple.
+					result = append(result, &object.Tuple{
+						Elements: []object.Object{pair.Key, pair.Value},
+					})
+				case "key", "k":
+					result = append(result, pair.Key)
+				case "value", "v":
+					result = append(result, pair.Value)
+				default:
+					return newError(
+						"pairs: invalid filter %q; expected 'key', 'value', 'k', or 'v'",
+						filter,
+					)
+				}
+			}
+			return &object.Array{Elements: result}
+		},
+	},
 }
