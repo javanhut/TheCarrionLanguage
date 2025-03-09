@@ -14,10 +14,11 @@ import (
 )
 
 var (
-	NONE          = &object.None{Value: "None"}
-	TRUE          = &object.Boolean{Value: true}
-	FALSE         = &object.Boolean{Value: false}
-	importedFiles = map[string]bool{}
+	NONE           = &object.None{Value: "None"}
+	TRUE           = &object.Boolean{Value: true}
+	FALSE          = &object.Boolean{Value: false}
+	importedFiles  = map[string]bool{}
+	MAX_CALL_DEPTH = 1000
 )
 
 func Eval(node ast.Node, env *object.Environment) object.Object {
@@ -252,6 +253,20 @@ func evalRaiseStatement(node *ast.RaiseStatement, env *object.Environment) objec
 	}
 
 	return newError("cannot raise non-error object: %s", errObj.Type())
+}
+
+func evalExpressions(exps []ast.Expression, env *object.Environment) []object.Object {
+	var result []object.Object
+
+	for _, e := range exps {
+		evaluated := Eval(e, env)
+		if isError(evaluated) {
+			return []object.Object{evaluated}
+		}
+		result = append(result, evaluated)
+	}
+
+	return result
 }
 
 func evalAttemptStatement(node *ast.AttemptStatement, env *object.Environment) object.Object {
@@ -503,6 +518,76 @@ func evalSpellbookDefinition(node *ast.SpellbookDefinition, env *object.Environm
 	return spellbook
 }
 
+func evalSpellbookMethodCall(
+	instance *object.Instance,
+	methodName string,
+	args []object.Object,
+	env *object.Environment,
+) object.Object {
+	method, ok := instance.Spellbook.Methods[methodName]
+	if !ok {
+		return newError("method '%s' not found on %s", methodName, instance.Spellbook.Name)
+	}
+
+	if method.IsPrivate && !sameClass(env, instance.Spellbook) {
+		return newError("private method '%s' not accessible outside its defining class", methodName)
+	}
+
+	if method.IsProtected && !sameOrSubclass(env, instance.Spellbook) {
+		return newError("protected method '%s' not accessible here", methodName)
+	}
+
+	// Create isolated method environment
+	methodEnv := object.NewEnclosedEnvironment(instance.Env)
+	methodEnv.Set("self", instance)
+
+	// Bind arguments
+	for i, param := range method.Parameters {
+		if i < len(args) {
+			methodEnv.Set(param.Name.Value, args[i])
+		} else if param.DefaultValue != nil {
+			defaultVal := Eval(param.DefaultValue, method.Env)
+			methodEnv.Set(param.Name.Value, defaultVal)
+		} else {
+			methodEnv.Set(param.Name.Value, NONE)
+		}
+	}
+
+	// Execute with bounds checking for recursive calls
+	return evalWithRecursionLimit(method.Body, methodEnv, method, 0)
+}
+
+// Global map to track recursion depth per function
+var recursionDepths = make(map[*ast.BlockStatement]int)
+
+func evalWithRecursionLimit(body *ast.BlockStatement, env *object.Environment,
+	method *object.Function, depth int,
+) object.Object {
+	// Get current depth or start at provided depth
+	currentDepth, exists := recursionDepths[body]
+	if !exists {
+		currentDepth = depth
+	}
+
+	// Increment and check
+	recursionDepths[body] = currentDepth + 1
+	if recursionDepths[body] > MAX_CALL_DEPTH {
+		recursionDepths[body]-- // Clean up
+		return newError("maximum recursion depth exceeded")
+	}
+
+	// Evaluate with depth tracking
+	result := Eval(body, env)
+
+	// Clean up
+	recursionDepths[body]--
+	if recursionDepths[body] <= 0 {
+		delete(recursionDepths, body)
+	}
+
+	return unwrapReturnValue(result)
+}
+
 func evalCallExpression(
 	fn object.Object,
 	args []object.Object,
@@ -514,20 +599,36 @@ func evalCallExpression(
 		}
 	}
 	switch fn := fn.(type) {
+
 	case *object.Function:
+		// Check call depth
+		ctx, exists := callStack[fn]
+		if !exists {
+			ctx = &CallContext{depth: 0, env: env}
+			callStack[fn] = ctx
+		}
+
+		ctx.depth++
+		if ctx.depth > MAX_CALL_DEPTH {
+			ctx.depth--
+			return newError("maximum recursion depth exceeded (%d)", MAX_CALL_DEPTH)
+		}
+
+		// Execute function with call depth tracking
 		globalEnv := getGlobalEnv(fn.Env)
 		extendedEnv := extendFunctionEnv(fn, args, globalEnv)
 		evaluated := Eval(fn.Body, extendedEnv)
+
+		// Cleanup after execution
+		ctx.depth--
+		if ctx.depth == 0 {
+			delete(callStack, fn)
+		}
+
 		return unwrapReturnValue(evaluated)
 	case *object.BoundMethod:
-		globalEnv := getGlobalEnv(fn.Method.Env)
-		extendedEnv := extendFunctionEnv(fn.Method, args, globalEnv)
-		extendedEnv.Set("self", fn.Instance)
-		if fn.Method.IsAbstract {
-			return newError("Cannot call abstract method")
-		}
-		evaluated := Eval(fn.Method.Body, extendedEnv)
-		return unwrapReturnValue(evaluated)
+		// Store method name from the identifier before calling evalSpellbookMethodCall
+		return evalSpellbookMethodCall(fn.Instance, fn.Name, args, env)
 	case *object.Spellbook:
 		if fn.IsArcane {
 			return newError("cannot instantiate arcane spellbook: %s", fn.Name)
@@ -610,6 +711,7 @@ func evalDotExpression(node *ast.DotExpression, env *object.Environment) object.
 	return &object.BoundMethod{
 		Instance: instance,
 		Method:   method,
+		Name:     fieldOrMethodName,
 	}
 }
 
@@ -713,29 +815,34 @@ func evalHashIndexExpression(hash, index object.Object) object.Object {
 	return pair.Value
 }
 
+// 1. Enhanced error handling for array access
 func evalArrayIndexExpression(array, index object.Object) object.Object {
-	arrayObject := array.(*object.Array)
-	idx := index.(*object.Integer).Value
-	maxIndex := int64(len(arrayObject.Elements) - 1)
-	if idx < 0 || idx > maxIndex {
-		return NONE
+	arrayObject, ok := array.(*object.Array)
+	if !ok {
+		return newError("index operation not supported on %s", array.Type())
 	}
+
+	intIndex, ok := index.(*object.Integer)
+	if !ok {
+		return newError("array index must be INTEGER, got %s", index.Type())
+	}
+
+	idx := intIndex.Value
+	maxIndex := int64(len(arrayObject.Elements) - 1)
+
+	if idx < 0 || idx > maxIndex {
+		return newError("index out of bounds: %d (array length: %d)", idx, maxIndex+1)
+	}
+
 	return arrayObject.Elements[idx]
 }
 
-func evalExpressions(exps []ast.Expression, env *object.Environment) []object.Object {
-	var result []object.Object
-
-	for _, e := range exps {
-		evaluated := Eval(e, env)
-		if isError(evaluated) {
-			return []object.Object{evaluated}
-		}
-		result = append(result, evaluated)
-	}
-
-	return result
+type CallContext struct {
+	depth int
+	env   *object.Environment
 }
+
+var callStack = make(map[*object.Function]*CallContext)
 
 func extendFunctionEnv(
 	fn *object.Function,

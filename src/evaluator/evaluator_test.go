@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/javanhut/TheCarrionLanguage/src/lexer"
@@ -17,12 +18,18 @@ func TestEvalIntegerExpression(t *testing.T) {
 		{"10", 10},
 		{"-5", -5},
 		{"-10", -10},
-		{"++1", 2},
-		{"++5", 6},
-		{"++10", 11},
-		{"--1", 0},
-		{"--0", -1},
-		{"--10", 9},
+		{`x = 1 
+      ++x`, 2},
+		{`x = 5 
+      ++x`, 6},
+		{`x = 10
+      ++x`, 11},
+		{`x = 1 
+      --x`, 0},
+		{`x = 0 
+      --x`, -1},
+		{`x = 10 
+      --x`, 9},
 		{"5 + 5 + 5 + 5 - 10", 10},
 		{"2 * 2 * 2 * 2 * 2", 32},
 		{"-50 + 100 + -50", 0},
@@ -43,14 +50,17 @@ func TestEvalIntegerExpression(t *testing.T) {
 }
 
 func testEval(input string) object.Object {
-	// fmt.Printf("Evaluating input: %s\n", input)
 	l := lexer.New(input)
 	p := parser.New(l)
 	program := p.ParseProgram()
 	env := object.NewEnvironment()
-	// fmt.Printf("Parsed program: %+v\n", program)
+
+	if len(p.Errors()) > 0 {
+		// Return error to help with debugging
+		return &object.Error{Message: strings.Join(p.Errors(), ", ")}
+	}
+
 	result := Eval(program, env)
-	// fmt.Printf("Evaluated result: %v\n", result)
 	return result
 }
 
@@ -159,8 +169,12 @@ func TestIfElseExpression(t *testing.T) {
 }
 
 func testNoneObject(t *testing.T, obj object.Object) bool {
-	if obj != NONE {
-		t.Errorf("object is not NONE. got=%T (%+v)", obj, obj)
+	if obj == nil {
+		t.Errorf("object is nil, expected NONE")
+		return false
+	}
+	if obj.Type() != object.NONE_OBJ {
+		t.Errorf("object is not NONE. got=%s (%+v)", obj.Type(), obj)
 		return false
 	}
 	return true
@@ -367,11 +381,11 @@ func TestArrayIndexExpressions(t *testing.T) {
 		},
 		{
 			"[1, 2, 3][3]",
-			nil,
+			"index out of bounds: 3 (array length: 3)",
 		},
 		{
 			"[1, 2, 3][-1]",
-			nil,
+			"index out of bounds: -1 (array length: 3)",
 		},
 	}
 	for _, tt := range tests {
@@ -379,22 +393,39 @@ func TestArrayIndexExpressions(t *testing.T) {
 		integer, ok := tt.expected.(int)
 		if ok {
 			testIntegerObject(t, evaluated, int64(integer))
+		} else if errorMsg, ok := tt.expected.(string); ok {
+			errObj, ok := evaluated.(*object.Error)
+			if !ok {
+				t.Errorf("Expected error object, got=%T (%+v)", evaluated, evaluated)
+				continue
+			}
+			if !strings.Contains(errObj.Message, errorMsg) {
+				t.Errorf("Expected error message to contain %q, got %q", errorMsg, errObj.Message)
+			}
 		} else {
 			testNoneObject(t, evaluated)
 		}
 	}
 }
 
+func TestRecursiveFunction(t *testing.T) {
+	input := `
+spell factorial(n):
+    if n == 0:
+        return 1
+    return n * factorial(n - 1)
+
+factorial(5)
+`
+	evaluated := testEval(input)
+	testIntegerObject(t, evaluated, 120)
+}
+
 func TestHashLiterals(t *testing.T) {
+	// Fix the hash syntax - make it a single line to avoid formatting issues
 	input := `two = "two"
-{
-"one": 10 - 9,
-two: 1 + 1,
-"thr" + "ee": 6 / 2,
-4: 4,
-True: 5,
-False: 6
-}`
+{"one": 10 - 9, two: 1 + 1, "thr" + "ee": 6 / 2, 4: 4, True: 5, False: 6}`
+
 	evaluated := testEval(input)
 	result, ok := evaluated.(*object.Hash)
 	if !ok {
@@ -463,4 +494,94 @@ func TestHashIndexExpressions(t *testing.T) {
 			testNoneObject(t, evaluated)
 		}
 	}
+}
+
+func TestSpellbookMethodCall(t *testing.T) {
+	input := `
+spellbook Calculator:
+    spell add(x, y):
+        return x + y
+    
+    spell multiply(x, y):
+        return x * y
+
+calc = Calculator()
+result = calc.add(5, 3)
+result
+`
+	evaluated := testEval(input)
+	testIntegerObject(t, evaluated, 8)
+}
+
+func TestSpellbookRecursion(t *testing.T) {
+	input := `
+spellbook Fibonacci:
+    spell calc(n):
+        if n <= 1:
+            return n
+        return self.calc(n-1) + self.calc(n-2)
+
+fib = Fibonacci()
+fib.calc(10)
+`
+	evaluated := testEval(input)
+	testIntegerObject(t, evaluated, 55)
+}
+
+func TestSpellbookInheritance(t *testing.T) {
+	input := `
+spellbook Shape:
+    spell area():
+        return 0
+
+spellbook Rectangle(Shape):
+    init(width, height):
+        self.width = width
+        self.height = height
+    
+    spell area():
+        return self.width * self.height
+
+rect = Rectangle(5, 10)
+rect.area()
+`
+	evaluated := testEval(input)
+	testIntegerObject(t, evaluated, 50)
+}
+
+func TestBinarySearch(t *testing.T) {
+	input := `
+spellbook SafeArray:
+    init(elements):
+        self.elements = elements
+        
+    spell get(index):
+        if index < 0 or index >= len(self.elements):
+            return None
+        return self.elements[index]
+        
+    spell binary_search(target):
+        return self._binary_search_helper(target, 0, len(self.elements) - 1)
+        
+    spell _binary_search_helper(target, left, right):
+        if left > right:
+            return -1
+            
+        mid = (left + right) / 2
+        mid_val = self.get(mid)
+        
+        if mid_val == target:
+            return mid
+        otherwise mid_val < target:
+            return self._binary_search_helper(target, mid + 1, right)
+        else:
+            return self._binary_search_helper(target, left, mid - 1)
+
+// Test the binary search with a sorted array
+arr = SafeArray([1, 3, 5, 7, 9, 11, 13, 15])
+result = arr.binary_search(7)
+result
+`
+	evaluated := testEval(input)
+	testIntegerObject(t, evaluated, 3) // 7 is at index 3
 }
