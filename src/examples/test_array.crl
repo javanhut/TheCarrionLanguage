@@ -1,23 +1,90 @@
 spellbook Array:
   init():
     self.array = []
-
+    print("Array initialized")
+ 
   spell append(ele):
+    print("Appending element: " + str(ele))
+    print("Current array: " + str(self.array))
     if len(self.array) == 0:
+        print("Empty array, setting directly")
         self.array = [ele]
     else:
-      arr_len = len(self.array)
-      self.array = self.array + [ele]
-   
+      print("Creating new array")
+      new_array = []
+      for i in self.array:
+        print("Adding element: " + str(i))
+        new_array = new_array + [i]
+      print("Adding new element: " + str(ele))
+      new_array = new_array + [ele]
+      self.array = new_array
+    print("Array after append: " + str(self.array))
+ 
   spell len():
+    print("Getting length: " + str(len(self.array)))
     return len(self.array)
-  
+ 
   spell print():
-    print(self.array)
-  
+    print("Printing array: " + str(self.array))
+ 
+  spell search(ele):
+    print("Searching for: " + str(ele))
+    print("Current array: " + str(self.array))
+    left = 0
+    right = len(self.array) - 1
+    print("Initial left: " + str(left) + ", right: " + str(right))
+    
+    while left <= right:
+      mid = left + (right - left) / 2
+      print("Mid: " + str(mid) + ", value: " + str(self.array[mid]))
+      
+      if self.array[mid] == ele:
+        print("Found at index: " + str(mid))
+        return mid
+      otherwise self.array[mid] > ele:
+        print("Value too large, searching left")
+        right = mid - 1
+      else:
+        print("Value too small, searching right")
+        left = mid + 1
+      
+      print("New left: " + str(left) + ", right: " + str(right))
+    
+    print("Element not found")
+    return -1
+
+print("Creating array")
 arr = Array()
+print("Array created")
 
+print("Adding 10")
 arr.append(10)
-arr.append(11)
+print("10 added")
 
+print("Adding 11")
+arr.append(11)
+print("11 added")
+
+print("Adding 12")
+arr.append(12)
+print("12 added")
+
+print("Adding 13")
+arr.append(13)
+print("13 added")
+
+print("Printing array")
 arr.print()
+print("Array printed")
+
+print("Searching for 11")
+result = arr.search(11)
+print("Search result: " + str(result))
+
+
+print("Searching for 15")
+result = arr.search(15)
+print("Should return an error of -1 because of the 15 not existing")
+print("Search result: " + str(result))
+
+
