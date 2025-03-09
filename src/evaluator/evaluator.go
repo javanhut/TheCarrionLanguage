@@ -988,6 +988,14 @@ func evalInfixExpression(
 		return evalStringInfixExpression(operator, left, right)
 	case left == object.NONE && right == object.NONE:
 		return nativeBoolToBooleanObject(operator == "==")
+	case left.Type() == object.ARRAY_OBJ && right.Type() == object.ARRAY_OBJ:
+		leftArr := left.(*object.Array)
+		rightArr := right.(*object.Array)
+		combined := make([]object.Object, len(leftArr.Elements)+len(rightArr.Elements))
+		copy(combined, leftArr.Elements)
+		copy(combined[len(leftArr.Elements):], rightArr.Elements)
+		return &object.Array{Elements: combined}
+
 	case left == object.NONE || right == object.NONE:
 		if operator == "==" {
 			return nativeBoolToBooleanObject(false)

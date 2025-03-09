@@ -1,0 +1,23 @@
+spellbook Array:
+  init():
+    self.array = []
+
+  spell append(ele):
+    if len(self.array) == 0:
+        self.array = [ele]
+    else:
+      arr_len = len(self.array)
+      self.array = self.array + [ele]
+   
+  spell len():
+    return len(self.array)
+  
+  spell print():
+    print(self.array)
+  
+arr = Array()
+
+arr.append(10)
+arr.append(11)
+
+arr.print()
