@@ -207,38 +207,55 @@ func tokenFromExpression(expr ast.Expression) token.Token {
 	}
 }
 
-// parseAssignmentLHS parses an assignment left-hand side.
-// It first parses a generic expression and, if a comma is encountered,
-// aggregates additional expressions into a tuple literal.
-func (p *Parser) parseAssignmentLHS() ast.Expression {
-	// Parse a generic expression; this handles identifiers, dot expressions, etc.
-	expr := p.parseExpression(LOWEST)
-	if expr == nil {
+// parseExpressionTuple parses a comma-separated list of expressions into a tuple.
+// If only a single expression is present, it returns that expression directly.
+// The errorPrefix is used to customize error messages based on context (LHS or RHS).
+func (p *Parser) parseExpressionTuple(firstExpr ast.Expression, isLHS bool) ast.Expression {
+	if firstExpr == nil {
 		return nil
 	}
 
 	// Check if there is a comma following; if not, return the expression as-is.
 	if !p.peekTokenIs(token.COMMA) {
-		return expr
+		return firstExpr
 	}
 
 	var expressions []ast.Expression
-	expressions = append(expressions, expr)
+	expressions = append(expressions, firstExpr)
+
+	// Customize error message based on context
+	errorPrefix := "expected expression after comma in assignment"
+	if isLHS {
+		errorPrefix = "expected assignable expression after comma in assignment"
+	}
 
 	// While there is a comma, consume it and parse the next expression.
 	for p.peekTokenIs(token.COMMA) {
 		p.nextToken() // Consume the comma.
-		// Now, ensure we skip any accidental extra commas.
+		// Skip any consecutive commas.
 		for p.currToken.Type == token.COMMA {
 			p.nextToken()
 		}
+
+		// If we've reached the end of input or a token that cannot start an expression,
+		// then we have a trailing comma which is an error.
+		if p.isAtEnd() || !p.canStartExpression(p.currToken.Type) {
+			p.errors = append(p.errors, "unexpected trailing comma in assignment")
+			return nil
+		}
+
 		// At this point, p.currToken should be the first token of the next expression.
 		nextExpr := p.parseExpression(LOWEST)
 		if nextExpr == nil {
-			p.errors = append(p.errors, "expected assignable expression after comma in assignment")
+			p.errors = append(p.errors, errorPrefix)
 			return nil
 		}
 		expressions = append(expressions, nextExpr)
+	}
+
+	// For RHS, return the single expression directly instead of wrapping in a tuple
+	if len(expressions) == 1 && !isLHS {
+		return expressions[0]
 	}
 
 	return &ast.TupleLiteral{
@@ -247,37 +264,36 @@ func (p *Parser) parseAssignmentLHS() ast.Expression {
 	}
 }
 
+// parseAssignmentLHS parses an assignment left-hand side.
+// It first parses a generic expression and, if a comma is encountered,
+// aggregates additional expressions into a tuple literal.
+func (p *Parser) parseAssignmentLHS() ast.Expression {
+	// Parse a generic expression; this handles identifiers, dot expressions, etc.
+	expr := p.parseExpression(LOWEST)
+	return p.parseExpressionTuple(expr, true)
+}
+
 // parseAssignmentRHS parses an assignment right-hand side,
 // gathering one or more expressions into a tuple literal if a comma is present.
 func (p *Parser) parseAssignmentRHS() ast.Expression {
-	var expressions []ast.Expression
-
 	exp := p.parseExpression(LOWEST)
-	if exp == nil {
-		return nil
-	}
-	expressions = append(expressions, exp)
+	return p.parseExpressionTuple(exp, false)
+}
 
-	for p.peekTokenIs(token.COMMA) {
-		p.nextToken() // Consume the comma.
-		// Skip any extra commas just in case.
-		for p.currToken.Type == token.COMMA {
-			p.nextToken()
-		}
-		nextExpr := p.parseExpression(LOWEST)
-		if nextExpr == nil {
-			p.errors = append(p.errors, "expected expression after comma in assignment")
-			return nil
-		}
-		expressions = append(expressions, nextExpr)
-	}
+// isAtEnd checks if we've reached the end of the token stream
+func (p *Parser) isAtEnd() bool {
+	return p.currToken.Type == token.EOF
+}
 
-	if len(expressions) == 1 {
-		return expressions[0]
-	}
-	return &ast.TupleLiteral{
-		Token:    tokenFromExpression(expressions[0]),
-		Elements: expressions,
+// canStartExpression checks if the given token type can start an expression
+func (p *Parser) canStartExpression(tokenType token.TokenType) bool {
+	// This is a simplification - you should include all token types that can start an expression
+	switch tokenType {
+	case token.IDENT, token.INT, token.FLOAT, token.STRING, token.TRUE, token.FALSE, token.NONE,
+		token.LPAREN, token.LBRACK, token.LBRACE, token.SPELL, token.IF:
+		return true
+	default:
+		return false
 	}
 }
 
