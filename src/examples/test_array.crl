@@ -1,90 +1,70 @@
 spellbook Array:
   init():
-    self.array = []
-    print("Array initialized")
- 
+    self.elements = []
+    debug = Debug()
+  
   spell append(ele):
-    print("Appending element: " + str(ele))
-    print("Current array: " + str(self.array))
-    if len(self.array) == 0:
-        print("Empty array, setting directly")
-        self.array = [ele]
-    else:
-      print("Creating new array")
-      new_array = []
-      for i in self.array:
-        print("Adding element: " + str(i))
-        new_array = new_array + [i]
-      print("Adding new element: " + str(ele))
-      new_array = new_array + [ele]
-      self.array = new_array
-    print("Array after append: " + str(self.array))
- 
+    // Create a new array with all existing elements
+    new_elements = []
+    for i in range(len(self.elements)):
+      new_elements = new_elements + [self.elements[i]]
+    
+    // Add the new element
+    new_elements = new_elements + [ele]
+    self.elements = new_elements
+  
   spell len():
-    print("Getting length: " + str(len(self.array)))
-    return len(self.array)
- 
+    length = len(self.elements)
+    debug.log(f"{length}")
+    return length
+  
+  spell get(index):
+    if index < 0 or index >= len(self.elements):
+      return None
+    return self.elements[index]
+  
   spell print():
-    print("Printing array: " + str(self.array))
- 
+    print(self.elements)
+  
   spell search(ele):
-    print("Searching for: " + str(ele))
-    print("Current array: " + str(self.array))
     left = 0
-    right = len(self.array) - 1
-    print("Initial left: " + str(left) + ", right: " + str(right))
+    right = len(self.elements) - 1
     
     while left <= right:
-      mid = left + (right - left) / 2
-      print("Mid: " + str(mid) + ", value: " + str(self.array[mid]))
+      mid = left + ((right - left) / 2)
+      mid_val = self.elements[mid]
       
-      if self.array[mid] == ele:
-        print("Found at index: " + str(mid))
+      if mid_val == ele:
         return mid
-      otherwise self.array[mid] > ele:
-        print("Value too large, searching left")
+      otherwise mid_val > ele:
         right = mid - 1
       else:
-        print("Value too small, searching right")
         left = mid + 1
-      
-      print("New left: " + str(left) + ", right: " + str(right))
     
-    print("Element not found")
     return -1
-
-print("Creating array")
-arr = Array()
-print("Array created")
-
-print("Adding 10")
-arr.append(10)
-print("10 added")
-
-print("Adding 11")
-arr.append(11)
-print("11 added")
-
-print("Adding 12")
-arr.append(12)
-print("12 added")
-
-print("Adding 13")
-arr.append(13)
-print("13 added")
-
-print("Printing array")
-arr.print()
-print("Array printed")
-
-print("Searching for 11")
-result = arr.search(11)
-print("Search result: " + str(result))
+  
+  spell bubble_sort():
+    if len(self.elements) <= 1:
+      return
+    
+    for n in range(len(self.elements) - 1, 0, -1):
+      for i in range(n):
+        if self.elements[i] > self.elements[i + 1]:
+          // We can't swap directly, so we need to create a new array
+          new_elements = []
+          for j in range(len(self.elements)):
+            if j == i:
+              new_elements = new_elements + [self.elements[i+1]]
+            otherwise j == i+1:
+              new_elements = new_elements + [self.elements[i]]
+            else:
+              new_elements = new_elements + [self.elements[j]]
+          self.elements = new_elements
 
 
-print("Searching for 15")
-result = arr.search(15)
-print("Should return an error of -1 because of the 15 not existing")
-print("Search result: " + str(result))
-
-
+array = Array()
+array.append(10)
+array.append(1)
+array.append(5)
+array.append(-1)
+array.len()

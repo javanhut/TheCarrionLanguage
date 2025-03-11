@@ -216,7 +216,7 @@ func tryParseAndEval(input string, out io.Writer, env *object.Environment) (obje
 		return nil, true
 	}
 
-	evaluated := evaluator.Eval(program, env)
+	evaluated := evaluator.Eval(program, env, nil)
 	if evaluated == nil {
 		return nil, true
 	}
@@ -268,7 +268,7 @@ func ProcessFile(filePath string, out io.Writer, env *object.Environment) error 
 		return fmt.Errorf("file %s contains syntax errors", filePath)
 	}
 
-	evaluated := evaluator.Eval(program, env)
+	evaluated := evaluator.Eval(program, env, nil)
 	if evaluated != nil && evaluated.Type() != object.NONE_OBJ {
 		fmt.Fprintf(out, "%s\n", evaluated.Inspect())
 	}

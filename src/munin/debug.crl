@@ -1,0 +1,25 @@
+spellbook Debug:
+  spell log(message):
+    print("LOG: " + str(message))
+  
+  spell warn(message):
+    print("WARNING: " + str(message))
+  
+  spell error(message):
+    print("ERROR: " + str(message))
+  
+  spell assert(condition, message):
+    if not condition:
+      print("ASSERTION FAILED: " + str(message))
+      return False
+    return True
+  
+  spell inspect(value):
+    print("INSPECT: Type: " + type(value) + ", Value: " + str(value))
+  
+  spell trace_call(function_name):
+    print("TRACE: Entering " + function_name)
+  
+  spell trace_return(function_name, value):
+    print("TRACE: Exiting " + function_name + " with " + str(value))
+

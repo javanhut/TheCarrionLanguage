@@ -4,8 +4,11 @@ package token
 type TokenType string
 
 type Token struct {
-	Type    TokenType
-	Literal string
+	Type     TokenType
+	Literal  string
+	Filename string
+	Line     int
+	Column   int
 }
 
 const (
@@ -163,4 +166,25 @@ func LookupIndent(indent string) TokenType {
 		return tok
 	}
 	return ILLEGAL
+}
+
+func NewToken(tokenType TokenType, literal string, filename string, line int, column int) Token {
+	return Token{
+		Type:     tokenType,
+		Literal:  literal,
+		Filename: filename,
+		Line:     line,
+		Column:   column,
+	}
+}
+
+// For compatibility with existing code that creates tokens simply
+func SimpleToken(tokenType TokenType, ch byte) Token {
+	return Token{
+		Type:     tokenType,
+		Literal:  string(ch),
+		Filename: "",
+		Line:     0,
+		Column:   0,
+	}
 }
