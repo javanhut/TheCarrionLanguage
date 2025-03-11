@@ -40,7 +40,7 @@ func PrintError(err *object.ErrorWithTrace) {
 	}
 
 	// Print custom error details
-	if err.Type == object.CUSTOM_ERROR_OBJ && len(err.CustomDetails) > 0 {
+	if err.Type() == object.CUSTOM_ERROR_OBJ && len(err.CustomDetails) > 0 {
 		fmt.Printf("\n%sDetails:%s\n", Bold, Reset)
 		for key, value := range err.CustomDetails {
 			fmt.Printf("  %s%s:%s %s\n", Bold, key, Reset, value.Inspect())
@@ -87,6 +87,9 @@ func printSourceContext(pos object.SourcePosition) {
 		currentLine++
 	}
 
+	if scanErr := scanner.Err(); scanErr != nil {
+		fmt.Fprintf(os.Stderr, "Warning: failed reading file %s: %v\n", pos.Filename, scanErr)
+	}
 	if len(context) == 0 {
 		return
 	}
@@ -149,7 +152,8 @@ func PrintParseFail(filename string, content string, errors []string) {
 						fmt.Printf("  %s%3d |%s %s\n", Bold, i, Reset, lines[i-1])
 						if colNum > 0 {
 							padding := strings.Repeat(" ", colNum+5)
-							fmt.Printf("      |%s%s%s^\n", Reset, padding[:colNum+1], Red)
+							indicatorPos := min(colNum+1, len(padding))
+							fmt.Printf("      |%s%s%s^\n", Reset, padding[:indicatorPos], Red)
 						}
 					} else {
 						fmt.Printf("  %3d | %s\n", i, lines[i-1])
