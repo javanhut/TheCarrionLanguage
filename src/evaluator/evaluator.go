@@ -14,11 +14,12 @@ import (
 )
 
 var (
-	NONE           = &object.None{Value: "None"}
-	TRUE           = &object.Boolean{Value: true}
-	FALSE          = &object.Boolean{Value: false}
-	importedFiles  = map[string]bool{}
-	MAX_CALL_DEPTH = 1000
+	NONE                        = &object.None{Value: "None"}
+	TRUE                        = &object.Boolean{Value: true}
+	FALSE                       = &object.Boolean{Value: false}
+	importedFiles               = map[string]bool{}
+	MAX_CALL_DEPTH              = 1000
+	CurrentContext *CallContext = nil
 )
 
 // CallContext tracks function call state for better error reporting
@@ -166,12 +167,19 @@ func newCustomErrorWithTrace(
 	return err
 }
 
-// Helper function to replace the old newError
-func newError(format string, args ...interface{}) *object.Error {
-	return &object.Error{Message: fmt.Sprintf(format, args...)}
+func newError(format string, args ...interface{}) object.Object {
+	msg := fmt.Sprintf(format, args...)
+	err := &object.Error{Message: msg}
+
+	// For better compatibility with stack traces, convert to ErrorWithTrace
+	// when we're inside the evaluator
+	if CurrentContext != nil {
+		return newErrorWithTrace(msg, CurrentContext.Node, CurrentContext)
+	}
+
+	return err
 }
 
-// isErrorWithTrace checks if an object is our new error type
 func isErrorWithTrace(obj object.Object) bool {
 	_, ok := obj.(*object.ErrorWithTrace)
 	return ok
@@ -179,6 +187,9 @@ func isErrorWithTrace(obj object.Object) bool {
 
 // Main evaluation function
 func Eval(node ast.Node, env *object.Environment, ctx *CallContext) object.Object {
+	oldContext := CurrentContext
+	CurrentContext = ctx
+	defer func() { CurrentContext = oldContext }()
 	// Create a new call context if node is a function call
 	if callExp, ok := node.(*ast.CallExpression); ok {
 		funcName := ""
@@ -965,10 +976,15 @@ func evalCallExpression(
 
 	case *object.Builtin:
 		// Builtin functions don't need context tracking in the same way
-		return fn.Fn(args...)
-
+		result := fn.Fn(args...)
+		// Convert regular errors to error traces for consistent reporting
+		if err, ok := result.(*object.Error); ok {
+			return newErrorWithTrace(err.Message, ctx.Node, ctx)
+		}
+		return result
 	default:
-		return newErrorWithTrace("not a function: %s", ctx.Node, ctx, fn.Type())
+		return newErrorWithTrace("not a function: %s (in file %s)",
+			ctx.Node, ctx, fn.Type(), getSourcePosition(ctx.Node).Filename)
 	}
 }
 

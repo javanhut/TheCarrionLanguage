@@ -20,12 +20,12 @@ const (
 	Bold   = "\033[1m"
 )
 
-// PrintError formats and prints a Carrion error with source context
 func PrintError(err *object.ErrorWithTrace) {
 	fmt.Printf("%s%sError: %s%s\n", Bold, Red, err.Message, Reset)
 
 	// Print location
-	fmt.Printf("  at %s%s%s\n", Bold, err.Position, Reset)
+	fmt.Printf("  at Positon: %s%s:Line: %d, Column: %d%s\n",
+		Bold, err.Position.Filename, err.Position.Line, err.Position.Column, Reset)
 
 	// Try to print source context
 	printSourceContext(err.Position)
@@ -34,32 +34,25 @@ func PrintError(err *object.ErrorWithTrace) {
 	if len(err.Stack) > 0 {
 		fmt.Printf("\n%sStack trace:%s\n", Bold, Reset)
 		for i, entry := range err.Stack {
-			fmt.Printf("  %d: %s%s%s (%s)\n", i, Bold, entry.FunctionName, Reset, entry.Position)
+			fmt.Printf("  %d: %s%s%s (%s: Line: %d: Column: %d)\n",
+				i, Bold, entry.FunctionName, Reset,
+				entry.Position.Filename, entry.Position.Line, entry.Position.Column)
 			printSourceContext(entry.Position)
 		}
 	}
 
 	// Print custom error details
-	if err.Type() == object.CUSTOM_ERROR_OBJ && len(err.CustomDetails) > 0 {
+	if err.ErrorType == object.CUSTOM_ERROR_OBJ && len(err.CustomDetails) > 0 {
 		fmt.Printf("\n%sDetails:%s\n", Bold, Reset)
 		for key, value := range err.CustomDetails {
 			fmt.Printf("  %s%s:%s %s\n", Bold, key, Reset, value.Inspect())
 		}
 	}
-
-	// Print cause if available
-	if err.Cause != nil {
-		fmt.Printf("\n%sCaused by:%s\n", Bold, Reset)
-		fmt.Printf("  %s\n", err.Cause.Message)
-		fmt.Printf("  at %s\n", err.Cause.Position)
-		printSourceContext(err.Cause.Position)
-	}
 }
 
-// Helper to print the source code context for an error
 func printSourceContext(pos object.SourcePosition) {
-	// Only try to print context if we have a valid filename and line number
-	if pos.Filename == "" || pos.Filename == "<input>" || pos.Line <= 0 {
+	// Skip for REPL input
+	if pos.Filename == "<repl>" || pos.Filename == "" || pos.Line <= 0 {
 		return
 	}
 
@@ -87,9 +80,6 @@ func printSourceContext(pos object.SourcePosition) {
 		currentLine++
 	}
 
-	if scanErr := scanner.Err(); scanErr != nil {
-		fmt.Fprintf(os.Stderr, "Warning: failed reading file %s: %v\n", pos.Filename, scanErr)
-	}
 	if len(context) == 0 {
 		return
 	}
@@ -105,10 +95,10 @@ func printSourceContext(pos object.SourcePosition) {
 				// The error line
 				fmt.Printf("  %s%3d |%s %s\n", Bold, lineNum, Reset, line)
 
-				// Print the error indicator if we have column info
-				if pos.Column > 0 && pos.Column <= len(line)+1 {
-					padding := strings.Repeat(" ", pos.Column+5)
-					fmt.Printf("      |%s%s%s^\n", Reset, padding[:pos.Column+1], Red)
+				// Print the error indicator
+				if pos.Column > 0 {
+					padding := strings.Repeat(" ", min(pos.Column, len(line)+1))
+					fmt.Printf("      |%s%s%s^\n", Reset, padding, Red)
 				}
 			} else {
 				// Context line
@@ -125,6 +115,22 @@ func max(x, y int) int {
 		return x
 	}
 	return y
+}
+
+func PrintErrorToWriter(out *os.File, err *object.ErrorWithTrace) {
+	fmt.Fprintf(out, "%s%sError: %s%s\n", Bold, Red, err.Message, Reset)
+	fmt.Fprintf(out, "  at %s%s:Line: %d, Column: %d%s\n",
+		Bold, err.Position.Filename, err.Position.Line, err.Position.Column, Reset)
+
+	// Print stack trace
+	if len(err.Stack) > 0 {
+		fmt.Fprintf(out, "\n%sStack trace:%s\n", Bold, Reset)
+		for i, entry := range err.Stack {
+			fmt.Fprintf(out, "  %d: %s%s%s (%s:%d:%d)\n",
+				i, Bold, entry.FunctionName, Reset,
+				entry.Position.Filename, entry.Position.Line, entry.Position.Column)
+		}
+	}
 }
 
 // PrintParseFail formats parser error information

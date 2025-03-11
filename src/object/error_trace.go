@@ -48,19 +48,31 @@ func (e *ErrorWithTrace) Type() ObjectType {
 func (e *ErrorWithTrace) Inspect() string {
 	var sb strings.Builder
 
-	// Build the main error message with position
 	sb.WriteString(fmt.Sprintf("Error: %s\n", e.Message))
-	sb.WriteString(fmt.Sprintf("  at %s\n", e.Position))
+	sb.WriteString(
+		fmt.Sprintf(
+			"  at %s, Line: %d, Column: %d\n",
+			e.Position.Filename,
+			e.Position.Line,
+			e.Position.Column,
+		),
+	)
 
 	// Add the stack trace
 	if len(e.Stack) > 0 {
 		sb.WriteString("Stack trace:\n")
-		for _, entry := range e.Stack {
-			sb.WriteString("  " + entry.String() + "\n")
+		for i, entry := range e.Stack {
+			sb.WriteString(fmt.Sprintf(
+				"  %d: %s (%s:Line: %d, Column: %d)\n",
+				i,
+				entry.FunctionName,
+				entry.Position.Filename,
+				entry.Position.Line,
+				entry.Position.Column,
+			))
 		}
 	}
 
-	// Add details for custom errors
 	if e.ErrorType == CUSTOM_ERROR_OBJ && len(e.CustomDetails) > 0 {
 		sb.WriteString("Details:\n")
 		for key, value := range e.CustomDetails {
