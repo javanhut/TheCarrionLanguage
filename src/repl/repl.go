@@ -204,7 +204,7 @@ func Start(in io.Reader, out io.Writer, env *object.Environment) {
 }
 
 func tryParseAndEval(input string, out io.Writer, env *object.Environment) (object.Object, bool) {
-	l := lexer.New(input)
+	l := lexer.NewWithFilename(input, "<repl>") // Set a clear filename for REPL
 	p := parser.New(l)
 	program := p.ParseProgram()
 
@@ -225,7 +225,34 @@ func tryParseAndEval(input string, out io.Writer, env *object.Environment) (obje
 		evaluated = returnValue.Value
 	}
 
+	// Print extended error info for errors with traces
+	if errWithTrace, ok := evaluated.(*object.ErrorWithTrace); ok {
+		printErrorWithTrace(out, errWithTrace)
+		return nil, true
+	}
+
 	return evaluated, true
+}
+
+// New function to print detailed error information
+func printErrorWithTrace(out io.Writer, err *object.ErrorWithTrace) {
+	fmt.Fprintf(out, "Error: %s\n", err.Message)
+	fmt.Fprintf(
+		out,
+		"  at %s:%d:%d\n",
+		err.Position.Filename,
+		err.Position.Line,
+		err.Position.Column,
+	)
+
+	if len(err.Stack) > 0 {
+		fmt.Fprintln(out, "Stack trace:")
+		for i, entry := range err.Stack {
+			fmt.Fprintf(out, "  %d: %s at %s:%d:%d\n",
+				i, entry.FunctionName, entry.Position.Filename,
+				entry.Position.Line, entry.Position.Column)
+		}
+	}
 }
 
 func isIncompleteParse(errs []string) bool {
@@ -258,8 +285,8 @@ func ProcessFile(filePath string, out io.Writer, env *object.Environment) error 
 		return fmt.Errorf("error reading file %s: %w", filePath, err)
 	}
 
-	// Tokenize, parse, and evaluate the file contents
-	l := lexer.New(string(content))
+	// Tokenize, parse, and evaluate the file contents with proper filename
+	l := lexer.NewWithFilename(string(content), filePath)
 	p := parser.New(l)
 	program := p.ParseProgram()
 
@@ -269,6 +296,12 @@ func ProcessFile(filePath string, out io.Writer, env *object.Environment) error 
 	}
 
 	evaluated := evaluator.Eval(program, env, nil)
+
+	if errWithTrace, ok := evaluated.(*object.ErrorWithTrace); ok {
+		printErrorWithTrace(out, errWithTrace)
+		return fmt.Errorf("error in file %s", filePath)
+	}
+
 	if evaluated != nil && evaluated.Type() != object.NONE_OBJ {
 		fmt.Fprintf(out, "%s\n", evaluated.Inspect())
 	}

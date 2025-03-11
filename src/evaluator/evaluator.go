@@ -33,7 +33,6 @@ type CallContext struct {
 // A map to track call stack depth for recursive functions
 var callStack = make(map[*object.Function]*CallContext)
 
-// SourcePosition extracts position information from a node's token
 func getSourcePosition(node ast.Node) object.SourcePosition {
 	pos := object.SourcePosition{
 		Filename: "unknown",
@@ -53,7 +52,6 @@ func getSourcePosition(node ast.Node) object.SourcePosition {
 	return pos
 }
 
-// getNodeToken extracts the token from an AST node
 func getNodeToken(node ast.Node) *token.Token {
 	switch n := node.(type) {
 	case *ast.Program:
@@ -90,12 +88,18 @@ func getNodeToken(node ast.Node) *token.Token {
 		return &n.Token
 	case *ast.AssignStatement:
 		return &n.Token
-		// Add cases for other node types as needed
+	case *ast.DotExpression:
+		return &n.Token
+	case *ast.IndexExpression:
+		return &n.Token
+	case *ast.ForStatement:
+		return &n.Token
+	case *ast.WhileStatement:
+		return &n.Token
 	}
 	return nil
 }
 
-// newErrorWithTrace creates a new error with source position and stack trace
 func newErrorWithTrace(
 	format string,
 	node ast.Node,
@@ -116,9 +120,10 @@ func newErrorWithTrace(
 	currentCtx := ctx
 	for currentCtx != nil {
 		if currentCtx.Node != nil {
+			nodePos := getSourcePosition(currentCtx.Node)
 			entry := object.StackTraceEntry{
 				FunctionName: currentCtx.FunctionName,
-				Position:     getSourcePosition(currentCtx.Node),
+				Position:     nodePos,
 			}
 			err.Stack = append(err.Stack, entry)
 		}
