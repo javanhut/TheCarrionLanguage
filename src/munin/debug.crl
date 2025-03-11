@@ -11,7 +11,7 @@ spellbook Debug:
   spell assert(condition, message):
     if not condition:
       print("ASSERTION FAILED: " + str(message))
-      return False
+      raise AssertionError(str(message))
     return True
   
   spell inspect(value):

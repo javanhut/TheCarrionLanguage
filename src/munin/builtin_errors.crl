@@ -29,3 +29,9 @@ spellbook RaiseError:
     spell throw():
         raise self.err(self.message)
 
+
+spellbook AssertionError(Exception):
+    init(message: str = ""):
+      self.message = f"Assertion Failed due to: {message}"
+    spell Type(type: str = "AssertionError"):
+      return type
