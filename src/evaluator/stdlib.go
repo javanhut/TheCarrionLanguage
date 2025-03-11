@@ -38,7 +38,7 @@ func LoadMuninStdlib(env *object.Environment) error {
 			}
 
 			// 6. Evaluate in the global environment
-			result := Eval(program, env)
+			result := Eval(program, env, nil)
 			if isError(result) {
 				return fmt.Errorf("runtime error in %s: %s", entry.Name(), result.Inspect())
 			}

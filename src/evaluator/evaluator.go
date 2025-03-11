@@ -14,108 +14,288 @@ import (
 )
 
 var (
-	NONE          = &object.None{Value: "None"}
-	TRUE          = &object.Boolean{Value: true}
-	FALSE         = &object.Boolean{Value: false}
-	importedFiles = map[string]bool{}
+	NONE           = &object.None{Value: "None"}
+	TRUE           = &object.Boolean{Value: true}
+	FALSE          = &object.Boolean{Value: false}
+	importedFiles  = map[string]bool{}
+	MAX_CALL_DEPTH = 1000
 )
 
-func Eval(node ast.Node, env *object.Environment) object.Object {
-	switch node := node.(type) {
+// CallContext tracks function call state for better error reporting
+type CallContext struct {
+	FunctionName string
+	Node         ast.Node
+	Parent       *CallContext
+	env          *object.Environment
+	depth        int
+}
 
+// A map to track call stack depth for recursive functions
+var callStack = make(map[*object.Function]*CallContext)
+
+// SourcePosition extracts position information from a node's token
+func getSourcePosition(node ast.Node) object.SourcePosition {
+	pos := object.SourcePosition{
+		Filename: "unknown",
+		Line:     0,
+		Column:   0,
+	}
+
+	token := getNodeToken(node)
+	if token != nil {
+		pos.Line = token.Line
+		pos.Column = token.Column
+		if token.Filename != "" {
+			pos.Filename = token.Filename
+		}
+	}
+
+	return pos
+}
+
+// getNodeToken extracts the token from an AST node
+func getNodeToken(node ast.Node) *token.Token {
+	switch n := node.(type) {
 	case *ast.Program:
-		return evalProgram(node, env)
+		if len(n.Statements) > 0 {
+			return getNodeToken(n.Statements[0])
+		}
 	case *ast.ExpressionStatement:
-		return Eval(node.Expression, env)
-	case *ast.BlockStatement:
-		return evalBlockStatement(node, env)
+		return getNodeToken(n.Expression)
+	case *ast.IntegerLiteral:
+		return &n.Token
+	case *ast.FloatLiteral:
+		return &n.Token
+	case *ast.StringLiteral:
+		return &n.Token
+	case *ast.Boolean:
+		return &n.Token
+	case *ast.Identifier:
+		return &n.Token
+	case *ast.PrefixExpression:
+		return &n.Token
+	case *ast.InfixExpression:
+		return &n.Token
+	case *ast.PostfixExpression:
+		return &n.Token
 	case *ast.IfStatement:
-		return evalIfExpression(node, env)
+		return &n.Token
+	case *ast.BlockStatement:
+		return &n.Token
+	case *ast.FunctionDefinition:
+		return &n.Token
+	case *ast.CallExpression:
+		return &n.Token
+	case *ast.ReturnStatement:
+		return &n.Token
+	case *ast.AssignStatement:
+		return &n.Token
+		// Add cases for other node types as needed
+	}
+	return nil
+}
+
+// newErrorWithTrace creates a new error with source position and stack trace
+func newErrorWithTrace(
+	format string,
+	node ast.Node,
+	ctx *CallContext,
+	args ...interface{},
+) object.Object {
+	pos := getSourcePosition(node)
+	message := fmt.Sprintf(format, args...)
+	err := &object.ErrorWithTrace{
+		ErrorType:     object.ERROR_OBJ,
+		Message:       message,
+		Position:      pos,
+		Stack:         []object.StackTraceEntry{},
+		CustomDetails: make(map[string]object.Object),
+	}
+
+	// Build stack trace from context
+	currentCtx := ctx
+	for currentCtx != nil {
+		if currentCtx.Node != nil {
+			entry := object.StackTraceEntry{
+				FunctionName: currentCtx.FunctionName,
+				Position:     getSourcePosition(currentCtx.Node),
+			}
+			err.Stack = append(err.Stack, entry)
+		}
+		currentCtx = currentCtx.Parent
+	}
+
+	return err
+}
+
+// newCustomErrorWithTrace creates a custom error with trace information
+func newCustomErrorWithTrace(
+	name string,
+	message string,
+	node ast.Node,
+	ctx *CallContext,
+	details map[string]object.Object,
+) object.Object {
+	pos := getSourcePosition(node)
+	err := &object.ErrorWithTrace{
+		ErrorType:     object.CUSTOM_ERROR_OBJ, // Use ErrorType instead of Type
+		Message:       fmt.Sprintf("%s: %s", name, message),
+		Position:      pos,
+		Stack:         []object.StackTraceEntry{},
+		CustomDetails: details,
+	}
+
+	// Build stack trace from context
+	currentCtx := ctx
+	for currentCtx != nil {
+		if currentCtx.Node != nil {
+			entry := object.StackTraceEntry{
+				FunctionName: currentCtx.FunctionName,
+				Position:     getSourcePosition(currentCtx.Node),
+			}
+			err.Stack = append(err.Stack, entry)
+		}
+		currentCtx = currentCtx.Parent
+	}
+
+	return err
+}
+
+// Helper function to replace the old newError
+func newError(format string, args ...interface{}) *object.Error {
+	return &object.Error{Message: fmt.Sprintf(format, args...)}
+}
+
+// isErrorWithTrace checks if an object is our new error type
+func isErrorWithTrace(obj object.Object) bool {
+	_, ok := obj.(*object.ErrorWithTrace)
+	return ok
+}
+
+// Main evaluation function
+func Eval(node ast.Node, env *object.Environment, ctx *CallContext) object.Object {
+	// Create a new call context if node is a function call
+	if callExp, ok := node.(*ast.CallExpression); ok {
+		funcName := ""
+		if ident, ok := callExp.Function.(*ast.Identifier); ok {
+			funcName = ident.Value
+		} else {
+			funcName = "<anonymous function>"
+		}
+
+		newCtx := &CallContext{
+			FunctionName: funcName,
+			Node:         node,
+			Parent:       ctx,
+			env:          env,
+		}
+		ctx = newCtx
+	}
+
+	switch node := node.(type) {
+	case *ast.Program:
+		return evalProgram(node, env, ctx)
+	case *ast.ExpressionStatement:
+		return Eval(node.Expression, env, ctx)
+	case *ast.BlockStatement:
+		return evalBlockStatement(node, env, ctx)
+	case *ast.IfStatement:
+		return evalIfExpression(node, env, ctx)
 
 	case *ast.StopStatement:
 		return object.STOP
 	case *ast.SkipStatement:
 		return object.SKIP
 	case *ast.CheckStatement:
-		cond := Eval(node.Condition, env)
+		cond := Eval(node.Condition, env, ctx)
 		if isError(cond) {
 			return cond
 		}
 		if !isTruthy(cond) {
 			msg := "Assertion failed: " + node.Condition.String()
 			if node.Message != nil {
-				m := Eval(node.Message, env)
+				m := Eval(node.Message, env, ctx)
 				if !isError(m) {
 					msg = m.Inspect()
 				}
 			}
 
-			return object.NewCustomError("Assertion Check Failed: ", msg)
+			details := make(map[string]object.Object)
+			details["expression"] = &object.String{Value: node.Condition.String()}
+			return newCustomErrorWithTrace("Assertion Check Failed", msg, node, ctx, details)
 		}
 		return object.NONE
 
 	case *ast.PrefixExpression:
 		if node.Operator == "++" || node.Operator == "--" {
-			return evalPrefixIncrementDecrement(node.Operator, node, env)
+			return evalPrefixIncrementDecrement(node.Operator, node, env, ctx)
 		}
-		right := Eval(node.Right, env)
+		right := Eval(node.Right, env, ctx)
 		if isError(right) {
 			return right
 		}
-		return evalPrefixExpression(node.Operator, node, env)
+		return evalPrefixExpression(node.Operator, node, env, ctx)
 
 	case *ast.InfixExpression:
 		if node.Operator == "+=" || node.Operator == "-=" ||
 			node.Operator == "*=" || node.Operator == "/=" {
-			return evalCompoundAssignment(node, env)
+			return evalCompoundAssignment(node, env, ctx)
 		}
 
 		if node.Operator == "and" {
-			left := Eval(node.Left, env)
+			left := Eval(node.Left, env, ctx)
 			if isError(left) {
 				return left
 			}
 			if !isTruthy(left) {
 				return left
 			}
-			return Eval(node.Right, env)
+			return Eval(node.Right, env, ctx)
 		}
 
 		if node.Operator == "or" {
-			left := Eval(node.Left, env)
+			left := Eval(node.Left, env, ctx)
 			if isError(left) {
 				return left
 			}
 			if isTruthy(left) {
 				return left
 			}
-			return Eval(node.Right, env)
+			return Eval(node.Right, env, ctx)
 		}
 
-		right := Eval(node.Right, env)
+		right := Eval(node.Right, env, ctx)
 		if isError(right) {
-			return right
+			if isErrorWithTrace(right) {
+				return right
+			}
+			return newErrorWithTrace("Error in right operand: %s", node, ctx, right.(*object.Error).Message)
 		}
-		left := Eval(node.Left, env)
-		if isError(left) {
-			return left
-		}
-		result := evalInfixExpression(node.Operator, left, right)
 
+		left := Eval(node.Left, env, ctx)
+		if isError(left) {
+			if isErrorWithTrace(left) {
+				return left
+			}
+			return newErrorWithTrace("Error in left operand: %s", node, ctx, left.(*object.Error).Message)
+		}
+
+		result := evalInfixExpression(node.Operator, left, right, node, ctx)
 		return result
+
 	case *ast.PostfixExpression:
-		return evalPostfixIncrementDecrement(node.Operator, node, env)
+		return evalPostfixIncrementDecrement(node.Operator, node, env, ctx)
 
 	case *ast.IntegerLiteral:
 		return &object.Integer{Value: node.Value}
 	case *ast.FloatLiteral:
 		return &object.Float{Value: node.Value}
 	case *ast.FStringLiteral:
-		return evalFStringLiteral(node, env)
+		return evalFStringLiteral(node, env, ctx)
 	case *ast.NoneLiteral:
 		return object.NONE
 	case *ast.ReturnStatement:
-		val := Eval(node.ReturnValue, env)
+		val := Eval(node.ReturnValue, env, ctx)
 		if isError(val) {
 			return val
 		}
@@ -123,23 +303,23 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 	case *ast.Boolean:
 		return nativeBoolToBooleanObject(node.Value)
 	case *ast.AssignStatement:
-		return evalAssignStatement(node, env)
+		return evalAssignStatement(node, env, ctx)
 	case *ast.WhileStatement:
-		return evalWhileStatement(node, env)
+		return evalWhileStatement(node, env, ctx)
 	case *ast.ForStatement:
-		return evalForStatement(node, env)
+		return evalForStatement(node, env, ctx)
 	case *ast.ImportStatement:
-		return evalImportStatement(node, env)
+		return evalImportStatement(node, env, ctx)
 	case *ast.MatchStatement:
-		return evalMatchStatement(node, env)
+		return evalMatchStatement(node, env, ctx)
 	case *ast.RaiseStatement:
-		return evalRaiseStatement(node, env)
+		return evalRaiseStatement(node, env, ctx)
 	case *ast.ArcaneSpellbook:
-		return evalArcaneSpellbook(node, env)
+		return evalArcaneSpellbook(node, env, ctx)
 	case *ast.Identifier:
-		return evalIdentifier(node, env)
+		return evalIdentifier(node, env, ctx)
 	case *ast.ArrayLiteral:
-		elements := evalExpressions(node.Elements, env)
+		elements := evalExpressions(node.Elements, env, ctx)
 		if len(elements) == 1 && isError(elements[0]) {
 			return elements[0]
 		}
@@ -148,9 +328,9 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 	case *ast.StringLiteral:
 		return &object.String{Value: node.Value}
 	case *ast.TupleLiteral:
-		return evalTupleLiteral(node, env)
+		return evalTupleLiteral(node, env, ctx)
 	case *ast.HashLiteral:
-		return evalHashLiteral(node, env)
+		return evalHashLiteral(node, env, ctx)
 	case *ast.FunctionDefinition:
 		fnObj := &object.Function{
 			Parameters: node.Parameters,
@@ -160,31 +340,35 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		env.Set(node.Name.Value, fnObj)
 		return fnObj
 	case *ast.DotExpression:
-		return evalDotExpression(node, env)
+		return evalDotExpression(node, env, ctx)
 	case *ast.IndexExpression:
-		left := Eval(node.Left, env)
+		left := Eval(node.Left, env, ctx)
 		if isError(left) {
 			return left
 		}
-		index := Eval(node.Index, env)
+		index := Eval(node.Index, env, ctx)
 		if isError(index) {
 			return index
 		}
-		return evalIndexExpression(left, index)
+		return evalIndexExpression(left, index, node, ctx)
 	case *ast.SpellbookDefinition:
-		return evalSpellbookDefinition(node, env)
+		return evalSpellbookDefinition(node, env, ctx)
 	case *ast.AttemptStatement:
-		return evalAttemptStatement(node, env)
+		return evalAttemptStatement(node, env, ctx)
 	case *ast.IgnoreStatement:
 		return object.NONE
 	case *ast.CallExpression:
-		return evalCallExpression(Eval(node.Function, env), evalExpressions(node.Arguments, env), env)
-
+		return evalCallExpression(Eval(node.Function, env, ctx), evalExpressions(node.Arguments, env, ctx), env, ctx)
 	}
+
 	return NONE
 }
 
-func evalFStringLiteral(fslit *ast.FStringLiteral, env *object.Environment) object.Object {
+func evalFStringLiteral(
+	fslit *ast.FStringLiteral,
+	env *object.Environment,
+	ctx *CallContext,
+) object.Object {
 	var sb strings.Builder
 
 	for _, part := range fslit.Parts {
@@ -192,7 +376,7 @@ func evalFStringLiteral(fslit *ast.FStringLiteral, env *object.Environment) obje
 		case *ast.FStringText:
 			sb.WriteString(p.Value)
 		case *ast.FStringExpr:
-			val := Eval(p.Expr, env)
+			val := Eval(p.Expr, env, ctx)
 			if isError(val) {
 				return val
 			}
@@ -203,7 +387,11 @@ func evalFStringLiteral(fslit *ast.FStringLiteral, env *object.Environment) obje
 	return &object.String{Value: sb.String()}
 }
 
-func evalArcaneSpellbook(node *ast.ArcaneSpellbook, env *object.Environment) object.Object {
+func evalArcaneSpellbook(
+	node *ast.ArcaneSpellbook,
+	env *object.Environment,
+	ctx *CallContext,
+) object.Object {
 	methods := make(map[string]*object.Function)
 
 	for _, method := range node.Methods {
@@ -225,45 +413,76 @@ func evalArcaneSpellbook(node *ast.ArcaneSpellbook, env *object.Environment) obj
 	return spellbook
 }
 
-func evalRaiseStatement(node *ast.RaiseStatement, env *object.Environment) object.Object {
-	errObj := Eval(node.Error, env)
+func evalRaiseStatement(
+	node *ast.RaiseStatement,
+	env *object.Environment,
+	ctx *CallContext,
+) object.Object {
+	errObj := Eval(node.Error, env, ctx)
 	if isError(errObj) {
 		return errObj
 	}
 
 	if instance, ok := errObj.(*object.Instance); ok {
-
 		message := ""
 		if msg, ok := instance.Env.Get("message"); ok {
 			if msgStr, ok := msg.(*object.String); ok {
 				message = msgStr.Value
 			}
 		}
-		return &object.CustomError{
-			Name:      instance.Spellbook.Name,
-			Message:   message,
-			ErrorType: instance.Spellbook,
-			Instance:  instance,
-		}
+
+		details := make(map[string]object.Object)
+		details["errorType"] = &object.String{Value: instance.Spellbook.Name}
+		details["instance"] = instance
+
+		return newCustomErrorWithTrace(instance.Spellbook.Name, message, node, ctx, details)
 	}
 
 	if str, ok := errObj.(*object.String); ok {
-		return object.NewCustomError("Error", str.Value)
+		return newCustomErrorWithTrace("Error", str.Value, node, ctx, nil)
 	}
 
-	return newError("cannot raise non-error object: %s", errObj.Type())
+	return newErrorWithTrace("cannot raise non-error object: %s", node, ctx, errObj.Type())
 }
 
-func evalAttemptStatement(node *ast.AttemptStatement, env *object.Environment) object.Object {
+func evalExpressions(
+	exps []ast.Expression,
+	env *object.Environment,
+	ctx *CallContext,
+) []object.Object {
+	var result []object.Object
+
+	for _, e := range exps {
+		evaluated := Eval(e, env, ctx)
+		if isError(evaluated) {
+			return []object.Object{evaluated}
+		}
+		result = append(result, evaluated)
+	}
+
+	return result
+}
+
+func evalAttemptStatement(
+	node *ast.AttemptStatement,
+	env *object.Environment,
+	ctx *CallContext,
+) object.Object {
 	var result object.Object
 
-	tryResult := Eval(node.TryBlock, env)
+	// Create a new context for the try block
+	tryCtx := &CallContext{
+		FunctionName: "attempt",
+		Node:         node.TryBlock,
+		Parent:       ctx,
+		env:          env,
+	}
+	tryResult := Eval(node.TryBlock, env, tryCtx)
 
 	if isError(tryResult) {
 		if customErr, ok := tryResult.(*object.CustomError); ok {
 			for _, ensnare := range node.EnsnareClauses {
-
-				condition := Eval(ensnare.Condition, env)
+				condition := Eval(ensnare.Condition, env, ctx)
 				if isError(condition) {
 					result = condition
 					break
@@ -271,12 +490,46 @@ func evalAttemptStatement(node *ast.AttemptStatement, env *object.Environment) o
 
 				if spellbook, ok := condition.(*object.Spellbook); ok {
 					if customErr.ErrorType == spellbook {
-						result = Eval(ensnare.Consequence, env)
+						ensnareCtx := &CallContext{
+							FunctionName: "ensnare",
+							Node:         ensnare.Consequence,
+							Parent:       ctx,
+							env:          env,
+						}
+						result = Eval(ensnare.Consequence, env, ensnareCtx)
 						break
 					}
 				} else if str, ok := condition.(*object.String); ok {
 					if customErr.Name == str.Value {
-						result = Eval(ensnare.Consequence, env)
+						ensnareCtx := &CallContext{
+							FunctionName: "ensnare",
+							Node:         ensnare.Consequence,
+							Parent:       ctx,
+							env:          env,
+						}
+						result = Eval(ensnare.Consequence, env, ensnareCtx)
+						break
+					}
+				}
+			}
+		} else if errWithTrace, ok := tryResult.(*object.ErrorWithTrace); ok {
+			// Similar handling for our new error type
+			for _, ensnare := range node.EnsnareClauses {
+				condition := Eval(ensnare.Condition, env, ctx)
+				if isError(condition) {
+					result = condition
+					break
+				}
+
+				if str, ok := condition.(*object.String); ok {
+					if strings.HasPrefix(errWithTrace.Message, str.Value) {
+						ensnareCtx := &CallContext{
+							FunctionName: "ensnare",
+							Node:         ensnare.Consequence,
+							Parent:       ctx,
+							env:          env,
+						}
+						result = Eval(ensnare.Consequence, env, ensnareCtx)
 						break
 					}
 				}
@@ -291,7 +544,13 @@ func evalAttemptStatement(node *ast.AttemptStatement, env *object.Environment) o
 	}
 
 	if node.ResolveBlock != nil {
-		resolveResult := Eval(node.ResolveBlock, env)
+		resolveCtx := &CallContext{
+			FunctionName: "resolve",
+			Node:         node.ResolveBlock,
+			Parent:       ctx,
+			env:          env,
+		}
+		resolveResult := Eval(node.ResolveBlock, env, resolveCtx)
 		if isError(resolveResult) {
 			return resolveResult
 		}
@@ -300,25 +559,41 @@ func evalAttemptStatement(node *ast.AttemptStatement, env *object.Environment) o
 	return result
 }
 
-func evalMatchStatement(ms *ast.MatchStatement, env *object.Environment) object.Object {
-	matchValue := Eval(ms.MatchValue, env)
+func evalMatchStatement(
+	ms *ast.MatchStatement,
+	env *object.Environment,
+	ctx *CallContext,
+) object.Object {
+	matchValue := Eval(ms.MatchValue, env, ctx)
 	if isError(matchValue) {
 		return matchValue
 	}
 
 	for _, caseClause := range ms.Cases {
-		caseCondition := Eval(caseClause.Condition, env)
+		caseCondition := Eval(caseClause.Condition, env, ctx)
 		if isError(caseCondition) {
 			return caseCondition
 		}
 
 		if isEqual(matchValue, caseCondition) {
-			return Eval(caseClause.Body, env)
+			caseCtx := &CallContext{
+				FunctionName: "case",
+				Node:         caseClause.Body,
+				Parent:       ctx,
+				env:          env,
+			}
+			return Eval(caseClause.Body, env, caseCtx)
 		}
 	}
 
 	if ms.Default != nil {
-		return Eval(ms.Default.Body, env)
+		defaultCtx := &CallContext{
+			FunctionName: "default_case",
+			Node:         ms.Default.Body,
+			Parent:       ctx,
+			env:          env,
+		}
+		return Eval(ms.Default.Body, env, defaultCtx)
 	}
 
 	return NONE
@@ -334,18 +609,20 @@ func isEqual(obj1, obj2 object.Object) bool {
 		if obj2, ok := obj2.(*object.String); ok {
 			return obj1.Value == obj2.Value
 		}
-
 	default:
 		return false
 	}
 	return false
 }
 
-func evalAssignStatement(node *ast.AssignStatement, env *object.Environment) object.Object {
+func evalAssignStatement(
+	node *ast.AssignStatement,
+	env *object.Environment,
+	ctx *CallContext,
+) object.Object {
 	switch target := node.Name.(type) {
-
 	case *ast.Identifier:
-		val := Eval(node.Value, env)
+		val := Eval(node.Value, env, ctx)
 		if isError(val) {
 			return val
 		}
@@ -354,15 +631,15 @@ func evalAssignStatement(node *ast.AssignStatement, env *object.Environment) obj
 		return val
 
 	case *ast.DotExpression:
-		left := Eval(target.Left, env)
+		left := Eval(target.Left, env, ctx)
 		if isError(left) {
 			return left
 		}
 		instance, ok := left.(*object.Instance)
 		if !ok {
-			return newError("invalid assignment target: %s", left.Type())
+			return newErrorWithTrace("invalid assignment target: %s", target, ctx, left.Type())
 		}
-		val := Eval(node.Value, env)
+		val := Eval(node.Value, env, ctx)
 		if isError(val) {
 			return val
 		}
@@ -370,8 +647,7 @@ func evalAssignStatement(node *ast.AssignStatement, env *object.Environment) obj
 		return val
 
 	case *ast.TupleLiteral:
-
-		val := Eval(node.Value, env)
+		val := Eval(node.Value, env, ctx)
 		if isError(val) {
 			return val
 		}
@@ -383,24 +659,25 @@ func evalAssignStatement(node *ast.AssignStatement, env *object.Environment) obj
 		case *object.Array:
 			values = v.Elements
 		default:
-			return newError("cannot unpack non-iterable type: %s", val.Type())
+			return newErrorWithTrace("cannot unpack non-iterable type: %s", node, ctx, val.Type())
 		}
 
 		if len(target.Elements) != len(values) {
-			return newError("unpacking mismatch: expected %d values, got %d", len(target.Elements), len(values))
+			return newErrorWithTrace("unpacking mismatch: expected %d values, got %d",
+				node, ctx, len(target.Elements), len(values))
 		}
 
 		for i, expr := range target.Elements {
 			ident, ok := expr.(*ast.Identifier)
 			if !ok {
-				return newError("invalid assignment target in tuple assignment")
+				return newErrorWithTrace("invalid assignment target in tuple assignment", node, ctx)
 			}
 			env.Set(ident.Value, values[i])
 		}
 		return val
 
 	default:
-		return newError("invalid assignment target: %T", node.Name)
+		return newErrorWithTrace("invalid assignment target: %T", node, ctx, node.Name)
 	}
 }
 
@@ -414,32 +691,39 @@ func checkType(val object.Object, expectedType string) bool {
 		return val.Type() == object.FLOAT_OBJ
 	case "bool":
 		return val.Type() == object.BOOLEAN_OBJ
-
 	default:
-
 		return true
 	}
 }
 
-func getGlobalEnv(env *object.Environment) *object.Environment {
+func getGlobalEnv(env *object.Environment, ctx *CallContext) *object.Environment {
 	for env.GetOuter() != nil {
 		env = env.GetOuter()
 	}
 	return env
 }
 
-func evalSpellbookDefinition(node *ast.SpellbookDefinition, env *object.Environment) object.Object {
+func evalSpellbookDefinition(
+	node *ast.SpellbookDefinition,
+	env *object.Environment,
+	ctx *CallContext,
+) object.Object {
 	methods := map[string]*object.Function{}
 
 	var parentSpellbook *object.Spellbook
 	if node.Inherits != nil {
 		parentObj, ok := env.Get(node.Inherits.Value)
 		if !ok {
-			return newError("parent spellbook '%s' not found", node.Inherits.Value)
+			return newErrorWithTrace(
+				"parent spellbook '%s' not found",
+				node,
+				ctx,
+				node.Inherits.Value,
+			)
 		}
 		parentSpellbook, ok = parentObj.(*object.Spellbook)
 		if !ok {
-			return newError("'%s' is not a spellbook", node.Inherits.Value)
+			return newErrorWithTrace("'%s' is not a spellbook", node, ctx, node.Inherits.Value)
 		}
 
 		for name, method := range parentSpellbook.Methods {
@@ -469,10 +753,9 @@ func evalSpellbookDefinition(node *ast.SpellbookDefinition, env *object.Environm
 		for name, method := range parentSpellbook.Methods {
 			if method.IsAbstract {
 				if _, ok := methods[name]; !ok {
-					return newError(
+					return newErrorWithTrace(
 						"spellbook '%s' must implement abstract method '%s'",
-						node.Name.Value, name,
-					)
+						node, ctx, node.Name.Value, name)
 				}
 			}
 		}
@@ -503,55 +786,193 @@ func evalSpellbookDefinition(node *ast.SpellbookDefinition, env *object.Environm
 	return spellbook
 }
 
+func evalSpellbookMethodCall(
+	instance *object.Instance,
+	methodName string,
+	args []object.Object,
+	env *object.Environment,
+	ctx *CallContext,
+) object.Object {
+	method, ok := instance.Spellbook.Methods[methodName]
+	if !ok {
+		return newErrorWithTrace("method '%s' not found on %s",
+			ctx.Node, ctx, methodName, instance.Spellbook.Name)
+	}
+
+	if method.IsPrivate && !sameClass(env, instance.Spellbook) {
+		return newErrorWithTrace("private method '%s' not accessible outside its defining class",
+			ctx.Node, ctx, methodName)
+	}
+
+	if method.IsProtected && !sameOrSubclass(env, instance.Spellbook) {
+		return newErrorWithTrace("protected method '%s' not accessible here",
+			ctx.Node, ctx, methodName)
+	}
+
+	// Create isolated method environment
+	methodEnv := object.NewEnclosedEnvironment(instance.Env)
+	methodEnv.Set("self", instance)
+
+	// Create method context
+	methodCtx := &CallContext{
+		FunctionName: instance.Spellbook.Name + "." + methodName,
+		Node:         ctx.Node,
+		Parent:       ctx,
+		env:          methodEnv,
+	}
+
+	// Bind arguments
+	for i, param := range method.Parameters {
+		if i < len(args) {
+			methodEnv.Set(param.Name.Value, args[i])
+		} else if param.DefaultValue != nil {
+			defaultVal := Eval(param.DefaultValue, method.Env, methodCtx)
+			methodEnv.Set(param.Name.Value, defaultVal)
+		} else {
+			methodEnv.Set(param.Name.Value, NONE)
+		}
+	}
+
+	// Execute with bounds checking for recursive calls
+	return evalWithRecursionLimit(method.Body, methodEnv, method, methodCtx, 0)
+}
+
+// Global map to track recursion depth per function
+var recursionDepths = make(map[*ast.BlockStatement]int)
+
+func evalWithRecursionLimit(
+	body *ast.BlockStatement,
+	env *object.Environment,
+	method *object.Function,
+	ctx *CallContext,
+	depth int,
+) object.Object {
+	// Get current depth or start at provided depth
+	currentDepth, exists := recursionDepths[body]
+	if !exists {
+		currentDepth = depth
+	}
+
+	// Increment and check
+	recursionDepths[body] = currentDepth + 1
+	if recursionDepths[body] > MAX_CALL_DEPTH {
+		recursionDepths[body]-- // Clean up
+		return newErrorWithTrace("maximum recursion depth exceeded (limit: %d)",
+			body, ctx, MAX_CALL_DEPTH)
+	}
+
+	// Evaluate with depth tracking
+	result := Eval(body, env, ctx)
+
+	// Clean up
+	recursionDepths[body]--
+	if recursionDepths[body] <= 0 {
+		delete(recursionDepths, body)
+	}
+
+	return unwrapReturnValue(result)
+}
+
 func evalCallExpression(
 	fn object.Object,
 	args []object.Object,
 	env *object.Environment,
+	ctx *CallContext,
 ) object.Object {
 	if len(args) == 1 {
 		if tup, ok := args[0].(*object.Tuple); ok {
 			args = tup.Elements
 		}
 	}
+
 	switch fn := fn.(type) {
 	case *object.Function:
-		globalEnv := getGlobalEnv(fn.Env)
-		extendedEnv := extendFunctionEnv(fn, args, globalEnv)
-		evaluated := Eval(fn.Body, extendedEnv)
-		return unwrapReturnValue(evaluated)
-	case *object.BoundMethod:
-		globalEnv := getGlobalEnv(fn.Method.Env)
-		extendedEnv := extendFunctionEnv(fn.Method, args, globalEnv)
-		extendedEnv.Set("self", fn.Instance)
-		if fn.Method.IsAbstract {
-			return newError("Cannot call abstract method")
+		// Check call depth
+		callCtx, exists := callStack[fn]
+		if !exists {
+			callCtx = &CallContext{
+				depth: 0,
+				env:   env,
+			}
+			callStack[fn] = callCtx
 		}
-		evaluated := Eval(fn.Method.Body, extendedEnv)
+
+		callCtx.depth++
+		if callCtx.depth > MAX_CALL_DEPTH {
+			callCtx.depth--
+			return newErrorWithTrace("maximum recursion depth exceeded (%d)",
+				ctx.Node, ctx, MAX_CALL_DEPTH)
+		}
+
+		// Execute function with call depth tracking
+		globalEnv := getGlobalEnv(fn.Env, ctx)
+		extendedEnv := extendFunctionEnv(fn, args, globalEnv, ctx)
+
+		// Create a new context for this function call
+		fnCtx := &CallContext{
+			FunctionName: ctx.FunctionName,
+			Node:         fn.Body,
+			Parent:       ctx,
+			env:          extendedEnv,
+		}
+
+		evaluated := Eval(fn.Body, extendedEnv, fnCtx)
+
+		// Cleanup after execution
+		callCtx.depth--
+		if callCtx.depth == 0 {
+			delete(callStack, fn)
+		}
+
 		return unwrapReturnValue(evaluated)
+
+	case *object.BoundMethod:
+		// Store method name from the identifier before calling evalSpellbookMethodCall
+		return evalSpellbookMethodCall(fn.Instance, fn.Name, args, env, ctx)
+
 	case *object.Spellbook:
 		if fn.IsArcane {
-			return newError("cannot instantiate arcane spellbook: %s", fn.Name)
+			return newErrorWithTrace("cannot instantiate arcane spellbook: %s",
+				ctx.Node, ctx, fn.Name)
 		}
+
 		instance := &object.Instance{
 			Spellbook: fn,
 			Env:       object.NewEnclosedEnvironment(fn.Env),
 		}
+
 		if fn.InitMethod != nil {
-			globalEnv := getGlobalEnv(fn.Env)
-			extendedEnv := extendFunctionEnv(fn.InitMethod, args, globalEnv)
+			globalEnv := getGlobalEnv(fn.Env, ctx)
+			extendedEnv := extendFunctionEnv(fn.InitMethod, args, globalEnv, ctx)
 			extendedEnv.Set("self", instance)
-			Eval(fn.InitMethod.Body, extendedEnv)
+
+			initCtx := &CallContext{
+				FunctionName: fn.Name + ".init",
+				Node:         fn.InitMethod.Body,
+				Parent:       ctx,
+				env:          extendedEnv,
+			}
+
+			Eval(fn.InitMethod.Body, extendedEnv, initCtx)
 		}
+
 		return instance
+
 	case *object.Builtin:
+		// Builtin functions don't need context tracking in the same way
 		return fn.Fn(args...)
+
 	default:
-		return newError("not a function: %s", fn.Type())
+		return newErrorWithTrace("not a function: %s", ctx.Node, ctx, fn.Type())
 	}
 }
 
-func evalDotExpression(node *ast.DotExpression, env *object.Environment) object.Object {
-	leftObj := Eval(node.Left, env)
+func evalDotExpression(
+	node *ast.DotExpression,
+	env *object.Environment,
+	ctx *CallContext,
+) object.Object {
+	leftObj := Eval(node.Left, env, ctx)
 	if isError(leftObj) {
 		return leftObj
 	}
@@ -559,31 +980,42 @@ func evalDotExpression(node *ast.DotExpression, env *object.Environment) object.
 	if node.Left.String() == "super" {
 		instance, ok := env.Get("self")
 		if !ok || instance == nil {
-			return newError("'super' can only be used in an instance method")
+			return newErrorWithTrace("'super' can only be used in an instance method", node, ctx)
 		}
 
 		inst, ok := instance.(*object.Instance)
 		if !ok {
-			return newError("'super' must be used in an instance of a spellbook")
+			return newErrorWithTrace(
+				"'super' must be used in an instance of a spellbook",
+				node,
+				ctx,
+			)
 		}
 
 		if inst.Spellbook == nil || inst.Spellbook.Inherits == nil {
-			return newError("no parent class found for 'super'")
+			return newErrorWithTrace("no parent class found for 'super'", node, ctx)
 		}
 
 		parentMethod, ok := inst.Spellbook.Inherits.Methods[node.Right.Value]
 		if !ok {
-			return newError("no method '%s' found in parent class", node.Right.Value)
+			return newErrorWithTrace(
+				"no method '%s' found in parent class",
+				node,
+				ctx,
+				node.Right.Value,
+			)
 		}
+
 		return &object.BoundMethod{
 			Instance: inst,
 			Method:   parentMethod,
+			Name:     node.Right.Value,
 		}
 	}
 
 	instance, ok := leftObj.(*object.Instance)
 	if !ok {
-		return newError("type error: %s is not an instance", leftObj.Type())
+		return newErrorWithTrace("type error: %s is not an instance", node, ctx, leftObj.Type())
 	}
 
 	fieldOrMethodName := node.Right.Value
@@ -594,22 +1026,24 @@ func evalDotExpression(node *ast.DotExpression, env *object.Environment) object.
 
 	method, ok := instance.Spellbook.Methods[fieldOrMethodName]
 	if !ok {
-		return newError("undefined property or method: %s", fieldOrMethodName)
+		return newErrorWithTrace("undefined property or method: %s", node, ctx, fieldOrMethodName)
 	}
 
 	if method.IsPrivate && !sameClass(env, instance.Spellbook) {
-		return newError(
+		return newErrorWithTrace(
 			"private method '%s' not accessible outside its defining class",
-			fieldOrMethodName,
-		)
+			node, ctx, fieldOrMethodName)
 	}
+
 	if method.IsProtected && !sameOrSubclass(env, instance.Spellbook) {
-		return newError("protected method '%s' not accessible here", fieldOrMethodName)
+		return newErrorWithTrace("protected method '%s' not accessible here",
+			node, ctx, fieldOrMethodName)
 	}
 
 	return &object.BoundMethod{
 		Instance: instance,
 		Method:   method,
+		Name:     fieldOrMethodName,
 	}
 }
 
@@ -648,18 +1082,19 @@ func sameOrSubclass(env *object.Environment, target *object.Spellbook) bool {
 func evalHashLiteral(
 	node *ast.HashLiteral,
 	env *object.Environment,
+	ctx *CallContext,
 ) object.Object {
 	pairs := make(map[object.HashKey]object.HashPair)
 	for keyNode, valueNode := range node.Pairs {
-		key := Eval(keyNode, env)
+		key := Eval(keyNode, env, ctx)
 		if isError(key) {
 			return key
 		}
 		hashKey, ok := key.(object.Hashable)
 		if !ok {
-			return newError("unusable as hash key: %s", key.Type())
+			return newErrorWithTrace("unusable as hash key: %s", node, ctx, key.Type())
 		}
-		value := Eval(valueNode, env)
+		value := Eval(valueNode, env, ctx)
 		if isError(value) {
 			return value
 		}
@@ -669,8 +1104,12 @@ func evalHashLiteral(
 	return &object.Hash{Pairs: pairs}
 }
 
-func evalTupleLiteral(tl *ast.TupleLiteral, env *object.Environment) object.Object {
-	elements := evalExpressions(tl.Elements, env)
+func evalTupleLiteral(
+	tl *ast.TupleLiteral,
+	env *object.Environment,
+	ctx *CallContext,
+) object.Object {
+	elements := evalExpressions(tl.Elements, env, ctx)
 	if len(elements) == 1 && isError(elements[0]) {
 		return elements[0]
 	}
@@ -678,33 +1117,49 @@ func evalTupleLiteral(tl *ast.TupleLiteral, env *object.Environment) object.Obje
 	return &object.Tuple{Elements: elements}
 }
 
-func evalIndexExpression(left, index object.Object) object.Object {
+func evalIndexExpression(left, index object.Object, node ast.Node, ctx *CallContext) object.Object {
 	switch {
 	case left.Type() == object.TUPLE_OBJ:
-		return evalTupleIndexExpression(left, index)
+		return evalTupleIndexExpression(left, index, node, ctx)
 	case left.Type() == object.ARRAY_OBJ && index.Type() == object.INTEGER_OBJ:
-		return evalArrayIndexExpression(left, index)
+		return evalArrayIndexExpression(left, index, node, ctx)
 	case left.Type() == object.HASH_OBJ:
-		return evalHashIndexExpression(left, index)
+		return evalHashIndexExpression(left, index, node, ctx)
 	default:
-		return newError("index operator not supported: %s", left.Type())
+		return newErrorWithTrace("index operator not supported: %s", node, ctx, left.Type())
 	}
 }
 
-func evalTupleIndexExpression(tuple, index object.Object) object.Object {
+func evalTupleIndexExpression(
+	tuple, index object.Object,
+	node ast.Node,
+	ctx *CallContext,
+) object.Object {
 	tupleObj := tuple.(*object.Tuple)
 	idx := int(index.(*object.Integer).Value)
-	if idx < 0 || idx >= len(tupleObj.Elements) {
-		return NONE
+
+	// Handle negative indices
+	if idx < 0 {
+		idx = len(tupleObj.Elements) + idx
 	}
+
+	if idx < 0 || idx >= len(tupleObj.Elements) {
+		return newErrorWithTrace("index out of bounds: %d (tuple length: %d)",
+			node, ctx, idx, len(tupleObj.Elements))
+	}
+
 	return tupleObj.Elements[idx]
 }
 
-func evalHashIndexExpression(hash, index object.Object) object.Object {
+func evalHashIndexExpression(
+	hash, index object.Object,
+	node ast.Node,
+	ctx *CallContext,
+) object.Object {
 	hashObject := hash.(*object.Hash)
 	key, ok := index.(object.Hashable)
 	if !ok {
-		return newError("unusable as hash key: %s", index.Type())
+		return newErrorWithTrace("unusable as hash key: %s", node, ctx, index.Type())
 	}
 	pair, ok := hashObject.Pairs[key.HashKey()]
 	if !ok {
@@ -713,34 +1168,42 @@ func evalHashIndexExpression(hash, index object.Object) object.Object {
 	return pair.Value
 }
 
-func evalArrayIndexExpression(array, index object.Object) object.Object {
-	arrayObject := array.(*object.Array)
-	idx := index.(*object.Integer).Value
+func evalArrayIndexExpression(
+	array, index object.Object,
+	node ast.Node,
+	ctx *CallContext,
+) object.Object {
+	arrayObject, ok := array.(*object.Array)
+	if !ok {
+		return newErrorWithTrace("index operation not supported on %s", node, ctx, array.Type())
+	}
+
+	intIndex, ok := index.(*object.Integer)
+	if !ok {
+		return newErrorWithTrace("array index must be INTEGER, got %s", node, ctx, index.Type())
+	}
+
+	idx := intIndex.Value
 	maxIndex := int64(len(arrayObject.Elements) - 1)
+
+	// Handle negative indices like Python
+	if idx < 0 {
+		idx = int64(len(arrayObject.Elements)) + idx
+	}
+
 	if idx < 0 || idx > maxIndex {
-		return NONE
+		return newErrorWithTrace("index out of bounds: %d (array length: %d)",
+			node, ctx, idx, maxIndex+1)
 	}
+
 	return arrayObject.Elements[idx]
-}
-
-func evalExpressions(exps []ast.Expression, env *object.Environment) []object.Object {
-	var result []object.Object
-
-	for _, e := range exps {
-		evaluated := Eval(e, env)
-		if isError(evaluated) {
-			return []object.Object{evaluated}
-		}
-		result = append(result, evaluated)
-	}
-
-	return result
 }
 
 func extendFunctionEnv(
 	fn *object.Function,
 	args []object.Object,
 	global *object.Environment,
+	ctx *CallContext,
 ) *object.Environment {
 	env := object.NewEnclosedEnvironment(fn.Env)
 
@@ -752,11 +1215,12 @@ func extendFunctionEnv(
 				if val, ok := global.Get(ident.Value); ok {
 					env.Set(param.Name.Value, val)
 				} else {
-					env.Set(param.Name.Value, newError("identifier not found: "+ident.Value))
+					env.Set(param.Name.Value,
+						newErrorWithTrace("identifier not found: %s",
+							param.DefaultValue, ctx, ident.Value))
 				}
 			} else {
-
-				defaultVal := Eval(param.DefaultValue, fn.Env)
+				defaultVal := Eval(param.DefaultValue, fn.Env, ctx)
 				env.Set(param.Name.Value, defaultVal)
 			}
 		} else {
@@ -774,7 +1238,7 @@ func unwrapReturnValue(obj object.Object) object.Object {
 	return obj
 }
 
-func evalIdentifier(node *ast.Identifier, env *object.Environment) object.Object {
+func evalIdentifier(node *ast.Identifier, env *object.Environment, ctx *CallContext) object.Object {
 	// First check builtins.
 	if builtin, ok := builtins[node.Value]; ok {
 		return builtin
@@ -786,30 +1250,34 @@ func evalIdentifier(node *ast.Identifier, env *object.Environment) object.Object
 	if node.Value == "None" {
 		return object.NONE
 	}
-	return newError("identifier not found: " + node.Value)
+	return newErrorWithTrace("identifier not found: %s", node, ctx, node.Value)
 }
 
-func evalProgram(program *ast.Program, env *object.Environment) object.Object {
+func evalProgram(program *ast.Program, env *object.Environment, ctx *CallContext) object.Object {
 	var result object.Object
 
 	for _, statement := range program.Statements {
-		result = Eval(statement, env)
+		result = Eval(statement, env, ctx)
 
 		switch result.(type) {
 		case *object.ReturnValue:
 			return result.(*object.ReturnValue).Value
-		case *object.Error, *object.CustomError:
+		case *object.Error, *object.CustomError, *object.ErrorWithTrace:
 			return result
 		}
 	}
 	return result
 }
 
-func evalBlockStatement(block *ast.BlockStatement, env *object.Environment) object.Object {
+func evalBlockStatement(
+	block *ast.BlockStatement,
+	env *object.Environment,
+	ctx *CallContext,
+) object.Object {
 	var result object.Object
 
 	for _, statement := range block.Statements {
-		result = Eval(statement, env)
+		result = Eval(statement, env, ctx)
 		if result != nil {
 			rt := result.Type()
 
@@ -817,7 +1285,8 @@ func evalBlockStatement(block *ast.BlockStatement, env *object.Environment) obje
 				rt == object.ERROR_OBJ ||
 				rt == object.CUSTOM_ERROR_OBJ ||
 				rt == object.STOP.Type() ||
-				rt == object.SKIP.Type() {
+				rt == object.SKIP.Type() ||
+				isErrorWithTrace(result) {
 				return result
 			}
 		}
@@ -837,58 +1306,74 @@ func evalPrefixExpression(
 	operator string,
 	node *ast.PrefixExpression,
 	env *object.Environment,
+	ctx *CallContext,
 ) object.Object {
 	switch operator {
 	case "!":
-		right := Eval(node.Right, env)
-		return evalBangOperatorExpression(right, env)
+		right := Eval(node.Right, env, ctx)
+		return evalBangOperatorExpression(right, env, ctx)
 	case "not":
-		right := Eval(node.Right, env)
+		right := Eval(node.Right, env, ctx)
 		if isError(right) {
 			return right
 		}
-		return evalBangOperatorExpression(right, env)
+		return evalBangOperatorExpression(right, env, ctx)
 	case "~":
-		right := Eval(node.Right, env)
+		right := Eval(node.Right, env, ctx)
 		if isError(right) {
 			return right
 		}
 		intOperand, ok := right.(*object.Integer)
 		if !ok {
-			return newError("unsupported operand type for ~: %s", right.Type())
+			return newErrorWithTrace("unsupported operand type for ~: %s", node, ctx, right.Type())
 		}
 
 		return &object.Integer{Value: ^intOperand.Value}
 
 	case "-":
-		right := Eval(node.Right, env)
-		return evalMinusPrefixOperatorExpression(right, env)
+		right := Eval(node.Right, env, ctx)
+		return evalMinusPrefixOperatorExpression(right, env, ctx)
 	default:
-		return newError("unknown operator: %s%s", operator, Eval(node.Right, env).Type())
+		return newErrorWithTrace("unknown operator: %s%s", node, ctx,
+			operator, Eval(node.Right, env, ctx).Type())
 	}
 }
 
 func evalInfixExpression(
 	operator string,
 	left, right object.Object,
+	node ast.Node,
+	ctx *CallContext,
 ) object.Object {
 	switch {
 	case left.Type() == object.INTEGER_OBJ && right.Type() == object.INTEGER_OBJ:
-		return evalIntegerInfixExpression(operator, left, right)
+		return evalIntegerInfixExpression(operator, left, right, node, ctx)
 	case left.Type() == object.BOOLEAN_OBJ && right.Type() == object.BOOLEAN_OBJ:
-		return evalBooleanInfixExpression(operator, left, right)
+		return evalBooleanInfixExpression(operator, left, right, node, ctx)
 	case left.Type() == object.STRING_OBJ && right.Type() == object.STRING_OBJ:
-		return evalStringInfixExpression(operator, left, right)
+		return evalStringInfixExpression(operator, left, right, node, ctx)
 	case left == object.NONE && right == object.NONE:
 		return nativeBoolToBooleanObject(operator == "==")
+	case left.Type() == object.ARRAY_OBJ && right.Type() == object.ARRAY_OBJ:
+		if operator == "+" {
+			leftArr := left.(*object.Array)
+			rightArr := right.(*object.Array)
+			combined := make([]object.Object, len(leftArr.Elements)+len(rightArr.Elements))
+			copy(combined, leftArr.Elements)
+			copy(combined[len(leftArr.Elements):], rightArr.Elements)
+			return &object.Array{Elements: combined}
+		}
+		return newErrorWithTrace("unknown operator for arrays: %s", node, ctx, operator)
 	case left == object.NONE || right == object.NONE:
 		if operator == "==" {
 			return nativeBoolToBooleanObject(false)
 		} else if operator == "!=" {
 			return nativeBoolToBooleanObject(true)
 		}
+		return newErrorWithTrace("operation not supported with None: %s", node, ctx, operator)
 	case left.Type() != right.Type():
-		return newError("type mismatch: %s %s %s", left.Type(), operator, right.Type())
+		return newErrorWithTrace("type mismatch: %s %s %s", node, ctx,
+			left.Type(), operator, right.Type())
 	case left.Type() == object.FLOAT_OBJ || right.Type() == object.FLOAT_OBJ:
 		leftVal := toFloat(left)
 		rightVal := toFloat(right)
@@ -900,16 +1385,33 @@ func evalInfixExpression(
 		case "*":
 			return &object.Float{Value: leftVal * rightVal}
 		case "/":
+			if rightVal == 0 {
+				return newErrorWithTrace("division by zero", node, ctx)
+			}
 			return &object.Float{Value: leftVal / rightVal}
 		case "**":
 			return &object.Float{Value: math.Pow(leftVal, rightVal)}
+		case "<":
+			return nativeBoolToBooleanObject(leftVal < rightVal)
+		case ">":
+			return nativeBoolToBooleanObject(leftVal > rightVal)
+		case "<=":
+			return nativeBoolToBooleanObject(leftVal <= rightVal)
+		case ">=":
+			return nativeBoolToBooleanObject(leftVal >= rightVal)
+		case "==":
+			return nativeBoolToBooleanObject(leftVal == rightVal)
+		case "!=":
+			return nativeBoolToBooleanObject(leftVal != rightVal)
 		default:
-			return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
+			return newErrorWithTrace("unknown operator: %s %s %s", node, ctx,
+				left.Type(), operator, right.Type())
 		}
 	}
 
-	return newError(
+	return newErrorWithTrace(
 		"unknown operator or type mismatch: %s %s %s",
+		node, ctx,
 		left.Type(),
 		operator,
 		right.Type(),
@@ -930,17 +1432,24 @@ func toFloat(obj object.Object) float64 {
 func evalStringInfixExpression(
 	operator string,
 	left, right object.Object,
+	node ast.Node,
+	ctx *CallContext,
 ) object.Object {
 	if operator != "+" {
-		return newError("unknown operator: %s %s %s",
-			left.Type(), operator, right.Type())
+		return newErrorWithTrace("unknown operator: %s %s %s",
+			node, ctx, left.Type(), operator, right.Type())
 	}
 	leftVal := left.(*object.String).Value
 	rightVal := right.(*object.String).Value
 	return &object.String{Value: leftVal + rightVal}
 }
 
-func evalBooleanInfixExpression(operator string, left, right object.Object) object.Object {
+func evalBooleanInfixExpression(
+	operator string,
+	left, right object.Object,
+	node ast.Node,
+	ctx *CallContext,
+) object.Object {
 	leftVal := left.(*object.Boolean).Value
 	rightVal := right.(*object.Boolean).Value
 	switch operator {
@@ -949,7 +1458,8 @@ func evalBooleanInfixExpression(operator string, left, right object.Object) obje
 	case "!=":
 		return nativeBoolToBooleanObject(leftVal != rightVal)
 	default:
-		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
+		return newErrorWithTrace("unknown operator: %s %s %s",
+			node, ctx, left.Type(), operator, right.Type())
 	}
 }
 
@@ -957,17 +1467,19 @@ func evalPrefixIncrementDecrement(
 	operator string,
 	node *ast.PrefixExpression,
 	env *object.Environment,
+	ctx *CallContext,
 ) object.Object {
 	switch operand := node.Right.(type) {
 	case *ast.Identifier:
 		obj, ok := env.Get(operand.Value)
 		if !ok {
-			return newError("undefined variable '%s'", operand.Value)
+			return newErrorWithTrace("undefined variable '%s'", node, ctx, operand.Value)
 		}
 
 		intObj, ok := obj.(*object.Integer)
 		if !ok {
-			return newError("prefix '%s' operator requires an integer variable '%s'", operator, operand.Value)
+			return newErrorWithTrace("prefix '%s' operator requires an integer variable '%s'",
+				node, ctx, operator, operand.Value)
 		}
 
 		if operator == "++" {
@@ -980,7 +1492,8 @@ func evalPrefixIncrementDecrement(
 		return intObj
 
 	default:
-		return newError("prefix '%s' operator requires an integer or identifier", operator)
+		return newErrorWithTrace("prefix '%s' operator requires an integer or identifier",
+			node, ctx, operator)
 	}
 }
 
@@ -988,18 +1501,19 @@ func evalPostfixIncrementDecrement(
 	operator string,
 	node *ast.PostfixExpression,
 	env *object.Environment,
+	ctx *CallContext,
 ) object.Object {
 	switch operand := node.Left.(type) {
 	case *ast.Identifier:
-
 		obj, ok := env.Get(operand.Value)
 		if !ok {
-			return newError("undefined variable '%s'", operand.Value)
+			return newErrorWithTrace("undefined variable '%s'", node, ctx, operand.Value)
 		}
 
 		intObj, ok := obj.(*object.Integer)
 		if !ok {
-			return newError("postfix '%s' operator requires an integer variable '%s'", operator, operand.Value)
+			return newErrorWithTrace("postfix '%s' operator requires an integer variable '%s'",
+				node, ctx, operator, operand.Value)
 		}
 
 		oldValue := intObj.Value
@@ -1017,24 +1531,16 @@ func evalPostfixIncrementDecrement(
 
 		return &object.Integer{Value: oldValue}
 	default:
-		return newError("postfix '%s' operator requires an integer or identifier", operator)
+		return newErrorWithTrace("postfix '%s' operator requires an integer or identifier",
+			node, ctx, operator)
 	}
 }
 
-func evalPostfixExpression(
-	operator string,
-	node *ast.PostfixExpression,
+func evalBangOperatorExpression(
+	right object.Object,
 	env *object.Environment,
+	ctx *CallContext,
 ) object.Object {
-	switch operator {
-	case "++", "--":
-		return evalPostfixIncrementDecrement(operator, node, env)
-	default:
-		return newError("unknown operator: %s", operator)
-	}
-}
-
-func evalBangOperatorExpression(right object.Object, env *object.Environment) object.Object {
 	switch right {
 	case TRUE:
 		return FALSE
@@ -1047,9 +1553,13 @@ func evalBangOperatorExpression(right object.Object, env *object.Environment) ob
 	}
 }
 
-func evalMinusPrefixOperatorExpression(right object.Object, env *object.Environment) object.Object {
+func evalMinusPrefixOperatorExpression(
+	right object.Object,
+	env *object.Environment,
+	ctx *CallContext,
+) object.Object {
 	if right.Type() != object.INTEGER_OBJ && right.Type() != object.FLOAT_OBJ {
-		return newError("unknown operator: -%s", right.Type())
+		return newErrorWithTrace("unknown operator: -%s", ctx.Node, ctx, right.Type())
 	}
 	switch right := right.(type) {
 	case *object.Integer:
@@ -1057,29 +1567,15 @@ func evalMinusPrefixOperatorExpression(right object.Object, env *object.Environm
 	case *object.Float:
 		return &object.Float{Value: -right.Value}
 	default:
-		return newError("unknown type for minus operator: %s", right.Type())
+		return newErrorWithTrace("unknown type for minus operator: %s", ctx.Node, ctx, right.Type())
 	}
-}
-
-func evalIncrementOperatorExpression(side object.Object) object.Object {
-	if side.Type() != object.INTEGER_OBJ {
-		return NONE
-	}
-	value := side.(*object.Integer).Value
-	return &object.Integer{Value: value + 1}
-}
-
-func evalDecrementOperatorExpression(side object.Object) object.Object {
-	if side.Type() != object.INTEGER_OBJ {
-		return NONE
-	}
-	value := side.(*object.Integer).Value
-	return &object.Integer{Value: value - 1}
 }
 
 func evalIntegerInfixExpression(
 	operator string,
 	left, right object.Object,
+	node ast.Node,
+	ctx *CallContext,
 ) object.Object {
 	leftVal := left.(*object.Integer).Value
 	rightVal := right.(*object.Integer).Value
@@ -1091,8 +1587,14 @@ func evalIntegerInfixExpression(
 	case "*":
 		return &object.Integer{Value: leftVal * rightVal}
 	case "/":
+		if rightVal == 0 {
+			return newErrorWithTrace("division by zero", node, ctx)
+		}
 		return &object.Integer{Value: leftVal / rightVal}
 	case "%":
+		if rightVal == 0 {
+			return newErrorWithTrace("modulo by zero", node, ctx)
+		}
 		return &object.Integer{Value: leftVal % rightVal}
 	case "<":
 		return nativeBoolToBooleanObject(leftVal < rightVal)
@@ -1108,7 +1610,6 @@ func evalIntegerInfixExpression(
 		return nativeBoolToBooleanObject(leftVal >= rightVal)
 	case "<=":
 		return nativeBoolToBooleanObject(leftVal <= rightVal)
-
 	case "<<":
 		return &object.Integer{Value: leftVal << uint(rightVal)}
 	case ">>":
@@ -1119,27 +1620,30 @@ func evalIntegerInfixExpression(
 		return &object.Integer{Value: leftVal ^ rightVal}
 	case "|":
 		return &object.Integer{Value: leftVal | rightVal}
-
 	default:
-		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
+		return newErrorWithTrace("unknown operator: %s %s %s",
+			node, ctx, left.Type(), operator, right.Type())
 	}
 }
 
-func evalCompoundAssignment(node *ast.InfixExpression, env *object.Environment) object.Object {
-	rightVal := Eval(node.Right, env)
+func evalCompoundAssignment(
+	node *ast.InfixExpression,
+	env *object.Environment,
+	ctx *CallContext,
+) object.Object {
+	rightVal := Eval(node.Right, env, ctx)
 	if isError(rightVal) {
 		return rightVal
 	}
 
 	switch leftNode := node.Left.(type) {
 	case *ast.Identifier:
-
 		currVal, ok := env.Get(leftNode.Value)
 		if !ok {
-			return newError("undefined variable: %s", leftNode.Value)
+			return newErrorWithTrace("undefined variable: %s", node, ctx, leftNode.Value)
 		}
 
-		newVal := applyCompoundOperator(node.Operator, currVal, rightVal)
+		newVal := applyCompoundOperator(node.Operator, currVal, rightVal, node, ctx)
 		if isError(newVal) {
 			return newVal
 		}
@@ -1148,16 +1652,22 @@ func evalCompoundAssignment(node *ast.InfixExpression, env *object.Environment) 
 		return newVal
 
 	default:
-		return newError("invalid assignment target: %T", leftNode)
+		return newErrorWithTrace("invalid assignment target: %T", node, ctx, leftNode)
 	}
 }
 
-func applyCompoundOperator(operator string, leftVal, rightVal object.Object) object.Object {
+func applyCompoundOperator(
+	operator string,
+	leftVal, rightVal object.Object,
+	node ast.Node,
+	ctx *CallContext,
+) object.Object {
 	switch l := leftVal.(type) {
 	case *object.Integer:
 		rInt, ok := rightVal.(*object.Integer)
 		if !ok {
-			return newError("type mismatch: expected INTEGER, got %s", rightVal.Type())
+			return newErrorWithTrace("type mismatch: expected INTEGER, got %s",
+				node, ctx, rightVal.Type())
 		}
 		switch operator {
 		case "+=":
@@ -1168,17 +1678,18 @@ func applyCompoundOperator(operator string, leftVal, rightVal object.Object) obj
 			return &object.Integer{Value: l.Value * rInt.Value}
 		case "/=":
 			if rInt.Value == 0 {
-				return newError("division by zero")
+				return newErrorWithTrace("division by zero", node, ctx)
 			}
 			return &object.Integer{Value: l.Value / rInt.Value}
 		default:
-			return newError("unknown operator: %s", operator)
+			return newErrorWithTrace("unknown operator: %s", node, ctx, operator)
 		}
 
 	case *object.Float:
 		rFloat, ok := rightVal.(*object.Float)
 		if !ok {
-			return newError("type mismatch: expected FLOAT, got %s", rightVal.Type())
+			return newErrorWithTrace("type mismatch: expected FLOAT, got %s",
+				node, ctx, rightVal.Type())
 		}
 		switch operator {
 		case "+=":
@@ -1189,56 +1700,92 @@ func applyCompoundOperator(operator string, leftVal, rightVal object.Object) obj
 			return &object.Float{Value: l.Value * rFloat.Value}
 		case "/=":
 			if rFloat.Value == 0 {
-				return newError("division by zero")
+				return newErrorWithTrace("division by zero", node, ctx)
 			}
 			return &object.Float{Value: l.Value / rFloat.Value}
 		default:
-			return newError("unknown operator: %s", operator)
+			return newErrorWithTrace("unknown operator: %s", node, ctx, operator)
 		}
 
 	default:
-		return newError("unsupported type for compound assignment: %s", leftVal.Type())
+		return newErrorWithTrace("unsupported type for compound assignment: %s",
+			node, ctx, leftVal.Type())
 	}
 }
 
-func evalIfExpression(ie *ast.IfStatement, env *object.Environment) object.Object {
-	condition := Eval(ie.Condition, env)
+func evalIfExpression(
+	ie *ast.IfStatement,
+	env *object.Environment,
+	ctx *CallContext,
+) object.Object {
+	condition := Eval(ie.Condition, env, ctx)
+
+	if isError(condition) {
+		return condition
+	}
+
 	if isTruthy(condition) {
-		return Eval(ie.Consequence, env)
+		ifCtx := &CallContext{
+			FunctionName: "if_block",
+			Node:         ie.Consequence,
+			Parent:       ctx,
+			env:          env,
+		}
+		return Eval(ie.Consequence, env, ifCtx)
 	}
 
 	for _, branch := range ie.OtherwiseBranches {
-		condition = Eval(branch.Condition, env)
+		condition = Eval(branch.Condition, env, ctx)
 		if isError(condition) {
 			return condition
 		}
 		if isTruthy(condition) {
-			return Eval(branch.Consequence, env)
+			otherwiseCtx := &CallContext{
+				FunctionName: "otherwise_block",
+				Node:         branch.Consequence,
+				Parent:       ctx,
+				env:          env,
+			}
+			return Eval(branch.Consequence, env, otherwiseCtx)
 		}
 	}
 
 	if ie.Alternative != nil {
-		return Eval(ie.Alternative, env)
+		elseCtx := &CallContext{
+			FunctionName: "else_block",
+			Node:         ie.Alternative,
+			Parent:       ctx,
+			env:          env,
+		}
+		return Eval(ie.Alternative, env, elseCtx)
 	}
 
 	return NONE
-}
-
-func newError(format string, a ...interface{}) *object.Error {
-	return &object.Error{Message: fmt.Sprintf(format, a...)}
 }
 
 func isError(obj object.Object) bool {
 	if obj == nil {
 		return false
 	}
-	return obj.Type() == object.ERROR_OBJ || obj.Type() == object.CUSTOM_ERROR_OBJ
+	return obj.Type() == object.ERROR_OBJ ||
+		obj.Type() == object.CUSTOM_ERROR_OBJ ||
+		isErrorWithTrace(obj)
 }
 
-func evalWhileStatement(node *ast.WhileStatement, env *object.Environment) object.Object {
-	for {
+func evalWhileStatement(
+	node *ast.WhileStatement,
+	env *object.Environment,
+	ctx *CallContext,
+) object.Object {
+	whileCtx := &CallContext{
+		FunctionName: "while_loop",
+		Node:         node,
+		Parent:       ctx,
+		env:          env,
+	}
 
-		condition := Eval(node.Condition, env)
+	for {
+		condition := Eval(node.Condition, env, whileCtx)
 		if isError(condition) {
 			return condition
 		}
@@ -1250,35 +1797,56 @@ func evalWhileStatement(node *ast.WhileStatement, env *object.Environment) objec
 		var controlSignal object.Object = nil
 
 		for i := 0; i < n-1; i++ {
-			res := Eval(node.Body.Statements[i], env)
+			stmtCtx := &CallContext{
+				FunctionName: "while_statement",
+				Node:         node.Body.Statements[i],
+				Parent:       whileCtx,
+				env:          env,
+			}
 
-			rt := res.Type()
-			if rt == object.STOP.Type() || rt == object.SKIP.Type() ||
-				rt == object.RETURN_VALUE_OBJ || rt == object.ERROR_OBJ || rt == object.CUSTOM_ERROR_OBJ {
+			res := Eval(node.Body.Statements[i], env, stmtCtx)
+
+			rt := getObjectType(res)
+			if rt == string(object.STOP.Type()) || rt == string(object.SKIP.Type()) ||
+				rt == object.RETURN_VALUE_OBJ || rt == object.ERROR_OBJ ||
+				rt == object.CUSTOM_ERROR_OBJ || isErrorWithTrace(res) {
 				controlSignal = res
 				break
 			}
 		}
 
 		if n > 0 {
-			_ = Eval(node.Body.Statements[n-1], env)
+			lastStmtCtx := &CallContext{
+				FunctionName: "while_last_statement",
+				Node:         node.Body.Statements[n-1],
+				Parent:       whileCtx,
+				env:          env,
+			}
+			_ = Eval(node.Body.Statements[n-1], env, lastStmtCtx)
 		}
 
 		if controlSignal != nil {
-			rt := controlSignal.Type()
-			if rt == object.STOP.Type() {
+			rt := getObjectType(controlSignal)
+			if rt == string(object.STOP.Type()) {
 				break
 			}
-			if rt == object.SKIP.Type() {
+			if rt == string(object.SKIP.Type()) {
 				continue
 			}
 			if rt == object.RETURN_VALUE_OBJ || rt == object.ERROR_OBJ ||
-				rt == object.CUSTOM_ERROR_OBJ {
+				rt == object.CUSTOM_ERROR_OBJ || isErrorWithTrace(controlSignal) {
 				return controlSignal
 			}
 		}
 	}
 	return NONE
+}
+
+func getObjectType(obj object.Object) string {
+	if obj == nil {
+		return ""
+	}
+	return string(obj.Type())
 }
 
 func isTruthy(obj object.Object) bool {
@@ -1300,73 +1868,98 @@ func isTruthy(obj object.Object) bool {
 	}
 }
 
-func evalForStatement(fs *ast.ForStatement, env *object.Environment) object.Object {
-	iterable := Eval(fs.Iterable, env)
+func evalForStatement(
+	fs *ast.ForStatement,
+	env *object.Environment,
+	ctx *CallContext,
+) object.Object {
+	iterable := Eval(fs.Iterable, env, ctx)
 	if isError(iterable) {
 		return iterable
 	}
 
 	var result object.Object = NONE
 
+	forCtx := &CallContext{
+		FunctionName: "for_loop",
+		Node:         fs,
+		Parent:       ctx,
+		env:          env,
+	}
+
 	switch iter := iterable.(type) {
 	case *object.Array:
 		for _, elem := range iter.Elements {
-
 			switch varExpr := fs.Variable.(type) {
 			case *ast.Identifier:
-
 				env.Set(varExpr.Value, elem)
 			case *ast.TupleLiteral:
-
 				var items []object.Object
 				if tupObj, ok := elem.(*object.Tuple); ok {
 					items = tupObj.Elements
 				} else if arrObj, ok := elem.(*object.Array); ok {
 					items = arrObj.Elements
 				} else {
-					return newError("cannot unpack non-iterable element: %s", elem.Type())
+					return newErrorWithTrace("cannot unpack non-iterable element: %s",
+						fs, ctx, elem.Type())
 				}
 				if len(varExpr.Elements) != len(items) {
-					return newError("unpacking mismatch: expected %d values, got %d", len(varExpr.Elements), len(items))
+					return newErrorWithTrace("unpacking mismatch: expected %d values, got %d",
+						fs, ctx, len(varExpr.Elements), len(items))
 				}
 				for i, target := range varExpr.Elements {
-
 					ident, ok := target.(*ast.Identifier)
 					if !ok {
-						return newError("invalid assignment target in for loop")
+						return newErrorWithTrace("invalid assignment target in for loop", fs, ctx)
 					}
 					env.Set(ident.Value, items[i])
 				}
 			default:
-
 				env.Set(fs.Variable.String(), elem)
 			}
 
 			for _, stmt := range fs.Body.Statements {
-				result = Eval(stmt, env)
-				rt := result.Type()
-				if rt == object.STOP.Type() {
+				iterCtx := &CallContext{
+					FunctionName: "for_iteration",
+					Node:         stmt,
+					Parent:       forCtx,
+					env:          env,
+				}
+				result = Eval(stmt, env, iterCtx)
+				rt := getObjectType(result)
+				if rt == string(object.STOP.Type()) {
 					return NONE
 				}
-				if rt == object.SKIP.Type() {
+				if rt == string(object.SKIP.Type()) {
 					break
 				}
-				if rt == object.RETURN_VALUE_OBJ || rt == object.ERROR_OBJ || rt == object.CUSTOM_ERROR_OBJ {
+				if rt == object.RETURN_VALUE_OBJ || rt == object.ERROR_OBJ ||
+					rt == object.CUSTOM_ERROR_OBJ || isErrorWithTrace(result) {
 					return result
 				}
 			}
 		}
 	default:
-		return newError("unsupported iterable type: %s", iterable.Type())
+		return newErrorWithTrace("unsupported iterable type: %s", fs, ctx, iterable.Type())
 	}
 
 	if fs.Alternative != nil {
-		result = Eval(fs.Alternative, env)
+		elseCtx := &CallContext{
+			FunctionName: "for_else",
+			Node:         fs.Alternative,
+			Parent:       forCtx,
+			env:          env,
+		}
+		result = Eval(fs.Alternative, env, elseCtx)
 	}
 	return result
 }
 
-func evalImportStatement(node *ast.ImportStatement, env *object.Environment) object.Object {
+func evalImportStatement(
+	node *ast.ImportStatement,
+	env *object.Environment,
+	ctx *CallContext,
+) object.Object {
 	filePath := node.FilePath.Value + ".crl"
 
 	if importedFiles[filePath] {
@@ -1376,19 +1969,34 @@ func evalImportStatement(node *ast.ImportStatement, env *object.Environment) obj
 
 	fileContent, err := os.ReadFile(filePath)
 	if err != nil {
-		return newError("could not import file: %s", err)
+		return newErrorWithTrace("could not import file: %s", node, ctx, err)
 	}
 
-	l := lexer.New(string(fileContent))
+	l := lexer.NewWithFilename(string(fileContent), filePath)
 	p := parser.New(l)
 	program := p.ParseProgram()
 
 	if len(p.Errors()) > 0 {
-		return newError("parsing errors in imported file: %v", p.Errors())
+		errorDetails := fmt.Sprintf("parsing errors in imported file %s:\n", filePath)
+		for _, err := range p.Errors() {
+			errorDetails += fmt.Sprintf("- %s\n", err)
+		}
+		return newErrorWithTrace(errorDetails, node, ctx)
 	}
 
 	importEnv := object.NewEnclosedEnvironment(env)
-	Eval(program, importEnv)
+	importCtx := &CallContext{
+		FunctionName: "import_" + filePath,
+		Node:         program,
+		Parent:       ctx,
+		env:          importEnv,
+	}
+
+	evalResult := Eval(program, importEnv, importCtx)
+	if isError(evalResult) {
+		return newErrorWithTrace("error evaluating imported file %s: %s",
+			node, ctx, filePath, evalResult.Inspect())
+	}
 
 	namespace := &object.Namespace{Env: importEnv}
 

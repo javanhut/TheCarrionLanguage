@@ -1,0 +1,70 @@
+spellbook Array:
+  init():
+    self.elements = []
+    debug = Debug()
+  
+  spell append(ele):
+    // Create a new array with all existing elements
+    new_elements = []
+    for i in range(len(self.elements)):
+      new_elements = new_elements + [self.elements[i]]
+    
+    // Add the new element
+    new_elements = new_elements + [ele]
+    self.elements = new_elements
+  
+  spell len():
+    length = len(self.elements)
+    debug.log(f"{length}")
+    return length
+  
+  spell get(index):
+    if index < 0 or index >= len(self.elements):
+      return None
+    return self.elements[index]
+  
+  spell print():
+    print(self.elements)
+  
+  spell search(ele):
+    left = 0
+    right = len(self.elements) - 1
+    
+    while left <= right:
+      mid = left + ((right - left) / 2)
+      mid_val = self.elements[mid]
+      
+      if mid_val == ele:
+        return mid
+      otherwise mid_val > ele:
+        right = mid - 1
+      else:
+        left = mid + 1
+    
+    return -1
+  
+  spell bubble_sort():
+    if len(self.elements) <= 1:
+      return
+    
+    for n in range(len(self.elements) - 1, 0, -1):
+      for i in range(n):
+        if self.elements[i] > self.elements[i + 1]:
+          // We can't swap directly, so we need to create a new array
+          new_elements = []
+          for j in range(len(self.elements)):
+            if j == i:
+              new_elements = new_elements + [self.elements[i+1]]
+            otherwise j == i+1:
+              new_elements = new_elements + [self.elements[i]]
+            else:
+              new_elements = new_elements + [self.elements[j]]
+          self.elements = new_elements
+
+
+array = Array()
+array.append(10)
+array.append(1)
+array.append(5)
+array.append(-1)
+array.len()

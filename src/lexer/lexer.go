@@ -14,16 +14,22 @@ type Lexer struct {
 	indentStack []int
 	currLine    string
 	finished    bool
+	sourceFile  string // Source file name for error reporting
 
 	indentResolved bool
 }
 
 func New(input string) *Lexer {
+	return NewWithFilename(input, "<input>")
+}
+
+func NewWithFilename(input string, sourceFile string) *Lexer {
 	rawLines := strings.Split(input, "\n")
 
 	l := &Lexer{
 		lines:       rawLines,
 		indentStack: []int{0},
+		sourceFile:  sourceFile, // Use sourceFile instead of filename to avoid confusion
 	}
 	if len(l.lines) == 0 {
 		l.finished = true
@@ -35,7 +41,7 @@ func New(input string) *Lexer {
 
 func (l *Lexer) NextToken() token.Token {
 	if l.finished {
-		return token.Token{Type: token.EOF, Literal: ""}
+		return l.newToken(token.EOF, "")
 	}
 
 	if l.charIndex == 0 && !l.indentResolved {
@@ -45,7 +51,7 @@ func (l *Lexer) NextToken() token.Token {
 	}
 
 	if l.charIndex >= len(l.currLine) {
-		tok := token.Token{Type: token.NEWLINE, Literal: "\\n"}
+		tok := l.newToken(token.NEWLINE, "\\n")
 		l.advanceLine()
 		return tok
 	}
@@ -73,7 +79,7 @@ func (l *Lexer) NextToken() token.Token {
 			return token.Token{Type: token.EQ, Literal: "=="}
 		}
 		l.charIndex++
-		return newToken(token.ASSIGN, '=')
+		return l.newToken(token.ASSIGN, "=")
 
 	case '+':
 		nxt := l.peekChar()
@@ -85,7 +91,7 @@ func (l *Lexer) NextToken() token.Token {
 			return token.Token{Type: token.INCREMENT, Literal: "+="}
 		}
 		l.charIndex++
-		return newToken(token.PLUS, '+')
+		return l.newToken(token.PLUS, "+")
 
 	case '-':
 		nxt := l.peekChar()
@@ -97,7 +103,7 @@ func (l *Lexer) NextToken() token.Token {
 			return token.Token{Type: token.DECREMENT, Literal: "-="}
 		}
 		l.charIndex++
-		return newToken(token.MINUS, '-')
+		return l.newToken(token.MINUS, "-")
 
 	case '*':
 		if l.peekChar() == '=' {
@@ -108,13 +114,11 @@ func (l *Lexer) NextToken() token.Token {
 			return token.Token{Type: token.EXPONENT, Literal: "**"}
 		}
 		l.charIndex++
-		return newToken(token.ASTERISK, '*')
+		return l.newToken(token.ASTERISK, "*")
 	case '_':
-
 		if l.peekCharIsLetterOrDigitOrUnderscore() {
 			return l.readIdentifier()
 		} else {
-
 			l.charIndex++
 			return token.Token{Type: token.UNDERSCORE, Literal: "_"}
 		}
@@ -131,11 +135,11 @@ func (l *Lexer) NextToken() token.Token {
 			return l.NextToken()
 		}
 		l.charIndex++
-		return newToken(token.SLASH, '/')
+		return l.newToken(token.SLASH, "/")
 
 	case '%':
 		l.charIndex++
-		return newToken(token.MOD, '%')
+		return l.newToken(token.MOD, "%")
 
 	case '<':
 		if l.peekChar() == '<' { // check for left-shift
@@ -146,7 +150,7 @@ func (l *Lexer) NextToken() token.Token {
 			return token.Token{Type: token.LE, Literal: "<="}
 		}
 		l.charIndex++
-		return newToken(token.LT, '<')
+		return l.newToken(token.LT, "<")
 
 	case '>':
 		if l.peekChar() == '>' { // check for right-shift
@@ -157,15 +161,15 @@ func (l *Lexer) NextToken() token.Token {
 			return token.Token{Type: token.GE, Literal: ">="}
 		}
 		l.charIndex++
-		return newToken(token.GT, '>')
+		return l.newToken(token.GT, ">")
 
 	case '^':
 		l.charIndex++
-		return newToken(token.XOR, '^')
+		return l.newToken(token.XOR, "^")
 
 	case '~':
 		l.charIndex++
-		return newToken(token.TILDE, '~')
+		return l.newToken(token.TILDE, "~")
 
 	case '!':
 		if l.peekChar() == '=' {
@@ -173,65 +177,64 @@ func (l *Lexer) NextToken() token.Token {
 			return token.Token{Type: token.NOT_EQ, Literal: "!="}
 		}
 		l.charIndex++
-		return newToken(token.BANG, '!')
+		return l.newToken(token.BANG, "!")
 
 	case ',':
 		l.charIndex++
-		return newToken(token.COMMA, ',')
+		return l.newToken(token.COMMA, ",")
 
 	case ':':
 		l.charIndex++
-		return newToken(token.COLON, ':')
+		return l.newToken(token.COLON, ":")
 
 	case ';':
 		l.charIndex++
-		return newToken(token.SEMICOLON, ';')
+		return l.newToken(token.SEMICOLON, ";")
 	case '(':
 		l.charIndex++
-		return newToken(token.LPAREN, '(')
+		return l.newToken(token.LPAREN, "(")
 
 	case ')':
 		l.charIndex++
-		return newToken(token.RPAREN, ')')
+		return l.newToken(token.RPAREN, ")")
 
 	case '[':
 		l.charIndex++
-		return newToken(token.LBRACK, '[')
+		return l.newToken(token.LBRACK, "[")
 
 	case ']':
 		l.charIndex++
-		return newToken(token.RBRACK, ']')
+		return l.newToken(token.RBRACK, "]")
 
 	case '{':
 		l.charIndex++
-		return newToken(token.LBRACE, '{')
+		return l.newToken(token.LBRACE, "{")
 
 	case '}':
 		l.charIndex++
-		return newToken(token.RBRACE, '}')
+		return l.newToken(token.RBRACE, "}")
 
 	case '.':
 		l.charIndex++
-		return newToken(token.DOT, '.')
+		return l.newToken(token.DOT, ".")
 
 	case '#':
 		l.charIndex++
-		return newToken(token.HASH, '#')
+		return l.newToken(token.HASH, "#")
 
 	case '&':
 		l.charIndex++
-		return newToken(token.AMPERSAND, '&')
+		return l.newToken(token.AMPERSAND, "&")
 
 	case '|':
 		l.charIndex++
-		return newToken(token.PIPE, '|')
+		return l.newToken(token.PIPE, "|")
 
 	case '@':
 		l.charIndex++
-		return newToken(token.AT, '@')
+		return l.newToken(token.AT, "@")
 
 	case '"':
-
 		return l.readString()
 	case '\'':
 		return l.readString()
@@ -242,7 +245,6 @@ func (l *Lexer) NextToken() token.Token {
 		} else if isDigit(ch) {
 			return l.readNumber()
 		} else {
-
 			l.charIndex++
 			return token.Token{Type: token.ILLEGAL, Literal: string(ch)}
 		}
@@ -268,7 +270,6 @@ func (l *Lexer) readFString() token.Token {
 
 	if isTriple {
 		for {
-
 			if l.charIndex >= len(l.currLine) {
 				sb.WriteByte('\n')
 				l.advanceLine()
@@ -371,7 +372,6 @@ func (l *Lexer) skipBlockComment() {
 	l.charIndex += 2
 
 	for {
-
 		if l.charIndex >= len(l.currLine) {
 			l.advanceLine()
 			if l.finished {
@@ -393,23 +393,18 @@ func (l *Lexer) handleIndentChange(newIndent int) token.Token {
 	currentIndent := l.indentStack[len(l.indentStack)-1]
 
 	if newIndent == currentIndent {
-
 		l.charIndex = newIndent
-
-		return token.Token{Type: token.NEWLINE, Literal: ""}
-
+		return l.newToken(token.NEWLINE, "")
 	}
 
 	if newIndent > currentIndent {
-
 		l.indentStack = append(l.indentStack, newIndent)
 		l.charIndex = newIndent
-		return token.Token{Type: token.INDENT, Literal: ""}
+		return l.newToken(token.INDENT, "")
 	}
 
 	l.indentStack = l.indentStack[:len(l.indentStack)-1]
-
-	return token.Token{Type: token.DEDENT, Literal: ""}
+	return l.newToken(token.DEDENT, "")
 }
 
 func (l *Lexer) advanceLine() {
@@ -462,9 +457,7 @@ func (l *Lexer) readString() token.Token {
 	var sb strings.Builder
 
 	if isTriple {
-
 		for {
-
 			if l.charIndex >= len(l.currLine) {
 				sb.WriteByte('\n')
 				l.advanceLine()
@@ -511,7 +504,6 @@ func (l *Lexer) readString() token.Token {
 			Literal: sb.String(),
 		}
 	} else {
-
 		for {
 			if l.charIndex >= len(l.currLine) {
 				break
@@ -588,8 +580,14 @@ func (l *Lexer) readNumber() token.Token {
 	return token.Token{Type: token.INT, Literal: literal}
 }
 
-func newToken(tt token.TokenType, ch byte) token.Token {
-	return token.Token{Type: tt, Literal: string(ch)}
+func (l *Lexer) newToken(tokenType token.TokenType, literal string) token.Token {
+	return token.Token{
+		Type:     tokenType,
+		Literal:  literal,
+		Filename: l.sourceFile,
+		Line:     l.lineIndex + 1, // Make line numbers 1-based for user-friendliness
+		Column:   l.charIndex + 1, // Make column numbers 1-based
+	}
 }
 
 func isLetter(ch byte) bool {
