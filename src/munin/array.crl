@@ -1,0 +1,26 @@
+spellbook Array:
+    init(inner):
+        self.inner = inner
+
+    spell append(ele):
+        if len(self.inner) == 0:
+            self.inner = [ele]
+        else:
+            self.inner = self.inner + [ele]
+
+    spell len():
+        return len(self.inner)
+
+    spell reverse():
+        left = 0
+        right = len(self.inner)
+        while left <= right:
+            temp = right
+            right = left
+            left = temp
+            left++
+            right--
+        return None
+
+    spell print():
+        print(self.inner)
