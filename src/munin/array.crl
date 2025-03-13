@@ -1,5 +1,5 @@
 spellbook Array:
-    init(inner):
+    init(inner=[]):
         self.inner = inner
 
     spell append(ele):
@@ -13,11 +13,11 @@ spellbook Array:
 
     spell reverse():
         left = 0
-        right = len(self.inner)
+        right = len(self.inner) - 1
         while left <= right:
-            temp = right
-            right = left
-            left = temp
+            temp = self.inner[right]
+            self.inner[right] = self.inner[left]
+            self.inner[left] = temp
             left++
             right--
         return None
