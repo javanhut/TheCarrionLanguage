@@ -197,7 +197,7 @@ func (ws *WhileStatement) String() string {
 	return out.String()
 }
 
-type SpellbookDefinition struct {
+type GrimoireDefinition struct {
 	Token      token.Token
 	Name       *Identifier
 	Inherits   *Identifier
@@ -206,11 +206,11 @@ type SpellbookDefinition struct {
 	DocString  *StringLiteral
 }
 
-func (sb *SpellbookDefinition) statementNode()       {}
-func (sb *SpellbookDefinition) TokenLiteral() string { return sb.Token.Literal }
-func (sb *SpellbookDefinition) String() string {
+func (sb *GrimoireDefinition) statementNode()       {}
+func (sb *GrimoireDefinition) TokenLiteral() string { return sb.Token.Literal }
+func (sb *GrimoireDefinition) String() string {
 	var out bytes.Buffer
-	out.WriteString("spellbook ")
+	out.WriteString("grim ")
 	out.WriteString(sb.Name.String())
 	out.WriteString(":\n")
 
@@ -391,18 +391,18 @@ func (as *ArcaneSpell) String() string {
 	return out.String()
 }
 
-type ArcaneSpellbook struct {
+type ArcaneGrimoire struct {
 	Token      token.Token
 	Name       *Identifier
 	Methods    []*ArcaneSpell
 	InitMethod *FunctionDefinition
 }
 
-func (asb *ArcaneSpellbook) statementNode()       {}
-func (asb *ArcaneSpellbook) TokenLiteral() string { return asb.Token.Literal }
-func (asb *ArcaneSpellbook) String() string {
+func (asb *ArcaneGrimoire) statementNode()       {}
+func (asb *ArcaneGrimoire) TokenLiteral() string { return asb.Token.Literal }
+func (asb *ArcaneGrimoire) String() string {
 	var out bytes.Buffer
-	out.WriteString("arcane spellbook ")
+	out.WriteString("arcane grim ")
 	out.WriteString(asb.Name.String())
 	out.WriteString(":\n")
 	for _, method := range asb.Methods {

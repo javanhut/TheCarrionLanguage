@@ -15,11 +15,12 @@ import (
 )
 
 var (
-	NONE           = &object.None{Value: "None"}
-	TRUE           = &object.Boolean{Value: true}
-	FALSE          = &object.Boolean{Value: false}
-	importedFiles  = map[string]bool{}
-	MAX_CALL_DEPTH = 1000
+	NONE                        = &object.None{Value: "None"}
+	TRUE                        = &object.Boolean{Value: true}
+	FALSE                       = &object.Boolean{Value: false}
+	importedFiles               = map[string]bool{}
+	MAX_CALL_DEPTH              = 1000
+	CurrentContext *CallContext = nil
 )
 
 // CallContext tracks function call state for better error reporting
@@ -34,7 +35,6 @@ type CallContext struct {
 // A map to track call stack depth for recursive functions
 var callStack = make(map[*object.Function]*CallContext)
 
-// SourcePosition extracts position information from a node's token
 func getSourcePosition(node ast.Node) object.SourcePosition {
 	pos := object.SourcePosition{
 		Filename: "unknown",
@@ -54,7 +54,6 @@ func getSourcePosition(node ast.Node) object.SourcePosition {
 	return pos
 }
 
-// getNodeToken extracts the token from an AST node
 func getNodeToken(node ast.Node) *token.Token {
 	switch n := node.(type) {
 	case *ast.Program:
@@ -91,12 +90,18 @@ func getNodeToken(node ast.Node) *token.Token {
 		return &n.Token
 	case *ast.AssignStatement:
 		return &n.Token
-		// Add cases for other node types as needed
+	case *ast.DotExpression:
+		return &n.Token
+	case *ast.IndexExpression:
+		return &n.Token
+	case *ast.ForStatement:
+		return &n.Token
+	case *ast.WhileStatement:
+		return &n.Token
 	}
 	return nil
 }
 
-// newErrorWithTrace creates a new error with source position and stack trace
 func newErrorWithTrace(
 	format string,
 	node ast.Node,
@@ -117,9 +122,10 @@ func newErrorWithTrace(
 	currentCtx := ctx
 	for currentCtx != nil {
 		if currentCtx.Node != nil {
+			nodePos := getSourcePosition(currentCtx.Node)
 			entry := object.StackTraceEntry{
 				FunctionName: currentCtx.FunctionName,
-				Position:     getSourcePosition(currentCtx.Node),
+				Position:     nodePos,
 			}
 			err.Stack = append(err.Stack, entry)
 		}
@@ -162,12 +168,19 @@ func newCustomErrorWithTrace(
 	return err
 }
 
-// Helper function to replace the old newError
-func newError(format string, args ...interface{}) *object.Error {
-	return &object.Error{Message: fmt.Sprintf(format, args...)}
+func newError(format string, args ...interface{}) object.Object {
+	msg := fmt.Sprintf(format, args...)
+	err := &object.Error{Message: msg}
+
+	// For better compatibility with stack traces, convert to ErrorWithTrace
+	// when we're inside the evaluator
+	if CurrentContext != nil {
+		return newErrorWithTrace(msg, CurrentContext.Node, CurrentContext)
+	}
+
+	return err
 }
 
-// isErrorWithTrace checks if an object is our new error type
 func isErrorWithTrace(obj object.Object) bool {
 	_, ok := obj.(*object.ErrorWithTrace)
 	return ok
@@ -175,6 +188,9 @@ func isErrorWithTrace(obj object.Object) bool {
 
 // Main evaluation function
 func Eval(node ast.Node, env *object.Environment, ctx *CallContext) object.Object {
+	oldContext := CurrentContext
+	CurrentContext = ctx
+	defer func() { CurrentContext = oldContext }()
 	// Create a new call context if node is a function call
 	if callExp, ok := node.(*ast.CallExpression); ok {
 		funcName := ""
@@ -317,8 +333,8 @@ func Eval(node ast.Node, env *object.Environment, ctx *CallContext) object.Objec
 		return evalMatchStatement(node, env, ctx)
 	case *ast.RaiseStatement:
 		return evalRaiseStatement(node, env, ctx)
-	case *ast.ArcaneSpellbook:
-		return evalArcaneSpellbook(node, env, ctx)
+	case *ast.ArcaneGrimoire:
+		return evalArcaneGrimoire(node, env, ctx)
 	case *ast.Identifier:
 		return evalIdentifier(node, env, ctx)
 	case *ast.ArrayLiteral:
@@ -354,8 +370,8 @@ func Eval(node ast.Node, env *object.Environment, ctx *CallContext) object.Objec
 			return index
 		}
 		return evalIndexExpression(left, index, node, ctx)
-	case *ast.SpellbookDefinition:
-		return evalSpellbookDefinition(node, env, ctx)
+	case *ast.GrimoireDefinition:
+		return evalGrimoireDefinition(node, env, ctx)
 	case *ast.AttemptStatement:
 		return evalAttemptStatement(node, env, ctx)
 	case *ast.IgnoreStatement:
@@ -367,7 +383,11 @@ func Eval(node ast.Node, env *object.Environment, ctx *CallContext) object.Objec
 	return NONE
 }
 
-func evalStringInterpolation(si *ast.StringInterpolation, env *object.Environment, ctx *CallContext) object.Object {
+func evalStringInterpolation(
+	si *ast.StringInterpolation,
+	env *object.Environment,
+	ctx *CallContext,
+) object.Object {
 	var sb strings.Builder
 
 	for _, part := range si.Parts {
@@ -433,7 +453,13 @@ func formatValue(val object.Object, exprPart *ast.StringExpr) string {
 		case '^': // Center align
 			leftPad := padding / 2
 			rightPad := padding - leftPad
-			return strings.Repeat(string(fillChar), leftPad) + formatted + strings.Repeat(string(fillChar), rightPad)
+			return strings.Repeat(
+				string(fillChar),
+				leftPad,
+			) + formatted + strings.Repeat(
+				string(fillChar),
+				rightPad,
+			)
 		default: // Default to left align
 			return formatted + strings.Repeat(string(fillChar), padding)
 		}
@@ -465,8 +491,8 @@ func evalFStringLiteral(
 	return &object.String{Value: sb.String()}
 }
 
-func evalArcaneSpellbook(
-	node *ast.ArcaneSpellbook,
+func evalArcaneGrimoire(
+	node *ast.ArcaneGrimoire,
 	env *object.Environment,
 	ctx *CallContext,
 ) object.Object {
@@ -480,7 +506,7 @@ func evalArcaneSpellbook(
 		}
 	}
 
-	spellbook := &object.Spellbook{
+	spellbook := &object.Grimoire{
 		Name:     node.Name.Value,
 		Methods:  methods,
 		Env:      env,
@@ -510,10 +536,10 @@ func evalRaiseStatement(
 		}
 
 		details := make(map[string]object.Object)
-		details["errorType"] = &object.String{Value: instance.Spellbook.Name}
+		details["errorType"] = &object.String{Value: instance.Grimoire.Name}
 		details["instance"] = instance
 
-		return newCustomErrorWithTrace(instance.Spellbook.Name, message, node, ctx, details)
+		return newCustomErrorWithTrace(instance.Grimoire.Name, message, node, ctx, details)
 	}
 
 	if str, ok := errObj.(*object.String); ok {
@@ -566,7 +592,7 @@ func evalAttemptStatement(
 					break
 				}
 
-				if spellbook, ok := condition.(*object.Spellbook); ok {
+				if spellbook, ok := condition.(*object.Grimoire); ok {
 					if customErr.ErrorType == spellbook {
 						ensnareCtx := &CallContext{
 							FunctionName: "ensnare",
@@ -781,14 +807,14 @@ func getGlobalEnv(env *object.Environment, ctx *CallContext) *object.Environment
 	return env
 }
 
-func evalSpellbookDefinition(
-	node *ast.SpellbookDefinition,
+func evalGrimoireDefinition(
+	node *ast.GrimoireDefinition,
 	env *object.Environment,
 	ctx *CallContext,
 ) object.Object {
 	methods := map[string]*object.Function{}
 
-	var parentSpellbook *object.Spellbook
+	var parentGrimoire *object.Grimoire
 	if node.Inherits != nil {
 		parentObj, ok := env.Get(node.Inherits.Value)
 		if !ok {
@@ -799,12 +825,12 @@ func evalSpellbookDefinition(
 				node.Inherits.Value,
 			)
 		}
-		parentSpellbook, ok = parentObj.(*object.Spellbook)
+		parentGrimoire, ok = parentObj.(*object.Grimoire)
 		if !ok {
 			return newErrorWithTrace("'%s' is not a spellbook", node, ctx, node.Inherits.Value)
 		}
 
-		for name, method := range parentSpellbook.Methods {
+		for name, method := range parentGrimoire.Methods {
 			methods[name] = method
 		}
 	}
@@ -827,8 +853,8 @@ func evalSpellbookDefinition(
 		methods[method.Name.Value] = fn
 	}
 
-	if parentSpellbook != nil {
-		for name, method := range parentSpellbook.Methods {
+	if parentGrimoire != nil {
+		for name, method := range parentGrimoire.Methods {
 			if method.IsAbstract {
 				if _, ok := methods[name]; !ok {
 					return newErrorWithTrace(
@@ -839,12 +865,12 @@ func evalSpellbookDefinition(
 		}
 	}
 
-	spellbook := &object.Spellbook{
+	spellbook := &object.Grimoire{
 		Name:       node.Name.Value,
 		Methods:    methods,
 		InitMethod: nil,
 		Env:        env,
-		Inherits:   parentSpellbook,
+		Inherits:   parentGrimoire,
 		IsArcane:   false,
 	}
 
@@ -864,25 +890,25 @@ func evalSpellbookDefinition(
 	return spellbook
 }
 
-func evalSpellbookMethodCall(
+func evalGrimoireMethodCall(
 	instance *object.Instance,
 	methodName string,
 	args []object.Object,
 	env *object.Environment,
 	ctx *CallContext,
 ) object.Object {
-	method, ok := instance.Spellbook.Methods[methodName]
+	method, ok := instance.Grimoire.Methods[methodName]
 	if !ok {
 		return newErrorWithTrace("method '%s' not found on %s",
-			ctx.Node, ctx, methodName, instance.Spellbook.Name)
+			ctx.Node, ctx, methodName, instance.Grimoire.Name)
 	}
 
-	if method.IsPrivate && !sameClass(env, instance.Spellbook) {
+	if method.IsPrivate && !sameClass(env, instance.Grimoire) {
 		return newErrorWithTrace("private method '%s' not accessible outside its defining class",
 			ctx.Node, ctx, methodName)
 	}
 
-	if method.IsProtected && !sameOrSubclass(env, instance.Spellbook) {
+	if method.IsProtected && !sameOrSubclass(env, instance.Grimoire) {
 		return newErrorWithTrace("protected method '%s' not accessible here",
 			ctx.Node, ctx, methodName)
 	}
@@ -893,7 +919,7 @@ func evalSpellbookMethodCall(
 
 	// Create method context
 	methodCtx := &CallContext{
-		FunctionName: instance.Spellbook.Name + "." + methodName,
+		FunctionName: instance.Grimoire.Name + "." + methodName,
 		Node:         ctx.Node,
 		Parent:       ctx,
 		env:          methodEnv,
@@ -1005,18 +1031,18 @@ func evalCallExpression(
 		return unwrapReturnValue(evaluated)
 
 	case *object.BoundMethod:
-		// Store method name from the identifier before calling evalSpellbookMethodCall
-		return evalSpellbookMethodCall(fn.Instance, fn.Name, args, env, ctx)
+		// Store method name from the identifier before calling evalGrimoireMethodCall
+		return evalGrimoireMethodCall(fn.Instance, fn.Name, args, env, ctx)
 
-	case *object.Spellbook:
+	case *object.Grimoire:
 		if fn.IsArcane {
 			return newErrorWithTrace("cannot instantiate arcane spellbook: %s",
 				ctx.Node, ctx, fn.Name)
 		}
 
 		instance := &object.Instance{
-			Spellbook: fn,
-			Env:       object.NewEnclosedEnvironment(fn.Env),
+			Grimoire: fn,
+			Env:      object.NewEnclosedEnvironment(fn.Env),
 		}
 
 		if fn.InitMethod != nil {
@@ -1038,10 +1064,15 @@ func evalCallExpression(
 
 	case *object.Builtin:
 		// Builtin functions don't need context tracking in the same way
-		return fn.Fn(args...)
-
+		result := fn.Fn(args...)
+		// Convert regular errors to error traces for consistent reporting
+		if err, ok := result.(*object.Error); ok {
+			return newErrorWithTrace(err.Message, ctx.Node, ctx)
+		}
+		return result
 	default:
-		return newErrorWithTrace("not a function: %s", ctx.Node, ctx, fn.Type())
+		return newErrorWithTrace("not a function: %s (in file %s)",
+			ctx.Node, ctx, fn.Type(), getSourcePosition(ctx.Node).Filename)
 	}
 }
 
@@ -1070,11 +1101,11 @@ func evalDotExpression(
 			)
 		}
 
-		if inst.Spellbook == nil || inst.Spellbook.Inherits == nil {
+		if inst.Grimoire == nil || inst.Grimoire.Inherits == nil {
 			return newErrorWithTrace("no parent class found for 'super'", node, ctx)
 		}
 
-		parentMethod, ok := inst.Spellbook.Inherits.Methods[node.Right.Value]
+		parentMethod, ok := inst.Grimoire.Inherits.Methods[node.Right.Value]
 		if !ok {
 			return newErrorWithTrace(
 				"no method '%s' found in parent class",
@@ -1102,18 +1133,18 @@ func evalDotExpression(
 		return val
 	}
 
-	method, ok := instance.Spellbook.Methods[fieldOrMethodName]
+	method, ok := instance.Grimoire.Methods[fieldOrMethodName]
 	if !ok {
 		return newErrorWithTrace("undefined property or method: %s", node, ctx, fieldOrMethodName)
 	}
 
-	if method.IsPrivate && !sameClass(env, instance.Spellbook) {
+	if method.IsPrivate && !sameClass(env, instance.Grimoire) {
 		return newErrorWithTrace(
 			"private method '%s' not accessible outside its defining class",
 			node, ctx, fieldOrMethodName)
 	}
 
-	if method.IsProtected && !sameOrSubclass(env, instance.Spellbook) {
+	if method.IsProtected && !sameOrSubclass(env, instance.Grimoire) {
 		return newErrorWithTrace("protected method '%s' not accessible here",
 			node, ctx, fieldOrMethodName)
 	}
@@ -1125,7 +1156,7 @@ func evalDotExpression(
 	}
 }
 
-func sameClass(env *object.Environment, target *object.Spellbook) bool {
+func sameClass(env *object.Environment, target *object.Grimoire) bool {
 	callerSelf, ok := env.Get("self")
 	if !ok {
 		return false
@@ -1134,10 +1165,10 @@ func sameClass(env *object.Environment, target *object.Spellbook) bool {
 	if !ok {
 		return false
 	}
-	return callerInst.Spellbook == target
+	return callerInst.Grimoire == target
 }
 
-func sameOrSubclass(env *object.Environment, target *object.Spellbook) bool {
+func sameOrSubclass(env *object.Environment, target *object.Grimoire) bool {
 	callerSelf, ok := env.Get("self")
 	if !ok {
 		return false
@@ -1147,7 +1178,7 @@ func sameOrSubclass(env *object.Environment, target *object.Spellbook) bool {
 		return false
 	}
 
-	sb := callerInst.Spellbook
+	sb := callerInst.Grimoire
 	for sb != nil {
 		if sb == target {
 			return true
@@ -2083,7 +2114,7 @@ func evalImportStatement(
 	} else {
 		for _, name := range importEnv.GetNames() {
 			val, _ := importEnv.Get(name)
-			if val.Type() == object.SPELLBOOK_OBJ {
+			if val.Type() == object.GRIMOIRE_OBJ {
 				env.Set(name, val)
 			}
 		}

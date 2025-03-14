@@ -15,7 +15,7 @@ type CustomError struct {
 	Name      string            // Name of the error type (e.g., "ValueError")
 	Message   string            // Error message
 	Details   map[string]Object // Additional details (optional)
-	ErrorType *Spellbook        // The spellbook (class) this error belongs to (renamed to avoid conflict)
+	ErrorType *Grimoire         // The grimoire (class) this error belongs to (renamed to avoid conflict)
 	Instance  *Instance         // Instance of the error (if applicable)
 }
 

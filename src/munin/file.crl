@@ -1,4 +1,4 @@
-spellbook File:
+grim File:
     // Read entire file into a string
     spell read(path):
         return fileRead(path)

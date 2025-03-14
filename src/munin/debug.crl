@@ -1,4 +1,4 @@
-spellbook Debug:
+grim Debug:
   spell log(message):
     print("LOG: " + str(message))
   

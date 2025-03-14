@@ -1,4 +1,4 @@
-spellbook Calculator:
+grim Calculator:
   spell add(x, y):
     return int(x) + int(y)
 

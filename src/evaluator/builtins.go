@@ -715,4 +715,13 @@ var builtins = map[string]*object.Builtin{
 			return &object.Array{Elements: result}
 		},
 	},
+	"is_sametype": {
+		Fn: func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return newError("is_sametype requires 2 arguments, got=%d", len(args))
+			}
+
+			return &object.Boolean{Value: args[0].Type() == args[1].Type()}
+		},
+	},
 }

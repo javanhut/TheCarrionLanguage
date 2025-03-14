@@ -1,3 +1,4 @@
+// src/repl/repl.go
 package repl
 
 import (
@@ -6,12 +7,13 @@ import (
 	"os"
 	"strings"
 
+	"github.com/peterh/liner"
+
 	"github.com/javanhut/TheCarrionLanguage/src/evaluator"
 	"github.com/javanhut/TheCarrionLanguage/src/lexer"
 	"github.com/javanhut/TheCarrionLanguage/src/object"
 	"github.com/javanhut/TheCarrionLanguage/src/parser"
-
-	"github.com/peterh/liner"
+	"github.com/javanhut/TheCarrionLanguage/src/utils"
 )
 
 const ODINS_EYE = `
@@ -46,6 +48,7 @@ const ODINS_EYE = `
 
   `
 
+// Start begins the REPL
 func Start(in io.Reader, out io.Writer, env *object.Environment) {
 	line := liner.NewLiner()
 	evaluator.LineReader = line
@@ -60,16 +63,47 @@ func Start(in io.Reader, out io.Writer, env *object.Environment) {
 	}
 
 	// Optional: Set a custom tab completion function
-	// line.SetCompleter(func(line string) []string {
-	// 	// Implement auto-completion logic here
-	// 	return nil
-	// })
+	line.SetCompleter(func(input string) []string {
+		keywords := []string{
+			"if", "else", "otherwise", "for", "in", "while", "spell", "spellbook", "return",
+			"True", "False", "None", "import", "attempt", "resolve", "ensnare", "raise",
+		}
+
+		// Only suggest keywords at the beginning of input
+		if strings.TrimSpace(input) == "" {
+			return keywords
+		}
+
+		prefix := strings.ToLower(input)
+		var suggestions []string
+
+		for _, kw := range keywords {
+			if strings.HasPrefix(strings.ToLower(kw), prefix) {
+				suggestions = append(suggestions, kw)
+			}
+		}
+
+		return suggestions
+	})
 
 	// Optional: Load history from a file
-	// if f, err := os.Open(historyFile); err == nil {
-	// 	line.ReadHistory(f)
-	// 	f.Close()
-	// }
+	historyFile := ".carrion_history"
+	if f, err := os.Open(historyFile); err == nil {
+		line.ReadHistory(f)
+		f.Close()
+	}
+
+	// Save history on exit
+	defer func() {
+		if f, err := os.Create(historyFile); err == nil {
+			line.WriteHistory(f)
+			f.Close()
+		}
+	}()
+
+	// Clear REPL history for error tracking
+	utils.ClearReplHistory()
+
 	if len(os.Args) > 1 {
 		filePath := os.Args[1]
 		if strings.HasSuffix(filePath, ".crl") {
@@ -90,6 +124,7 @@ func Start(in io.Reader, out io.Writer, env *object.Environment) {
 	currentIndentLevel := 0
 	baseIndentLevel := 0
 	inIfBlock := false
+	lineNumber := 1 // Track line numbers for error context
 
 	fmt.Fprintln(out, "Welcome to the Carrion Programming Language REPL!")
 	fmt.Fprintln(out, "Type 'exit' or 'quit' to exit, 'clear' to clear the screen.")
@@ -114,6 +149,10 @@ func Start(in io.Reader, out io.Writer, env *object.Environment) {
 			continue
 		}
 
+		// Register this line for error context
+		utils.RegisterReplLine(lineNumber, input)
+		lineNumber++
+
 		trimmedLine := strings.TrimSpace(input)
 
 		// Handle special commands only at the primary prompt
@@ -124,6 +163,8 @@ func Start(in io.Reader, out io.Writer, env *object.Environment) {
 				return
 			case "clear":
 				clearScreen(out)
+				utils.ClearReplHistory() // Clear history on screen clear
+				lineNumber = 1           // Reset line counter
 				continue
 			case "":
 				continue
@@ -203,8 +244,66 @@ func Start(in io.Reader, out io.Writer, env *object.Environment) {
 	}
 }
 
+// clearScreen clears the terminal screen
+func clearScreen(out io.Writer) {
+	// ANSI escape sequence to clear screen and move cursor to home position
+	fmt.Fprint(out, "\033[H\033[2J")
+	// Additional sequence to clear scroll-back buffer on some terminals
+	fmt.Fprint(out, "\033[3J")
+}
+
+// ProcessFile reads, parses, and evaluates a Carrion source file
+func ProcessFile(filePath string, out io.Writer, env *object.Environment) error {
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		return fmt.Errorf("error reading file %s: %w", filePath, err)
+	}
+
+	// Tokenize, parse, and evaluate the file contents
+	l := lexer.NewWithFilename(string(content), filePath)
+	p := parser.New(l)
+	program := p.ParseProgram()
+
+	if len(p.Errors()) > 0 {
+		utils.PrintParseFail(filePath, string(content), p.Errors())
+		return fmt.Errorf("file %s contains syntax errors", filePath)
+	}
+
+	evaluated := evaluator.Eval(program, env, nil)
+
+	// Handle errors with improved formatting
+	if errObj, ok := evaluated.(*object.ErrorWithTrace); ok {
+		utils.PrintError(errObj)
+		return fmt.Errorf("runtime error in file %s", filePath)
+	}
+
+	if errObj, ok := evaluated.(*object.Error); ok {
+		// Convert simple errors to error with trace for consistent formatting
+		traceError := &object.ErrorWithTrace{
+			ErrorType: object.ERROR_OBJ,
+			Message:   errObj.Message,
+			Position: object.SourcePosition{
+				Filename: filePath,
+				Line:     1,
+				Column:   1,
+			},
+		}
+		utils.PrintError(traceError)
+		return fmt.Errorf("runtime error in file %s", filePath)
+	}
+
+	if evaluated != nil && evaluated.Type() != object.NONE_OBJ {
+		fmt.Fprintf(out, "%s\n", evaluated.Inspect())
+	}
+	return nil
+}
+
+// tryParseAndEval attempts to parse and evaluate the input
 func tryParseAndEval(input string, out io.Writer, env *object.Environment) (object.Object, bool) {
-	l := lexer.New(input)
+	l := lexer.NewWithFilename(
+		input,
+		"<repl>",
+	) // Use <repl> as the filename for better error reporting
 	p := parser.New(l)
 	program := p.ParseProgram()
 
@@ -212,12 +311,33 @@ func tryParseAndEval(input string, out io.Writer, env *object.Environment) (obje
 		if isIncompleteParse(p.Errors()) {
 			return nil, false
 		}
-		printParserErrors(out, p.Errors())
+		utils.PrintParseFail("<repl>", input, p.Errors())
 		return nil, true
 	}
 
 	evaluated := evaluator.Eval(program, env, nil)
 	if evaluated == nil {
+		return nil, true
+	}
+
+	// Use custom error printer for all errors
+	if errObj, ok := evaluated.(*object.ErrorWithTrace); ok {
+		utils.PrintError(errObj)
+		return nil, true
+	}
+
+	if errObj, ok := evaluated.(*object.Error); ok {
+		// Convert simple errors to error with trace for consistent formatting
+		traceError := &object.ErrorWithTrace{
+			ErrorType: object.ERROR_OBJ,
+			Message:   errObj.Message,
+			Position: object.SourcePosition{
+				Filename: "<repl>",
+				Line:     1,
+				Column:   1,
+			},
+		}
+		utils.PrintError(traceError)
 		return nil, true
 	}
 
@@ -228,49 +348,15 @@ func tryParseAndEval(input string, out io.Writer, env *object.Environment) (obje
 	return evaluated, true
 }
 
+// isIncompleteParse checks if the parser errors indicate incomplete input
 func isIncompleteParse(errs []string) bool {
 	for _, err := range errs {
 		if strings.Contains(strings.ToLower(err), "unexpected end") ||
 			strings.Contains(strings.ToLower(err), "unexpected eof") ||
-			strings.Contains(strings.ToLower(err), "incomplete") {
+			strings.Contains(strings.ToLower(err), "incomplete") ||
+			strings.Contains(strings.ToLower(err), "expected next token") {
 			return true
 		}
 	}
 	return false
-}
-
-func printParserErrors(out io.Writer, errors []string) {
-	// fmt.Fprint(out, ODINS_EYE)
-	io.WriteString(out, "Sorry Friend! Odin's eye sees all and you seem to have errors.\n")
-	io.WriteString(out, "Parser Errors:\n")
-	for _, msg := range errors {
-		fmt.Fprintf(out, "\t%s\n", msg)
-	}
-}
-
-func clearScreen(out io.Writer) {
-	fmt.Fprint(out, "\033[H\033[2J")
-}
-
-func ProcessFile(filePath string, out io.Writer, env *object.Environment) error {
-	content, err := os.ReadFile(filePath)
-	if err != nil {
-		return fmt.Errorf("error reading file %s: %w", filePath, err)
-	}
-
-	// Tokenize, parse, and evaluate the file contents
-	l := lexer.New(string(content))
-	p := parser.New(l)
-	program := p.ParseProgram()
-
-	if len(p.Errors()) > 0 {
-		printParserErrors(out, p.Errors())
-		return fmt.Errorf("file %s contains syntax errors", filePath)
-	}
-
-	evaluated := evaluator.Eval(program, env, nil)
-	if evaluated != nil && evaluated.Type() != object.NONE_OBJ {
-		fmt.Fprintf(out, "%s\n", evaluated.Inspect())
-	}
-	return nil
 }

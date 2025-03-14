@@ -29,7 +29,7 @@ const (
 	BUILTIN_OBJ      = "BUILTIN"
 	HASH_OBJ         = "HASH"
 	TUPLE_OBJ        = "TUPLE"
-	SPELLBOOK_OBJ    = "SPELLBOOK"
+	GRIMOIRE_OBJ     = "GRIMOIRE"
 	INSTANCE_OBJ     = "INSTANCE"
 	NAMESPACE_OBJ    = "NAMESPACE"
 )
@@ -206,28 +206,28 @@ func (t *Tuple) Inspect() string {
 }
 
 // Update Object (object.go)
-type Spellbook struct {
+type Grimoire struct {
 	Name       string
 	Methods    map[string]*Function
 	InitMethod *Function
-	Inherits   *Spellbook
-	Env        *Environment // Add environment to store the spellbook's scope
+	Inherits   *Grimoire
+	Env        *Environment // Add environment to store the grimoire's scope
 	IsArcane   bool
 }
 
-func (s *Spellbook) Type() ObjectType { return SPELLBOOK_OBJ }
-func (s *Spellbook) Inspect() string {
-	return fmt.Sprintf("<spellbook %s>", s.Name)
+func (s *Grimoire) Type() ObjectType { return GRIMOIRE_OBJ }
+func (s *Grimoire) Inspect() string {
+	return fmt.Sprintf("<grimoire %s>", s.Name)
 }
 
 // Ensure Instance type implements Object
 type Instance struct {
-	Spellbook *Spellbook
-	Env       *Environment
+	Grimoire *Grimoire
+	Env      *Environment
 }
 
 func (i *Instance) Type() ObjectType { return INSTANCE_OBJ }
-func (i *Instance) Inspect() string  { return fmt.Sprintf("<instance of %s>", i.Spellbook.Name) }
+func (i *Instance) Inspect() string  { return fmt.Sprintf("<instance of %s>", i.Grimoire.Name) }
 
 // object/object.go
 

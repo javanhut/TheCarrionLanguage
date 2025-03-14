@@ -1,0 +1,25 @@
+grim Array:
+    init(inner=[]):
+        self.inner = inner
+
+    spell append(ele):
+        if len(self.inner) == 0:
+            self.inner = [ele]
+        else:
+            self.inner = self.inner + [ele]
+
+    spell len():
+        return len(self.inner)
+
+    spell reverse():
+        left = 0
+        right = len(self.inner) - 1
+        while left < right:
+            temp = self.inner[left]
+            self.inner[left] = self.inner[right]
+            self.inner[right] = temp
+            left++
+            right--
+
+    spell print():
+        print(self.inner)
