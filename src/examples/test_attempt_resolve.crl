@@ -1,5 +1,4 @@
-// Define a custom error
-spellbook ValueError:
+grim ValueError:
     spell init(message):
         self.message = message
 

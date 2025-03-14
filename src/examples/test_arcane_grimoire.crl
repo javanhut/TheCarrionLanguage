@@ -1,14 +1,14 @@
-arcane spellbook Animal:
+arcane grim Animal:
     @arcanespell
     spell speak():
         ignore
 
-spellbook Dog(Animal):
+grim Dog(Animal):
     spell speak():
          print("Woof!")
 
 // animal = Animal()
 
-// Regular spellbooks can still be instantiated
+// Regular grims can still be instantiated
 dog = Dog()
 dog.speak()

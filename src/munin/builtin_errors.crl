@@ -1,4 +1,4 @@
-arcane spellbook Exception:
+arcane grim Exception:
     @arcanespell
     init():
         ignore
@@ -7,21 +7,21 @@ arcane spellbook Exception:
         ignore
 
 
-spellbook GenericError(Exception):
+grim GenericError(Exception):
     init(message: str = ""):
         self.message = message
 
     spell Type(type:str = "GenericError"):
         return type
 
-spellbook ValueError(Exception):
+grim ValueError(Exception):
     init(message: str= ""):
         self.message = message
 
     spell Type(type:str = "GenericError"):
         return type
 
-spellbook RaiseError:
+grim RaiseError:
     init(err: GenericError):
         self.err = err
         self.message = self.err.message
@@ -30,7 +30,7 @@ spellbook RaiseError:
         raise self.err(self.message)
 
 
-spellbook AssertionError(Exception):
+grim AssertionError(Exception):
     init(message: str = ""):
       self.message = f"Assertion Failed due to: {message}"
     spell Type(type: str = "AssertionError"):

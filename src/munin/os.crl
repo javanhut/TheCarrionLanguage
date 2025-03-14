@@ -1,4 +1,4 @@
-spellbook OS:
+grim OS:
   spell run(command, args=[], captureOutput=False):
     return osRunCommand(command, args, captureOutput)
   spell getenv(key):

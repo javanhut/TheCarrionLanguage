@@ -1,4 +1,4 @@
-spellbook Array:
+grim Array:
     init(inner=[]):
         self.inner = inner
 
