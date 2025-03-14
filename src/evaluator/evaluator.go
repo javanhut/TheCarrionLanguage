@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/javanhut/TheCarrionLanguage/src/ast"
@@ -308,6 +309,8 @@ func Eval(node ast.Node, env *object.Environment, ctx *CallContext) object.Objec
 		return &object.Float{Value: node.Value}
 	case *ast.FStringLiteral:
 		return evalFStringLiteral(node, env, ctx)
+	case *ast.StringInterpolation:
+		return evalStringInterpolation(node, env, ctx)
 	case *ast.NoneLiteral:
 		return object.NONE
 	case *ast.ReturnStatement:
@@ -378,6 +381,81 @@ func Eval(node ast.Node, env *object.Environment, ctx *CallContext) object.Objec
 	}
 
 	return NONE
+}
+
+func evalStringInterpolation(si *ast.StringInterpolation, env *object.Environment, ctx *CallContext) object.Object {
+	var sb strings.Builder
+
+	for _, part := range si.Parts {
+		switch p := part.(type) {
+		case *ast.StringText:
+			sb.WriteString(p.Value)
+		case *ast.StringExpr:
+			val := Eval(p.Expr, env, ctx)
+			if isError(val) {
+				return val
+			}
+
+			// Format the value according to the format specifier
+			formattedVal := formatValue(val, p)
+			sb.WriteString(formattedVal)
+		}
+	}
+
+	return &object.String{Value: sb.String()}
+}
+
+// Helper to format values according to specified format
+func formatValue(val object.Object, exprPart *ast.StringExpr) string {
+	var formatted string
+
+	// Basic conversion to string
+	switch obj := val.(type) {
+	case *object.Integer:
+		formatted = strconv.FormatInt(obj.Value, 10)
+	case *object.Float:
+		if exprPart.Precision > 0 {
+			formatted = strconv.FormatFloat(obj.Value, 'f', exprPart.Precision, 64)
+		} else {
+			formatted = strconv.FormatFloat(obj.Value, 'f', -1, 64)
+		}
+	case *object.Boolean:
+		formatted = strconv.FormatBool(obj.Value)
+	case *object.String:
+		formatted = obj.Value
+	case *object.None:
+		formatted = "None"
+	default:
+		formatted = val.Inspect()
+	}
+
+	// Apply width and alignment
+	if exprPart.Width > 0 {
+		fillChar := ' '
+		if exprPart.FillChar != 0 {
+			fillChar = rune(exprPart.FillChar)
+		}
+
+		padding := exprPart.Width - len(formatted)
+		if padding <= 0 {
+			return formatted // No padding needed
+		}
+
+		switch exprPart.Alignment {
+		case '<': // Left align
+			return formatted + strings.Repeat(string(fillChar), padding)
+		case '>': // Right align
+			return strings.Repeat(string(fillChar), padding) + formatted
+		case '^': // Center align
+			leftPad := padding / 2
+			rightPad := padding - leftPad
+			return strings.Repeat(string(fillChar), leftPad) + formatted + strings.Repeat(string(fillChar), rightPad)
+		default: // Default to left align
+			return formatted + strings.Repeat(string(fillChar), padding)
+		}
+	}
+
+	return formatted
 }
 
 func evalFStringLiteral(

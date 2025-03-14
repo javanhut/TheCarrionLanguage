@@ -100,6 +100,7 @@ const (
 	ARCANESPELL TokenType = "ARCANESPELL"
 	SUPER       TokenType = "SUPER"
 	FSTRING     TokenType = "FSTRING"
+	INTERP      TokenType = "INTERP"
 	CHECK       TokenType = "CHECK"
 	NONE        TokenType = "NONE"
 	AND         TokenType = "AND"

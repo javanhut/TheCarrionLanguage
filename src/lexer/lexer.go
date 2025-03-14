@@ -71,6 +71,14 @@ func (l *Lexer) NextToken() token.Token {
 		}
 		return l.readIdentifier()
 	}
+	if ch == 'i' {
+		next := l.peekChar()
+		if next == '"' || next == '\'' {
+			l.charIndex++
+			return l.readStringInterpolation()
+		}
+		return l.readIdentifier()
+	}
 
 	switch ch {
 	case '=':
@@ -600,4 +608,109 @@ func isDigit(ch byte) bool {
 
 func isHorizontalWhitespace(ch byte) bool {
 	return ch == ' ' || ch == '\t'
+}
+
+func (l *Lexer) readStringInterpolation() token.Token {
+	if l.charIndex >= len(l.currLine) {
+		return token.Token{Type: token.ILLEGAL, Literal: "unexpected end of line after i"}
+	}
+
+	openingQuote := l.currLine[l.charIndex]
+	l.charIndex++
+
+	isTriple := false
+	if l.charIndex+1 < len(l.currLine) &&
+		l.currLine[l.charIndex] == openingQuote &&
+		l.currLine[l.charIndex+1] == openingQuote {
+		isTriple = true
+		l.charIndex += 2
+	}
+
+	var sb strings.Builder
+	isBraceOpen := false
+	braceDepth := 0
+	exprStart := 0
+
+	processChar := func(ch byte) bool {
+		if ch == '$' && l.peekChar() == '{' && !isBraceOpen {
+			// Start of expression
+			l.charIndex++ // Skip the '{'
+			isBraceOpen = true
+			braceDepth = 1
+			exprStart = l.charIndex + 1
+			return true
+		} else if isBraceOpen {
+			if ch == '{' {
+				braceDepth++
+			} else if ch == '}' {
+				braceDepth--
+				if braceDepth == 0 {
+					// End of expression
+					exprStr := l.currLine[exprStart:l.charIndex]
+					sb.WriteString("${" + exprStr + "}")
+					isBraceOpen = false
+					return true
+				}
+			}
+		}
+
+		if !isBraceOpen {
+			if ch == '\\' {
+				l.charIndex++
+				if l.charIndex < len(l.currLine) {
+					esc := l.currLine[l.charIndex]
+					switch esc {
+					case 'n':
+						sb.WriteByte('\n')
+					case 't':
+						sb.WriteByte('\t')
+					case 'r':
+						sb.WriteByte('\r')
+					case '\\':
+						sb.WriteByte('\\')
+					case openingQuote:
+						sb.WriteByte(openingQuote)
+					case '$':
+						sb.WriteByte('$')
+					default:
+						sb.WriteByte(esc)
+					}
+				}
+				return true
+			}
+
+			if ch == openingQuote && !isTriple {
+				// End of string
+				return false
+			} else if isTriple &&
+				l.charIndex+2 < len(l.currLine) &&
+				l.currLine[l.charIndex] == openingQuote &&
+				l.currLine[l.charIndex+1] == openingQuote &&
+				l.currLine[l.charIndex+2] == openingQuote {
+				// End of triple-quoted string
+				l.charIndex += 2
+				return false
+			}
+		}
+
+		sb.WriteByte(ch)
+		return true
+	}
+
+	for l.charIndex < len(l.currLine) {
+		if !processChar(l.currLine[l.charIndex]) {
+			break
+		}
+		l.charIndex++
+	}
+
+	// Skip the closing quote
+	if l.charIndex < len(l.currLine) && l.currLine[l.charIndex] == openingQuote {
+		l.charIndex++
+	}
+
+	return token.Token{
+		Type:    token.INTERP,
+		Literal: sb.String(),
+	}
 }
