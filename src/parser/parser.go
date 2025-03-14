@@ -128,6 +128,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.SELF, p.parseSelf)
 	p.registerPrefix(token.SUPER, p.parseSuperExpression)
 	p.registerPrefix(token.FSTRING, p.parseFStringLiteral)
+	p.registerPrefix(token.INTERP, p.parseStringInterpolationLiteral)
 
 	p.registerPrefix(token.DOCSTRING, p.parseDocStringLiteral)
 	p.registerPrefix(token.INIT, func() ast.Expression {
@@ -1770,4 +1771,143 @@ func (p *Parser) parseImportStatement() ast.Statement {
 	}
 
 	return stmt
+}
+
+func (p *Parser) parseStringInterpolationLiteral() ast.Expression {
+	raw := p.currToken.Literal
+
+	si := &ast.StringInterpolation{
+		Token: p.currToken,
+		Parts: []ast.StringPart{},
+	}
+
+	var currentText strings.Builder
+	i := 0
+	for i < len(raw) {
+		ch := raw[i]
+
+		if ch == '$' && i+1 < len(raw) && raw[i+1] == '{' {
+			// If we have accumulated text, add it as a StringText part
+			if currentText.Len() > 0 {
+				si.Parts = append(si.Parts, &ast.StringText{Value: currentText.String()})
+				currentText.Reset()
+			}
+
+			// Find the matching closing brace
+			exprStart := i + 2
+			braceDepth := 1
+			exprEnd := exprStart
+			formatSpecStart := -1
+
+			for exprEnd < len(raw) && braceDepth > 0 {
+				if raw[exprEnd] == '{' {
+					braceDepth++
+				} else if raw[exprEnd] == '}' {
+					braceDepth--
+					if braceDepth == 0 {
+						break
+					}
+				} else if raw[exprEnd] == ':' && braceDepth == 1 {
+					// Format specifier found
+					formatSpecStart = exprEnd
+				}
+				exprEnd++
+			}
+
+			if braceDepth > 0 {
+				p.errors = append(p.errors, "Unclosed brace in string interpolation")
+				return si
+			}
+
+			var exprStr string
+			var formatSpec string
+
+			if formatSpecStart != -1 {
+				exprStr = raw[exprStart:formatSpecStart]
+				formatSpec = raw[formatSpecStart+1 : exprEnd]
+			} else {
+				exprStr = raw[exprStart:exprEnd]
+			}
+
+			// Parse the expression
+			expr := p.parseStringInterpolationExpression(exprStr)
+
+			// Create a StringExpr with formatting information
+			stringExpr := &ast.StringExpr{Expr: expr}
+
+			// Parse format spec if present
+			if formatSpec != "" {
+				parseFormatSpec(stringExpr, formatSpec)
+			}
+
+			si.Parts = append(si.Parts, stringExpr)
+			i = exprEnd + 1 // Skip past the closing brace
+		} else {
+			currentText.WriteByte(ch)
+			i++
+		}
+	}
+
+	// Add any remaining text
+	if currentText.Len() > 0 {
+		si.Parts = append(si.Parts, &ast.StringText{Value: currentText.String()})
+	}
+
+	return si
+}
+
+func parseFormatSpec(se *ast.StringExpr, spec string) {
+	se.FormatSpec = spec
+
+	i := 0
+	// Check for fill and align
+	if i+1 < len(spec) && (spec[i+1] == '<' || spec[i+1] == '>' || spec[i+1] == '^') {
+		se.FillChar = spec[i]
+		se.Alignment = spec[i+1]
+		i += 2
+	} else if i < len(spec) && (spec[i] == '<' || spec[i] == '>' || spec[i] == '^') {
+		se.FillChar = ' ' // Default fill is space
+		se.Alignment = spec[i]
+		i++
+	}
+
+	// Parse width
+	widthStart := i
+	for i < len(spec) && isDigit(spec[i]) {
+		i++
+	}
+	if i > widthStart {
+		width, _ := strconv.Atoi(spec[widthStart:i])
+		se.Width = width
+	}
+
+	// Parse precision
+	if i < len(spec) && spec[i] == '.' {
+		i++
+		precStart := i
+		for i < len(spec) && isDigit(spec[i]) {
+			i++
+		}
+		if i > precStart {
+			prec, _ := strconv.Atoi(spec[precStart:i])
+			se.Precision = prec
+		}
+	}
+}
+
+func (p *Parser) parseStringInterpolationExpression(exprStr string) ast.Expression {
+	l := lexer.New(exprStr)
+	subParser := New(l)
+	program := subParser.ParseProgram()
+
+	if len(program.Statements) == 1 {
+		if es, ok := program.Statements[0].(*ast.ExpressionStatement); ok {
+			return es.Expression
+		}
+	}
+	return nil
+}
+
+func isDigit(ch byte) bool {
+	return ch >= '0' && ch <= '9'
 }

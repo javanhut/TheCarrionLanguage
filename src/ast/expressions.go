@@ -74,8 +74,8 @@ func (pe *PostfixExpression) String() string {
 }
 
 type CallExpression struct {
-	Token     token.Token // The '(' token
-	Function  Expression  // Identifier or function literal
+	Token     token.Token
+	Function  Expression
 	Arguments []Expression
 }
 
@@ -111,7 +111,7 @@ func (b *Boolean) TokenLiteral() string {
 func (b *Boolean) String() string { return b.TokenLiteral() }
 
 type FunctionLiteral struct {
-	Token      token.Token // spell Token
+	Token      token.Token
 	Parameters []*Identifier
 	Body       *BlockStatement
 }
@@ -161,7 +161,7 @@ func (al *ArrayLiteral) String() string {
 }
 
 type IndexExpression struct {
-	Token token.Token // The [ token
+	Token token.Token
 	Left  Expression
 	Index Expression
 }
@@ -199,8 +199,8 @@ func (hl *HashLiteral) String() string {
 }
 
 type TupleLiteral struct {
-	Token    token.Token  // The '(' token
-	Elements []Expression // Elements in the tuple
+	Token    token.Token
+	Elements []Expression
 }
 
 func (tl *TupleLiteral) expressionNode()      {}
@@ -218,9 +218,9 @@ func (tl *TupleLiteral) String() string {
 }
 
 type DotExpression struct {
-	Token token.Token // The '.' token
-	Left  Expression  // The object being accessed
-	Right *Identifier // The method or property being accessed
+	Token token.Token
+	Left  Expression
+	Right *Identifier
 }
 
 func (de *DotExpression) expressionNode()      {}
@@ -237,19 +237,16 @@ func (nl *NoneLiteral) expressionNode()      {}
 func (nl *NoneLiteral) TokenLiteral() string { return nl.Token.Literal }
 func (nl *NoneLiteral) String() string       { return "None" }
 
-// FStringLiteral is the AST node for an f-string containing multiple parts.
 type FStringLiteral struct {
-	Token token.Token   // the FSTRING token (or the initial f" token)
-	Parts []FStringPart // each part is either text or an embedded expression
+	Token token.Token
+	Parts []FStringPart
 }
 
-// FStringPart is an interface for "text" vs. "expression" segments.
 type FStringPart interface {
 	partNode()
 	String() string
 }
 
-// FStringText is a literal text segment in the f-string.
 type FStringText struct {
 	Value string
 }
@@ -257,7 +254,6 @@ type FStringText struct {
 func (ft *FStringText) partNode()      {}
 func (ft *FStringText) String() string { return ft.Value }
 
-// FStringExpr wraps an AST Expression for the { ... } part.
 type FStringExpr struct {
 	Expr Expression
 }
@@ -272,7 +268,6 @@ func (fe *FStringExpr) String() string {
 
 func (fsl *FStringLiteral) expressionNode() {}
 
-// Implement the Node interface on FStringLiteral
 func (fsl *FStringLiteral) TokenLiteral() string {
 	return fsl.Token.Literal
 }
@@ -282,5 +277,54 @@ func (fsl *FStringLiteral) String() string {
 	for _, part := range fsl.Parts {
 		out.WriteString(part.String())
 	}
+	return out.String()
+}
+
+type StringInterpolation struct {
+	Token token.Token
+	Parts []StringPart
+}
+type StringPart interface {
+	partNode()
+	String() string
+}
+
+type StringText struct {
+	Value string
+}
+
+func (st *StringText) partNode()      {}
+func (st *StringText) String() string { return st.Value }
+
+type StringExpr struct {
+	Expr       Expression
+	FormatSpec string
+	Width      int
+	Precision  int
+	Alignment  byte
+	FillChar   byte
+}
+
+func (se *StringExpr) partNode() {}
+func (se *StringExpr) String() string {
+	if se.Expr != nil {
+		return se.Expr.String()
+	}
+	return ""
+}
+
+func (si *StringInterpolation) expressionNode() {}
+
+func (si *StringInterpolation) TokenLiteral() string {
+	return si.Token.Literal
+}
+
+func (si *StringInterpolation) String() string {
+	var out bytes.Buffer
+	out.WriteString("i\"")
+	for _, part := range si.Parts {
+		out.WriteString(part.String())
+	}
+	out.WriteString("\"")
 	return out.String()
 }
