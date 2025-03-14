@@ -58,6 +58,8 @@ All of these are valid:
 - 'Single quoted string'
 - f"Formatted string"
 - f'Formatted single quoted string'
+- i"Double String Interpolation"
+- i'Single String Interpolation'
 
 * Note: The F Strings won't throw an error for not using a replacement char for it but hey it will eventually. probably better than using string concatenation
 
