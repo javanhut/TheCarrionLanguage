@@ -1,0 +1,136 @@
+grim Float:
+    init(value = 0.0):
+        if type(value) == "FLOAT":
+            self.value = value
+        else:
+            self.value = float(value)
+    
+    // Conversion methods
+    spell to_int():
+        return int(self.value)
+    
+    spell to_string():
+        return str(self.value)
+    
+    spell to_boolean():
+        return self.value != 0.0
+    
+    // Mathematical operations
+    spell add(other):
+        if type(other) == "FLOAT" or type(other) == "INTEGER":
+            return Float(self.value + other)
+        otherwise type(other) == "INSTANCE":
+            if other.value:
+                return Float(self.value + other.value)
+        return Float(self.value + float(other))
+    
+    spell subtract(other):
+        if type(other) == "FLOAT" or type(other) == "INTEGER":
+            return Float(self.value - other)
+        otherwise type(other) == "INSTANCE":
+            if other.value:
+                return Float(self.value - other.value)
+        return Float(self.value - float(other))
+    
+    spell multiply(other):
+        if type(other) == "FLOAT" or type(other) == "INTEGER":
+            return Float(self.value * other)
+        otherwise type(other) == "INSTANCE":
+            if other.value:
+                return Float(self.value * other.value)
+        return Float(self.value * float(other))
+    
+    spell divide(other):
+        if type(other) == "FLOAT" or type(other) == "INTEGER":
+            return Float(self.value / other)
+        otherwise type(other) == "INSTANCE":
+            if other.value:
+                return Float(self.value / other.value)
+        return Float(self.value / float(other))
+    
+    spell power(exponent):
+        if type(exponent) == "FLOAT" or type(exponent) == "INTEGER":
+            return Float(self.value ** exponent)
+        otherwise type(exponent) == "INSTANCE":
+            if exponent.value:
+                return Float(self.value ** exponent.value)
+        return Float(self.value ** float(exponent))
+    
+    // Comparison operations
+    spell equals(other):
+        if type(other) == "FLOAT" or type(other) == "INTEGER":
+            return self.value == other
+        otherwise type(other) == "INSTANCE":
+            if other.value:
+                return self.value == other.value
+        return self.value == float(other)
+    
+    spell greater_than(other):
+        if type(other) == "FLOAT" or type(other) == "INTEGER":
+            return self.value > other
+        otherwise type(other) == "INSTANCE":
+            if other.value:
+                return self.value > other.value
+        return self.value > float(other)
+    
+    spell less_than(other):
+        if type(other) == "FLOAT" or type(other) == "INTEGER":
+            return self.value < other
+        otherwise type(other) == "INSTANCE":
+            if other.value:
+                return self.value < other.value
+        return self.value < float(other)
+    
+    // Advanced math operations
+    spell round(decimals=0):
+        factor = 10 ** decimals
+        return Float(int(self.value * factor + 0.5) / factor)
+    
+    spell floor():
+        return Float(int(self.value))
+    
+    spell ceiling():
+        if self.value == int(self.value):
+            return Float(self.value)
+        return Float(int(self.value) + 1)
+    
+    spell abs():
+        if self.value < 0:
+            return Float(-self.value)
+        return Float(self.value)
+    
+    // Utility methods
+    spell is_integer():
+        return self.value == int(self.value)
+    
+    spell is_positive():
+        return self.value > 0
+    
+    spell is_negative():
+        return self.value < 0
+    
+    spell is_zero():
+        return self.value == 0
+    
+    // String representation
+    spell to_str():
+        return str(self.value)
+    
+    spell format(precision=2):
+        factor = 10 ** precision
+        rounded = int(self.value * factor + 0.5) / factor
+        
+        // Convert to string with fixed precision
+        str_value = str(rounded)
+        
+        // Ensure we have decimal point and correct number of decimals
+        if "." not in str_value:
+            str_value = str_value + "."
+        
+        parts = str_value.split(".")
+        decimal_part = parts[1]
+        
+        while len(decimal_part) < precision:
+            decimal_part = decimal_part + "0"
+        
+        return parts[0] + "." + decimal_part

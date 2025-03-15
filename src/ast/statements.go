@@ -456,3 +456,17 @@ func (cs *CheckStatement) String() string {
 	}
 	return out.String()
 }
+
+type ElseStatement struct {
+	Token token.Token
+	Body  *BlockStatement
+}
+
+func (es *ElseStatement) statementNode()       {}
+func (es *ElseStatement) TokenLiteral() string { return es.Token.Literal }
+func (es *ElseStatement) String() string {
+	var out strings.Builder
+	out.WriteString("else:\n")
+	out.WriteString(es.Body.String())
+	return out.String()
+}

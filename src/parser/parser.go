@@ -17,6 +17,7 @@ const (
 	LOGICAL_OR
 	LOGICAL_AND
 	EQUALS
+	COMPARSION
 	LESSGREATER
 	SUM
 	PRODUCT
@@ -51,6 +52,8 @@ var precedences = map[token.TokenType]int{
 	token.LBRACK:          INDEX,
 	token.OR:              LOGICAL_OR,
 	token.AND:             LOGICAL_AND,
+	token.IN:              COMPARSION,
+	token.NOT_IN:          COMPARSION,
 
 	token.LSHIFT: 6,
 
@@ -72,10 +75,17 @@ type Parser struct {
 	peekToken         token.Token
 	errors            []string
 	contextStack      []string
+	indentLevel       int
 	prefixParseFns    map[token.TokenType]prefixParseFn
 	infixParseFns     map[token.TokenType]infixParseFn
 	postfixParseFns   map[token.TokenType]postfixParseFn
 	statementParseFns map[token.TokenType]func() ast.Statement
+	controlStack      []struct {
+		Type        string      // "if", "for", "while", etc.
+		IndentLevel int         // The indentation level
+		HasElse     bool        // Whether this if has an else branch already
+		Token       token.Token // The original token for error reporting
+	}
 }
 
 func (p *Parser) isInsideGrimoire() bool {
@@ -86,7 +96,15 @@ func (p *Parser) isInsideGrimoire() bool {
 }
 
 func New(l *lexer.Lexer) *Parser {
-	p := &Parser{l: l, errors: []string{}}
+	p := &Parser{
+		l: l, errors: []string{},
+		controlStack: []struct {
+			Type        string
+			IndentLevel int
+			HasElse     bool
+			Token       token.Token
+		}{},
+	}
 	p.nextToken()
 	p.nextToken()
 
@@ -165,7 +183,8 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.AMPERSAND, p.parseInfixExpression)
 	p.registerInfix(token.XOR, p.parseInfixExpression)
 	p.registerInfix(token.PIPE, p.parseInfixExpression)
-
+	p.registerInfix(token.IN, p.parseInfixExpression)
+	p.registerInfix(token.NOT_IN, p.parseInfixExpression)
 	p.registerPostfix(token.PLUS_INCREMENT, p.parsePostfixExpression)
 	p.registerPostfix(token.MINUS_DECREMENT, p.parsePostfixExpression)
 
@@ -535,6 +554,18 @@ func (p *Parser) parseRaiseStatement() ast.Statement {
 }
 
 func (p *Parser) parseAttemptStatement() ast.Statement {
+	currentIndent := p.getCurrentIndent()
+	p.controlStack = append(p.controlStack, struct {
+		Type        string
+		IndentLevel int
+		HasElse     bool
+		Token       token.Token
+	}{
+		Type:        "attempt",
+		IndentLevel: currentIndent,
+		HasElse:     false,
+		Token:       p.currToken,
+	})
 	stmt := &ast.AttemptStatement{Token: p.currToken}
 
 	if !p.expectPeek(token.COLON) {
@@ -635,7 +666,9 @@ func (p *Parser) parseAttemptStatement() ast.Statement {
 			}
 		}
 	}
-
+	if len(p.controlStack) > 0 {
+		p.controlStack = p.controlStack[:len(p.controlStack)-1]
+	}
 	return stmt
 }
 
@@ -654,6 +687,18 @@ func (p *Parser) parseNoneLiteral() ast.Expression {
 }
 
 func (p *Parser) parseMatchStatement() ast.Statement {
+	currentIndent := p.getCurrentIndent()
+	p.controlStack = append(p.controlStack, struct {
+		Type        string
+		IndentLevel int
+		HasElse     bool
+		Token       token.Token
+	}{
+		Type:        "match",
+		IndentLevel: currentIndent,
+		HasElse:     false,
+		Token:       p.currToken,
+	})
 	stmt := &ast.MatchStatement{Token: p.currToken}
 
 	p.nextToken()
@@ -737,7 +782,9 @@ func (p *Parser) parseMatchStatement() ast.Statement {
 
 		stmt.Default = defaultClause
 	}
-
+	if len(p.controlStack) > 0 {
+		p.controlStack = p.controlStack[:len(p.controlStack)-1]
+	}
 	return stmt
 }
 
@@ -980,8 +1027,13 @@ func (p *Parser) parseStatement() ast.Statement {
 	case token.IF:
 		return p.parseIfStatement()
 	case token.ELSE:
-		p.errors = append(p.errors, "Unexpected 'else' without matching 'if'")
-		return nil
+		if !validateElseStatement(p) {
+			p.errors = append(p.errors, "Unexpected 'else' without matching 'if'")
+			return nil
+		}
+
+		// Now parse the else block using the isolated method
+		return p.parseElseStatement()
 	case token.WHILE:
 		return p.parseWhileStatement()
 	case token.GRIMOIRE:
@@ -1035,6 +1087,72 @@ func (p *Parser) parseStatement() ast.Statement {
 		p.nextToken()
 	}
 	return stmt
+}
+
+// Add this function to your parser
+func (p *Parser) parseElseStatement() ast.Statement {
+	// Create the else statement
+	elseStmt := &ast.ElseStatement{Token: p.currToken}
+
+	if !p.expectPeek(token.COLON) {
+		return nil
+	}
+
+	if p.peekTokenIs(token.NEWLINE) {
+		p.nextToken()
+		if p.peekTokenIs(token.INDENT) {
+			p.nextToken()
+			elseStmt.Body = p.parseBlockStatement()
+		} else {
+			elseStmt.Body = &ast.BlockStatement{
+				Token:      p.currToken,
+				Statements: []ast.Statement{p.parseStatement()},
+			}
+		}
+	} else {
+		p.nextToken()
+		elseStmt.Body = &ast.BlockStatement{
+			Token:      p.currToken,
+			Statements: []ast.Statement{p.parseStatement()},
+		}
+	}
+
+	return elseStmt
+}
+
+// Just the validation logic to be inserted in your existing code where you check
+// if an 'else' token is valid before proceeding to parse it
+func validateElseStatement(p *Parser) bool {
+	currentIndent := p.getCurrentIndent()
+
+	// Look for a matching if at the same indentation level that doesn't have an else yet
+	validElse := false
+	elseIndex := -1
+
+	// Scan the control stack backwards to find the matching if
+	for i := len(p.controlStack) - 1; i >= 0; i-- {
+		ctrl := p.controlStack[i]
+		if ctrl.Type == "if" && ctrl.IndentLevel == currentIndent && !ctrl.HasElse {
+			validElse = true
+			elseIndex = i
+			break
+		}
+
+		// If we find a control structure at a lower indent level,
+		// we've moved out of the current block scope
+		if ctrl.IndentLevel < currentIndent {
+			break
+		}
+	}
+
+	// Mark the matching if as having an else branch if found
+	if validElse && elseIndex >= 0 {
+		ctrl := p.controlStack[elseIndex]
+		ctrl.HasElse = true
+		p.controlStack[elseIndex] = ctrl
+	}
+
+	return validElse
 }
 
 func (p *Parser) finishAssignmentStatement(leftExpr ast.Expression) ast.Statement {
@@ -1240,6 +1358,19 @@ func (p *Parser) parsePostfixExpression(left ast.Expression) ast.Expression {
 func (p *Parser) parseIfStatement() ast.Statement {
 	stmt := &ast.IfStatement{Token: p.currToken}
 
+	currentIndent := p.getCurrentIndent()
+	p.controlStack = append(p.controlStack, struct {
+		Type        string
+		IndentLevel int
+		HasElse     bool
+		Token       token.Token
+	}{
+		Type:        "if",
+		IndentLevel: currentIndent,
+		HasElse:     false,
+		Token:       p.currToken,
+	})
+
 	if p.peekTokenIs(token.LPAREN) {
 		p.nextToken()
 		p.nextToken()
@@ -1348,13 +1479,22 @@ func (p *Parser) parseIfStatement() ast.Statement {
 		}
 	}
 
+	if len(p.controlStack) > 0 {
+		p.controlStack = p.controlStack[:len(p.controlStack)-1]
+	}
+
 	return stmt
+}
+
+func (p *Parser) getCurrentIndent() int {
+	// Use your existing indentation tracking
+	return len(p.contextStack)
 }
 
 func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 	block := &ast.BlockStatement{Token: p.currToken}
 	block.Statements = []ast.Statement{}
-
+	prevIndent := p.getCurrentIndent()
 	/*if p.currTokenIs(token.INDENT) {
 		p.nextToken()
 	}*/
@@ -1367,6 +1507,18 @@ func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 		p.nextToken()
 	}
 
+	currentIndent := p.getCurrentIndent()
+	if currentIndent < prevIndent {
+		// Remove any control structures that were at higher indent levels
+		for i := len(p.controlStack) - 1; i >= 0; i-- {
+			if p.controlStack[i].IndentLevel >= prevIndent {
+				// This control structure should have ended by now
+				p.controlStack = append(p.controlStack[:i], p.controlStack[i+1:]...)
+			} else {
+				break
+			}
+		}
+	}
 	return block
 }
 
@@ -1413,6 +1565,18 @@ func (p *Parser) parseCallArguments() []ast.Expression {
 }
 
 func (p *Parser) parseForStatement() ast.Statement {
+	currentIndent := p.getCurrentIndent()
+	p.controlStack = append(p.controlStack, struct {
+		Type        string
+		IndentLevel int
+		HasElse     bool
+		Token       token.Token
+	}{
+		Type:        "for",
+		IndentLevel: currentIndent,
+		HasElse:     false,
+		Token:       p.currToken,
+	})
 	stmt := &ast.ForStatement{Token: p.currToken}
 
 	p.nextToken()
@@ -1489,10 +1653,26 @@ func (p *Parser) parseForStatement() ast.Statement {
 		}
 	}
 
+	if len(p.controlStack) > 0 {
+		p.controlStack = p.controlStack[:len(p.controlStack)-1]
+	}
+
 	return stmt
 }
 
 func (p *Parser) parseFunctionDefinition() ast.Statement {
+	currentIndent := p.getCurrentIndent()
+	p.controlStack = append(p.controlStack, struct {
+		Type        string
+		IndentLevel int
+		HasElse     bool
+		Token       token.Token
+	}{
+		Type:        "spell",
+		IndentLevel: currentIndent,
+		HasElse:     false,
+		Token:       p.currToken,
+	})
 	stmt := &ast.FunctionDefinition{Token: p.currToken}
 
 	if p.currTokenIs(token.SPELL) {
@@ -1560,7 +1740,9 @@ func (p *Parser) parseFunctionDefinition() ast.Statement {
 			}
 		}
 	}
-
+	if len(p.controlStack) > 0 {
+		p.controlStack = p.controlStack[:len(p.controlStack)-1]
+	}
 	return stmt
 }
 
@@ -1625,6 +1807,18 @@ func (p *Parser) parseFunctionParameters() []*ast.Parameter {
 }
 
 func (p *Parser) parseWhileStatement() ast.Statement {
+	currentIndent := p.getCurrentIndent()
+	p.controlStack = append(p.controlStack, struct {
+		Type        string
+		IndentLevel int
+		HasElse     bool
+		Token       token.Token
+	}{
+		Type:        "while",
+		IndentLevel: currentIndent,
+		HasElse:     false,
+		Token:       p.currToken,
+	})
 	stmt := &ast.WhileStatement{Token: p.currToken}
 
 	if p.peekTokenIs(token.LPAREN) {
@@ -1654,11 +1848,25 @@ func (p *Parser) parseWhileStatement() ast.Statement {
 	} else {
 		stmt.Body = p.parseBlockStatement()
 	}
-
+	if len(p.controlStack) > 0 {
+		p.controlStack = p.controlStack[:len(p.controlStack)-1]
+	}
 	return stmt
 }
 
 func (p *Parser) parseGrimoireDefinition() ast.Statement {
+	currentIndent := p.getCurrentIndent()
+	p.controlStack = append(p.controlStack, struct {
+		Type        string
+		IndentLevel int
+		HasElse     bool
+		Token       token.Token
+	}{
+		Type:        "grim",
+		IndentLevel: currentIndent,
+		HasElse:     false,
+		Token:       p.currToken,
+	})
 	stmt := &ast.GrimoireDefinition{Token: p.currToken}
 
 	if !p.expectPeek(token.IDENT) {
@@ -1742,7 +1950,9 @@ func (p *Parser) parseGrimoireDefinition() ast.Statement {
 			}
 		}
 	}
-
+	if len(p.controlStack) > 0 {
+		p.controlStack = p.controlStack[:len(p.controlStack)-1]
+	}
 	return stmt
 }
 

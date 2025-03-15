@@ -259,6 +259,24 @@ func (l *Lexer) NextToken() token.Token {
 	}
 }
 
+// Add this helper function to check if a specific word follows the current position
+func (l *Lexer) wordFollows(word string) bool {
+	// Check if there's enough characters left
+	if l.charIndex+len(word) > len(l.currLine) {
+		return false
+	}
+
+	// Check if the substring matches the word
+	wordStart := l.charIndex
+	wordEnd := l.charIndex + len(word)
+	possibleWord := l.currLine[wordStart:wordEnd]
+
+	// Ensure it's a complete word by checking if it's followed by a non-identifier character
+	isComplete := wordEnd >= len(l.currLine) || !isLetterOrDigit(l.currLine[wordEnd])
+
+	return possibleWord == word && isComplete
+}
+
 func (l *Lexer) readFString() token.Token {
 	if l.charIndex >= len(l.currLine) {
 		return token.Token{Type: token.ILLEGAL, Literal: "unexpected end of line after f"}
@@ -558,8 +576,45 @@ func (l *Lexer) readIdentifier() token.Token {
 		l.charIndex++
 	}
 	literal := l.currLine[start:l.charIndex]
+
+	// Handle "not in" as a special case
+	if literal == "not" {
+		// Save current position
+		savedCharIndex := l.charIndex
+
+		// Skip any whitespace
+		for l.charIndex < len(l.currLine) && isHorizontalWhitespace(l.currLine[l.charIndex]) {
+			l.charIndex++
+		}
+
+		// Check if "in" follows
+		if l.wordFollows("in") {
+			// Consume "in"
+			// oldCharIndex := l.charIndex
+			l.charIndex += 2 // Length of "in"
+
+			// Return "not in" token
+			return token.Token{
+				Type:     token.NOT_IN,
+				Literal:  "not in",
+				Filename: l.sourceFile,
+				Line:     l.lineIndex + 1,
+				Column:   start + 1,
+			}
+		}
+
+		// If "in" doesn't follow, restore position and continue normally
+		l.charIndex = savedCharIndex
+	}
+
 	tokType := token.LookupIdent(literal)
-	return token.Token{Type: tokType, Literal: literal}
+	return token.Token{
+		Type:     tokType,
+		Literal:  literal,
+		Filename: l.sourceFile,
+		Line:     l.lineIndex + 1,
+		Column:   start + 1,
+	}
 }
 
 func isLetterOrDigit(ch byte) bool {

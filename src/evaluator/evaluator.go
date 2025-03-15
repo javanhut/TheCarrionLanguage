@@ -181,6 +181,51 @@ func newError(format string, args ...interface{}) object.Object {
 	return err
 }
 
+func isPrimitiveLiteral(obj object.Object) bool {
+	switch obj.Type() {
+	case object.INTEGER_OBJ, object.FLOAT_OBJ, object.STRING_OBJ, object.BOOLEAN_OBJ:
+		return true
+	default:
+		return false
+	}
+}
+
+func wrapPrimitive(obj object.Object, env *object.Environment, ctx *CallContext) object.Object {
+	var grimName string
+
+	switch obj.Type() {
+	case object.INTEGER_OBJ:
+		grimName = "Integer"
+	case object.FLOAT_OBJ:
+		grimName = "Float"
+	case object.STRING_OBJ:
+		grimName = "String"
+	case object.BOOLEAN_OBJ:
+		grimName = "Boolean"
+	default:
+		return obj // Not a primitive, return as is
+	}
+
+	// Try to find the grimoire
+	if grimObj, ok := env.Get(grimName); ok {
+		if grimoire, isGrim := grimObj.(*object.Grimoire); isGrim {
+			// Create a new instance
+			instance := &object.Instance{
+				Grimoire: grimoire,
+				Env:      object.NewEnclosedEnvironment(grimoire.Env),
+			}
+
+			// Set the value
+			instance.Env.Set("value", obj)
+
+			return instance
+		}
+	}
+
+	// If grimoire not found, return the original object
+	return obj
+}
+
 func isErrorWithTrace(obj object.Object) bool {
 	_, ok := obj.(*object.ErrorWithTrace)
 	return ok
@@ -731,6 +776,10 @@ func evalAssignStatement(
 			return val
 		}
 
+		if isPrimitiveLiteral(val) {
+			val = wrapPrimitive(val, env, ctx)
+		}
+
 		env.Set(target.Value, val)
 		return val
 
@@ -1142,6 +1191,27 @@ func evalDotExpression(
 	env *object.Environment,
 	ctx *CallContext,
 ) object.Object {
+	if isLiteralNode(node.Left) {
+		leftValue := Eval(node.Left, env, ctx)
+		if isPrimitiveLiteral(leftValue) {
+			// This is a direct method call on a literal like 1.add(2)
+			var typeName string
+			switch leftValue.Type() {
+			case object.INTEGER_OBJ:
+				typeName = "Integer"
+			case object.FLOAT_OBJ:
+				typeName = "Float"
+			case object.STRING_OBJ:
+				typeName = "String"
+			case object.BOOLEAN_OBJ:
+				typeName = "Boolean"
+			}
+
+			return newErrorWithTrace(
+				"cannot call methods directly on %s literals, use %s(value) instead",
+				node, ctx, leftValue.Type(), typeName)
+		}
+	}
 	leftObj := Eval(node.Left, env, ctx)
 	if isError(leftObj) {
 		return leftObj
@@ -1215,6 +1285,24 @@ func evalDotExpression(
 		Method:   method,
 		Name:     fieldOrMethodName,
 	}
+}
+
+// Helper function to check if a node is a literal
+func isLiteralNode(node ast.Expression) bool {
+	switch node.(type) {
+	case *ast.IntegerLiteral, *ast.FloatLiteral, *ast.StringLiteral, *ast.Boolean:
+		return true
+	default:
+		return false
+	}
+}
+
+// Modify the unwrapReturnValue function to help with method chaining
+func unwrapReturnValue(obj object.Object) object.Object {
+	if returnValue, ok := obj.(*object.ReturnValue); ok {
+		return returnValue.Value
+	}
+	return obj
 }
 
 func sameClass(env *object.Environment, target *object.Grimoire) bool {
@@ -1399,13 +1487,6 @@ func extendFunctionEnv(
 	}
 
 	return env
-}
-
-func unwrapReturnValue(obj object.Object) object.Object {
-	if returnValue, ok := obj.(*object.ReturnValue); ok {
-		return returnValue.Value
-	}
-	return obj
 }
 
 func evalIdentifier(node *ast.Identifier, env *object.Environment, ctx *CallContext) object.Object {
