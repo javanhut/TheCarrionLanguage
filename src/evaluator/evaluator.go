@@ -779,9 +779,70 @@ func evalAssignStatement(
 			env.Set(ident.Value, values[i])
 		}
 		return val
+	case *ast.IndexExpression:
+		left := Eval(target.Left, env, ctx)
+		if isError(left) {
+			return left
+		}
+
+		index := Eval(target.Index, env, ctx)
+		if isError(index) {
+			return index
+		}
+
+		val := Eval(node.Value, env, ctx)
+		if isError(val) {
+			return val
+		}
+
+		return evalIndexAssignment(left, index, val, node, ctx)
 
 	default:
 		return newErrorWithTrace("invalid assignment target: %T", node, ctx, node.Name)
+	}
+}
+
+func evalIndexAssignment(
+	array, index, value object.Object,
+	node ast.Node,
+	ctx *CallContext,
+) object.Object {
+	switch array := array.(type) {
+	case *object.Array:
+		intIndex, ok := index.(*object.Integer)
+		if !ok {
+			return newErrorWithTrace("array index must be INTEGER, got %s", node, ctx, index.Type())
+		}
+
+		idx := intIndex.Value
+		maxIndex := int64(len(array.Elements) - 1)
+
+		// Handle negative indices Python-style
+		if idx < 0 {
+			idx = int64(len(array.Elements)) + idx
+		}
+
+		if idx < 0 || idx > maxIndex {
+			return newErrorWithTrace("index out of bounds: %d (array length: %d)",
+				node, ctx, idx, maxIndex+1)
+		}
+
+		// Perform the assignment
+		array.Elements[idx] = value
+		return value
+
+	case *object.Hash:
+		key, ok := index.(object.Hashable)
+		if !ok {
+			return newErrorWithTrace("unusable as hash key: %s", node, ctx, index.Type())
+		}
+
+		pair := object.HashPair{Key: index, Value: value}
+		array.Pairs[key.HashKey()] = pair
+		return value
+
+	default:
+		return newErrorWithTrace("index assignment not supported: %s", node, ctx, array.Type())
 	}
 }
 
