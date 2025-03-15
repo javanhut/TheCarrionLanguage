@@ -1,4 +1,4 @@
-grim ArrayLib:
+grim Array:
     init(elements=[]):
         // Initialize with elements from a standard array
         self.elements = elements
@@ -124,14 +124,14 @@ grim ArrayLib:
         result = []
         for item in self.elements:
             result = result + [transform_function(item)]
-        return ArrayLib(result)
+        return Array(result)
     
     spell filter(predicate_function):
         result = []
         for item in self.elements:
             if predicate_function(item):
                 result = result + [item]
-        return ArrayLib(result)
+        return Array(result)
     
     spell reduce(reducer_function, initial_value):
         accumulator = initial_value
@@ -174,7 +174,7 @@ grim ArrayLib:
             if i >= 0 and i < len(self.elements):
                 result = result + [self.elements[i]]
         
-        return ArrayLib(result)
+        return Array(result)
     
     spell join(separator=""):
         if len(self.elements) == 0:
@@ -196,13 +196,20 @@ grim ArrayLib:
         print(self.elements)
         return self
     
-    // Create a new ArrayLib with concatenated elements
+    // Create a new Array with concatenated elements
     spell concat(other_array):
         if type(other_array) == "ARRAY":
-            return ArrayLib(self.elements + other_array)
+            return Array(self.elements + other_array)
         otherwise type(other_array) == "INSTANCE":
-            // Assume it's another ArrayLib or compatible object
+            // Assume it's another Array or compatible object
             if other_array.elements:
-                return ArrayLib(self.elements + other_array.elements)
-        
+                return Array(self.elements + other_array.elements)
         raise "TypeError: Cannot concatenate with non-array type"
+
+    spell pop():
+        length = len(self.elements)
+        if length > 0:
+            return self.remove_at(0)
+        else:
+            raise f"Cannot remove element at index 0, length: {length}"
+
