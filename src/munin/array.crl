@@ -1,6 +1,3 @@
-// ArrayLib.crl - Advanced Array Library for Carrion
-// This library extends the basic array functionality with more operations
-
 grim ArrayLib:
     init(elements=[]):
         // Initialize with elements from a standard array
@@ -28,7 +25,7 @@ grim ArrayLib:
             raise "IndexError: Index out of range"
         
         // Create a new array with the updated value
-        new_elements = []
+        new_elements = [] 
         for i in range(len(self.elements)):
             if i == index:
                 new_elements = new_elements + [value]
@@ -50,25 +47,9 @@ grim ArrayLib:
         self.elements = self.elements + [value]
         return self
     
-    spell pop():
-        if len(self.elements) == 0:
-            raise "IndexError: Cannot pop from empty array"
-        
-        last_value = self.elements[len(self.elements) - 1]
-        self.elements = self.elements[:len(self.elements) - 1]
-        return last_value
-    
     // Queue operations
     spell enqueue(value):
         return self.push(value)
-    
-    spell dequeue():
-        if len(self.elements) == 0:
-            raise "IndexError: Cannot dequeue from empty array"
-        
-        first_value = self.elements[0]
-        self.elements = self.elements[1:]
-        return first_value
     
     // Search and contains
     spell contains(value):
