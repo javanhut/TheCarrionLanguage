@@ -1035,17 +1035,29 @@ func evalGrimoireMethodCall(
 		env:          methodEnv,
 	}
 
-	// Bind arguments
-	for i, param := range method.Parameters {
-		if i < len(args) {
-			methodEnv.Set(param.Name.Value, args[i])
-		} else if param.DefaultValue != nil {
-			defaultVal := Eval(param.DefaultValue, method.Env, methodCtx)
-			methodEnv.Set(param.Name.Value, defaultVal)
-		} else {
-			methodEnv.Set(param.Name.Value, NONE)
-		}
-	}
+   // Bind arguments: support simple identifiers or full Parameter nodes
+   for i, pExpr := range method.Parameters {
+       switch param := pExpr.(type) {
+       case *ast.Identifier:
+           name := param.Value
+           if i < len(args) {
+               methodEnv.Set(name, args[i])
+           } else {
+               methodEnv.Set(name, NONE)
+           }
+       case *ast.Parameter:
+           name := param.Name.Value
+           if i < len(args) {
+               methodEnv.Set(name, args[i])
+           } else if param.DefaultValue != nil {
+               methodEnv.Set(name, Eval(param.DefaultValue, method.Env, methodCtx))
+           } else {
+               methodEnv.Set(name, NONE)
+           }
+       default:
+           // unsupported parameter type
+       }
+   }
 
 	// Execute with bounds checking for recursive calls
 	return evalWithRecursionLimit(method.Body, methodEnv, method, methodCtx, 0)
@@ -1465,24 +1477,38 @@ func extendFunctionEnv(
 ) *object.Environment {
 	env := object.NewEnclosedEnvironment(fn.Env)
 
-	for i, param := range fn.Parameters {
-		if i < len(args) {
-			env.Set(param.Name.Value, args[i])
-		} else if param.DefaultValue != nil {
-			if ident, ok := param.DefaultValue.(*ast.Identifier); ok {
-				if val, ok := global.Get(ident.Value); ok {
-					env.Set(param.Name.Value, val)
-				} else {
-					env.Set(param.Name.Value,
-						newErrorWithTrace("identifier not found: %s",
-							param.DefaultValue, ctx, ident.Value))
+	// Bind parameters: support ast.Identifier or ast.Parameter nodes
+	for i, pExpr := range fn.Parameters {
+		switch param := pExpr.(type) {
+		case *ast.Identifier:
+			name := param.Value
+			if i < len(args) {
+				env.Set(name, args[i])
+			} else {
+				env.Set(name, NONE)
+			}
+		case *ast.Parameter:
+			name := param.Name.Value
+			if i < len(args) {
+				env.Set(name, args[i])
+			} else if param.DefaultValue != nil {
+				// Default value may refer to an identifier or an expression
+				switch dv := param.DefaultValue.(type) {
+				case *ast.Identifier:
+					if val, ok := global.Get(dv.Value); ok {
+						env.Set(name, val)
+					} else {
+						env.Set(name,
+							newErrorWithTrace("identifier not found: %s", dv, ctx, dv.Value))
+					}
+				default:
+					env.Set(name, Eval(param.DefaultValue, fn.Env, ctx))
 				}
 			} else {
-				defaultVal := Eval(param.DefaultValue, fn.Env, ctx)
-				env.Set(param.Name.Value, defaultVal)
+				env.Set(name, NONE)
 			}
-		} else {
-			env.Set(param.Name.Value, NONE)
+		default:
+			// Unsupported parameter node
 		}
 	}
 
@@ -1581,9 +1607,43 @@ func evalPrefixExpression(
 
 		return &object.Integer{Value: ^intOperand.Value}
 
-	case "-":
-		right := Eval(node.Right, env, ctx)
-		return evalMinusPrefixOperatorExpression(right, env, ctx)
+    // Prefix increment and decrement operators
+    case "++":
+        // Only identifiers can be incremented
+        ident, ok := node.Right.(*ast.Identifier)
+        if !ok {
+            return newErrorWithTrace("prefix '++' operator requires an identifier", node, ctx)
+        }
+        obj := Eval(node.Right, env, ctx)
+        if isError(obj) {
+            return obj
+        }
+        intObj, ok := obj.(*object.Integer)
+        if !ok {
+            return newErrorWithTrace("prefix '++' operator requires an integer", node, ctx)
+        }
+        newVal := intObj.Value + 1
+        env.Set(ident.Value, &object.Integer{Value: newVal})
+        return &object.Integer{Value: newVal}
+    case "--":
+        ident, ok := node.Right.(*ast.Identifier)
+        if !ok {
+            return newErrorWithTrace("prefix '--' operator requires an identifier", node, ctx)
+        }
+        obj := Eval(node.Right, env, ctx)
+        if isError(obj) {
+            return obj
+        }
+        intObj, ok := obj.(*object.Integer)
+        if !ok {
+            return newErrorWithTrace("prefix '--' operator requires an integer", node, ctx)
+        }
+        newValDec := intObj.Value - 1
+        env.Set(ident.Value, &object.Integer{Value: newValDec})
+        return &object.Integer{Value: newValDec}
+    case "-":
+        right := Eval(node.Right, env, ctx)
+        return evalMinusPrefixOperatorExpression(right, env, ctx)
 	default:
 		return newErrorWithTrace("unknown operator: %s%s", node, ctx,
 			operator, Eval(node.Right, env, ctx).Type())
@@ -1809,16 +1869,18 @@ func evalMinusPrefixOperatorExpression(
 	env *object.Environment,
 	ctx *CallContext,
 ) object.Object {
-	if right.Type() != object.INTEGER_OBJ && right.Type() != object.FLOAT_OBJ {
-		return newErrorWithTrace("unknown operator: -%s", ctx.Node, ctx, right.Type())
-	}
+    if right.Type() != object.INTEGER_OBJ && right.Type() != object.FLOAT_OBJ {
+        // Unknown operand type for prefix minus
+        return newError("unknown operator: -%s", right.Type())
+    }
 	switch right := right.(type) {
 	case *object.Integer:
 		return &object.Integer{Value: -right.Value}
 	case *object.Float:
 		return &object.Float{Value: -right.Value}
-	default:
-		return newErrorWithTrace("unknown type for minus operator: %s", ctx.Node, ctx, right.Type())
+    default:
+        // Fallback for unexpected types
+        return newError("unknown type for minus operator: %s", right.Type())
 	}
 }
 

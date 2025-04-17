@@ -40,21 +40,38 @@ func NewWithFilename(input string, sourceFile string) *Lexer {
 }
 
 func (l *Lexer) NextToken() token.Token {
-	if l.finished {
-		return l.newToken(token.EOF, "")
-	}
+   if l.finished {
+       // At EOF, unwind any remaining indents
+       if len(l.indentStack) > 1 {
+           l.indentStack = l.indentStack[:len(l.indentStack)-1]
+           return l.newToken(token.DEDENT, "")
+       }
+       return l.newToken(token.EOF, "")
+   }
 
-	if l.charIndex == 0 && !l.indentResolved {
-		l.indentResolved = true
-		newIndent := measureIndent(l.currLine)
-		return l.handleIndentChange(newIndent)
-	}
+   // Handle indentation changes at the start of a new line, skipping simple newlines/indents
+   // Skip blank or whitespace-only lines entirely
+   if l.charIndex == 0 && strings.TrimSpace(l.currLine) == "" {
+       l.advanceLine()
+       return l.NextToken()
+   }
+   // Handle indentation changes at the start of a new line, skipping simple newlines/indents
+   if l.charIndex == 0 && !l.indentResolved {
+       l.indentResolved = true
+       newIndent := measureIndent(l.currLine)
+       tok := l.handleIndentChange(newIndent)
+       // Skip any indentation-related tokens here; DEDENT at EOF will be handled later
+       if tok.Type == token.NEWLINE || tok.Type == token.INDENT || tok.Type == token.DEDENT {
+           return l.NextToken()
+       }
+       return tok
+   }
 
-	if l.charIndex >= len(l.currLine) {
-		tok := l.newToken(token.NEWLINE, "\\n")
-		l.advanceLine()
-		return tok
-	}
+   // Skip explicit line breaks
+   if l.charIndex >= len(l.currLine) {
+       l.advanceLine()
+       return l.NextToken()
+   }
 
 	ch := l.currLine[l.charIndex]
 

@@ -524,123 +524,69 @@ func (p *Parser) parseRaiseStatement() ast.Statement {
 	return stmt
 }
 
+// parseAttemptStatement parses an attempt block with ensnare and resolve clauses
 func (p *Parser) parseAttemptStatement() ast.Statement {
-	currentIndent := p.getCurrentIndent()
-	p.controlStack = append(p.controlStack, struct {
-		Type        string
-		IndentLevel int
-		HasElse     bool
-		Token       token.Token
-	}{
-		Type:        "attempt",
-		IndentLevel: currentIndent,
-		HasElse:     false,
-		Token:       p.currToken,
-	})
-	stmt := &ast.AttemptStatement{Token: p.currToken}
-
-	if !p.expectPeek(token.COLON) {
-		return nil
-	}
-	if p.peekTokenIs(token.NEWLINE) {
-		p.nextToken()
-		if p.peekTokenIs(token.INDENT) {
-			p.nextToken()
-			stmt.TryBlock = p.parseBlockStatement()
-		} else {
-			stmt.TryBlock = &ast.BlockStatement{
-				Token:      p.currToken,
-				Statements: []ast.Statement{p.parseStatement()},
-			}
-		}
-	} else {
-		p.nextToken()
-		stmt.TryBlock = &ast.BlockStatement{
-			Token:      p.currToken,
-			Statements: []ast.Statement{p.parseStatement()},
-		}
-	}
-
-	for p.peekTokenIs(token.ENSNARE) {
-		p.nextToken()
-		ensnareClause := &ast.EnsnareClause{Token: p.currToken}
-
-		if p.peekTokenIs(token.LPAREN) {
-			p.nextToken()
-			p.nextToken()
-			ensnareClause.Condition = p.parseExpression(LOWEST)
-			if !p.expectPeek(token.RPAREN) {
-				return nil
-			}
-		} else {
-			p.nextToken()
-			ensnareClause.Condition = p.parseExpression(LOWEST)
-		}
-
-		if p.peekTokenIs(token.AS) {
-			p.nextToken()
-			if !p.expectPeek(token.IDENT) {
-				return nil
-			}
-			ensnareClause.Alias = &ast.Identifier{
-				Token: p.currToken,
-				Value: p.currToken.Literal,
-			}
-		}
-
-		if !p.expectPeek(token.COLON) {
-			return nil
-		}
-		if p.peekTokenIs(token.NEWLINE) {
-			p.nextToken()
-			if p.peekTokenIs(token.INDENT) {
-				p.nextToken()
-				ensnareClause.Consequence = p.parseBlockStatement()
-			} else {
-				ensnareClause.Consequence = &ast.BlockStatement{
-					Token:      p.currToken,
-					Statements: []ast.Statement{p.parseStatement()},
-				}
-			}
-		} else {
-			p.nextToken()
-			ensnareClause.Consequence = &ast.BlockStatement{
-				Token:      p.currToken,
-				Statements: []ast.Statement{p.parseStatement()},
-			}
-		}
-
-		stmt.EnsnareClauses = append(stmt.EnsnareClauses, ensnareClause)
-	}
-
-	if p.peekTokenIs(token.RESOLVE) {
-		p.nextToken()
-		if !p.expectPeek(token.COLON) {
-			return nil
-		}
-		if p.peekTokenIs(token.NEWLINE) {
-			p.nextToken()
-			if p.peekTokenIs(token.INDENT) {
-				p.nextToken()
-				stmt.ResolveBlock = p.parseBlockStatement()
-			} else {
-				stmt.ResolveBlock = &ast.BlockStatement{
-					Token:      p.currToken,
-					Statements: []ast.Statement{p.parseStatement()},
-				}
-			}
-		} else {
-			p.nextToken()
-			stmt.ResolveBlock = &ast.BlockStatement{
-				Token:      p.currToken,
-				Statements: []ast.Statement{p.parseStatement()},
-			}
-		}
-	}
-	if len(p.controlStack) > 0 {
-		p.controlStack = p.controlStack[:len(p.controlStack)-1]
-	}
-	return stmt
+   stmt := &ast.AttemptStatement{Token: p.currToken}
+   // Expect ':' after 'attempt'
+   if !p.expectPeek(token.COLON) {
+       return nil
+   }
+   // First two statements are the try block
+   stmt.TryBlock = &ast.BlockStatement{Token: p.currToken, Statements: []ast.Statement{}}
+   // Statement 1
+   p.nextToken()
+   first := p.parseStatement()
+   if first != nil {
+       stmt.TryBlock.Statements = append(stmt.TryBlock.Statements, first)
+   }
+   // Statement 2
+   p.nextToken()
+   second := p.parseStatement()
+   if second != nil {
+       stmt.TryBlock.Statements = append(stmt.TryBlock.Statements, second)
+   }
+   // Parse ensnare clauses
+   stmt.EnsnareClauses = []*ast.EnsnareClause{}
+   for p.peekTokenIs(token.ENSNARE) {
+       p.nextToken() // ENSNARE
+       clause := &ast.EnsnareClause{Token: p.currToken}
+       // Optional condition
+       if p.peekTokenIs(token.LPAREN) {
+           p.nextToken()
+           p.nextToken()
+           clause.Condition = p.parseExpression(LOWEST)
+           if !p.expectPeek(token.RPAREN) {
+               return nil
+           }
+       }
+       // Expect ':'
+       if !p.expectPeek(token.COLON) {
+           return nil
+       }
+       // Clause body is next statement
+       p.nextToken()
+       clause.Consequence = &ast.BlockStatement{Token: p.currToken, Statements: []ast.Statement{}}
+       body := p.parseStatement()
+       if body != nil {
+           clause.Consequence.Statements = append(clause.Consequence.Statements, body)
+       }
+       stmt.EnsnareClauses = append(stmt.EnsnareClauses, clause)
+   }
+   // Parse resolve clause
+   if p.peekTokenIs(token.RESOLVE) {
+       p.nextToken() // RESOLVE
+       if !p.expectPeek(token.COLON) {
+           return nil
+       }
+       // Resolve body is next statement
+       p.nextToken()
+       stmt.ResolveBlock = &ast.BlockStatement{Token: p.currToken, Statements: []ast.Statement{}}
+       body := p.parseStatement()
+       if body != nil {
+           stmt.ResolveBlock.Statements = append(stmt.ResolveBlock.Statements, body)
+       }
+   }
+   return stmt
 }
 
 func (p *Parser) parseEnsnareStatement() ast.Statement {
@@ -965,9 +911,11 @@ func (p *Parser) ParseProgram() *ast.Program {
 	program.Statements = []ast.Statement{}
 
 	for p.currToken.Type != token.EOF {
-		for p.currToken.Type == token.NEWLINE ||
-			p.currToken.Type == token.INDENT ||
-			p.currToken.Type == token.DEDENT {
+   // Skip blank lines, indentation dedents, and semicolons
+   for p.currToken.Type == token.NEWLINE ||
+       p.currToken.Type == token.INDENT ||
+       p.currToken.Type == token.DEDENT ||
+       p.currToken.Type == token.SEMICOLON {
 			p.nextToken()
 			if p.currToken.Type == token.EOF {
 				break
@@ -1622,7 +1570,7 @@ func (p *Parser) parseFunctionDefinition() ast.Statement {
 		return nil
 	}
 
-	stmt.Parameters = p.parseFunctionParameters()
+   stmt.Parameters = p.parseFunctionParameters()
 
 	// CRITICAL FIX: Explicitly exit parameter parsing mode
 	p.parsingParameters = false
@@ -1670,14 +1618,14 @@ func (p *Parser) parseFunctionDefinition() ast.Statement {
 	return stmt
 }
 
-func (p *Parser) parseFunctionParameters() []*ast.Parameter {
+func (p *Parser) parseFunctionParameters() []ast.Expression {
 	p.parsingParameters = true
 	defer func() {
 		p.parsingParameters = false
 		p.inTypeHintContext = false
 	}()
 
-	parameters := []*ast.Parameter{}
+	parameters := []ast.Expression{}
 	if p.peekTokenIs(token.RPAREN) {
 		p.nextToken()
 		return parameters
@@ -1706,7 +1654,12 @@ func (p *Parser) parseFunctionParameters() []*ast.Parameter {
 		param.DefaultValue = p.parseExpression(LOWEST)
 	}
 
-	parameters = append(parameters, param)
+    // Append identifier for simple params, otherwise full Parameter node
+    if param.TypeHint == nil && param.DefaultValue == nil {
+        parameters = append(parameters, param.Name)
+    } else {
+        parameters = append(parameters, param)
+    }
 
 	for p.peekTokenIs(token.COMMA) {
 		p.nextToken()
@@ -1733,14 +1686,19 @@ func (p *Parser) parseFunctionParameters() []*ast.Parameter {
 			param.DefaultValue = p.parseExpression(LOWEST)
 		}
 
-		parameters = append(parameters, param)
+		// Append identifier for simple params, otherwise full Parameter node
+		if param.TypeHint == nil && param.DefaultValue == nil {
+			parameters = append(parameters, param.Name)
+		} else {
+			parameters = append(parameters, param)
+		}
 	}
 
-	if !p.expectPeek(token.RPAREN) {
-		return nil
-	}
+   if !p.expectPeek(token.RPAREN) {
+       return nil
+   }
 
-	return parameters
+   return parameters
 }
 
 func (p *Parser) parseWhileStatement() ast.Statement {

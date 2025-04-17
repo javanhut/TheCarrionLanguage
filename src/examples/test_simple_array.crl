@@ -1,5 +1,5 @@
 // Debug library for Carrion language
-spellbook Debug:
+grim Debug:
   spell log(message):
     print("LOG: " + str(message))
   
@@ -7,7 +7,7 @@ spellbook Debug:
     print("ERROR: " + str(message))
 
 // Array implementation without index assignment
-spellbook SimpleArray:
+grim SimpleArray:
   init():
     debug = Debug()
     debug.log("Initializing SimpleArray")

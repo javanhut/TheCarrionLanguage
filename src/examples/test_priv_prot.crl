@@ -1,4 +1,4 @@
-spellbook Example:
+grim Example:
   init(name):
     self.name = name
 

@@ -1,4 +1,4 @@
-spellbook Example:
+grim Example:
     spell example_method(x, y):
         return x + y
 

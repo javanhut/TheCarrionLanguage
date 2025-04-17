@@ -65,7 +65,7 @@ func Start(in io.Reader, out io.Writer, env *object.Environment) {
 	// Optional: Set a custom tab completion function
 	line.SetCompleter(func(input string) []string {
 		keywords := []string{
-			"if", "else", "otherwise", "for", "in", "while", "spell", "spellbook", "return",
+			"if", "else", "otherwise", "for", "in", "while", "spell", "grim", "return",
 			"True", "False", "None", "import", "attempt", "resolve", "ensnare", "raise",
 		}
 

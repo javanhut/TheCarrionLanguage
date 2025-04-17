@@ -19,7 +19,12 @@ type AssignStatement struct {
 func (as *AssignStatement) statementNode()       {}
 func (as *AssignStatement) TokenLiteral() string { return as.Token.Literal }
 func (as *AssignStatement) String() string {
-	return fmt.Sprintf("%s %s %s", as.Name.String(), as.Operator, as.Value.String())
+   // Use explicit operator or fall back to token literal
+   op := as.Operator
+   if op == "" {
+       op = as.Token.Literal
+   }
+   return fmt.Sprintf("%s %s %s", as.Name.String(), op, as.Value.String())
 }
 
 type ReturnStatement struct {
@@ -155,7 +160,7 @@ func (p *Parameter) String() string {
 type FunctionDefinition struct {
 	Token      token.Token
 	Name       *Identifier
-	Parameters []*Parameter
+	Parameters []Expression
 	Body       *BlockStatement
 	DocString  *StringLiteral
 }
@@ -371,7 +376,7 @@ func (rs *RaiseStatement) String() string {
 type ArcaneSpell struct {
 	Token      token.Token
 	Name       *Identifier
-	Parameters []*Parameter
+	Parameters []Expression
 	Body       *BlockStatement
 }
 

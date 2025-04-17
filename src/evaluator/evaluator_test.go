@@ -18,18 +18,12 @@ func TestEvalIntegerExpression(t *testing.T) {
 		{"10", 10},
 		{"-5", -5},
 		{"-10", -10},
-		{`x = 1 
-      ++x`, 2},
-		{`x = 5 
-      ++x`, 6},
-		{`x = 10
-      ++x`, 11},
-		{`x = 1 
-      --x`, 0},
-		{`x = 0 
-      --x`, -1},
-		{`x = 10 
-      --x`, 9},
+       {"x = 1; ++x", 2},
+       {"x = 5; ++x", 6},
+       {"x = 10; ++x", 11},
+       {"x = 1; --x", 0},
+       {"x = 0; --x", -1},
+       {"x = 10; --x", 9},
 		{"5 + 5 + 5 + 5 - 10", 10},
 		{"2 * 2 * 2 * 2 * 2", 32},
 		{"-50 + 100 + -50", 0},
@@ -60,7 +54,8 @@ func testEval(input string) object.Object {
 		return &object.Error{Message: strings.Join(p.Errors(), ", ")}
 	}
 
-	result := Eval(program, env)
+   // Evaluate AST with no initial call context
+	result := Eval(program, env, nil)
 	return result
 }
 
@@ -222,19 +217,23 @@ func TestErrorHandling(t *testing.T) {
 		{`"Hello" - "World"`, "unknown operator: STRING - STRING"},
 		//{`{"name": "Carrion"}[spell add(x,y): return x + y]`, "unusable as hash key: SPELL"},
 	}
-	for _, tt := range tests {
-		evaluated := testEval(tt.input)
-		errObj, ok := evaluated.(*object.Error)
-		if !ok {
-			t.Errorf("no error object returned. got=%T(%+v)",
-				evaluated, evaluated)
-			continue
-		}
-		if errObj.Message != tt.expectedMessage {
-			t.Errorf("wrong error message. expected=%q, got=%q",
-				tt.expectedMessage, errObj.Message)
-		}
-	}
+    for _, tt := range tests {
+        evaluated := testEval(tt.input)
+        // Extract error message from Error or ErrorWithTrace
+        var errMessage string
+        switch err := evaluated.(type) {
+        case *object.Error:
+            errMessage = err.Message
+        case *object.ErrorWithTrace:
+            errMessage = err.Message
+        default:
+            t.Errorf("no error object returned. got=%T (%+v)", evaluated, evaluated)
+            continue
+        }
+        if errMessage != tt.expectedMessage {
+            t.Errorf("wrong error message. expected=%q, got=%q", tt.expectedMessage, errMessage)
+        }
+    }
 }
 
 func TestAssignmentStatements(t *testing.T) {
@@ -498,7 +497,7 @@ func TestHashIndexExpressions(t *testing.T) {
 
 func TestSpellbookMethodCall(t *testing.T) {
 	input := `
-spellbook Calculator:
+ grim Calculator:
     spell add(x, y):
         return x + y
     
@@ -515,7 +514,7 @@ result
 
 func TestSpellbookRecursion(t *testing.T) {
 	input := `
-spellbook Fibonacci:
+ grim Fibonacci:
     spell calc(n):
         if n <= 1:
             return n
@@ -530,11 +529,11 @@ fib.calc(10)
 
 func TestSpellbookInheritance(t *testing.T) {
 	input := `
-spellbook Shape:
+ grim Shape:
     spell area():
         return 0
 
-spellbook Rectangle(Shape):
+ grim Rectangle(Shape):
     init(width, height):
         self.width = width
         self.height = height
@@ -551,7 +550,7 @@ rect.area()
 
 func TestBinarySearch(t *testing.T) {
 	input := `
-spellbook SafeArray:
+ grim SafeArray:
     init(elements):
         self.elements = elements
         

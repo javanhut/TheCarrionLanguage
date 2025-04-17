@@ -1,4 +1,4 @@
-spellbook Person:
+grim Person:
   init(name, age):
     self.name = name
     self.age = age

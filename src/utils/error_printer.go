@@ -270,10 +270,10 @@ func printFixSuggestions(err *object.ErrorWithTrace) {
 			fmt.Println(
 				"Carrion doesn't support direct array element assignment like arr[i] = value.",
 			)
-			fmt.Println(
-				"  Try creating an Array spellbook with a 'set(index, value)' method instead:",
-			)
-			fmt.Println("    spellbook Array:")
+            fmt.Println(
+                "  Try creating an Array grim with a 'set(index, value)' method instead:",
+            )
+            fmt.Println("    grim Array:")
 			fmt.Println("      spell set(index, value):")
 			fmt.Println("        new_elements = []")
 			fmt.Println("        for i in range(len(self.elements)):")
@@ -286,7 +286,7 @@ func printFixSuggestions(err *object.ErrorWithTrace) {
 		case "invalid_index":
 			fmt.Println("You're trying to use [] indexing on a type that doesn't support it.")
 			fmt.Println("  If this is a custom object, try implementing a 'get(index)' method:")
-			fmt.Println("    spellbook YourType:")
+            fmt.Println("    grim YourType:")
 			fmt.Println("      spell get(index):")
 			fmt.Println("        // Your implementation here")
 

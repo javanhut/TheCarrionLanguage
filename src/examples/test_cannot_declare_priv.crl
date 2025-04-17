@@ -1,4 +1,4 @@
-spellbook Test:
+grim Test:
   init(name):
     self.name = name
   spell __should_be_protected():
