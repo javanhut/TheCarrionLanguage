@@ -1,1 +1,91 @@
-    spell dummy():\n        ignore
+grim Array:
+    init(elements):
+        if elements == None:
+            self.elements = []
+        else:
+            self.elements = elements
+
+    spell length():
+        return len(self.elements)
+
+    spell get(idx):
+        if idx < 0:
+            idx = len(self.elements) + idx
+        if idx < 0 or idx >= len(self.elements):
+            raise IndexError(f"Array get index out of range: {idx}")
+        return self.elements[idx]
+
+    spell set(idx, val):
+        if idx < 0:
+            idx = len(self.elements) + idx
+        if idx < 0 or idx >= len(self.elements):
+            raise IndexError(f"Array set index out of range: {idx}")
+        self.elements[idx] = val
+
+    spell append(val):
+        self.elements.append(val)
+
+    spell remove(val):
+        if not val in self.elements:
+            raise ValueError(f"Array remove: value {val} not found")
+        self.elements.remove(val)
+
+    spell contains(val):
+        return val in self.elements
+
+    spell index_of(val):
+        for i, v in enumerate(self.elements):
+            if v == val:
+                return i
+        return -1
+
+    spell clear():
+        self.elements = []
+
+    spell to_string():
+        return str(self.elements)
+
+    spell pop():
+        if len(self.elements) == 0:
+            raise IndexError("Array pop from empty array")
+        return self.elements.pop()
+
+    spell popleft():
+        if len(self.elements) == 0:
+            raise IndexError("Array popleft from empty array")
+        val = self.elements[0]
+        self.elements = self.elements[1:]
+        return val
+
+    spell reverse():
+        self.elements = self.elements[::-1]
+
+    spell slice(start, stop):
+        length = len(self.elements)
+        if start == None:
+            start = 0
+        elif start < 0:
+            start = max(0, length + start)
+        if stop == None:
+            stop = length
+        elif stop < 0:
+            stop = max(0, length + stop)
+        if start > length or stop > length:
+            raise IndexError(f"Array slice index out of range: {start} to {stop}")
+        new_elements = self.elements[start:stop]
+        return Array(new_elements)
+
+    spell extend(other_array):
+        if not isinstance(other_array, Array):
+            raise TypeError("Array extend argument must be Array type")
+        self.elements += other_array.elements
+
+    spell sort(method=None):
+        if len(self.elements) == 0:
+            return
+        if method == None or method == "asc":
+            self.elements = sorted(self.elements)
+        elif method == "desc":
+            self.elements = sorted(self.elements, reverse=True)
+        else:
+            raise ValueError(f"Array sort unknown method: {method}")
