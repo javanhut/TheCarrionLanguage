@@ -48,49 +48,52 @@ func (e *ErrorWithTrace) Type() ObjectType {
 func (e *ErrorWithTrace) Inspect() string {
 	var sb strings.Builder
 
-	sb.WriteString(fmt.Sprintf("Error: %s\n", e.Message))
-	sb.WriteString(
-		fmt.Sprintf(
-			"  at %s, Line: %d, Column: %d\n",
-			e.Position.Filename,
-			e.Position.Line,
-			e.Position.Column,
-		),
-	)
+	// headline
+	sb.WriteString("Error: ")
+	sb.WriteString(e.Message)
+	sb.WriteString("\n  at ")
+	sb.WriteString(e.Position.Filename)
+	sb.WriteString(fmt.Sprintf(", Line: %d, Column: %d\n",
+		e.Position.Line, e.Position.Column))
 
-	// Add the stack trace
-	if len(e.Stack) > 0 {
+	// stack (most‑recent first)
+	if n := len(e.Stack); n > 0 {
 		sb.WriteString("Stack trace:\n")
-		for i, entry := range e.Stack {
-			sb.WriteString(fmt.Sprintf(
-				"  %d: %s (%s:Line: %d, Column: %d)\n",
-				i,
-				entry.FunctionName,
-				entry.Position.Filename,
-				entry.Position.Line,
-				entry.Position.Column,
-			))
+		for i := n - 1; i >= 0; i-- {
+			f := e.Stack[i]
+			name := f.FunctionName
+			if name == "" {
+				name = "<anon>"
+			}
+			sb.WriteString(fmt.Sprintf("  %d: %s (%s:Line: %d, Column: %d)\n",
+				n-1-i, name, f.Position.Filename, f.Position.Line, f.Position.Column))
 		}
 	}
 
+	// custom details
 	if e.ErrorType == CUSTOM_ERROR_OBJ && len(e.CustomDetails) > 0 {
 		sb.WriteString("Details:\n")
-		for key, value := range e.CustomDetails {
-			sb.WriteString(fmt.Sprintf("  %s: %s\n", key, value.Inspect()))
+		for k, v := range e.CustomDetails {
+			sb.WriteString("  ")
+			sb.WriteString(k)
+			sb.WriteString(": ")
+			sb.WriteString(v.Inspect())
+			sb.WriteString("\n")
 		}
 	}
 
-	// Add the cause if present
+	// chained cause
 	if e.Cause != nil {
-		sb.WriteString("\nCaused by:\n")
-		causeLines := strings.Split(e.Cause.Inspect(), "\n")
-		for _, line := range causeLines {
-			sb.WriteString("  " + line + "\n")
-		}
+		sb.WriteString("\nCaused by:\n  ")
+		sb.WriteString(strings.ReplaceAll(e.Cause.Inspect(), "\n", "\n  "))
+		sb.WriteString("\n")
 	}
 
 	return sb.String()
 }
+
+// Optional, so fmt.Println(err) prints same view.
+func (e *ErrorWithTrace) String() string { return e.Inspect() }
 
 // Added setter methods for fluent API
 func (e *ErrorWithTrace) WithCause(cause *ErrorWithTrace) *ErrorWithTrace {

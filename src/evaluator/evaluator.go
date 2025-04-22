@@ -422,10 +422,29 @@ func Eval(node ast.Node, env *object.Environment, ctx *CallContext) object.Objec
 	case *ast.IgnoreStatement:
 		return object.NONE
 	case *ast.CallExpression:
-		return evalCallExpression(Eval(node.Function, env, ctx), evalExpressions(node.Arguments, env, ctx), env, ctx)
+		fnObj := Eval(node.Function, env, ctx)
+		if isError(fnObj) {
+			return fnObj
+		} // ← new
+
+		argObjs := evalExpressions(node.Arguments, env, ctx)
+		if err := promoteErrors(argObjs); err != nil {
+			return err // ← new (optional helper)
+		}
+
+		return evalCallExpression(fnObj, argObjs, env, ctx)
 	}
 
 	return NONE
+}
+
+func promoteErrors(objs []object.Object) object.Object {
+	for _, o := range objs {
+		if isError(o) {
+			return o
+		}
+	}
+	return nil
 }
 
 func evalStringInterpolation(
@@ -1035,29 +1054,29 @@ func evalGrimoireMethodCall(
 		env:          methodEnv,
 	}
 
-   // Bind arguments: support simple identifiers or full Parameter nodes
-   for i, pExpr := range method.Parameters {
-       switch param := pExpr.(type) {
-       case *ast.Identifier:
-           name := param.Value
-           if i < len(args) {
-               methodEnv.Set(name, args[i])
-           } else {
-               methodEnv.Set(name, NONE)
-           }
-       case *ast.Parameter:
-           name := param.Name.Value
-           if i < len(args) {
-               methodEnv.Set(name, args[i])
-           } else if param.DefaultValue != nil {
-               methodEnv.Set(name, Eval(param.DefaultValue, method.Env, methodCtx))
-           } else {
-               methodEnv.Set(name, NONE)
-           }
-       default:
-           // unsupported parameter type
-       }
-   }
+	// Bind arguments: support simple identifiers or full Parameter nodes
+	for i, pExpr := range method.Parameters {
+		switch param := pExpr.(type) {
+		case *ast.Identifier:
+			name := param.Value
+			if i < len(args) {
+				methodEnv.Set(name, args[i])
+			} else {
+				methodEnv.Set(name, NONE)
+			}
+		case *ast.Parameter:
+			name := param.Name.Value
+			if i < len(args) {
+				methodEnv.Set(name, args[i])
+			} else if param.DefaultValue != nil {
+				methodEnv.Set(name, Eval(param.DefaultValue, method.Env, methodCtx))
+			} else {
+				methodEnv.Set(name, NONE)
+			}
+		default:
+			// unsupported parameter type
+		}
+	}
 
 	// Execute with bounds checking for recursive calls
 	return evalWithRecursionLimit(method.Body, methodEnv, method, methodCtx, 0)
@@ -1105,95 +1124,104 @@ func evalCallExpression(
 	env *object.Environment,
 	ctx *CallContext,
 ) object.Object {
-	if len(args) == 1 {
+	// ── 1.  Flatten a single‑tuple argument safely ────────────────────────────
+	if len(args) == 1 && args[0] != nil {
 		if tup, ok := args[0].(*object.Tuple); ok {
 			args = tup.Elements
 		}
 	}
 
-	switch fn := fn.(type) {
-	case *object.Function:
-		// Check call depth
-		callCtx, exists := callStack[fn]
-		if !exists {
-			callCtx = &CallContext{
-				depth: 0,
-				env:   env,
-			}
-			callStack[fn] = callCtx
+	// ── 2.  Propagate existing errors, don’t try to “call” them ───────────────
+	if isError(fn) {
+		return fn
+	}
+	for _, a := range args {
+		if isError(a) {
+			return a
 		}
+	}
 
+	// ── 3.  Normal dispatch ───────────────────────────────────────────────────
+	switch fnTyped := fn.(type) {
+
+	case *object.Function:
+		// use the correctly typed value as the map key
+		fun := fnTyped // alias for brevity
+
+		callCtx, ok := callStack[fun] // was callStack[fn]
+		if !ok {
+			callCtx = &CallContext{depth: 0, env: env}
+			callStack[fun] = callCtx // was callStack[fn]
+		}
 		callCtx.depth++
 		if callCtx.depth > MAX_CALL_DEPTH {
 			callCtx.depth--
-			return newErrorWithTrace("maximum recursion depth exceeded (%d)",
-				ctx.Node, ctx, MAX_CALL_DEPTH)
+			return newErrorWithTrace(
+				"maximum recursion depth exceeded (%d)", ctx.Node, ctx, MAX_CALL_DEPTH)
 		}
 
-		// Execute function with call depth tracking
-		globalEnv := getGlobalEnv(fn.Env, ctx)
-		extendedEnv := extendFunctionEnv(fn, args, globalEnv, ctx)
+		global := getGlobalEnv(fun.Env, ctx)
+		extended := extendFunctionEnv(fun, args, global, ctx)
 
-		// Create a new context for this function call
+		// we don’t know the spell’s name here; fall back to the caller’s ctx
+		funcName := ctx.FunctionName
+		if funcName == "" {
+			funcName = "<anonymous>"
+		}
+
 		fnCtx := &CallContext{
-			FunctionName: ctx.FunctionName,
-			Node:         fn.Body,
+			FunctionName: funcName,
+			Node:         fun.Body,
 			Parent:       ctx,
-			env:          extendedEnv,
+			env:          extended,
 		}
 
-		evaluated := Eval(fn.Body, extendedEnv, fnCtx)
+		evaluated := Eval(fun.Body, extended, fnCtx)
 
-		// Cleanup after execution
 		callCtx.depth--
 		if callCtx.depth == 0 {
-			delete(callStack, fn)
+			delete(callStack, fun) // was delete(callStack, fn)
 		}
-
 		return unwrapReturnValue(evaluated)
-
 	case *object.BoundMethod:
-		// Store method name from the identifier before calling evalGrimoireMethodCall
-		return evalGrimoireMethodCall(fn.Instance, fn.Name, args, env, ctx)
+		return evalGrimoireMethodCall(fnTyped.Instance, fnTyped.Name, args, env, ctx)
 
 	case *object.Grimoire:
-		if fn.IsArcane {
-			return newErrorWithTrace("cannot instantiate arcane spellbook: %s",
-				ctx.Node, ctx, fn.Name)
+		if fnTyped.IsArcane {
+			return newErrorWithTrace(
+				"cannot instantiate arcane spellbook: %s", ctx.Node, ctx, fnTyped.Name)
 		}
 
 		instance := &object.Instance{
-			Grimoire: fn,
-			Env:      object.NewEnclosedEnvironment(fn.Env),
+			Grimoire: fnTyped,
+			Env:      object.NewEnclosedEnvironment(fnTyped.Env),
 		}
 
-		if fn.InitMethod != nil {
-			globalEnv := getGlobalEnv(fn.Env, ctx)
-			extendedEnv := extendFunctionEnv(fn.InitMethod, args, globalEnv, ctx)
-			extendedEnv.Set("self", instance)
+		if fnTyped.InitMethod != nil {
+			global := getGlobalEnv(fnTyped.Env, ctx)
+			extended := extendFunctionEnv(fnTyped.InitMethod, args, global, ctx)
+			extended.Set("self", instance)
 
 			initCtx := &CallContext{
-				FunctionName: fn.Name + ".init",
-				Node:         fn.InitMethod.Body,
+				FunctionName: fnTyped.Name + ".init",
+				Node:         fnTyped.InitMethod.Body,
 				Parent:       ctx,
-				env:          extendedEnv,
+				env:          extended,
 			}
-
-			Eval(fn.InitMethod.Body, extendedEnv, initCtx)
+			Eval(fnTyped.InitMethod.Body, extended, initCtx)
 		}
-
 		return instance
 
 	case *object.Builtin:
-		// Builtin functions don't need context tracking in the same way
-		result := fn.Fn(args...)
-		// Convert regular errors to error traces for consistent reporting
-		if err, ok := result.(*object.Error); ok {
+		res := fnTyped.Fn(args...)
+		if err, ok := res.(*object.Error); ok {
 			return newErrorWithTrace(err.Message, ctx.Node, ctx)
 		}
-		return result
+		return res
+
 	default:
-		return newErrorWithTrace("not a function: %s (in file %s)",
+		return newErrorWithTrace(
+			"not a function: %s (in file %s)",
 			ctx.Node, ctx, fn.Type(), getSourcePosition(ctx.Node).Filename)
 	}
 }
@@ -1607,43 +1635,43 @@ func evalPrefixExpression(
 
 		return &object.Integer{Value: ^intOperand.Value}
 
-    // Prefix increment and decrement operators
-    case "++":
-        // Only identifiers can be incremented
-        ident, ok := node.Right.(*ast.Identifier)
-        if !ok {
-            return newErrorWithTrace("prefix '++' operator requires an identifier", node, ctx)
-        }
-        obj := Eval(node.Right, env, ctx)
-        if isError(obj) {
-            return obj
-        }
-        intObj, ok := obj.(*object.Integer)
-        if !ok {
-            return newErrorWithTrace("prefix '++' operator requires an integer", node, ctx)
-        }
-        newVal := intObj.Value + 1
-        env.Set(ident.Value, &object.Integer{Value: newVal})
-        return &object.Integer{Value: newVal}
-    case "--":
-        ident, ok := node.Right.(*ast.Identifier)
-        if !ok {
-            return newErrorWithTrace("prefix '--' operator requires an identifier", node, ctx)
-        }
-        obj := Eval(node.Right, env, ctx)
-        if isError(obj) {
-            return obj
-        }
-        intObj, ok := obj.(*object.Integer)
-        if !ok {
-            return newErrorWithTrace("prefix '--' operator requires an integer", node, ctx)
-        }
-        newValDec := intObj.Value - 1
-        env.Set(ident.Value, &object.Integer{Value: newValDec})
-        return &object.Integer{Value: newValDec}
-    case "-":
-        right := Eval(node.Right, env, ctx)
-        return evalMinusPrefixOperatorExpression(right, env, ctx)
+	// Prefix increment and decrement operators
+	case "++":
+		// Only identifiers can be incremented
+		ident, ok := node.Right.(*ast.Identifier)
+		if !ok {
+			return newErrorWithTrace("prefix '++' operator requires an identifier", node, ctx)
+		}
+		obj := Eval(node.Right, env, ctx)
+		if isError(obj) {
+			return obj
+		}
+		intObj, ok := obj.(*object.Integer)
+		if !ok {
+			return newErrorWithTrace("prefix '++' operator requires an integer", node, ctx)
+		}
+		newVal := intObj.Value + 1
+		env.Set(ident.Value, &object.Integer{Value: newVal})
+		return &object.Integer{Value: newVal}
+	case "--":
+		ident, ok := node.Right.(*ast.Identifier)
+		if !ok {
+			return newErrorWithTrace("prefix '--' operator requires an identifier", node, ctx)
+		}
+		obj := Eval(node.Right, env, ctx)
+		if isError(obj) {
+			return obj
+		}
+		intObj, ok := obj.(*object.Integer)
+		if !ok {
+			return newErrorWithTrace("prefix '--' operator requires an integer", node, ctx)
+		}
+		newValDec := intObj.Value - 1
+		env.Set(ident.Value, &object.Integer{Value: newValDec})
+		return &object.Integer{Value: newValDec}
+	case "-":
+		right := Eval(node.Right, env, ctx)
+		return evalMinusPrefixOperatorExpression(right, env, ctx)
 	default:
 		return newErrorWithTrace("unknown operator: %s%s", node, ctx,
 			operator, Eval(node.Right, env, ctx).Type())
@@ -1869,18 +1897,18 @@ func evalMinusPrefixOperatorExpression(
 	env *object.Environment,
 	ctx *CallContext,
 ) object.Object {
-    if right.Type() != object.INTEGER_OBJ && right.Type() != object.FLOAT_OBJ {
-        // Unknown operand type for prefix minus
-        return newError("unknown operator: -%s", right.Type())
-    }
+	if right.Type() != object.INTEGER_OBJ && right.Type() != object.FLOAT_OBJ {
+		// Unknown operand type for prefix minus
+		return newError("unknown operator: -%s", right.Type())
+	}
 	switch right := right.(type) {
 	case *object.Integer:
 		return &object.Integer{Value: -right.Value}
 	case *object.Float:
 		return &object.Float{Value: -right.Value}
-    default:
-        // Fallback for unexpected types
-        return newError("unknown type for minus operator: %s", right.Type())
+	default:
+		// Fallback for unexpected types
+		return newError("unknown type for minus operator: %s", right.Type())
 	}
 }
 
