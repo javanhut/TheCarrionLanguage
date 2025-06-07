@@ -1,0 +1,5 @@
+spell test(param):
+    x = param
+    return param
+
+print(test(5))

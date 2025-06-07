@@ -1,0 +1,9 @@
+spell test(param):
+    print("About to access param")
+    x = param
+    print("Successfully set x to param")
+    return x
+
+result = test(42)
+print("Result:")
+print(result)

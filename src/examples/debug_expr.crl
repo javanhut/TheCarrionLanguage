@@ -1,0 +1,6 @@
+spell test(param):
+    result = param + 1
+    return result
+
+result = test(5)
+print(result)

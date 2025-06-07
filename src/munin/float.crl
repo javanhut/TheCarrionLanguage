@@ -1,0 +1,4 @@
+grim Float:
+    init():
+        // TODO: Implement when parameter access is fixed
+        ignore

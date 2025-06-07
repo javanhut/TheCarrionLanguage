@@ -135,7 +135,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.INDENT, func() ast.Expression { return nil })
 	p.registerPrefix(token.DEDENT, func() ast.Expression { return nil })
 	p.registerPrefix(token.EOF, func() ast.Expression { return nil })
-	p.registerPrefix(token.OTHERWISE, p.parseOtherwise)
+	// OTHERWISE is handled as part of if-statement parsing, not as a prefix expression
 	p.registerPrefix(token.ENSNARE, func() ast.Expression { return nil })
 	p.registerPrefix(token.AS, func() ast.Expression { return nil })
 	p.registerPrefix(token.AT, func() ast.Expression { return nil })
@@ -224,6 +224,11 @@ func tokenFromExpression(expr ast.Expression) token.Token {
 
 func (p *Parser) parseExpressionTuple(firstExpr ast.Expression, isLHS bool) ast.Expression {
 	if firstExpr == nil {
+		if isLHS {
+			p.errors = append(p.errors, "expected assignable expression")
+		} else {
+			p.errors = append(p.errors, "expected expression")
+		}
 		return nil
 	}
 
@@ -330,6 +335,10 @@ func (p *Parser) parseCheckStatement() ast.Statement {
 
 	p.nextToken()
 	stmt.Condition = p.parseExpression(LOWEST)
+	if stmt.Condition == nil {
+		p.errors = append(p.errors, "expected condition expression in check statement")
+		return nil
+	}
 
 	if p.peekTokenIs(token.COMMA) {
 		p.nextToken()
@@ -412,6 +421,11 @@ func (p *Parser) parseFStringExpression(exprStr string) ast.Expression {
 	subParser := New(l)
 
 	program := subParser.ParseProgram()
+	
+	if len(subParser.Errors()) > 0 {
+		p.errors = append(p.errors, "error parsing f-string expression: "+subParser.Errors()[0])
+		return nil
+	}
 
 	if len(program.Statements) == 1 {
 		if es, ok := program.Statements[0].(*ast.ExpressionStatement); ok {
@@ -419,6 +433,7 @@ func (p *Parser) parseFStringExpression(exprStr string) ast.Expression {
 		}
 	}
 
+	p.errors = append(p.errors, "invalid f-string expression")
 	return nil
 }
 
@@ -707,6 +722,7 @@ func (p *Parser) skipNewlines() {
 }
 
 func (p *Parser) parseOtherwise() ast.Expression {
+	p.errors = append(p.errors, "'otherwise' can only be used as part of an if statement")
 	return nil
 }
 
@@ -1401,6 +1417,7 @@ func (p *Parser) getCurrentIndent() int {
 	return len(p.contextStack)
 }
 
+
 func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 	block := &ast.BlockStatement{Token: p.currToken}
 	block.Statements = []ast.Statement{}
@@ -1579,9 +1596,13 @@ func (p *Parser) parseFunctionDefinition() ast.Statement {
 		p.errors = append(p.errors, "Expected ':' after parameter list")
 		return nil
 	}
+	
+	// Keep track of the line where the colon is (before advancing)
+	colonLine := p.currToken.Line
 
 	p.nextToken()
 
+	// Parse function body - handle both single-line and multi-line functions
 	if p.currTokenIs(token.NEWLINE) {
 		if p.peekTokenIs(token.INDENT) {
 			p.nextToken()
@@ -1594,10 +1615,37 @@ func (p *Parser) parseFunctionDefinition() ast.Statement {
 			}
 		}
 	} else {
-		singleStmt := p.parseStatement()
-		stmt.Body = &ast.BlockStatement{
-			Token:      p.currToken,
-			Statements: []ast.Statement{singleStmt},
+		// Either single-line function or multi-line without NEWLINE token
+		stmt.Body = &ast.BlockStatement{Token: p.currToken, Statements: []ast.Statement{}}
+		
+		// Check if we're on the same line as the colon (single-line function)
+		if p.currToken.Line == colonLine {
+			// Single-line function
+			singleStmt := p.parseStatement()
+			if singleStmt != nil {
+				stmt.Body.Statements = append(stmt.Body.Statements, singleStmt)
+			}
+		} else {
+			// Multi-line function - parse until we see clear end markers
+			for !p.currTokenIs(token.EOF) {
+				// Stop at column 1 on a different line (top-level statement)
+				if p.currToken.Column <= 1 && p.currToken.Line > colonLine {
+					break
+				}
+				
+				// Parse statement
+				s := p.parseStatement()
+				if s != nil {
+					stmt.Body.Statements = append(stmt.Body.Statements, s)
+				}
+				
+				// Check if next token is at top level
+				if p.peekToken.Column <= 1 || p.peekTokenIs(token.EOF) {
+					break
+				}
+				
+				p.nextToken()
+			}
 		}
 	}
 
@@ -1640,7 +1688,8 @@ func (p *Parser) parseFunctionParameters() []ast.Expression {
 	if p.peekTokenIs(token.COLON) {
 		p.nextToken()
 		if !p.expectPeek(token.IDENT) {
-			return nil
+			// Error already added by expectPeek, return empty slice
+			return []ast.Expression{}
 		}
 		param.TypeHint = &ast.Identifier{
 			Token: p.currToken,
@@ -1672,7 +1721,8 @@ func (p *Parser) parseFunctionParameters() []ast.Expression {
 		if p.peekTokenIs(token.COLON) {
 			p.nextToken()
 			if !p.expectPeek(token.IDENT) {
-				return nil
+				// Error already added by expectPeek, return empty slice
+				return []ast.Expression{}
 			}
 			param.TypeHint = &ast.Identifier{
 				Token: p.currToken,
@@ -1695,7 +1745,8 @@ func (p *Parser) parseFunctionParameters() []ast.Expression {
 	}
 
    if !p.expectPeek(token.RPAREN) {
-       return nil
+       // Error already added by expectPeek, return empty slice
+       return []ast.Expression{}
    }
 
    return parameters

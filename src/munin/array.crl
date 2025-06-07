@@ -1,18 +1,26 @@
 grim Array:
     init(elements):
-        self.elements = []
-        spell append(val):
-            self.elements.append(val)
-        spell length():
-            return len(self.elements)
-        spell to_string():
-            return "[array]" // simple placeholder
+        if elements == None:
+            self.elements = []
+        else:
+            self.elements = elements
 
     spell append(val):
-        self.elements.append(val)
+        self.elements += [val]
+        return None
 
     spell length():
         return len(self.elements)
 
     spell to_string():
-        return "[array]" // placeholder to avoid complex str
+        return "[array]"
+
+    spell get(index):
+        return self.elements[index]
+
+    spell set(index, value):
+        // TODO: Implement set method when built-in array assignment is available
+        return None
+
+    spell is_empty():
+        return len(self.elements) == 0

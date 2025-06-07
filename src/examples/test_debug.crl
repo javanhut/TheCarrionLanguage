@@ -1,0 +1,2 @@
+spell factorial(n): return n
+factorial(5)

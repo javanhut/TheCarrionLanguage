@@ -1,0 +1,71 @@
+// Test 1: Classic factorial
+spell factorial(n):
+    if n <= 1:
+        return 1
+    result = n * factorial(n - 1)
+    return result
+
+print("Factorial of 5:")
+print(factorial(5))  // 120
+
+// Test 2: Fibonacci sequence
+spell fibonacci(n):
+    if n <= 1:
+        return n
+    return fibonacci(n - 1) + fibonacci(n - 2)
+
+print("\nFibonacci of 10:")
+print(fibonacci(10))  // 55
+
+// Test 3: Sum of numbers from 1 to n
+spell sum_to_n(n):
+    if n <= 0:
+        return 0
+    return n + sum_to_n(n - 1)
+
+print("\nSum from 1 to 10:")
+print(sum_to_n(10))  // 55
+
+// Test 4: Power function using recursion
+spell power(base, exp):
+    if exp == 0:
+        return 1
+    if exp == 1:
+        return base
+    return base * power(base, exp - 1)
+
+print("\n2 to the power of 8:")
+print(power(2, 8))  // 256
+
+// Test 5: Recursive string reversal (using array indexing)
+spell reverse_string(s, index):
+    if index < 0:
+        return ""
+    return s[index] + reverse_string(s, index - 1)
+
+spell reverse(s):
+    return reverse_string(s, len(s) - 1)
+
+print("\nReverse of 'hello':")
+print(reverse("hello"))  // "olleh"
+
+// Test 6: Greatest Common Divisor (Euclidean algorithm)
+spell gcd(a, b):
+    if b == 0:
+        return a
+    return gcd(b, a % b)
+
+print("\nGCD of 48 and 18:")
+print(gcd(48, 18))  // 6
+
+// Test 7: Recursive list sum (if we have a list)
+spell sum_list(lst, index):
+    if index >= len(lst):
+        return 0
+    return lst[index] + sum_list(lst, index + 1)
+
+numbers = [1, 2, 3, 4, 5]
+print("\nSum of [1, 2, 3, 4, 5]:")
+print(sum_list(numbers, 0))  // 15
+
+print("\nAll recursion tests passed!")

@@ -4,6 +4,7 @@ package repl
 import (
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"strings"
 
@@ -54,8 +55,14 @@ func Start(in io.Reader, out io.Writer, env *object.Environment) {
 	evaluator.LineReader = line
 
 	defer func() {
-		line.Close()
+		ok := line.Close()
+		if ok != nil {
+			log.Fatal("Unable to close the file: ", ok)
+		}
 		evaluator.LineReader = nil
+		// Clean up global state to prevent memory leaks
+		evaluator.CleanupGlobalState()
+		utils.ClearReplHistory()
 	}()
 
 	if env == nil {
@@ -89,8 +96,15 @@ func Start(in io.Reader, out io.Writer, env *object.Environment) {
 	// Optional: Load history from a file
 	historyFile := ".carrion_history"
 	if f, err := os.Open(historyFile); err == nil {
-		line.ReadHistory(f)
-		f.Close()
+		_, err := line.ReadHistory(f)
+		if err != nil {
+			log.Fatal("Error occured", err)
+		}
+
+		closed := f.Close()
+		if closed != nil {
+			log.Fatal("Unable to close file. Error: ", closed)
+		}
 	}
 
 	// Save history on exit
@@ -127,7 +141,11 @@ func Start(in io.Reader, out io.Writer, env *object.Environment) {
 	lineNumber := 1 // Track line numbers for error context
 
 	fmt.Fprintln(out, "Welcome to the Carrion Programming Language REPL!")
-	fmt.Fprintln(out, "Type 'exit' or 'quit' to exit, 'clear' to clear the screen.")
+	fmt.Fprintln(out, "For help type mimir or help().")
+	fmt.Fprintln(
+		out,
+		"To exit Interactive REPL type 'quit','exit','q', or 'qa'.\nTo clear REPL screen type in 'clear'.",
+	)
 	fmt.Fprintln(out, "Type any commands you like may Mimir guide your hand.")
 
 	for {
@@ -153,12 +171,12 @@ func Start(in io.Reader, out io.Writer, env *object.Environment) {
 		utils.RegisterReplLine(lineNumber, input)
 		lineNumber++
 
-		trimmedLine := strings.TrimSpace(input)
+		trimmedLine := strings.ToLower(strings.TrimSpace(input))
 
 		// Handle special commands only at the primary prompt
 		if !isMultiline {
 			switch trimmedLine {
-			case "exit", "quit":
+			case "exit", "quit", "q", "qa":
 				fmt.Fprintln(out, "Farewell, May the All Father bless your travels!")
 				return
 			case "clear":
@@ -166,6 +184,8 @@ func Start(in io.Reader, out io.Writer, env *object.Environment) {
 				utils.ClearReplHistory() // Clear history on screen clear
 				lineNumber = 1           // Reset line counter
 				continue
+			case "mimir":
+				helperCMD()
 			case "":
 				continue
 			}
@@ -300,6 +320,9 @@ func ProcessFile(filePath string, out io.Writer, env *object.Environment) error 
 
 // tryParseAndEval attempts to parse and evaluate the input
 func tryParseAndEval(input string, out io.Writer, env *object.Environment) (object.Object, bool) {
+	if out == nil {
+		fmt.Print("Out is Null")
+	}
 	l := lexer.NewWithFilename(
 		input,
 		"<repl>",
@@ -359,4 +382,11 @@ func isIncompleteParse(errs []string) bool {
 		}
 	}
 	return false
+}
+
+func helperCMD() {
+	fmt.Println(
+		"Welcome to Carrion's Interactive Help/ Documentation Tool. \nUse Mimir's knowledge to guide you.",
+	)
+	fmt.Print("scry>>> ")
 }

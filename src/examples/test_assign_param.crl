@@ -1,0 +1,6 @@
+spell test(n):
+    if True:
+        result = n
+        return result
+
+print(test(5))

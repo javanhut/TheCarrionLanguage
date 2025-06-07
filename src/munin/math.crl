@@ -1,3 +1,4 @@
 grim Math:
-  spell add(x,y):
-    return int(x)+ int(y)
+    spell info():
+        print("Math module loaded")
+        return None

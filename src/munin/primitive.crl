@@ -1,0 +1,6 @@
+// Base primitive types and utilities
+
+grim Primitive:
+    init():
+        // TODO: Implement when parameter access is fixed
+        ignore

@@ -1,0 +1,5 @@
+spell test():
+    result = 42
+    return result
+
+print(test())

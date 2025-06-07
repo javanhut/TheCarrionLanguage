@@ -1,0 +1,3 @@
+print(42)
+print(24)
+print(42 + 24)

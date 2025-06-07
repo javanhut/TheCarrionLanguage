@@ -156,6 +156,46 @@ var builtins = map[string]*object.Builtin{
 			return &object.String{Value: args[0].Inspect()}
 		},
 	},
+	"bool": {
+		Fn: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newError("wrong number of arguments. got=%d, want=1", len(args))
+			}
+			switch arg := args[0].(type) {
+			case *object.Boolean:
+				return arg
+			case *object.Integer:
+				if arg.Value == 0 {
+					return FALSE
+				}
+				return TRUE
+			case *object.Float:
+				if arg.Value == 0.0 {
+					return FALSE
+				}
+				return TRUE
+			case *object.String:
+				if arg.Value == "" {
+					return FALSE
+				}
+				return TRUE
+			case *object.Array:
+				if len(arg.Elements) == 0 {
+					return FALSE
+				}
+				return TRUE
+			case *object.Hash:
+				if len(arg.Pairs) == 0 {
+					return FALSE
+				}
+				return TRUE
+			case *object.None:
+				return FALSE
+			default:
+				return TRUE
+			}
+		},
+	},
 	"list": {
 		Fn: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
@@ -722,6 +762,36 @@ var builtins = map[string]*object.Builtin{
 			}
 
 			return &object.Boolean{Value: args[0].Type() == args[1].Type()}
+		},
+	},
+	"ord": {
+		Fn: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newError("ord requires exactly 1 argument, got=%d", len(args))
+			}
+			str, ok := args[0].(*object.String)
+			if !ok {
+				return newError("ord argument must be STRING, got=%s", args[0].Type())
+			}
+			if len(str.Value) != 1 {
+				return newError("ord expects a single character string, got length %d", len(str.Value))
+			}
+			return &object.Integer{Value: int64(str.Value[0])}
+		},
+	},
+	"chr": {
+		Fn: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newError("chr requires exactly 1 argument, got=%d", len(args))
+			}
+			num, ok := args[0].(*object.Integer)
+			if !ok {
+				return newError("chr argument must be INTEGER, got=%s", args[0].Type())
+			}
+			if num.Value < 0 || num.Value > 255 {
+				return newError("chr argument must be in range 0-255, got=%d", num.Value)
+			}
+			return &object.String{Value: string(rune(num.Value))}
 		},
 	},
 }

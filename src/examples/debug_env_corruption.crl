@@ -1,0 +1,9 @@
+spell test(param):
+    print("Before assignment, param is:")
+    print(param)
+    result = param + 1
+    print("After assignment, param is:")
+    print(param)
+    return 42
+
+test(5)

@@ -1,0 +1,5 @@
+spell test(n):
+    print(n)
+    return n
+
+test(42)

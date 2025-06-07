@@ -1,0 +1,4 @@
+if True:
+    result = 42
+
+print(result)

@@ -1,0 +1,33 @@
+// Main standard library module for Carrion
+// This serves as the entry point for the Munin standard library
+
+// The Munin standard library is named after Odin's ravens
+// Huginn and Muninn, representing thought and memory
+
+// Standard utility functions
+
+
+spell help():
+  print("To check current version use: version() function")
+  print("To check Available modules use: modules() function.")
+  print("To run interactive helper functions type: help in interactive repl")
+
+spell version():
+    return "Carrion Verison 0.1.6 Munin Standard Library 0.1.0"
+
+spell modules():
+  print("Munin Standard Library")
+  print("Available modules:")
+  print("\tArray: Array manipulation")
+  print("\tBoolean: Boolean operations") 
+  print("\tString: String operations")
+  print("\tInteger: Integer utilities")
+  print("\tFloat: Float utilities")
+  print("\tMath: Mathematical functions")
+  print("\tFile: File operations")
+  print("\tOS: Operating system interface")
+  print("\tDebug: Debug utilities")
+  return None
+
+// Library loaded successfully
+print("Munin Standard Library loaded")

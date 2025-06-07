@@ -1,0 +1,4 @@
+// Simple test without methods
+s = String("Hello World")
+print("String instance created: " + s.value)
+print("Success!")

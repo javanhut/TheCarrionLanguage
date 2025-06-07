@@ -35,6 +35,42 @@ type CallContext struct {
 // A map to track call stack depth for recursive functions
 var callStack = make(map[*object.Function]*CallContext)
 
+// Global map to track recursion depth per function (defined later in file)
+var recursionDepths = make(map[*ast.BlockStatement]int)
+
+// CleanupGlobalState clears all global state maps to prevent memory leaks
+func CleanupGlobalState() {
+	// Clear imported files
+	importedFiles = make(map[string]bool)
+	
+	// Clear call stack
+	for k := range callStack {
+		delete(callStack, k)
+	}
+	
+	// Clear recursion depths
+	for k := range recursionDepths {
+		delete(recursionDepths, k)
+	}
+	
+	// Reset current context
+	CurrentContext = nil
+}
+
+// CleanupCallStack removes entries from call stack for specific function
+func CleanupCallStack(fn *object.Function) {
+	if fn != nil {
+		delete(callStack, fn)
+	}
+}
+
+// CleanupRecursionDepth removes recursion tracking for specific AST node
+func CleanupRecursionDepth(node *ast.BlockStatement) {
+	if node != nil {
+		delete(recursionDepths, node)
+	}
+}
+
 func getSourcePosition(node ast.Node) object.SourcePosition {
 	pos := object.SourcePosition{
 		Filename: "unknown",
@@ -60,6 +96,7 @@ func getNodeToken(node ast.Node) *token.Token {
 		if len(n.Statements) > 0 {
 			return getNodeToken(n.Statements[0])
 		}
+		return nil
 	case *ast.ExpressionStatement:
 		return getNodeToken(n.Expression)
 	case *ast.IntegerLiteral:
@@ -98,8 +135,28 @@ func getNodeToken(node ast.Node) *token.Token {
 		return &n.Token
 	case *ast.WhileStatement:
 		return &n.Token
+	case *ast.ArrayLiteral:
+		return &n.Token
+	case *ast.HashLiteral:
+		return &n.Token
+	case *ast.TupleLiteral:
+		return &n.Token
+	case *ast.MatchStatement:
+		return &n.Token
+	case *ast.GrimoireDefinition:
+		return &n.Token
+	case *ast.AttemptStatement:
+		return &n.Token
+	default:
+		// Return a synthetic token for unknown nodes to prevent nil pointer issues
+		return &token.Token{
+			Type:     token.ILLEGAL,
+			Literal:  "unknown",
+			Line:     1,
+			Column:   1,
+			Filename: "",
+		}
 	}
-	return nil
 }
 
 func newErrorWithTrace(
@@ -233,6 +290,14 @@ func isErrorWithTrace(obj object.Object) bool {
 
 // Main evaluation function
 func Eval(node ast.Node, env *object.Environment, ctx *CallContext) object.Object {
+	// Add nil parameter validation
+	if node == nil {
+		return &object.Error{Message: "cannot evaluate nil node"}
+	}
+	if env == nil {
+		return newErrorWithTrace("environment cannot be nil", node, ctx)
+	}
+	
 	oldContext := CurrentContext
 	CurrentContext = ctx
 	defer func() { CurrentContext = oldContext }()
@@ -331,7 +396,10 @@ func Eval(node ast.Node, env *object.Environment, ctx *CallContext) object.Objec
 			if isErrorWithTrace(right) {
 				return right
 			}
-			return newErrorWithTrace("Error in right operand: %s", node, ctx, right.(*object.Error).Message)
+			if errorObj, ok := right.(*object.Error); ok {
+				return newErrorWithTrace("Error in right operand: %s", node, ctx, errorObj.Message)
+			}
+			return newErrorWithTrace("Error in right operand", node, ctx)
 		}
 
 		left := Eval(node.Left, env, ctx)
@@ -339,7 +407,10 @@ func Eval(node ast.Node, env *object.Environment, ctx *CallContext) object.Objec
 			if isErrorWithTrace(left) {
 				return left
 			}
-			return newErrorWithTrace("Error in left operand: %s", node, ctx, left.(*object.Error).Message)
+			if errorObj, ok := left.(*object.Error); ok {
+				return newErrorWithTrace("Error in left operand: %s", node, ctx, errorObj.Message)
+			}
+			return newErrorWithTrace("Error in left operand", node, ctx)
 		}
 
 		result := evalInfixExpression(node.Operator, left, right, node, ctx)
@@ -618,9 +689,12 @@ func evalExpressions(
 	env *object.Environment,
 	ctx *CallContext,
 ) []object.Object {
-	var result []object.Object
+	result := make([]object.Object, 0, len(exps))
 
 	for _, e := range exps {
+		if e == nil {
+			return []object.Object{&object.Error{Message: "cannot evaluate nil expression"}}
+		}
 		evaluated := Eval(e, env, ctx)
 		if isError(evaluated) {
 			return []object.Object{evaluated}
@@ -795,9 +869,8 @@ func evalAssignStatement(
 			return val
 		}
 
-		if isPrimitiveLiteral(val) {
-			val = wrapPrimitive(val, env, ctx)
-		}
+		// Don't wrap primitives - this breaks arithmetic operations
+		// Wrapping should only happen for explicit method calls on literals
 
 		env.Set(target.Value, val)
 		return val
@@ -1082,8 +1155,7 @@ func evalGrimoireMethodCall(
 	return evalWithRecursionLimit(method.Body, methodEnv, method, methodCtx, 0)
 }
 
-// Global map to track recursion depth per function
-var recursionDepths = make(map[*ast.BlockStatement]int)
+// recursionDepths is defined at the top of the file
 
 func evalWithRecursionLimit(
 	body *ast.BlockStatement,
@@ -1347,11 +1419,11 @@ func unwrapReturnValue(obj object.Object) object.Object {
 
 func sameClass(env *object.Environment, target *object.Grimoire) bool {
 	callerSelf, ok := env.Get("self")
-	if !ok {
+	if !ok || callerSelf == nil {
 		return false
 	}
 	callerInst, ok := callerSelf.(*object.Instance)
-	if !ok {
+	if !ok || callerInst == nil {
 		return false
 	}
 	return callerInst.Grimoire == target
@@ -1359,11 +1431,11 @@ func sameClass(env *object.Environment, target *object.Grimoire) bool {
 
 func sameOrSubclass(env *object.Environment, target *object.Grimoire) bool {
 	callerSelf, ok := env.Get("self")
-	if !ok {
+	if !ok || callerSelf == nil {
 		return false
 	}
 	callerInst, ok := callerSelf.(*object.Instance)
-	if !ok {
+	if !ok || callerInst == nil {
 		return false
 	}
 
@@ -1423,6 +1495,8 @@ func evalIndexExpression(left, index object.Object, node ast.Node, ctx *CallCont
 		return evalArrayIndexExpression(left, index, node, ctx)
 	case left.Type() == object.HASH_OBJ:
 		return evalHashIndexExpression(left, index, node, ctx)
+	case left.Type() == object.STRING_OBJ && index.Type() == object.INTEGER_OBJ:
+		return evalStringIndexExpression(left, index, node, ctx)
 	default:
 		return newErrorWithTrace("index operator not supported: %s", node, ctx, left.Type())
 	}
@@ -1433,8 +1507,16 @@ func evalTupleIndexExpression(
 	node ast.Node,
 	ctx *CallContext,
 ) object.Object {
-	tupleObj := tuple.(*object.Tuple)
-	idx := int(index.(*object.Integer).Value)
+	tupleObj, ok := tuple.(*object.Tuple)
+	if !ok {
+		return newErrorWithTrace("not a tuple: %s", node, ctx, tuple.Type())
+	}
+	
+	indexObj, ok := index.(*object.Integer)
+	if !ok {
+		return newErrorWithTrace("tuple index must be INTEGER, got %s", node, ctx, index.Type())
+	}
+	idx := int(indexObj.Value)
 
 	// Handle negative indices
 	if idx < 0 {
@@ -1454,7 +1536,10 @@ func evalHashIndexExpression(
 	node ast.Node,
 	ctx *CallContext,
 ) object.Object {
-	hashObject := hash.(*object.Hash)
+	hashObject, ok := hash.(*object.Hash)
+	if !ok {
+		return newErrorWithTrace("not a hash: %s", node, ctx, hash.Type())
+	}
 	key, ok := index.(object.Hashable)
 	if !ok {
 		return newErrorWithTrace("unusable as hash key: %s", node, ctx, index.Type())
@@ -1495,6 +1580,39 @@ func evalArrayIndexExpression(
 	}
 
 	return arrayObject.Elements[idx]
+}
+
+func evalStringIndexExpression(
+	str, index object.Object,
+	node ast.Node,
+	ctx *CallContext,
+) object.Object {
+	stringObj, ok := str.(*object.String)
+	if !ok {
+		return newErrorWithTrace("index operation not supported on %s", node, ctx, str.Type())
+	}
+
+	intIndex, ok := index.(*object.Integer)
+	if !ok {
+		return newErrorWithTrace("string index must be INTEGER, got %s", node, ctx, index.Type())
+	}
+
+	idx := intIndex.Value
+	strLen := int64(len(stringObj.Value))
+	maxIndex := strLen - 1
+
+	// Handle negative indices like Python
+	if idx < 0 {
+		idx = strLen + idx
+	}
+
+	if idx < 0 || idx > maxIndex {
+		return newErrorWithTrace("string index out of bounds: %d (string length: %d)",
+			node, ctx, idx, strLen)
+	}
+
+	// Return a single-character string
+	return &object.String{Value: string(stringObj.Value[idx])}
 }
 
 func extendFunctionEnv(
