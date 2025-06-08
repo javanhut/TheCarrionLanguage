@@ -1,0 +1,5 @@
+s = String("Hello")
+print("String:", s.to_string())
+print("Length:", s.length())
+print("Upper:", s.upper())
+print("Lower:", s.lower())

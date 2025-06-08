@@ -1,0 +1,7 @@
+// Debug Array grimoire loading
+print("Creating Array instance...")
+arr = Array([1, 2, 3])
+print("Array instance created:", arr)
+
+// Check if we can access the internal elements
+print("Trying to access arr.elements directly:", arr.elements)

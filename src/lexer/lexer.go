@@ -55,22 +55,24 @@ func (l *Lexer) NextToken() token.Token {
        l.advanceLine()
        return l.NextToken()
    }
-   // Handle indentation changes at the start of a new line, skipping simple newlines/indents
+   // Handle indentation changes at the start of a new line, but be selective about tokens
    if l.charIndex == 0 && !l.indentResolved {
        l.indentResolved = true
        newIndent := measureIndent(l.currLine)
        tok := l.handleIndentChange(newIndent)
-       // Skip any indentation-related tokens here; DEDENT at EOF will be handled later
+       // Return all indentation-related tokens
        if tok.Type == token.NEWLINE || tok.Type == token.INDENT || tok.Type == token.DEDENT {
-           return l.NextToken()
+           return tok
        }
-       return tok
+       // Continue to next token for other cases
+       return l.NextToken()
    }
 
-   // Skip explicit line breaks
+   // Generate NEWLINE token at end of line
    if l.charIndex >= len(l.currLine) {
        l.advanceLine()
-       return l.NextToken()
+       // Return NEWLINE token for explicit line break
+       return l.newToken(token.NEWLINE, "")
    }
 
 	ch := l.currLine[l.charIndex]

@@ -2,91 +2,33 @@ grim Boolean:
     init(value = False):
         if value == "True" or value == "true":
             self.value = True
-        otherwise value == "False" or value == "false":
-            self.value = False
-        otherwise type(value) == "STRING":
-            self.value = len(value) > 0
-        otherwise type(value) == "INTEGER" or type(value) == "FLOAT":
-            self.value = value != 0
-        otherwise value == None:
-            self.value = False
-        otherwise type(value) == "INSTANCE":
-            if value.value != None:
-                self.value = value.value
-            else:
-                self.value = False
         else:
-            self.value = value
+            if value == "False" or value == "false":
+                self.value = False
+            else:
+                if type(value) == "STRING":
+                    self.value = len(value) > 0
+                else:
+                    if type(value) == "INTEGER" or type(value) == "FLOAT":
+                        self.value = value != 0
+                    else:
+                        if value == None:
+                            self.value = False
+                        else:
+                            if type(value) == "INSTANCE":
+                                if value.value != None:
+                                    self.value = value.value
+                                else:
+                                    self.value = False
+                            else:
+                                self.value = value
     
-    // Conversion methods
     spell to_int():
         if self.value:
             return 1
         return 0
     
     spell to_string():
-        if self.value:
-            return "True"
-        return "False"
-    
-    // Boolean operations
-    spell and_op(other):
-        if type(other) == "BOOLEAN":
-            return Boolean(self.value and other)
-        otherwise type(other) == "INSTANCE":
-            if other.value != None:
-                return Boolean(self.value and other.value)
-        return Boolean(self.value and bool(other))
-    
-    spell or_op(other):
-        if type(other) == "BOOLEAN":
-            return Boolean(self.value or other)
-        otherwise type(other) == "INSTANCE":
-            if other.value != None:
-                return Boolean(self.value or other.value)
-        return Boolean(self.value or bool(other))
-    
-    spell not_op():
-        return Boolean(not self.value)
-    
-    spell xor(other):
-        if type(other) == "BOOLEAN":
-            return Boolean((self.value and not other) or (not self.value and other))
-        otherwise type(other) == "INSTANCE":
-            if other.value != None:
-                return Boolean((self.value and not other.value) or (not self.value and other.value))
-        other_bool = bool(other)
-        return Boolean((self.value and not other_bool) or (not self.value and other_bool))
-    
-    // Equality operations
-    spell equals(other):
-        if type(other) == "BOOLEAN":
-            return self.value == other
-        otherwise type(other) == "INSTANCE":
-            if other.value != None:
-                return self.value == other.value
-        return self.value == bool(other)
-    
-    // Conditional execution
-    spell then(true_callback, false_callback=None):
-        if self.value:
-            return true_callback()
-        otherwise false_callback != None:
-            return false_callback()
-        return None
-    
-    spell if_true(callback):
-        if self.value:
-            return callback()
-        return None
-    
-    spell if_false(callback):
-        if not self.value:
-            return callback()
-        return None
-    
-    // String representation
-    spell to_str():
         if self.value:
             return "True"
         return "False"

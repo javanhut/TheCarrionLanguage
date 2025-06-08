@@ -290,7 +290,7 @@ func (p *Parser) isAtEnd() bool {
 func (p *Parser) canStartExpression(tokenType token.TokenType) bool {
 	switch tokenType {
 	case token.IDENT, token.INT, token.FLOAT, token.STRING, token.TRUE, token.FALSE, token.NONE,
-		token.LPAREN, token.LBRACK, token.LBRACE, token.SPELL, token.IF:
+		token.LPAREN, token.LBRACK, token.LBRACE, token.SPELL, token.IF, token.SELF:
 		return true
 	default:
 		return false
@@ -948,7 +948,8 @@ func (p *Parser) ParseProgram() *ast.Program {
 }
 
 func (p *Parser) parseStatement() ast.Statement {
-	if p.currToken.Type == token.NEWLINE || p.currToken.Type == token.EOF {
+	if p.currToken.Type == token.NEWLINE || p.currToken.Type == token.EOF || 
+	   p.currToken.Type == token.INDENT || p.currToken.Type == token.DEDENT {
 		return nil
 	}
 	switch p.currToken.Type {
@@ -1322,7 +1323,8 @@ func (p *Parser) parseIfStatement() ast.Statement {
 	if p.peekTokenIs(token.NEWLINE) {
 		p.nextToken()
 		if p.peekTokenIs(token.INDENT) {
-			p.nextToken()
+			p.nextToken() // Move to INDENT token
+			p.nextToken() // Move past INDENT to first statement token
 			stmt.Consequence = p.parseBlockStatement()
 		} else {
 			stmt.Consequence = &ast.BlockStatement{
@@ -1361,7 +1363,8 @@ func (p *Parser) parseIfStatement() ast.Statement {
 		if p.peekTokenIs(token.NEWLINE) {
 			p.nextToken()
 			if p.peekTokenIs(token.INDENT) {
-				p.nextToken()
+				p.nextToken() // Move to INDENT token
+				p.nextToken() // Move past INDENT to first statement token
 				branch.Consequence = p.parseBlockStatement()
 			} else {
 				branch.Consequence = &ast.BlockStatement{
@@ -1389,7 +1392,8 @@ func (p *Parser) parseIfStatement() ast.Statement {
 		if p.peekTokenIs(token.NEWLINE) {
 			p.nextToken()
 			if p.peekTokenIs(token.INDENT) {
-				p.nextToken()
+				p.nextToken() // Move to INDENT token
+				p.nextToken() // Move past INDENT to first statement token
 				stmt.Alternative = p.parseBlockStatement()
 			} else {
 				stmt.Alternative = &ast.BlockStatement{
@@ -1528,10 +1532,11 @@ func (p *Parser) parseForStatement() ast.Statement {
 	// --- Parse the loop body ---
 	if p.peekTokenIs(token.NEWLINE) {
 		p.nextToken()
-		if !p.expectPeek(token.INDENT) {
-			return nil
+		if p.peekTokenIs(token.INDENT) {
+			p.nextToken() // Move to INDENT token
+			p.nextToken() // Move past INDENT to first statement token
+			fs.Body = p.parseBlockStatement()
 		}
-		fs.Body = p.parseBlockStatement()
 	} else {
 		p.nextToken()
 		fs.Body = &ast.BlockStatement{
@@ -1605,7 +1610,8 @@ func (p *Parser) parseFunctionDefinition() ast.Statement {
 	// Parse function body - handle both single-line and multi-line functions
 	if p.currTokenIs(token.NEWLINE) {
 		if p.peekTokenIs(token.INDENT) {
-			p.nextToken()
+			p.nextToken() // Move to INDENT token
+			p.nextToken() // Move past INDENT to first statement token
 			stmt.Body = p.parseBlockStatement()
 		} else {
 			singleStmt := p.parseStatement()
@@ -1789,7 +1795,8 @@ func (p *Parser) parseWhileStatement() ast.Statement {
 	}
 
 	if p.peekTokenIs(token.INDENT) {
-		p.nextToken()
+		p.nextToken() // Move to INDENT token
+		p.nextToken() // Move past INDENT to first statement token
 		stmt.Body = p.parseBlockStatement()
 	} else {
 		stmt.Body = p.parseBlockStatement()
@@ -1838,7 +1845,7 @@ func (p *Parser) parseGrimoireDefinition() ast.Statement {
 	if p.peekTokenIs(token.NEWLINE) {
 		p.nextToken()
 		if p.peekTokenIs(token.INDENT) {
-			p.nextToken()
+			p.nextToken() // Move to INDENT token
 
 			p.contextStack = append(p.contextStack, "grim")
 			defer func() {

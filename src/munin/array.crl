@@ -4,11 +4,12 @@ grim Array:
             self.elements = []
         else:
             self.elements = elements
-
+    
     spell append(val):
-        self.elements += [val]
+        new_list = self.elements + [val]
+        self.elements = new_list
         return None
-
+    
     spell length():
         return len(self.elements)
 
@@ -19,7 +20,6 @@ grim Array:
         return self.elements[index]
 
     spell set(index, value):
-        // TODO: Implement set method when built-in array assignment is available
         return None
 
     spell is_empty():

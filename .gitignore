@@ -23,6 +23,7 @@ go.work.sum
 
 # env file
 .env
-
+debug/
+debug_*.go
 # Carrion History for build code
 .carrion_history
