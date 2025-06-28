@@ -1,6 +1,23 @@
+```
+Example demonstrating recursive function implementation for factorial calculation.
+
+This script implements the classic factorial algorithm using recursion,
+showing how functions can call themselves with modified parameters.
+Demonstrates base case handling and recursive mathematical operations.
+```
+
+# Define a recursive factorial function
 spell factorial(n):
+    ```
+    Calculates factorial of n using recursive algorithm.
+    Base case: factorial(0) = 1
+    Recursive case: factorial(n) = n * factorial(n-1)
+    ```
+    # Base case: factorial of 0 is 1
     if n == 0:
         return 1
+    # Recursive case: n times factorial of (n-1)
     return n * factorial(n - 1)
 
+# Calculate and display factorial of 5 (should be 120)
 print(factorial(5))

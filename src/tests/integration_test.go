@@ -36,11 +36,11 @@ func TestExampleFiles(t *testing.T) {
 	skipFiles := map[string]bool{
 		"test_oop_one_self.crl":     true,  // Uses self parameter
 		"test_oop_two_self.crl":     true,  // Uses self parameter
-		"test_spellbook.crl":        true,  // Uses self parameter
+		"test_grimoire.crl":        true,  // Uses self parameter
 		"test_inheritance.crl":      true,  // Uses self parameter
 		"test_priv_prot.crl":        true,  // Uses self parameter
 		"test_arcane_grimoire.crl":  true,  // Uses self parameter
-		"test_default_in_spellbook.crl": true, // Uses parameters
+		"test_default_in_grimoire.crl": true, // Uses parameters
 		"test_calculator.crl":       true,  // Uses parameters
 		"test_loops.crl":            true,  // Uses loop variables
 		"test_for_skip_continue.crl": true, // Uses loop variables

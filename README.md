@@ -1,7 +1,7 @@
 <meta name="google-site-verification" content="7L-IkFjwJUUVamMg0bj1PwYOVcpowQyomYVhYM4e6lk" />
 <meta name="description" content="Carrion Programming Language is a modern, dynamically typed, interpreted language inspired by Python and built in Go. Discover its fun crow theme, unique syntax, and powerful features for fast development and learning." />The Carrion Programming Language
 
-Latest Version: 0.1.6-alpha [![Release](https://img.shields.io/badge/version-0.1.6-blue.svg)]()
+Latest Version: 0.1.6-alpha [![Release](https://img.shields.io/badge/version-0.1.6--alpha-blue.svg)]()
 
 
 
@@ -29,29 +29,87 @@ Carrion Programming Language is a modern, dynamically typed, interpreted languag
 
 ## Key Features
 
-Dynamic Typing & Interpretation:
+### Dynamic Typing & Interpretation
 Experience the benefits of runtime type checking and an interpreter that supports a rapid development cycle.
 
-Python-Inspired Syntax:
-Enjoy familiar programming constructs with creative modifications, making code both expressive and easy to read.
+### Python-Inspired Syntax with Creative Enhancements
+- Familiar programming constructs with unique modifications
+- Crow-themed keywords: `spell` (function), `grim` (class - short for grimoire/spellbook)
+- Enhanced loop control: `skip` (continue) and `stop` (break)
+- Powerful error handling: `attempt`/`ensnare`/`resolve`
 
-Built in Go:
-Leveraging the robustness of Go, Carrion utilizes Go routines for efficient concurrency and performance, making it a modern choice for scalable applications.
+### Built in Go for Performance
+- Leverages Go's robustness and efficiency
+- Tree-walking interpreter with planned JIT compilation
+- Fast execution and minimal resource usage
 
-Engaging Theme:
-With a playful crow motif and a vibrant community, Carrion transforms learning programming into an enjoyable experience.
+### Comprehensive Standard Library (Munin)
+- Named after Odin's raven, representing memory
+- Built-in modules for arrays, strings, math, OS operations, and more
+- Embedded directly into the language runtime
 
-Comprehensive Documentation:
-Detailed guides, tutorials, and examples are available to help you master the language quickly and efficiently.
+### Object-Oriented Programming Support
+- Full OOP with classes (grimoires), inheritance, and encapsulation
+- Abstract classes with `arcane grim`
+- Private (`_`) and protected (`__`) methods
+- Method overriding and polymorphism
 
 
 ## Installation
 
-Carrion is primarily designed for Linux environments, though installation instructions for other operating systems are provided. Get started quickly by following our detailed Installation Guide .
+### Quick Install (Linux/macOS)
+```bash
+# Clone the repository
+git clone https://github.com/javanhut/TheCarrionLanguage.git
+cd TheCarrionLanguage
 
-## Extensive Documentation
+# Run the installation script
+./install/install.sh
+```
 
-For in-depth information about syntax, data types, control flow, functions, and more, visit the Carrion Language Wiki . Our wiki offers a wealth of resources, making it easier for developers to learn, experiment, and contribute to the language.
+### Manual Installation
+1. Ensure Go 1.19+ is installed
+2. Clone the repository
+3. Run `make build` or `go build -o carrion src/main.go`
+4. Add the binary to your PATH
+
+### Docker Installation
+```bash
+# Build the Docker image
+docker build -t carrion .
+
+# Run Carrion in a container
+docker run -it carrion
+```
+
+## Documentation
+
+- **[Language Documentation](docs/CARRION.md)** - Comprehensive guide to Carrion syntax and features
+- **[Examples](src/examples/)** - Sample programs demonstrating various language features
+- **[Changelog](Changelog/README.md)** - Version history and updates
+
+### Quick Start
+
+```python
+// Hello World in Carrion
+print("Hello, World!")
+
+// Define a function (spell)
+spell greet(name):
+    return f"Hello, {name}!"
+
+// Create a class (grimoire)
+grim Crow:
+    init(name):
+        self.name = name
+    
+    spell caw():
+        print(f"{self.name} says: Caw!")
+
+// Use the class
+my_crow = Crow("Munin")
+my_crow.caw()
+```
 
 ## File Extension
 
@@ -59,31 +117,45 @@ Carrion source code files use the .crl extension, making it simple to identify a
 
 ## Future Enhancements
 
-- Carrion is an evolving language with exciting future updates planned, including:
+Carrion is an evolving language with exciting future updates planned:
 
-- List Comprehensions: Simplify collection processing with Python-like concise syntax.
-
-- JIT Compiler & Virtual Machine: Enhance runtime performance with just-in-time compilation.
-
-- Generic Functions & Abstract Data Types: Improve code reuse and flexibility.
-
-- Enhanced Standard Library: Expand built-in functionalities with a richer set of tools.
-
-- Interactive REPL and Improved Documentation: Streamline development with an enhanced REPL and comprehensive guides.
-
-- Language Interoperability: Integrate and alias features from other popular programming languages for a seamless experience.
+- **List Comprehensions**: Simplify collection processing with Python-like concise syntax
+- **JIT Compiler & Virtual Machine**: Enhance runtime performance with just-in-time compilation
+- **Generic Functions & Abstract Data Types**: Improve code reuse and flexibility
+- **Enhanced Standard Library**: Expand built-in functionalities with a richer set of tools
+- **Improved Type System**: Optional static type checking for better code safety
+- **Async/Await Support**: Modern concurrency patterns
+- **Language Interoperability**: Integrate with other programming languages
 
 
-Build and Release Status
+## Build and Release Status
 
-Stay up-to-date with the latest builds and releases: 
+- Current Version: 0.1.6-alpha
+- Standard Library (Munin): 0.1.0
+- Status: Active Development 
 
-About the Author
+## About the Author
 
-Carrion was created by Javan Hutchinson, a dedicated developer committed to exploring innovative programming paradigms and enhancing developer experiences. Connect via email at javanhut@carrionlang.com or file an issue on our GitHub repository.
+Carrion was created by Javan Hutchinson, a dedicated developer committed to exploring innovative programming paradigms and enhancing developer experiences.
 
-Reporting Issues and Community Engagement
+## Contributing
 
-For any issues, feedback, or questions, please reach out via email or by filing an issue on GitHub. Your contributions help shape the future of Carrion, ensuring continuous improvement and community-driven enhancements.
+We welcome contributions! Please:
+1. Fork the repository
+2. Create a feature branch
+3. Submit a pull request
 
-> Note: While our tone remains lighthearted with a fun crow theme, our commitment to Go’s robust concurrency and performance remains unwavering.
+## Contact & Support
+
+- **Email**: javanhut@carrionlang.com
+- **Issues**: [GitHub Issues](https://github.com/javanhut/TheCarrionLanguage/issues)
+- **Discussions**: Join our community discussions on GitHub
+
+Your feedback and contributions help shape the future of Carrion!
+
+
+> **Note**: While Carrion embraces a playful crow theme, it's a serious programming language built on Go's robust foundation, designed for real-world applications and educational purposes.
+
+## License
+
+Carrion is open-source software. See the [LICENSE](LICENSE) file for details.

@@ -1,5 +1,23 @@
+```
+Example demonstrating String grimoire methods and functionality.
+
+This script showcases various string manipulation operations available
+through the String grimoire including case conversion, length calculation,
+and string representation. Each operation demonstrates the object-oriented
+approach to string handling in Carrion.
+```
+
+# Create a String grimoire instance with initial text
 s = String("Hello")
+
+# Display the string representation
 print("String:", s.to_string())
+
+# Show the length of the string
 print("Length:", s.length())
+
+# Demonstrate case conversion to uppercase
 print("Upper:", s.upper())
+
+# Demonstrate case conversion to lowercase
 print("Lower:", s.lower())

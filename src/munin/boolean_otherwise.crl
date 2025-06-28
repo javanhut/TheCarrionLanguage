@@ -18,7 +18,7 @@ grim Boolean:
         else:
             self.value = value
     
-    // Conversion methods
+    # Conversion methods
     spell to_int():
         if self.value:
             return 1
@@ -29,7 +29,7 @@ grim Boolean:
             return "True"
         return "False"
     
-    // Boolean operations
+    # Boolean operations
     spell and_op(other):
         if type(other) == "BOOLEAN":
             return Boolean(self.value and other)
@@ -58,7 +58,7 @@ grim Boolean:
         other_bool = bool(other)
         return Boolean((self.value and not other_bool) or (not self.value and other_bool))
     
-    // Equality operations
+    # Equality operations
     spell equals(other):
         if type(other) == "BOOLEAN":
             return self.value == other
@@ -67,7 +67,7 @@ grim Boolean:
                 return self.value == other.value
         return self.value == bool(other)
     
-    // Conditional execution
+    # Conditional execution
     spell then(true_callback, false_callback=None):
         if self.value:
             return true_callback()
@@ -85,7 +85,7 @@ grim Boolean:
             return callback()
         return None
     
-    // String representation
+    # String representation
     spell to_str():
         if self.value:
             return "True"

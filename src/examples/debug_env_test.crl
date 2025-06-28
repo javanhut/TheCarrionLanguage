@@ -1,4 +1,4 @@
-// Test 1: Single statement function (WORKS)
+# Test 1: Single statement function (WORKS)
 spell single(param):
     return param
 
@@ -6,7 +6,7 @@ result1 = single(42)
 print("Single statement result:")
 print(result1)
 
-// Test 2: Two simple statements (FAILS)
+# Test 2: Two simple statements (FAILS)
 spell double(param):
     print("first statement")
     return param

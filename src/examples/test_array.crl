@@ -1,5 +1,18 @@
+```
+Example demonstrating Array grimoire functionality in Carrion.
+
+This script shows how to create arrays and use the Array grimoire
+for enhanced array operations like appending elements. The Array
+grimoire provides object-oriented methods for array manipulation
+beyond the basic array literal syntax.
+```
+
+# Create an initial array with integer values
 x = [10, 9, 8, 4, 1]
 
+# Wrap the array in an Array grimoire for enhanced functionality
 arr = Array(x)
+
+# Use the Array grimoire's append method to add a new element
 arr.append(11)
 

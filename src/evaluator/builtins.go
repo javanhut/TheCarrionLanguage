@@ -1,10 +1,12 @@
 package evaluator
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"os/exec"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/peterh/liner"
@@ -12,10 +14,6 @@ import (
 	"github.com/javanhut/TheCarrionLanguage/src/object"
 )
 
-func flushInputBuffer() {
-	var discard string
-	fmt.Scanln(&discard)
-}
 
 var LineReader *liner.State
 
@@ -68,9 +66,14 @@ var builtins = map[string]*object.Builtin{
 			}
 
 			fmt.Print(prompt)
-			var input string
-			fmt.Scanln(&input)
-			flushInputBuffer()
+			reader := bufio.NewReader(os.Stdin)
+			input, err := reader.ReadString('\n')
+			if err != nil {
+				return &object.Error{Message: "error reading input: " + err.Error()}
+			}
+			// Remove the trailing newline
+			input = strings.TrimSuffix(input, "\n")
+			input = strings.TrimSuffix(input, "\r") // Handle Windows line endings
 			return &object.String{Value: input}
 		},
 	},

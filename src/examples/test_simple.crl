@@ -1,5 +1,21 @@
+```
+Simple function definition and calling example.
+
+This minimal script demonstrates the basic syntax for defining functions
+(spells) and calling them with parameters. Shows the fundamental structure
+of function definition, parameter passing, and return values.
+```
+
+# Define a simple function that prints and returns its parameter
 spell test(n):
+    ```
+    Simple test function that displays and returns the input parameter.
+    Useful for verifying function call mechanisms and parameter passing.
+    ```
+    # Display the parameter value
     print(n)
+    # Return the same value back to the caller
     return n
 
+# Call the function with a test value
 test(42)

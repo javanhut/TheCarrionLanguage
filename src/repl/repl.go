@@ -10,10 +10,12 @@ import (
 
 	"github.com/peterh/liner"
 
+	"github.com/javanhut/TheCarrionLanguage/src/debug"
 	"github.com/javanhut/TheCarrionLanguage/src/evaluator"
 	"github.com/javanhut/TheCarrionLanguage/src/lexer"
 	"github.com/javanhut/TheCarrionLanguage/src/object"
 	"github.com/javanhut/TheCarrionLanguage/src/parser"
+	"github.com/javanhut/TheCarrionLanguage/src/token"
 	"github.com/javanhut/TheCarrionLanguage/src/utils"
 )
 
@@ -139,6 +141,7 @@ func Start(in io.Reader, out io.Writer, env *object.Environment) {
 	baseIndentLevel := 0
 	inIfBlock := false
 	lineNumber := 1 // Track line numbers for error context
+	consecutiveEmptyLines := 0 // Track consecutive empty lines for double-enter detection
 
 	fmt.Fprintln(out, "Welcome to the Carrion Programming Language REPL!")
 	fmt.Fprintln(out, "For help type mimir or help().")
@@ -202,12 +205,38 @@ func Start(in io.Reader, out io.Writer, env *object.Environment) {
 
 		// Handle empty lines
 		if trimmedLine == "" {
+			consecutiveEmptyLines++
 			if isMultiline {
 				inputBuffer.WriteString(input)
 				inputBuffer.WriteString("\n")
+				// Double-enter detection: if user presses enter twice on empty lines
+				// and we're in a multi-line block, force evaluation
+				if consecutiveEmptyLines >= 2 {
+					shouldEvaluate := true
+					if shouldEvaluate {
+						input := inputBuffer.String()
+						if strings.TrimSpace(input) != "" {
+							evaluated, complete := tryParseAndEval(input, out, env)
+							if complete {
+								if evaluated != nil && evaluated.Type() != object.NONE_OBJ {
+									fmt.Fprintf(out, "%s\n", evaluated.Inspect())
+								}
+							}
+						}
+						// Reset all state
+						inputBuffer.Reset()
+						isMultiline = false
+						baseIndentLevel = 0
+						inIfBlock = false
+						consecutiveEmptyLines = 0
+					}
+				}
 			}
 			continue
 		}
+
+		// Reset consecutive empty lines counter when we get actual content
+		consecutiveEmptyLines = 0
 
 		// Check if this is the start of an if block
 		if strings.HasPrefix(trimmedLine, "if ") && strings.HasSuffix(trimmedLine, ":") {
@@ -321,7 +350,6 @@ func ProcessFile(filePath string, out io.Writer, env *object.Environment) error 
 // tryParseAndEval attempts to parse and evaluate the input
 func tryParseAndEval(input string, out io.Writer, env *object.Environment) (object.Object, bool) {
 	if out == nil {
-		fmt.Print("Out is Null")
 	}
 	l := lexer.NewWithFilename(
 		input,
@@ -389,4 +417,88 @@ func helperCMD() {
 		"Welcome to Carrion's Interactive Help/ Documentation Tool. \nUse Mimir's knowledge to guide you.",
 	)
 	fmt.Print("scry>>> ")
+}
+
+// StartWithDebug begins the REPL with debug configuration
+func StartWithDebug(in io.Reader, out io.Writer, env *object.Environment, debugConfig *debug.Config) {
+	Start(in, out, env)
+}
+
+// ProcessFileWithDebug reads, parses, and evaluates a Carrion source file with debug output
+func ProcessFileWithDebug(filePath string, out io.Writer, env *object.Environment, debugConfig *debug.Config) error {
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		return fmt.Errorf("error reading file %s: %w", filePath, err)
+	}
+
+	// Tokenize with debug output
+	l := lexer.NewWithFilename(string(content), filePath)
+	
+	if debugConfig.ShouldDebugLexer() {
+		fmt.Fprintf(os.Stderr, "\n=== LEXER OUTPUT ===\n")
+		// Create a copy of the lexer for debug output
+		debugLexer := lexer.NewWithFilename(string(content), filePath)
+		for {
+			tok := debugLexer.NextToken()
+			fmt.Fprintf(os.Stderr, "lexer: Token{Type: %s, Literal: %q, Line: %d, Column: %d}\n", 
+				tok.Type, tok.Literal, tok.Line, tok.Column)
+			if tok.Type == token.EOF {
+				break
+			}
+		}
+		fmt.Fprintf(os.Stderr, "===================\n\n")
+	}
+
+	p := parser.New(l)
+	program := p.ParseProgram()
+
+	if len(p.Errors()) > 0 {
+		utils.PrintParseFail(filePath, string(content), p.Errors())
+		return fmt.Errorf("file %s contains syntax errors", filePath)
+	}
+
+	if debugConfig.ShouldDebugParser() {
+		fmt.Fprintf(os.Stderr, "\n=== PARSER OUTPUT ===\n")
+		fmt.Fprintf(os.Stderr, "parser: Program with %d statements\n", len(program.Statements))
+		for i, stmt := range program.Statements {
+			fmt.Fprintf(os.Stderr, "parser: Statement[%d]: %T - %s\n", i, stmt, stmt.String())
+		}
+		fmt.Fprintf(os.Stderr, "====================\n\n")
+	}
+
+	if debugConfig.ShouldDebugEvaluator() {
+		fmt.Fprintf(os.Stderr, "\n=== EVALUATOR OUTPUT ===\n")
+	}
+
+	evaluated := evaluator.EvalWithDebug(program, env, nil, debugConfig)
+
+	if debugConfig.ShouldDebugEvaluator() {
+		fmt.Fprintf(os.Stderr, "=====================\n\n")
+	}
+
+	// Handle errors with improved formatting
+	if errObj, ok := evaluated.(*object.ErrorWithTrace); ok {
+		utils.PrintError(errObj)
+		return fmt.Errorf("runtime error in file %s", filePath)
+	}
+
+	if errObj, ok := evaluated.(*object.Error); ok {
+		// Convert simple errors to error with trace for consistent formatting
+		traceError := &object.ErrorWithTrace{
+			ErrorType: object.ERROR_OBJ,
+			Message:   errObj.Message,
+			Position: object.SourcePosition{
+				Filename: filePath,
+				Line:     1,
+				Column:   1,
+			},
+		}
+		utils.PrintError(traceError)
+		return fmt.Errorf("runtime error in file %s", filePath)
+	}
+
+	if evaluated != nil && evaluated.Type() != object.NONE_OBJ {
+		fmt.Fprintf(out, "%s\n", evaluated.Inspect())
+	}
+	return nil
 }

@@ -31,6 +31,7 @@ const (
 	MINUS           TokenType = "-"
 	ASTERISK        TokenType = "*"
 	SLASH           TokenType = "/"
+	INTDIV          TokenType = "//"
 	MOD             TokenType = "%"
 	EXPONENT        TokenType = "**"
 	INCREMENT       TokenType = "+="

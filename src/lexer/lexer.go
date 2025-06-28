@@ -17,6 +17,7 @@ type Lexer struct {
 	sourceFile  string // Source file name for error reporting
 
 	indentResolved bool
+	tokenQueue     []token.Token // Queue for pending DEDENT tokens
 }
 
 func New(input string) *Lexer {
@@ -40,6 +41,13 @@ func NewWithFilename(input string, sourceFile string) *Lexer {
 }
 
 func (l *Lexer) NextToken() token.Token {
+   // First check if there are queued tokens to return
+   if len(l.tokenQueue) > 0 {
+       token := l.tokenQueue[0]
+       l.tokenQueue = l.tokenQueue[1:]
+       return token
+   }
+
    if l.finished {
        // At EOF, unwind any remaining indents
        if len(l.indentStack) > 1 {
@@ -149,14 +157,18 @@ func (l *Lexer) NextToken() token.Token {
 			l.charIndex++
 			return token.Token{Type: token.UNDERSCORE, Literal: "_"}
 		}
+	case '#':
+		l.skipLineComment()
+		return l.NextToken()
 	case '/':
 		next := l.peekChar()
 		if next == '=' {
 			l.charIndex += 2
 			return token.Token{Type: token.DIVASSGN, Literal: "/="}
 		} else if next == '/' {
-			l.skipLineComment()
-			return l.NextToken()
+			// Always treat // as integer division operator
+			l.charIndex += 2
+			return token.Token{Type: token.INTDIV, Literal: "//"}
 		} else if next == '*' {
 			l.skipBlockComment()
 			return l.NextToken()
@@ -245,9 +257,6 @@ func (l *Lexer) NextToken() token.Token {
 		l.charIndex++
 		return l.newToken(token.DOT, ".")
 
-	case '#':
-		l.charIndex++
-		return l.newToken(token.HASH, "#")
 
 	case '&':
 		l.charIndex++
@@ -265,6 +274,16 @@ func (l *Lexer) NextToken() token.Token {
 		return l.readString()
 	case '\'':
 		return l.readString()
+
+	case '`':
+		// Check for triple backtick multiline comments
+		if l.peekChar() == '`' && l.peekCharAt(2) == '`' {
+			l.skipTripleBacktickComment()
+			return l.NextToken()
+		}
+		// Single backtick is treated as illegal for now
+		l.charIndex++
+		return token.Token{Type: token.ILLEGAL, Literal: "`"}
 
 	default:
 		if isLetter(ch) {
@@ -434,6 +453,32 @@ func (l *Lexer) skipBlockComment() {
 	}
 }
 
+func (l *Lexer) skipTripleBacktickComment() {
+	// Skip the opening ```
+	l.charIndex += 3
+
+	for {
+		if l.charIndex >= len(l.currLine) {
+			l.advanceLine()
+			if l.finished {
+				return
+			}
+			continue
+		}
+
+		// Check for closing ``` (need exactly 3 characters from current position)
+		if l.charIndex+2 < len(l.currLine) &&
+			l.currLine[l.charIndex] == '`' &&
+			l.currLine[l.charIndex+1] == '`' &&
+			l.currLine[l.charIndex+2] == '`' {
+			l.charIndex += 3
+			return
+		}
+
+		l.charIndex++
+	}
+}
+
 func (l *Lexer) handleIndentChange(newIndent int) token.Token {
 	currentIndent := l.indentStack[len(l.indentStack)-1]
 
@@ -448,7 +493,22 @@ func (l *Lexer) handleIndentChange(newIndent int) token.Token {
 		return l.newToken(token.INDENT, "")
 	}
 
-	l.indentStack = l.indentStack[:len(l.indentStack)-1]
+	// Handle multiple DEDENT levels - generate multiple DEDENT tokens
+	dedentCount := 0
+	for len(l.indentStack) > 1 && l.indentStack[len(l.indentStack)-1] > newIndent {
+		l.indentStack = l.indentStack[:len(l.indentStack)-1]
+		dedentCount++
+	}
+	
+	// Set charIndex to the new indentation level
+	l.charIndex = newIndent
+	
+	// Queue additional DEDENT tokens if needed
+	for i := 1; i < dedentCount; i++ {
+		l.tokenQueue = append(l.tokenQueue, l.newToken(token.DEDENT, ""))
+	}
+	
+	// Return the first DEDENT token
 	return l.newToken(token.DEDENT, "")
 }
 
@@ -469,6 +529,13 @@ func (l *Lexer) peekChar() byte {
 		return 0
 	}
 	return l.currLine[l.charIndex+1]
+}
+
+func (l *Lexer) peekCharAt(offset int) byte {
+	if l.charIndex+offset >= len(l.currLine) {
+		return 0
+	}
+	return l.currLine[l.charIndex+offset]
 }
 
 func measureIndent(line string) int {

@@ -1,6 +1,5 @@
-// Debug utilities for Carrion language
+# Debug utilities for Carrion language
 
 grim Debug:
     spell info():
-        print("Debug module loaded")
         return None

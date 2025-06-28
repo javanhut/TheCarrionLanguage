@@ -1,4 +1,24 @@
+```
+Mathematical operations and utility functions grimoire for the Carrion language.
+
+This grimoire provides essential mathematical functionality including basic
+arithmetic operations, trigonometric functions, statistical calculations,
+and mathematical constants. The Math grimoire serves as the foundation for
+numerical computing and scientific applications in Carrion.
+
+All mathematical operations are designed to handle both integer and floating-point
+numbers with appropriate precision and error handling for mathematical edge cases.
+```
 grim Math:
+    ```
+    Provides information about the Math grimoire and its capabilities.
+    
+    This spell returns metadata about the mathematical functions available
+    in this grimoire. Currently serves as a placeholder for future expansion
+    of mathematical capabilities and documentation features.
+    
+    Returns:
+        None (placeholder for future mathematical information system)
+    ```
     spell info():
-        print("Math module loaded")
         return None

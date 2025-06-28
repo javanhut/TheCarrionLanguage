@@ -1,5 +1,5 @@
-// Standard error types for Carrion language
-// TODO: Implement when parameter access is fixed
+# Standard error types for Carrion language
+# TODO: Implement when parameter access is fixed
 
 grim ValueError:
     init():

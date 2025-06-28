@@ -1,4 +1,29 @@
+```
+Boolean logic and truth value operations grimoire for the Carrion language.
+
+This grimoire provides comprehensive boolean functionality including logical
+operations, type conversions, and truth value testing. The Boolean grimoire
+handles automatic type coercion from various data types to boolean values
+following common programming language conventions.
+
+Supports logical operations like AND, OR, XOR, and implication, along with
+conversion utilities for integrating boolean values with other data types.
+```
 grim Boolean:
+    ```
+    Initializes a new Boolean grimoire instance with automatic type conversion.
+    
+    This constructor handles conversion from various data types to boolean values:
+    - String: "True"/"true" becomes True, "False"/"false" becomes False,
+              non-empty strings become True, empty strings become False
+    - Numbers: Non-zero values become True, zero becomes False
+    - None: Always becomes False
+    - Instances: Uses the wrapped value if available
+    - Other types: Uses the raw value
+    
+    Parameters:
+        value: The value to convert to boolean (defaults to False)
+    ```
     init(value = False):
         if value == "True" or value == "true":
             self.value = True
@@ -23,12 +48,151 @@ grim Boolean:
                             else:
                                 self.value = value
     
+    ```
+    Converts the boolean value to its integer representation.
+    
+    This spell follows the common convention where True becomes 1 and False
+    becomes 0. Useful for mathematical operations involving boolean values
+    and for interfacing with systems that expect numeric representations.
+    
+    Returns:
+        1 if the boolean value is True, 0 if False
+    ```
     spell to_int():
         if self.value:
             return 1
         return 0
     
+    ```
+    Converts the boolean value to its string representation.
+    
+    This spell provides a human-readable string format for boolean values
+    using the standard "True" and "False" representations. Essential for
+    debugging, logging, and user interface display purposes.
+    
+    Returns:
+        "True" if the boolean value is True, "False" if False
+    ```
     spell to_string():
         if self.value:
             return "True"
         return "False"
+    
+    ```
+    Returns the logical negation of the boolean value.
+    
+    This spell creates a new Boolean grimoire instance with the opposite
+    truth value. True becomes False and False becomes True. Essential for
+    implementing logical NOT operations and conditional inversions.
+    
+    Returns:
+        New Boolean grimoire object with negated value
+    ```
+    spell negate():
+        return Boolean(not self.value)
+    
+    ```
+    Performs logical AND operation with another value.
+    
+    This spell implements boolean AND logic where the result is True only
+    if both operands are True. Automatically handles type conversion for
+    grimoire objects by extracting their underlying values.
+    
+    Parameters:
+        other: The value to AND with this boolean (supports grimoire objects)
+    
+    Returns:
+        New Boolean grimoire object containing the AND result
+    ```
+    spell and_with(other):
+        other_val = other
+        # Extract value from grimoire objects for comparison
+        if type(other) == "INSTANCE":
+            other_val = other.value
+        return Boolean(self.value and other_val)
+    
+    ```
+    Performs logical OR operation with another value.
+    
+    This spell implements boolean OR logic where the result is True if
+    either operand is True. Automatically handles type conversion for
+    grimoire objects by extracting their underlying values.
+    
+    Parameters:
+        other: The value to OR with this boolean (supports grimoire objects)
+    
+    Returns:
+        New Boolean grimoire object containing the OR result
+    ```
+    spell or_with(other):
+        other_val = other
+        # Extract value from grimoire objects for comparison
+        if type(other) == "INSTANCE":
+            other_val = other.value
+        return Boolean(self.value or other_val)
+    
+    ```
+    Performs logical XOR (exclusive OR) operation with another value.
+    
+    This spell implements boolean XOR logic where the result is True only
+    if exactly one operand is True (but not both). Useful for implementing
+    toggle operations and exclusive conditions.
+    
+    Parameters:
+        other: The value to XOR with this boolean (supports grimoire objects)
+    
+    Returns:
+        New Boolean grimoire object containing the XOR result
+    ```
+    spell xor_with(other):
+        other_val = other
+        # Extract value from grimoire objects for comparison
+        if type(other) == "INSTANCE":
+            other_val = other.value
+        return Boolean((self.value and not other_val) or (not self.value and other_val))
+    
+    ```
+    Performs logical implication operation with another value.
+    
+    This spell implements boolean implication (if-then logic) where the result
+    is False only when this boolean is True and the other value is False.
+    Useful for formal logic and conditional reasoning operations.
+    
+    Parameters:
+        other: The consequent value for implication (supports grimoire objects)
+    
+    Returns:
+        New Boolean grimoire object containing the implication result
+    ```
+    spell implies(other):
+        other_val = other
+        # Extract value from grimoire objects for comparison
+        if type(other) == "INSTANCE":
+            other_val = other.value
+        return Boolean(not self.value or other_val)
+    
+    ```
+    Tests whether the boolean value is explicitly True.
+    
+    This spell provides explicit truth testing that returns a new Boolean
+    grimoire object. More verbose than direct value access but useful for
+    method chaining and consistent API patterns.
+    
+    Returns:
+        New Boolean grimoire object: True if value is True, False otherwise
+    ```
+    spell is_true():
+        return Boolean(self.value == True)
+    
+    ```
+    Tests whether the boolean value is explicitly False.
+    
+    This spell provides explicit falsity testing that returns a new Boolean
+    grimoire object. More verbose than direct value access but useful for
+    method chaining and consistent API patterns.
+    
+    Returns:
+        New Boolean grimoire object: True if value is False, False otherwise
+    ```
+    spell is_false():
+        return Boolean(self.value == False)

@@ -5,22 +5,229 @@ grim Array:
         else:
             self.elements = elements
     
-    spell append(val):
-        new_list = self.elements + [val]
-        self.elements = new_list
-        return None
-    
     spell length():
-        return len(self.elements)
+        return Integer(len(self.elements))
+
+    spell append(val):
+        self.elements = self.elements + [val]
+        return None
 
     spell to_string():
-        return "[array]"
+        result = "["
+        for i in range(0, len(self.elements)):
+            if i > 0:
+                result = result + ", "
+            result = result + str(self.elements[i])
+        result = result + "]"
+        return String(result)
 
     spell get(index):
-        return self.elements[index]
+        idx = index
+        if type(index) == "INSTANCE":
+            idx = index.value
+        
+        if idx < 0:
+            idx = len(self.elements) + idx
+        
+        if idx < 0 or idx >= len(self.elements):
+            return None
+        
+        return self.elements[idx]
 
     spell set(index, value):
+        idx = index
+        if type(index) == "INSTANCE":
+            idx = index.value
+        
+        if idx < 0:
+            idx = len(self.elements) + idx
+        
+        if idx >= 0 and idx < len(self.elements):
+            new_elements = []
+            for i in range(0, len(self.elements)):
+                if i == idx:
+                    new_elements = new_elements + [value]
+                else:
+                    new_elements = new_elements + [self.elements[i]]
+            self.elements = new_elements
         return None
 
     spell is_empty():
-        return len(self.elements) == 0
+        return Boolean(len(self.elements) == 0)
+    
+    spell contains(value):
+        for element in self.elements:
+            if element == value:
+                return Boolean(True)
+        return Boolean(False)
+    
+    ```
+    Finds the index position of the first occurrence of a value.
+    
+    This spell searches through the array from beginning to end to locate
+    the specified value. Returns the index wrapped in an Integer grimoire
+    object, or -1 if the value is not found anywhere in the array.
+    
+    Parameters:
+        value: The value to locate within the array
+    
+    Returns:
+        Integer grimoire object containing the index, or -1 if not found
+    ```
+    spell index_of(value):
+        for i in range(0, len(self.elements)):
+            if self.elements[i] == value:
+                return Integer(i)
+        return Integer(-1)
+    
+    ```
+    Removes the first occurrence of the specified value from the array.
+    
+    This spell searches for the specified value and removes only the first
+    matching element found. All subsequent occurrences remain unchanged.
+    The operation modifies the current array and returns whether any element
+    was actually removed.
+    
+    Parameters:
+        value: The value to remove from the array
+    
+    Returns:
+        Boolean grimoire object: True if element was removed, False if not found
+    ```
+    spell remove(value):
+        new_elements = []
+        found = False
+        for element in self.elements:
+            if element != value or found:
+                new_elements = new_elements + [element]
+            else:
+                found = True
+        self.elements = new_elements
+        return Boolean(found)
+    
+    ```
+    Removes all elements from the array, making it empty.
+    
+    This spell resets the array to an empty state by replacing the elements
+    collection with a new empty array. Useful for reusing array instances
+    without creating new objects.
+    
+    Returns:
+        None to indicate the operation completed successfully
+    ```
+    spell clear():
+        self.elements = []
+        return None
+    
+    ```
+    Retrieves the first element from the array.
+    
+    This spell provides convenient access to the first element without
+    needing to use indexing syntax. Returns None if the array is empty
+    to prevent errors and provide safe access patterns.
+    
+    Returns:
+        The first element in the array, or None if array is empty
+    ```
+    spell first():
+        if len(self.elements) > 0:
+            return self.elements[0]
+        return None
+    
+    ```
+    Retrieves the last element from the array.
+    
+    This spell provides convenient access to the last element without
+    needing to calculate the index manually. Returns None if the array
+    is empty to prevent errors and provide safe access patterns.
+    
+    Returns:
+        The last element in the array, or None if array is empty
+    ```
+    spell last():
+        if len(self.elements) > 0:
+            return self.elements[len(self.elements) - 1]
+        return None
+    
+    ```
+    Creates a new array containing elements from a specified range.
+    
+    This spell extracts a portion of the array between the start and end
+    indices (end exclusive). Supports both positive and negative indexing
+    with automatic type handling for Integer grimoire objects. Invalid
+    indices are silently skipped to prevent errors.
+    
+    Parameters:
+        start: Beginning index of the slice (inclusive)
+        end: Ending index of the slice (exclusive)
+    
+    Returns:
+        New Array grimoire object containing the sliced elements
+    ```
+    spell slice(start, end):
+        start_idx = start
+        end_idx = end
+        # Handle Integer grimoire objects by extracting their values
+        if type(start) == "INSTANCE":
+            start_idx = start.value
+        if type(end) == "INSTANCE":
+            end_idx = end.value
+        
+        # Convert negative indices to positive equivalents
+        if start_idx < 0:
+            start_idx = len(self.elements) + start_idx
+        if end_idx < 0:
+            end_idx = len(self.elements) + end_idx
+        
+        # Build new array with elements in the specified range
+        new_elements = []
+        for i in range(start_idx, end_idx):
+            if i >= 0 and i < len(self.elements):
+                new_elements = new_elements + [self.elements[i]]
+        
+        return Array(new_elements)
+    
+    ```
+    Creates a new array with elements in reverse order.
+    
+    This spell builds a new array by iterating through the original elements
+    from last to first, effectively reversing their order. The original array
+    remains unchanged. Useful for reverse iteration, stack-like operations,
+    or algorithm implementations requiring reversed data.
+    
+    Returns:
+        New Array grimoire object containing elements in reverse order
+    ```
+    spell reverse():
+        new_elements = []
+        # Iterate from last element to first to reverse order
+        for i in range(len(self.elements) - 1, -1, -1):
+            new_elements = new_elements + [self.elements[i]]
+        return Array(new_elements)
+    
+    ```
+    Creates a new sorted array using bubble sort algorithm.
+    
+    This spell implements a simple bubble sort to arrange elements in ascending
+    order. A copy of the original elements is created to preserve the original
+    array. The algorithm compares adjacent elements and swaps them if they are
+    in the wrong order, repeating until the array is fully sorted.
+    
+    Returns:
+        New Array grimoire object containing elements in sorted order
+    ```
+    spell sort():
+        # Simple bubble sort algorithm implementation for element ordering
+        new_elements = []
+        for element in self.elements:
+            new_elements = new_elements + [element]
+        
+        n = len(new_elements)
+        for i in range(0, n):
+            for j in range(0, n - i - 1):
+                if new_elements[j] > new_elements[j + 1]:
+                    temp = new_elements[j]
+                    new_elements[j] = new_elements[j + 1]
+                    new_elements[j + 1] = temp
+        
+        return Array(new_elements)

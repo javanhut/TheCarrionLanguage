@@ -507,7 +507,7 @@ func TestHashIndexExpressions(t *testing.T) {
 	}
 }
 
-func TestSpellbookMethodCall(t *testing.T) {
+func TestGrimoireMethodCall(t *testing.T) {
 	input := `
  grim Calculator:
     spell add(x, y):
@@ -524,7 +524,7 @@ result
 	testIntegerObject(t, evaluated, 8)
 }
 
-func TestSpellbookRecursion(t *testing.T) {
+func TestGrimoireRecursion(t *testing.T) {
 	input := `
  grim Fibonacci:
     spell calc(n):
@@ -539,7 +539,7 @@ fib.calc(10)
 	testIntegerObject(t, evaluated, 55)
 }
 
-func TestSpellbookInheritance(t *testing.T) {
+func TestGrimoireInheritance(t *testing.T) {
 	t.Skip("Grimoire inheritance parsing needs separate fix")
 	input := `
  grim Shape:
