@@ -1,9 +1,7 @@
 <meta name="google-site-verification" content="7L-IkFjwJUUVamMg0bj1PwYOVcpowQyomYVhYM4e6lk" />
 <meta name="description" content="Carrion Programming Language is a modern, dynamically typed, interpreted language inspired by Python and built in Go. Discover its fun crow theme, unique syntax, and powerful features for fast development and learning." />The Carrion Programming Language
 
-Latest Version: 0.1.6-alpha [![Release](https://img.shields.io/badge/version-0.1.6--alpha-blue.svg)]()
-
-
+Latest Version: `{{VERSION}}` [![Release](https://img.shields.io/badge/version-{{VERSION}}-blue.svg)]()
 
 ```bash
 
@@ -23,6 +21,7 @@ Latest Version: 0.1.6-alpha [![Release](https://img.shields.io/badge/version-0.1
 ⠀⠀⠀⠀⠀⠀⠀⠸⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠉⠙⠛⠋⠉⠉⠀⠀⠀⠀⠀⠀⠀⠀
 ```
+
 ## Overview
 
 Carrion Programming Language is a modern, dynamically typed, interpreted language designed for both beginners and experienced developers. Inspired by Python and built in Go, Carrion offers a unique combination of readability, flexibility, and performance. Its engaging crow-themed aesthetic and innovative syntax enhancements set it apart as a fun, educational, and efficient language for rapid prototyping and software development.
@@ -30,34 +29,39 @@ Carrion Programming Language is a modern, dynamically typed, interpreted languag
 ## Key Features
 
 ### Dynamic Typing & Interpretation
+
 Experience the benefits of runtime type checking and an interpreter that supports a rapid development cycle.
 
 ### Python-Inspired Syntax with Creative Enhancements
+
 - Familiar programming constructs with unique modifications
 - Crow-themed keywords: `spell` (function), `grim` (class - short for grimoire/spellbook)
 - Enhanced loop control: `skip` (continue) and `stop` (break)
 - Powerful error handling: `attempt`/`ensnare`/`resolve`
 
 ### Built in Go for Performance
+
 - Leverages Go's robustness and efficiency
 - Tree-walking interpreter with planned JIT compilation
 - Fast execution and minimal resource usage
 
 ### Comprehensive Standard Library (Munin)
+
 - Named after Odin's raven, representing memory
 - Built-in modules for arrays, strings, math, OS operations, and more
 - Embedded directly into the language runtime
 
 ### Object-Oriented Programming Support
+
 - Full OOP with classes (grimoires), inheritance, and encapsulation
 - Abstract classes with `arcane grim`
 - Private (`_`) and protected (`__`) methods
 - Method overriding and polymorphism
 
-
 ## Installation
 
 ### Quick Install (Linux/macOS)
+
 ```bash
 # Clone the repository
 git clone https://github.com/javanhut/TheCarrionLanguage.git
@@ -68,12 +72,14 @@ cd TheCarrionLanguage
 ```
 
 ### Manual Installation
+
 1. Ensure Go 1.19+ is installed
 2. Clone the repository
 3. Run `make build` or `go build -o carrion src/main.go`
 4. Add the binary to your PATH
 
 ### Docker Installation
+
 ```bash
 # Build the Docker image
 docker build -t carrion .
@@ -84,7 +90,28 @@ docker run -it carrion
 
 ## Documentation
 
+### Core Documentation
 - **[Language Documentation](docs/CARRION.md)** - Comprehensive guide to Carrion syntax and features
+- **[Language Overview](docs/Language-Overview.md)** - High-level introduction to Carrion's design principles
+- **[Language Reference](docs/Language-Reference.md)** - Complete language specification and reference
+
+### Language Features
+- **[Control Flow](docs/Control-Flow.md)** - Loops, conditionals, and flow control structures
+- **[Error Handling](docs/Error-Handling.md)** - Exception handling with attempt/ensnare/resolve
+- **[Operators](docs/Operators.md)** - Arithmetic, logical, and comparison operators
+- **[Modules](docs/Modules.md)** - Import system and module organization
+
+### Object-Oriented Programming
+- **[Grimoires (Classes)](docs/Grimoires.md)** - Object-oriented programming with grimoires
+
+### Standard Library
+- **[Standard Library (Munin)](docs/Standard-Library.md)** - Built-in functions and modules
+- **[Builtin Functions](docs/Builtin-Functions.md)** - Core functions available in every program
+
+### Tools & Interactive Features
+- **[Interactive Help](docs/Interactive-Help-Demo.md)** - REPL and interactive development features
+
+### Additional Resources
 - **[Examples](src/examples/)** - Sample programs demonstrating various language features
 - **[Changelog](Changelog/README.md)** - Version history and updates
 
@@ -102,7 +129,7 @@ spell greet(name):
 grim Crow:
     init(name):
         self.name = name
-    
+
     spell caw():
         print(f"{self.name} says: Caw!")
 
@@ -127,12 +154,11 @@ Carrion is an evolving language with exciting future updates planned:
 - **Async/Await Support**: Modern concurrency patterns
 - **Language Interoperability**: Integrate with other programming languages
 
-
 ## Build and Release Status
 
 - Current Version: 0.1.6-alpha
 - Standard Library (Munin): 0.1.0
-- Status: Active Development 
+- Status: Active Development
 
 ## About the Author
 
@@ -141,6 +167,7 @@ Carrion was created by Javan Hutchinson, a dedicated developer committed to expl
 ## Contributing
 
 We welcome contributions! Please:
+
 1. Fork the repository
 2. Create a feature branch
 3. Submit a pull request
@@ -152,7 +179,6 @@ We welcome contributions! Please:
 - **Discussions**: Join our community discussions on GitHub
 
 Your feedback and contributions help shape the future of Carrion!
-
 
 > **Note**: While Carrion embraces a playful crow theme, it's a serious programming language built on Go's robust foundation, designed for real-world applications and educational purposes.
 
