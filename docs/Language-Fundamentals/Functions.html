@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>✨ Functions (Spells) - Creating Reusable Magic - Carrion Language Wiki</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐦‍⬛</text></svg>">
+    <style>
+        :root {
+            --bg-primary: #0f0f23;
+            --bg-secondary: #1a1a2e;
+            --bg-tertiary: #16213e;
+            --text-primary: #cccccc;
+            --text-secondary: #999999;
+            --accent-primary: #00cc99;
+            --accent-secondary: #9900cc;
+            --accent-warning: #ffcc00;
+            --border-color: #333355;
+            --code-bg: #0f0f1a;
+            --link-color: #66ccff;
+            --link-hover: #99ddff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 40px 20px;
+            background: var(--bg-tertiary);
+            border-radius: 20px;
+            border: 2px solid var(--border-color);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .header h1 {
+            font-size: 3em;
+            background: linear-gradient(45deg, var(--accent-primary), var(--accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+
+        .header .subtitle {
+            font-size: 1.2em;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+        }
+
+        .ascii-art {
+            font-family: monospace;
+            font-size: 0.7em;
+            line-height: 1.2;
+            color: var(--accent-primary);
+            margin: 20px 0;
+            white-space: pre;
+        }
+
+        .navigation {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .nav-section {
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            border-radius: 15px;
+            padding: 25px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-section:hover {
+            border-color: var(--accent-primary);
+            box-shadow: 0 5px 20px rgba(0, 204, 153, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .nav-section h2 {
+            color: var(--accent-primary);
+            margin-bottom: 15px;
+            font-size: 1.4em;
+        }
+
+        .nav-section ul {
+            list-style: none;
+        }
+
+        .nav-section li {
+            margin: 8px 0;
+        }
+
+        .nav-section a {
+            color: var(--link-color);
+            text-decoration: none;
+            font-size: 1.05em;
+            transition: color 0.3s ease;
+        }
+
+        .nav-section a:hover {
+            color: var(--link-hover);
+            text-shadow: 0 0 10px rgba(102, 204, 255, 0.3);
+        }
+
+        .content {
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            border-radius: 15px;
+            padding: 40px;
+            margin-bottom: 40px;
+        }
+
+        .content h1, .content h2, .content h3 {
+            color: var(--accent-primary);
+            margin: 30px 0 15px 0;
+        }
+
+        .content h1 {
+            font-size: 2.5em;
+            border-bottom: 3px solid var(--accent-primary);
+            padding-bottom: 10px;
+        }
+
+        .content p {
+            margin-bottom: 15px;
+            color: var(--text-primary);
+        }
+
+        .content pre {
+            background: var(--code-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 20px;
+            overflow-x: auto;
+            margin: 20px 0;
+            font-family: 'Fira Code', 'Courier New', monospace;
+        }
+
+        .content code {
+            background: var(--code-bg);
+            padding: 3px 6px;
+            border-radius: 4px;
+            font-family: 'Fira Code', 'Courier New', monospace;
+            color: var(--accent-primary);
+        }
+
+        .content blockquote {
+            border-left: 4px solid var(--accent-primary);
+            margin: 20px 0;
+            padding: 15px 20px;
+            background: var(--bg-tertiary);
+            border-radius: 0 10px 10px 0;
+        }
+
+        .table-of-contents {
+            background: var(--bg-tertiary);
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .table-of-contents h2 {
+            color: var(--accent-secondary);
+            margin-bottom: 15px;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 30px;
+            color: var(--text-secondary);
+            border-top: 2px solid var(--border-color);
+            margin-top: 40px;
+        }
+
+        .badge {
+            display: inline-block;
+            background: var(--accent-primary);
+            color: var(--bg-primary);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: bold;
+            margin: 5px;
+        }
+
+        .emoji {
+            font-size: 1.2em;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .container {
+                padding: 10px;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+            
+            .navigation {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="content"><h1 id="%E2%9C%A8-functions-(spells)---creating-reusable-magic" tabindex="-1"><a class="header-anchor" href="#%E2%9C%A8-functions-(spells)---creating-reusable-magic">✨ Functions (Spells) - Creating Reusable Magic</a></h1>
+<p>In the mystical realm of Carrion, functions are called <strong>“spells”</strong> - powerful incantations that can be cast repeatedly to perform magical operations. Master the art of spellcraft and transform repetitive tasks into elegant, reusable magic!</p>
+<hr>
+<h2 id="%F0%9F%AA%84-what-are-spells%3F" tabindex="-1"><a class="header-anchor" href="#%F0%9F%AA%84-what-are-spells%3F">🪄 What Are Spells?</a></h2>
+<p><strong>Spells</strong> (functions) are named blocks of code that:</p>
+<ul>
+<li>🎯 <strong>Perform specific tasks</strong> - Each spell has a clear magical purpose</li>
+<li>🔄 <strong>Can be reused</strong> - Cast the same spell multiple times</li>
+<li>📥 <strong>Accept ingredients</strong> - Take parameters to customize their behavior</li>
+<li>📤 <strong>Return magical results</strong> - Produce outputs for other spells to use</li>
+<li>🏗️ <strong>Organize code</strong> - Keep your grimoire (program) clean and readable</li>
+</ul>
+<hr>
+<h2 id="%F0%9F%8E%AD-basic-spell-creation" tabindex="-1"><a class="header-anchor" href="#%F0%9F%8E%AD-basic-spell-creation">🎭 Basic Spell Creation</a></h2>
+<h3 id="the-spell-incantation-syntax" tabindex="-1"><a class="header-anchor" href="#the-spell-incantation-syntax">The Spell Incantation Syntax</a></h3>
+<pre><code class="language-python">spell spell_name(parameters):
+    // Magical operations go here
+    return result  // Optional: return magical result
+</code></pre>
+<h3 id="your-first-simple-spell" tabindex="-1"><a class="header-anchor" href="#your-first-simple-spell">Your First Simple Spell</a></h3>
+<pre><code class="language-python">spell greet():
+    print(&quot;Hello, fellow mage!&quot;)
+
+// Cast the spell
+greet()  // Output: Hello, fellow mage!
+</code></pre>
+<h3 id="spells-with-magical-ingredients-(parameters)" tabindex="-1"><a class="header-anchor" href="#spells-with-magical-ingredients-(parameters)">Spells with Magical Ingredients (Parameters)</a></h3>
+<pre><code class="language-python">spell greet_wizard(name):
+    print(f&quot;Greetings, {name}! Welcome to the mystical realm!&quot;)
+
+// Cast spells with ingredients
+greet_wizard(&quot;Merlin&quot;)     // Output: Greetings, Merlin! Welcome to the mystical realm!
+greet_wizard(&quot;Gandalf&quot;)    // Output: Greetings, Gandalf! Welcome to the mystical realm!
+</code></pre>
+<h3 id="spells-that-return-magical-energy" tabindex="-1"><a class="header-anchor" href="#spells-that-return-magical-energy">Spells that Return Magical Energy</a></h3>
+<pre><code class="language-python">spell add_magical_numbers(a, b):
+    result = a + b
+    return result
+
+// Use the returned magic
+total = add_magical_numbers(10, 20)
+print(f&quot;The magical sum is: {total}&quot;)  // Output: The magical sum is: 30
+
+// Or use directly in other spells
+print(f&quot;Double magic: {add_magical_numbers(5, 5) * 2}&quot;)
+</code></pre>
+<hr>
+<h2 id="%F0%9F%A7%99%E2%80%8D%E2%99%82%EF%B8%8F-advanced-spellcrafting" tabindex="-1"><a class="header-anchor" href="#%F0%9F%A7%99%E2%80%8D%E2%99%82%EF%B8%8F-advanced-spellcrafting">🧙‍♂️ Advanced Spellcrafting</a></h2>
+<h3 id="spells-with-default-magical-ingredients" tabindex="-1"><a class="header-anchor" href="#spells-with-default-magical-ingredients">Spells with Default Magical Ingredients</a></h3>
+<pre><code class="language-python">spell cast_fireball(power = 50, target = &quot;enemy&quot;):
+    return f&quot;🔥 Casting fireball with {power} power at {target}!&quot;
+
+// Cast with default values
+print(cast_fireball())                    // Uses defaults: power=50, target=&quot;enemy&quot;
+
+// Cast with custom power
+print(cast_fireball(100))                 // Custom power, default target
+
+// Cast with all custom values
+print(cast_fireball(75, &quot;dragon&quot;))        // Custom power and target
+</code></pre>
+<h3 id="spells-with-multiple-return-values" tabindex="-1"><a class="header-anchor" href="#spells-with-multiple-return-values">Spells with Multiple Return Values</a></h3>
+<pre><code class="language-python">spell analyze_magical_creature(creature_name):
+    if creature_name == &quot;dragon&quot;:
+        return &quot;fire&quot;, 1000, True      // element, power, dangerous
+    elif creature_name == &quot;unicorn&quot;:
+        return &quot;light&quot;, 500, False
+    else:
+        return &quot;unknown&quot;, 100, False
+
+// Unpack the magical analysis
+element, power, is_dangerous = analyze_magical_creature(&quot;dragon&quot;)
+print(f&quot;Element: {element}, Power: {power}, Dangerous: {is_dangerous}&quot;)
+</code></pre>
+<h3 id="spells-with-variable-ingredients-(*args)" tabindex="-1"><a class="header-anchor" href="#spells-with-variable-ingredients-(*args)">Spells with Variable Ingredients (*args)</a></h3>
+<pre><code class="language-python">spell combine_spell_components(*components):
+    if len(components) == 0:
+        return &quot;Empty spell - no magic!&quot;
+    
+    spell_power = len(components) * 10
+    component_list = &quot;, &quot;.join(components)
+    return f&quot;Spell with {component_list} has power level {spell_power}!&quot;
+
+// Cast with different numbers of components
+print(combine_spell_components(&quot;dragon scale&quot;))
+print(combine_spell_components(&quot;eye of newt&quot;, &quot;wing of bat&quot;))
+print(combine_spell_components(&quot;moonstone&quot;, &quot;star dust&quot;, &quot;phoenix feather&quot;, &quot;mermaid tear&quot;))
+</code></pre>
+<hr>
+<h2 id="%F0%9F%8E%AA-practical-spell-examples" tabindex="-1"><a class="header-anchor" href="#%F0%9F%8E%AA-practical-spell-examples">🎪 Practical Spell Examples</a></h2>
+<h3 id="mathematical-magic-spells" tabindex="-1"><a class="header-anchor" href="#mathematical-magic-spells">Mathematical Magic Spells</a></h3>
+<pre><code class="language-python">spell calculate_spell_damage(base_damage, level, has_magic_weapon = False):
+    damage = base_damage * level
+    if has_magic_weapon:
+        damage = damage * 1.5
+    return int(damage)
+
+spell is_prime_magical_number(number):
+    if number &lt; 2:
+        return False
+    for i in range(2, int(number ** 0.5) + 1):
+        if number % i == 0:
+            return False
+    return True
+
+spell factorial_spell(n):
+    if n &lt;= 1:
+        return 1
+    return n * factorial_spell(n - 1)  // Recursive magic!
+
+// Test mathematical spells
+print(f&quot;Spell damage: {calculate_spell_damage(20, 5, True)}&quot;)    // 150
+print(f&quot;Is 17 magical? {is_prime_magical_number(17)}&quot;)           // True
+print(f&quot;5! = {factorial_spell(5)}&quot;)                             // 120
+</code></pre>
+<h3 id="text-magic-spells" tabindex="-1"><a class="header-anchor" href="#text-magic-spells">Text Magic Spells</a></h3>
+<pre><code class="language-python">spell create_magical_title(text):
+    words = text.split(&quot; &quot;)
+    magical_words = []
+    for word in words:
+        if len(word) &gt; 0:
+            magical_word = word[0].upper() + word[1:].lower()
+            magical_words.append(magical_word)
+    return &quot; &quot;.join(magical_words)
+
+spell reverse_spell_incantation(text):
+    return text[::-1]
+
+spell count_magical_letters(text, target_letter):
+    count = 0
+    for letter in text.lower():
+        if letter == target_letter.lower():
+            count += 1
+    return count
+
+// Test text magic
+print(create_magical_title(&quot;the ancient spell of power&quot;))    // &quot;The Ancient Spell Of Power&quot;
+print(reverse_spell_incantation(&quot;abracadabra&quot;))             // &quot;arbadacarba&quot;
+print(count_magical_letters(&quot;Expelliarmus&quot;, &quot;a&quot;))           // 2
+</code></pre>
+<h3 id="list-magic-spells" tabindex="-1"><a class="header-anchor" href="#list-magic-spells">List Magic Spells</a></h3>
+<pre><code class="language-python">spell find_magical_items(inventory, item_type):
+    magical_items = []
+    for item in inventory:
+        if item_type.lower() in item.lower():
+            magical_items.append(item)
+    return magical_items
+
+spell sort_by_magical_power(creatures):
+    // Simple bubble sort for magical creatures
+    n = len(creatures)
+    for i in range(n):
+        for j in range(0, n - i - 1):
+            if creatures[j][1] &gt; creatures[j + 1][1]:  // Compare power levels
+                creatures[j], creatures[j + 1] = creatures[j + 1], creatures[j]
+    return creatures
+
+// Test list magic
+inventory = [&quot;Fire Wand&quot;, &quot;Ice Shield&quot;, &quot;Lightning Staff&quot;, &quot;Healing Potion&quot;, &quot;Fire Ring&quot;]
+fire_items = find_magical_items(inventory, &quot;fire&quot;)
+print(f&quot;Fire items: {fire_items}&quot;)
+
+creatures = [(&quot;Dragon&quot;, 1000), (&quot;Unicorn&quot;, 500), (&quot;Phoenix&quot;, 800), (&quot;Griffin&quot;, 600)]
+sorted_creatures = sort_by_magical_power(creatures)
+print(f&quot;Sorted by power: {sorted_creatures}&quot;)
+</code></pre>
+<hr>
+<h2 id="%F0%9F%8E%AF-spell-scope-%26-magic-variables" tabindex="-1"><a class="header-anchor" href="#%F0%9F%8E%AF-spell-scope-%26-magic-variables">🎯 Spell Scope &amp; Magic Variables</a></h2>
+<h3 id="local-magic-(local-variables)" tabindex="-1"><a class="header-anchor" href="#local-magic-(local-variables)">Local Magic (Local Variables)</a></h3>
+<pre><code class="language-python">spell local_magic_example():
+    local_magic = &quot;This magic only exists within this spell&quot;
+    magic_power = 100
+    print(f&quot;Local magic: {local_magic}&quot;)
+    return magic_power
+
+local_magic_example()
+// print(local_magic)  // ❌ Error! local_magic doesn't exist outside the spell
+</code></pre>
+<h3 id="global-magic-(global-variables)" tabindex="-1"><a class="header-anchor" href="#global-magic-(global-variables)">Global Magic (Global Variables)</a></h3>
+<pre><code class="language-python">global_magic_power = 1000  // Global magical energy
+
+spell use_global_magic():
+    print(f&quot;Accessing global magic: {global_magic_power}&quot;)
+    local_bonus = 50
+    return global_magic_power + local_bonus
+
+spell modify_global_magic(new_power):
+    global global_magic_power  // Access global magic
+    global_magic_power = new_power
+    print(f&quot;Global magic changed to: {global_magic_power}&quot;)
+
+// Test global magic
+print(f&quot;Initial power: {global_magic_power}&quot;)
+print(f&quot;Used power: {use_global_magic()}&quot;)
+modify_global_magic(1500)
+print(f&quot;Final power: {global_magic_power}&quot;)
+</code></pre>
+<hr>
+<h2 id="%F0%9F%A7%A9-nested-spells-%26-higher-order-magic" tabindex="-1"><a class="header-anchor" href="#%F0%9F%A7%A9-nested-spells-%26-higher-order-magic">🧩 Nested Spells &amp; Higher-Order Magic</a></h2>
+<h3 id="spells-within-spells" tabindex="-1"><a class="header-anchor" href="#spells-within-spells">Spells within Spells</a></h3>
+<pre><code class="language-python">spell create_spell_factory(spell_type):
+    spell fire_spell():
+        return &quot;🔥 Fireball cast!&quot;
+    
+    spell ice_spell():
+        return &quot;❄️ Ice shard launched!&quot;
+    
+    spell healing_spell():
+        return &quot;💚 Healing magic activated!&quot;
+    
+    // Return the appropriate inner spell
+    if spell_type == &quot;fire&quot;:
+        return fire_spell()
+    elif spell_type == &quot;ice&quot;:
+        return ice_spell()
+    elif spell_type == &quot;healing&quot;:
+        return healing_spell()
+    else:
+        return &quot;🔮 Unknown magic attempted!&quot;
+
+// Use the spell factory
+print(create_spell_factory(&quot;fire&quot;))     // 🔥 Fireball cast!
+print(create_spell_factory(&quot;healing&quot;))  // 💚 Healing magic activated!
+</code></pre>
+<h3 id="spells-as-magical-ingredients" tabindex="-1"><a class="header-anchor" href="#spells-as-magical-ingredients">Spells as Magical Ingredients</a></h3>
+<pre><code class="language-python">spell apply_magical_operation(numbers, operation_spell):
+    results = []
+    for number in numbers:
+        result = operation_spell(number)
+        results.append(result)
+    return results
+
+spell double_magic(x):
+    return x * 2
+
+spell square_magic(x):
+    return x ** 2
+
+spell magical_cube(x):
+    return x ** 3
+
+// Use spells as ingredients for other spells
+numbers = [1, 2, 3, 4, 5]
+doubled = apply_magical_operation(numbers, double_magic)
+squared = apply_magical_operation(numbers, square_magic)
+cubed = apply_magical_operation(numbers, magical_cube)
+
+print(f&quot;Original: {numbers}&quot;)
+print(f&quot;Doubled: {doubled}&quot;)
+print(f&quot;Squared: {squared}&quot;)
+print(f&quot;Cubed: {cubed}&quot;)
+</code></pre>
+<hr>
+<h2 id="%F0%9F%8E%A8-spell-patterns-%26-best-practices" tabindex="-1"><a class="header-anchor" href="#%F0%9F%8E%A8-spell-patterns-%26-best-practices">🎨 Spell Patterns &amp; Best Practices</a></h2>
+<h3 id="the-single-responsibility-spell-principle" tabindex="-1"><a class="header-anchor" href="#the-single-responsibility-spell-principle">The Single Responsibility Spell Principle</a></h3>
+<pre><code class="language-python">// ❌ Bad: Spell does too many things
+spell bad_character_manager(name, action, value):
+    if action == &quot;create&quot;:
+        // create character logic
+        return f&quot;Created {name}&quot;
+    elif action == &quot;level_up&quot;:
+        // level up logic
+        return f&quot;{name} leveled up&quot;
+    elif action == &quot;calculate_damage&quot;:
+        // damage calculation logic
+        return value * 10
+    // ... too many responsibilities
+
+// ✅ Good: Separate spells for separate responsibilities
+spell create_character(name, class_type):
+    character = {
+        &quot;name&quot;: name,
+        &quot;class&quot;: class_type,
+        &quot;level&quot;: 1,
+        &quot;health&quot;: 100
+    }
+    return character
+
+spell level_up_character(character):
+    character[&quot;level&quot;] += 1
+    character[&quot;health&quot;] += 20
+    return character
+
+spell calculate_spell_damage(base_damage, level, spell_modifier = 1.0):
+    return base_damage * level * spell_modifier
+</code></pre>
+<h3 id="magical-error-handling-in-spells" tabindex="-1"><a class="header-anchor" href="#magical-error-handling-in-spells">Magical Error Handling in Spells</a></h3>
+<pre><code class="language-python">spell safe_magical_division(numerator, denominator):
+    attempt:
+        if denominator == 0:
+            return &quot;Error: Cannot divide by zero in magical calculations!&quot;
+        return numerator / denominator
+    ensnare:
+        return &quot;Error: Something went wrong with the magical division!&quot;
+
+spell validate_spell_components(components):
+    if not components:
+        return False, &quot;No spell components provided!&quot;
+    
+    required_components = [&quot;base&quot;, &quot;modifier&quot;, &quot;catalyst&quot;]
+    for required in required_components:
+        if required not in components:
+            return False, f&quot;Missing required component: {required}&quot;
+    
+    return True, &quot;All spell components are present!&quot;
+
+// Test error handling
+print(safe_magical_division(10, 2))    // 5.0
+print(safe_magical_division(10, 0))    // Error message
+
+components = {&quot;base&quot;: &quot;fire&quot;, &quot;modifier&quot;: &quot;wind&quot;}
+is_valid, message = validate_spell_components(components)
+print(f&quot;Valid: {is_valid}, Message: {message}&quot;)
+</code></pre>
+<h3 id="documentation-spells-(docstrings)" tabindex="-1"><a class="header-anchor" href="#documentation-spells-(docstrings)">Documentation Spells (Docstrings)</a></h3>
+<pre><code class="language-python">spell calculate_magical_distance(x1, y1, x2, y2):
+    &quot;&quot;&quot;
+    Calculate the magical distance between two points in the mystical realm.
+    
+    This spell uses the ancient Pythagorean theorem to determine the straight-line
+    distance between two magical locations.
+    
+    Parameters:
+        x1, y1: Coordinates of the first magical location
+        x2, y2: Coordinates of the second magical location
+    
+    Returns:
+        The magical distance as a floating-point number
+    
+    Example:
+        distance = calculate_magical_distance(0, 0, 3, 4)
+        # Returns 5.0 (the classic 3-4-5 triangle)
+    &quot;&quot;&quot;
+    dx = x2 - x1
+    dy = y2 - y1
+    return (dx ** 2 + dy ** 2) ** 0.5
+
+// The docstring can be accessed (if supported by the interpreter)
+print(calculate_magical_distance(0, 0, 3, 4))  // 5.0
+</code></pre>
+<hr>
+<h2 id="%F0%9F%8E%AE-interactive-spell-examples" tabindex="-1"><a class="header-anchor" href="#%F0%9F%8E%AE-interactive-spell-examples">🎮 Interactive Spell Examples</a></h2>
+<h3 id="magical-menu-system" tabindex="-1"><a class="header-anchor" href="#magical-menu-system">Magical Menu System</a></h3>
+<pre><code class="language-python">spell display_magical_menu():
+    print(&quot;\n🪄 Magical Menu 🪄&quot;)
+    print(&quot;1. Cast Fireball&quot;)
+    print(&quot;2. Cast Healing Spell&quot;)
+    print(&quot;3. Check Mana&quot;)
+    print(&quot;4. Exit&quot;)
+    return input(&quot;Choose your magic (1-4): &quot;)
+
+spell cast_fireball():
+    return &quot;🔥 WHOOSH! Fireball explodes in brilliant flames!&quot;
+
+spell cast_healing_spell():
+    return &quot;💚 Gentle light surrounds you, healing your wounds.&quot;
+
+spell check_mana():
+    return &quot;✨ Your mana reserves are at 85/100.&quot;
+
+spell magical_menu_system():
+    mana = 100
+    while True:
+        choice = display_magical_menu()
+        
+        if choice == &quot;1&quot;:
+            if mana &gt;= 20:
+                print(cast_fireball())
+                mana -= 20
+            else:
+                print(&quot;❌ Not enough mana for fireball!&quot;)
+        elif choice == &quot;2&quot;:
+            if mana &gt;= 10:
+                print(cast_healing_spell())
+                mana -= 10
+            else:
+                print(&quot;❌ Not enough mana for healing!&quot;)
+        elif choice == &quot;3&quot;:
+            print(f&quot;✨ Current mana: {mana}/100&quot;)
+        elif choice == &quot;4&quot;:
+            print(&quot;👋 Farewell, brave mage!&quot;)
+            stop
+        else:
+            print(&quot;❓ Unknown magic. Please choose 1-4.&quot;)
+
+// Uncomment to run the magical menu
+// magical_menu_system()
+</code></pre>
+<hr>
+<h2 id="%F0%9F%8F%86-practice-challenges" tabindex="-1"><a class="header-anchor" href="#%F0%9F%8F%86-practice-challenges">🏆 Practice Challenges</a></h2>
+<h3 id="%F0%9F%A5%89-beginner-spells" tabindex="-1"><a class="header-anchor" href="#%F0%9F%A5%89-beginner-spells">🥉 Beginner Spells</a></h3>
+<ol>
+<li><strong>Magical Calculator</strong>: Create spells for +, -, *, / operations</li>
+<li><strong>Name Formatter</strong>: Create a spell that formats names properly</li>
+<li><strong>Temperature Converter</strong>: Convert between Celsius and Fahrenheit</li>
+</ol>
+<h3 id="%F0%9F%A5%88-intermediate-spells" tabindex="-1"><a class="header-anchor" href="#%F0%9F%A5%88-intermediate-spells">🥈 Intermediate Spells</a></h3>
+<ol>
+<li><strong>Magical Password Generator</strong>: Generate secure magical passwords</li>
+<li><strong>Spell Component Analyzer</strong>: Analyze ingredient lists for completeness</li>
+<li><strong>Magical Number Guesser</strong>: Create a number guessing game with spells</li>
+</ol>
+<h3 id="%F0%9F%A5%87-advanced-spells" tabindex="-1"><a class="header-anchor" href="#%F0%9F%A5%87-advanced-spells">🥇 Advanced Spells</a></h3>
+<ol>
+<li><strong>Magical Inventory System</strong>: Complete item management with spells</li>
+<li><strong>Spell Damage Calculator</strong>: Complex damage calculation with multiple factors</li>
+<li><strong>Magical Text Adventure</strong>: Create a mini text adventure using spells</li>
+</ol>
+<hr>
+<h2 id="%F0%9F%94%97-what%E2%80%99s-next%3F" tabindex="-1"><a class="header-anchor" href="#%F0%9F%94%97-what%E2%80%99s-next%3F">🔗 What’s Next?</a></h2>
+<p>Now that you’ve mastered the art of spellcrafting, expand your magical knowledge:</p>
+<ol>
+<li><strong>🏰 <a href="../Advanced-Features/Classes-Grimoires.md">Classes (Grimoires)</a></strong> - Create magical objects and classes</li>
+<li><strong>⚔️ <a href="../Advanced-Features/Error-Handling.md">Error Handling</a></strong> - Protect your spells from magical mishaps</li>
+<li><strong>📦 <a href="../Advanced-Features/Modules.md">Modules &amp; Imports</a></strong> - Organize your spell libraries</li>
+<li><strong>📚 <a href="../Standard-Library/Munin-Overview.md">Standard Library</a></strong> - Use pre-built magical spells</li>
+</ol>
+<hr>
+<h2 id="%F0%9F%92%A1-spellcrafting-wisdom" tabindex="-1"><a class="header-anchor" href="#%F0%9F%92%A1-spellcrafting-wisdom">💡 Spellcrafting Wisdom</a></h2>
+<ol>
+<li><strong>🎯 Keep spells focused</strong>: Each spell should do one thing well</li>
+<li><strong>📖 Use descriptive names</strong>: <code>calculate_damage()</code> is better than <code>calc()</code></li>
+<li><strong>🛡️ Handle magical errors</strong>: Always consider what could go wrong</li>
+<li><strong>📝 Document your magic</strong>: Future you (and other mages) will thank you</li>
+<li><strong>🧪 Test your spells</strong>: Make sure they work in all magical conditions</li>
+<li><strong>🔄 Avoid repetition</strong>: If you’re copying code, create a spell instead</li>
+</ol>
+<hr>
+<p><em>Remember: The most powerful mages are those who master the art of creating reusable, elegant spells. Your magical library grows with every spell you craft! 🪄✨</em></p>
+<blockquote>
+<p>“A spell well-crafted is a gift to your future self and all who follow in your magical footsteps.” - <em>Master Spellcrafter’s Wisdom</em></p>
+</blockquote>
+</div>
+    </div>
+    <div class="footer">
+        <p>🪄 Carrion Programming Language Wiki - Where Code Meets Magic ✨</p>
+        <p>Built with ❤️ by the Carrion Community | <a href="https://github.com/javanhut/TheCarrionLanguage" style="color: var(--link-color);">GitHub Repository</a></p>
+    </div>
+</body>
+</html>

@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🐦‍⬛ Welcome to the Carrion Language Wiki - Carrion Language Wiki</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐦‍⬛</text></svg>">
+    <style>
+        :root {
+            --bg-primary: #0f0f23;
+            --bg-secondary: #1a1a2e;
+            --bg-tertiary: #16213e;
+            --text-primary: #cccccc;
+            --text-secondary: #999999;
+            --accent-primary: #00cc99;
+            --accent-secondary: #9900cc;
+            --accent-warning: #ffcc00;
+            --border-color: #333355;
+            --code-bg: #0f0f1a;
+            --link-color: #66ccff;
+            --link-hover: #99ddff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 40px 20px;
+            background: var(--bg-tertiary);
+            border-radius: 20px;
+            border: 2px solid var(--border-color);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .header h1 {
+            font-size: 3em;
+            background: linear-gradient(45deg, var(--accent-primary), var(--accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+
+        .header .subtitle {
+            font-size: 1.2em;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+        }
+
+        .ascii-art {
+            font-family: monospace;
+            font-size: 0.7em;
+            line-height: 1.2;
+            color: var(--accent-primary);
+            margin: 20px 0;
+            white-space: pre;
+        }
+
+        .navigation {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .nav-section {
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            border-radius: 15px;
+            padding: 25px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-section:hover {
+            border-color: var(--accent-primary);
+            box-shadow: 0 5px 20px rgba(0, 204, 153, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .nav-section h2 {
+            color: var(--accent-primary);
+            margin-bottom: 15px;
+            font-size: 1.4em;
+        }
+
+        .nav-section ul {
+            list-style: none;
+        }
+
+        .nav-section li {
+            margin: 8px 0;
+        }
+
+        .nav-section a {
+            color: var(--link-color);
+            text-decoration: none;
+            font-size: 1.05em;
+            transition: color 0.3s ease;
+        }
+
+        .nav-section a:hover {
+            color: var(--link-hover);
+            text-shadow: 0 0 10px rgba(102, 204, 255, 0.3);
+        }
+
+        .content {
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            border-radius: 15px;
+            padding: 40px;
+            margin-bottom: 40px;
+        }
+
+        .content h1, .content h2, .content h3 {
+            color: var(--accent-primary);
+            margin: 30px 0 15px 0;
+        }
+
+        .content h1 {
+            font-size: 2.5em;
+            border-bottom: 3px solid var(--accent-primary);
+            padding-bottom: 10px;
+        }
+
+        .content p {
+            margin-bottom: 15px;
+            color: var(--text-primary);
+        }
+
+        .content pre {
+            background: var(--code-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 20px;
+            overflow-x: auto;
+            margin: 20px 0;
+            font-family: 'Fira Code', 'Courier New', monospace;
+        }
+
+        .content code {
+            background: var(--code-bg);
+            padding: 3px 6px;
+            border-radius: 4px;
+            font-family: 'Fira Code', 'Courier New', monospace;
+            color: var(--accent-primary);
+        }
+
+        .content blockquote {
+            border-left: 4px solid var(--accent-primary);
+            margin: 20px 0;
+            padding: 15px 20px;
+            background: var(--bg-tertiary);
+            border-radius: 0 10px 10px 0;
+        }
+
+        .table-of-contents {
+            background: var(--bg-tertiary);
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .table-of-contents h2 {
+            color: var(--accent-secondary);
+            margin-bottom: 15px;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 30px;
+            color: var(--text-secondary);
+            border-top: 2px solid var(--border-color);
+            margin-top: 40px;
+        }
+
+        .badge {
+            display: inline-block;
+            background: var(--accent-primary);
+            color: var(--bg-primary);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: bold;
+            margin: 5px;
+        }
+
+        .emoji {
+            font-size: 1.2em;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .container {
+                padding: 10px;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+            
+            .navigation {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="content"><h1 id="%F0%9F%90%A6%E2%80%8D%E2%AC%9B-welcome-to-the-carrion-language-wiki" tabindex="-1"><a class="header-anchor" href="#%F0%9F%90%A6%E2%80%8D%E2%AC%9B-welcome-to-the-carrion-language-wiki">🐦‍⬛ Welcome to the Carrion Language Wiki</a></h1>
+<div align="center">
+<pre><code>⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣀⣀⣀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣴⣿⣿⡟⠋⢻⣷⣄⡀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣤⣾⣿⣷⣿⣿⣿⣿⣿⣶⣾⣿⣿⠿⠿⠿⠶⠄⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⠉⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠃⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠃⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⣿⣿⣿⣿⣿⣿⣿⣿⡟⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⣿⣿⣿⣿⣿⣿⠟⠻⣧⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⣼⣿⣿⣿⣿⣿⣿⣆⣤⠿⢶⣦⡀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⢰⣿⣿⣿⣿⣿⣿⣿⣿⡀⠀⠀⠀⠑⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⣿⣿⣿⣿⣿⣿⣿⣿⣿⣇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠸⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠉⠙⠛⠋⠉⠉⠀⠀⠀⠀⠀⠀⠀⠀
+</code></pre>
+<p><strong>🪄 The Mystical Programming Language with a Crow’s Wisdom</strong></p>
+<p><em>Current Version: 0.1.6-alpha</em><br>
+<em>Standard Library (Munin): 0.1.0</em></p>
+</div>
+<hr>
+<h2 id="%F0%9F%8C%9F-what-is-carrion%3F" tabindex="-1"><a class="header-anchor" href="#%F0%9F%8C%9F-what-is-carrion%3F">🌟 What is Carrion?</a></h2>
+<p>Carrion is a <strong>dynamically typed, interpreted programming language</strong> that transforms mundane coding into a magical experience! Inspired by Python’s simplicity and enhanced with Norse mythology themes, Carrion brings enchantment to everyday programming.</p>
+<blockquote>
+<p><strong>🧙‍♂️ Fun Fact</strong>: Carrion is named after the intelligent Carrion Crow, and its standard library “Munin” is named after Odin’s raven representing memory and thought!</p>
+</blockquote>
+<h3 id="%E2%9C%A8-what-makes-carrion-special%3F" tabindex="-1"><a class="header-anchor" href="#%E2%9C%A8-what-makes-carrion-special%3F">✨ What Makes Carrion Special?</a></h3>
+<ul>
+<li><strong>🎭 Magical Terminology</strong>: Classes are “grimoires” (spellbooks), methods are “spells”</li>
+<li><strong>🐦 Crow-Themed</strong>: Built around the intelligence and mystique of crows</li>
+<li><strong>🚀 Python-Inspired</strong>: Familiar syntax with creative enhancements</li>
+<li><strong>⚡ Built in Go</strong>: Fast, reliable performance with Go’s robust foundation</li>
+<li><strong>🎪 Beginner-Friendly</strong>: Easy to learn with engaging metaphors</li>
+<li><strong>🏗️ Object-Oriented</strong>: Full OOP support with inheritance and polymorphism</li>
+</ul>
+<hr>
+<h2 id="%F0%9F%97%BA%EF%B8%8F-navigate-the-wiki" tabindex="-1"><a class="header-anchor" href="#%F0%9F%97%BA%EF%B8%8F-navigate-the-wiki">🗺️ Navigate the Wiki</a></h2>
+<h3 id="%F0%9F%9A%80-getting-started" tabindex="-1"><a class="header-anchor" href="#%F0%9F%9A%80-getting-started">🚀 <strong>Getting Started</strong></a></h3>
+<p>Perfect for newcomers to the mystical world of Carrion!</p>
+<ul>
+<li><strong><a href="Getting-Started/Installation.md">🏠 Installation Guide</a></strong> - Set up your magical environment</li>
+<li><strong><a href="Getting-Started/Hello-World.md">👋 Hello World &amp; Basics</a></strong> - Cast your first spells</li>
+<li><strong><a href="Getting-Started/Quick-Start.md">⚡ Quick Start Tutorial</a></strong> - Learn the fundamentals fast</li>
+<li><strong><a href="Getting-Started/REPL-Guide.md">🎮 Interactive REPL Guide</a></strong> - Master the interactive shell</li>
+</ul>
+<h3 id="%F0%9F%93%9A-language-fundamentals" tabindex="-1"><a class="header-anchor" href="#%F0%9F%93%9A-language-fundamentals">📚 <strong>Language Fundamentals</strong></a></h3>
+<p>Core concepts every Carrion mage should know!</p>
+<ul>
+<li><strong><a href="Language-Fundamentals/Syntax-and-Terminology.md">🔤 Syntax &amp; Terminology</a></strong> - The mystical vocabulary</li>
+<li><strong><a href="Language-Fundamentals/Data-Types.md">📊 Data Types &amp; Variables</a></strong> - Store your magical values</li>
+<li><strong><a href="Language-Fundamentals/Control-Flow.md">🌊 Control Flow</a></strong> - Direct the flow of magic</li>
+<li><strong><a href="Language-Fundamentals/Operators.md">⚡ Operators &amp; Expressions</a></strong> - Manipulate data with power</li>
+<li><strong><a href="Language-Fundamentals/Functions.md">✨ Functions (Spells)</a></strong> - Create reusable incantations</li>
+</ul>
+<h3 id="%F0%9F%8F%B0-advanced-features" tabindex="-1"><a class="header-anchor" href="#%F0%9F%8F%B0-advanced-features">🏰 <strong>Advanced Features</strong></a></h3>
+<p>Master the deeper mysteries of Carrion!</p>
+<ul>
+<li><strong><a href="Advanced-Features/Classes-Grimoires.md">📖 Classes (Grimoires)</a></strong> - Object-oriented spellcrafting</li>
+<li><strong><a href="Advanced-Features/Inheritance.md">🌟 Inheritance &amp; Polymorphism</a></strong> - Advanced magical hierarchies</li>
+<li><strong><a href="Advanced-Features/Error-Handling.md">⚔️ Error Handling</a></strong> - Protect against magical mishaps</li>
+<li><strong><a href="Advanced-Features/Modules.md">📦 Modules &amp; Imports</a></strong> - Organize your magical libraries</li>
+<li><strong><a href="Advanced-Features/Advanced-Patterns.md">🔮 Advanced Patterns</a></strong> - Professional spellcrafting techniques</li>
+</ul>
+<h3 id="%F0%9F%93%9A-standard-library-(munin)" tabindex="-1"><a class="header-anchor" href="#%F0%9F%93%9A-standard-library-(munin)">📚 <strong>Standard Library (Munin)</strong></a></h3>
+<p>Harness the power of Odin’s raven!</p>
+<ul>
+<li><strong><a href="Standard-Library/Munin-Overview.md">🏠 Munin Overview</a></strong> - The complete magical toolkit</li>
+<li><strong><a href="Standard-Library/Array-Grimoire.md">📋 Array Grimoire</a></strong> - Master list manipulation</li>
+<li><strong><a href="Standard-Library/String-Grimoire.md">🔤 String Grimoire</a></strong> - Text processing magic</li>
+<li><strong><a href="Standard-Library/Number-Grimoires.md">🔢 Number Grimoires</a></strong> - Integer &amp; Float spells</li>
+<li><strong><a href="Standard-Library/File-OS-Grimoires.md">📁 File &amp; OS Grimoires</a></strong> - System interaction magic</li>
+<li><strong><a href="Standard-Library/Math-Utilities.md">🧮 Math &amp; Utility Grimoires</a></strong> - Mathematical incantations</li>
+</ul>
+<h3 id="%F0%9F%8E%AF-examples-%26-tutorials" tabindex="-1"><a class="header-anchor" href="#%F0%9F%8E%AF-examples-%26-tutorials">🎯 <strong>Examples &amp; Tutorials</strong></a></h3>
+<p>Learn by doing with practical magic!</p>
+<ul>
+<li><strong><a href="Examples-and-Tutorials/Fun-Examples.md">🎪 Fun Examples</a></strong> - Entertaining code samples</li>
+<li><strong><a href="Examples-and-Tutorials/Project-Tutorials.md">🏗️ Project Tutorials</a></strong> - Build complete applications</li>
+<li><strong><a href="Examples-and-Tutorials/Challenges.md">🎮 Interactive Challenges</a></strong> - Test your magical skills</li>
+<li><strong><a href="Examples-and-Tutorials/Tips-and-Tricks.md">💡 Tips &amp; Tricks</a></strong> - Expert magic techniques</li>
+</ul>
+<h3 id="%F0%9F%93%96-reference" tabindex="-1"><a class="header-anchor" href="#%F0%9F%93%96-reference">📖 <strong>Reference</strong></a></h3>
+<p>Complete documentation for all features!</p>
+<ul>
+<li><strong><a href="Reference/Builtin-Functions.md">🔧 Built-in Functions</a></strong> - Core magical functions</li>
+<li><strong><a href="Reference/Language-Specification.md">📝 Language Specification</a></strong> - Technical details</li>
+<li><strong><a href="Reference/Keywords.md">🎯 Keywords Reference</a></strong> - All magical words</li>
+<li><strong><a href="Reference/Error-Reference.md">❌ Error Reference</a></strong> - Understanding magical errors</li>
+<li><strong><a href="Reference/Language-Comparison.md">🆚 Comparison with Other Languages</a></strong> - How Carrion differs</li>
+</ul>
+<hr>
+<h2 id="%F0%9F%8E%AF-quick-examples" tabindex="-1"><a class="header-anchor" href="#%F0%9F%8E%AF-quick-examples">🎯 Quick Examples</a></h2>
+<h3 id="hello%2C-magical-world!" tabindex="-1"><a class="header-anchor" href="#hello%2C-magical-world!">Hello, Magical World!</a></h3>
+<pre><code class="language-python">print(&quot;Hello, Magical World! 🪄&quot;)
+
+spell greet(name):
+    return f&quot;Greetings, {name}! Welcome to the realm of Carrion! 🐦‍⬛&quot;
+
+print(greet(&quot;Fellow Mage&quot;))
+</code></pre>
+<h3 id="creating-your-first-grimoire-(class)" tabindex="-1"><a class="header-anchor" href="#creating-your-first-grimoire-(class)">Creating Your First Grimoire (Class)</a></h3>
+<pre><code class="language-python">grim MagicalCrow:
+    init(name, intelligence_level):
+        self.name = name
+        self.intelligence = intelligence_level
+        self.spells_known = []
+    
+    spell learn_spell(spell_name):
+        self.spells_known.append(spell_name)
+        print(f&quot;{self.name} learned the {spell_name} spell! ✨&quot;)
+    
+    spell cast_spell(spell_name):
+        if spell_name in self.spells_known:
+            return f&quot;{self.name} casts {spell_name}! 🌟&quot;
+        else:
+            return f&quot;{self.name} doesn't know {spell_name} yet...&quot;
+
+// Create a magical crow
+munin = MagicalCrow(&quot;Munin&quot;, 100)
+munin.learn_spell(&quot;Memory Enhancement&quot;)
+print(munin.cast_spell(&quot;Memory Enhancement&quot;))
+</code></pre>
+<hr>
+<h2 id="%F0%9F%9A%80-getting-started-in-3-steps" tabindex="-1"><a class="header-anchor" href="#%F0%9F%9A%80-getting-started-in-3-steps">🚀 Getting Started in 3 Steps</a></h2>
+<ol>
+<li><strong>📥 Install Carrion</strong>: Follow our <a href="Getting-Started/Installation.md">Installation Guide</a></li>
+<li><strong>🎪 Try the REPL</strong>: Run <code>carrion</code> and start experimenting</li>
+<li><strong>📚 Read the Tutorials</strong>: Begin with <a href="Getting-Started/Hello-World.md">Hello World</a></li>
+</ol>
+<hr>
+<h2 id="%F0%9F%A4%9D-community-%26-support" tabindex="-1"><a class="header-anchor" href="#%F0%9F%A4%9D-community-%26-support">🤝 Community &amp; Support</a></h2>
+<ul>
+<li><strong>🐛 Bug Reports</strong>: <a href="https://github.com/javanhut/TheCarrionLanguage/issues">GitHub Issues</a></li>
+<li><strong>💬 Discussions</strong>: <a href="https://github.com/javanhut/TheCarrionLanguage/discussions">GitHub Discussions</a></li>
+<li><strong>📧 Email</strong>: <a href="mailto:javanhut@carrionlang.com">javanhut@carrionlang.com</a></li>
+<li><strong>🌟 Contribute</strong>: Check out our <a href="https://github.com/javanhut/TheCarrionLanguage/blob/main/CONTRIBUTING.md">Contributing Guidelines</a></li>
+</ul>
+<hr>
+<h2 id="%F0%9F%8E%8A-latest-features-(v0.1.6-alpha)" tabindex="-1"><a class="header-anchor" href="#%F0%9F%8E%8A-latest-features-(v0.1.6-alpha)">🎊 Latest Features (v0.1.6-alpha)</a></h2>
+<ul>
+<li>🔮 <strong>Interactive Help System “Mimir”</strong> - Type <code>mimir</code> in REPL for guided help</li>
+<li>⚡ <strong>Enhanced Tab Completion</strong> - Smart completion for keywords, functions, and methods</li>
+<li>🔧 <strong>Fixed Operators &amp; Assignment</strong> - All operators now work correctly</li>
+<li>📝 <strong>Enhanced String Operations</strong> - String indexing and improved methods</li>
+<li>🔤 <strong>Character Conversion Functions</strong> - <code>ord()</code> and <code>chr()</code> functions</li>
+</ul>
+<hr>
+<p><em>Happy coding, fellow mages! May your spells compile cleanly and your grimoires be bug-free! 🪄✨</em></p>
+<blockquote>
+<p>“In the realm of code, wisdom flows through the wings of the Carrion crow, and magic lives in every line.” - <em>Ancient Programmer Proverb</em></p>
+</blockquote>
+</div>
+    </div>
+    <div class="footer">
+        <p>🪄 Carrion Programming Language Wiki - Where Code Meets Magic ✨</p>
+        <p>Built with ❤️ by the Carrion Community | <a href="https://github.com/javanhut/TheCarrionLanguage" style="color: var(--link-color);">GitHub Repository</a></p>
+    </div>
+</body>
+</html>

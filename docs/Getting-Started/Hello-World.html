@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>👋 Hello World & Basics - Your First Magical Spells - Carrion Language Wiki</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐦‍⬛</text></svg>">
+    <style>
+        :root {
+            --bg-primary: #0f0f23;
+            --bg-secondary: #1a1a2e;
+            --bg-tertiary: #16213e;
+            --text-primary: #cccccc;
+            --text-secondary: #999999;
+            --accent-primary: #00cc99;
+            --accent-secondary: #9900cc;
+            --accent-warning: #ffcc00;
+            --border-color: #333355;
+            --code-bg: #0f0f1a;
+            --link-color: #66ccff;
+            --link-hover: #99ddff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 40px 20px;
+            background: var(--bg-tertiary);
+            border-radius: 20px;
+            border: 2px solid var(--border-color);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .header h1 {
+            font-size: 3em;
+            background: linear-gradient(45deg, var(--accent-primary), var(--accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+
+        .header .subtitle {
+            font-size: 1.2em;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+        }
+
+        .ascii-art {
+            font-family: monospace;
+            font-size: 0.7em;
+            line-height: 1.2;
+            color: var(--accent-primary);
+            margin: 20px 0;
+            white-space: pre;
+        }
+
+        .navigation {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .nav-section {
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            border-radius: 15px;
+            padding: 25px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-section:hover {
+            border-color: var(--accent-primary);
+            box-shadow: 0 5px 20px rgba(0, 204, 153, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .nav-section h2 {
+            color: var(--accent-primary);
+            margin-bottom: 15px;
+            font-size: 1.4em;
+        }
+
+        .nav-section ul {
+            list-style: none;
+        }
+
+        .nav-section li {
+            margin: 8px 0;
+        }
+
+        .nav-section a {
+            color: var(--link-color);
+            text-decoration: none;
+            font-size: 1.05em;
+            transition: color 0.3s ease;
+        }
+
+        .nav-section a:hover {
+            color: var(--link-hover);
+            text-shadow: 0 0 10px rgba(102, 204, 255, 0.3);
+        }
+
+        .content {
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            border-radius: 15px;
+            padding: 40px;
+            margin-bottom: 40px;
+        }
+
+        .content h1, .content h2, .content h3 {
+            color: var(--accent-primary);
+            margin: 30px 0 15px 0;
+        }
+
+        .content h1 {
+            font-size: 2.5em;
+            border-bottom: 3px solid var(--accent-primary);
+            padding-bottom: 10px;
+        }
+
+        .content p {
+            margin-bottom: 15px;
+            color: var(--text-primary);
+        }
+
+        .content pre {
+            background: var(--code-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 20px;
+            overflow-x: auto;
+            margin: 20px 0;
+            font-family: 'Fira Code', 'Courier New', monospace;
+        }
+
+        .content code {
+            background: var(--code-bg);
+            padding: 3px 6px;
+            border-radius: 4px;
+            font-family: 'Fira Code', 'Courier New', monospace;
+            color: var(--accent-primary);
+        }
+
+        .content blockquote {
+            border-left: 4px solid var(--accent-primary);
+            margin: 20px 0;
+            padding: 15px 20px;
+            background: var(--bg-tertiary);
+            border-radius: 0 10px 10px 0;
+        }
+
+        .table-of-contents {
+            background: var(--bg-tertiary);
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .table-of-contents h2 {
+            color: var(--accent-secondary);
+            margin-bottom: 15px;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 30px;
+            color: var(--text-secondary);
+            border-top: 2px solid var(--border-color);
+            margin-top: 40px;
+        }
+
+        .badge {
+            display: inline-block;
+            background: var(--accent-primary);
+            color: var(--bg-primary);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: bold;
+            margin: 5px;
+        }
+
+        .emoji {
+            font-size: 1.2em;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .container {
+                padding: 10px;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+            
+            .navigation {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="content"><h1 id="%F0%9F%91%8B-hello-world-%26-basics---your-first-magical-spells" tabindex="-1"><a class="header-anchor" href="#%F0%9F%91%8B-hello-world-%26-basics---your-first-magical-spells">👋 Hello World &amp; Basics - Your First Magical Spells</a></h1>
+<p>Welcome to your first lesson in Carrion magic! In this guide, you’ll learn to cast your first spells and understand the fundamental concepts that make Carrion special.</p>
+<hr>
+<h2 id="%F0%9F%AA%84-your-very-first-spell" tabindex="-1"><a class="header-anchor" href="#%F0%9F%AA%84-your-very-first-spell">🪄 Your Very First Spell</a></h2>
+<p>Let’s start with the classic “Hello, World!” - a time-honored tradition in the programming realm!</p>
+<h3 id="method-1%3A-interactive-repl-magic" tabindex="-1"><a class="header-anchor" href="#method-1%3A-interactive-repl-magic">Method 1: Interactive REPL Magic</a></h3>
+<pre><code class="language-bash"># Start the magical REPL
+carrion
+</code></pre>
+<p>Then cast your first spell:</p>
+<pre><code class="language-python">&gt;&gt;&gt; print(&quot;Hello, Magical World! 🪄&quot;)
+Hello, Magical World! 🪄
+</code></pre>
+<p><strong>🎉 Congratulations!</strong> You’ve just cast your first Carrion spell!</p>
+<h3 id="method-2%3A-script-file-magic" tabindex="-1"><a class="header-anchor" href="#method-2%3A-script-file-magic">Method 2: Script File Magic</a></h3>
+<p>Create a file called <code>hello_magic.crl</code>:</p>
+<pre><code class="language-python">// My first Carrion spell!
+print(&quot;Hello, Magical World! 🪄&quot;)
+print(&quot;Welcome to the realm of Carrion!&quot;)
+</code></pre>
+<p>Execute it:</p>
+<pre><code class="language-bash">carrion hello_magic.crl
+</code></pre>
+<hr>
+<h2 id="%F0%9F%97%A3%EF%B8%8F-the-language-of-magic---comments" tabindex="-1"><a class="header-anchor" href="#%F0%9F%97%A3%EF%B8%8F-the-language-of-magic---comments">🗣️ The Language of Magic - Comments</a></h2>
+<p>In Carrion, we document our spells with comments:</p>
+<pre><code class="language-python">// This is a single-line comment
+// Comments help explain your magical intentions
+
+/* 
+   This is a multi-line comment
+   Perfect for longer explanations
+   of complex magical procedures
+*/
+
+</code></pre>
+<p>This is also a multi-line comment
+using triple backticks</p>
+<pre><code>
+print(&quot;Comments don't affect the magic!&quot;) // Inline comment
+</code></pre>
+<hr>
+<h2 id="%F0%9F%93%A6-magical-storage---variables" tabindex="-1"><a class="header-anchor" href="#%F0%9F%93%A6-magical-storage---variables">📦 Magical Storage - Variables</a></h2>
+<p>Variables in Carrion store magical energy (data) for later use:</p>
+<pre><code class="language-python">// Storing different types of magical energy
+magical_number = 42
+wizard_name = &quot;Merlin&quot;
+has_powers = True
+spell_count = None
+
+// Display our magical storage
+print(&quot;Magical Number:&quot;, magical_number)
+print(&quot;Wizard Name:&quot;, wizard_name)
+print(&quot;Has Powers:&quot;, has_powers)
+print(&quot;Spell Count:&quot;, spell_count)
+</code></pre>
+<h3 id="%E2%9C%A8-dynamic-magic" tabindex="-1"><a class="header-anchor" href="#%E2%9C%A8-dynamic-magic">✨ Dynamic Magic</a></h3>
+<p>Carrion is dynamically typed - variables can hold different types of magic:</p>
+<pre><code class="language-python">magic_variable = 42              // It's a number!
+print(magic_variable)
+
+magic_variable = &quot;Abracadabra!&quot;  // Now it's text!
+print(magic_variable)
+
+magic_variable = True            // Now it's a truth value!
+print(magic_variable)
+</code></pre>
+<hr>
+<h2 id="%F0%9F%8E%AD-types-of-magical-energy---data-types" tabindex="-1"><a class="header-anchor" href="#%F0%9F%8E%AD-types-of-magical-energy---data-types">🎭 Types of Magical Energy - Data Types</a></h2>
+<p>Carrion recognizes several types of magical energy:</p>
+<h3 id="%F0%9F%94%A2-numbers-(integer-%26-float)" tabindex="-1"><a class="header-anchor" href="#%F0%9F%94%A2-numbers-(integer-%26-float)">🔢 Numbers (Integer &amp; Float)</a></h3>
+<pre><code class="language-python">// Whole numbers (Integers)
+age = 25
+spell_power = 1000
+negative_energy = -50
+
+// Decimal numbers (Floats)
+magic_ratio = 3.14159
+temperature = -15.5
+precision = 0.001
+
+print(&quot;Age:&quot;, age)
+print(&quot;Magic Ratio:&quot;, magic_ratio)
+</code></pre>
+<h3 id="%F0%9F%94%A4-text-magic-(strings)" tabindex="-1"><a class="header-anchor" href="#%F0%9F%94%A4-text-magic-(strings)">🔤 Text Magic (Strings)</a></h3>
+<pre><code class="language-python">// Different ways to create text magic
+single_quotes = 'Hello, mage!'
+double_quotes = &quot;Welcome to Carrion!&quot;
+multiline_spell = &quot;&quot;&quot;
+This is a longer incantation
+that spans multiple lines
+with great power!
+&quot;&quot;&quot;
+
+// String magic with variables (F-strings)
+name = &quot;Luna&quot;
+level = 15
+greeting = f&quot;Greetings, {name}! You are level {level}.&quot;
+print(greeting)
+
+// Alternative string interpolation
+alt_greeting = i&quot;Hello, ${name}! Your power level is ${level}.&quot;
+print(alt_greeting)
+</code></pre>
+<h3 id="%E2%9C%85-truth-magic-(booleans)" tabindex="-1"><a class="header-anchor" href="#%E2%9C%85-truth-magic-(booleans)">✅ Truth Magic (Booleans)</a></h3>
+<pre><code class="language-python">is_magical = True
+is_mundane = False
+has_completed_quest = True
+
+if is_magical:
+    print(&quot;You possess magical abilities!&quot;)
+
+if not is_mundane:
+    print(&quot;Magic flows through you!&quot;)
+</code></pre>
+<h3 id="%F0%9F%AB%A5-the-void-(none)" tabindex="-1"><a class="header-anchor" href="#%F0%9F%AB%A5-the-void-(none)">🫥 The Void (None)</a></h3>
+<pre><code class="language-python">unknown_spell = None
+empty_potion = None
+
+if unknown_spell is None:
+    print(&quot;This spell hasn't been learned yet!&quot;)
+</code></pre>
+<hr>
+<h2 id="%F0%9F%93%9A-collections-of-magic" tabindex="-1"><a class="header-anchor" href="#%F0%9F%93%9A-collections-of-magic">📚 Collections of Magic</a></h2>
+<h3 id="%F0%9F%93%8B-arrays-(lists)" tabindex="-1"><a class="header-anchor" href="#%F0%9F%93%8B-arrays-(lists)">📋 Arrays (Lists)</a></h3>
+<p>Arrays store multiple magical items in order:</p>
+<pre><code class="language-python">// Creating magical collections
+spell_names = [&quot;Fireball&quot;, &quot;Healing&quot;, &quot;Teleport&quot;, &quot;Shield&quot;]
+magical_numbers = [1, 3, 5, 7, 11, 13]
+mixed_magic = [42, &quot;Wand&quot;, True, 3.14]
+
+// Accessing magical items (0-based indexing)
+print(&quot;First spell:&quot;, spell_names[0])      // &quot;Fireball&quot;
+print(&quot;Last spell:&quot;, spell_names[-1])      // &quot;Shield&quot;
+
+// Array magic
+print(&quot;Number of spells:&quot;, len(spell_names))
+print(&quot;All spells:&quot;, spell_names)
+</code></pre>
+<h3 id="%F0%9F%97%82%EF%B8%8F-hashes-(dictionaries)" tabindex="-1"><a class="header-anchor" href="#%F0%9F%97%82%EF%B8%8F-hashes-(dictionaries)">🗂️ Hashes (Dictionaries)</a></h3>
+<p>Hashes map magical keys to values:</p>
+<pre><code class="language-python">// Creating magical mappings
+wizard_stats = {
+    &quot;name&quot;: &quot;Gandalf&quot;,
+    &quot;level&quot;: 50,
+    &quot;class&quot;: &quot;White Wizard&quot;,
+    &quot;health&quot;: 100
+}
+
+// Accessing magical properties
+print(&quot;Wizard Name:&quot;, wizard_stats[&quot;name&quot;])
+print(&quot;Level:&quot;, wizard_stats[&quot;level&quot;])
+
+// Magical inventory
+spell_inventory = {
+    &quot;offensive&quot;: [&quot;Fireball&quot;, &quot;Lightning Bolt&quot;],
+    &quot;defensive&quot;: [&quot;Shield&quot;, &quot;Barrier&quot;],
+    &quot;healing&quot;: [&quot;Cure&quot;, &quot;Regeneration&quot;]
+}
+</code></pre>
+<h3 id="%F0%9F%8E%AF-tuples-(immutable-collections)" tabindex="-1"><a class="header-anchor" href="#%F0%9F%8E%AF-tuples-(immutable-collections)">🎯 Tuples (Immutable Collections)</a></h3>
+<p>Tuples are magical collections that cannot be changed:</p>
+<pre><code class="language-python">// Magical coordinates that shouldn't change
+dragon_location = (100, 250, 75)  // x, y, z coordinates
+spell_components = (&quot;Eye of Newt&quot;, &quot;Dragon Scale&quot;, &quot;Moonstone&quot;)
+
+// Unpacking magical values
+x, y, z = dragon_location
+print(f&quot;Dragon is at position ({x}, {y}, {z})&quot;)
+
+first_component, second_component, third_component = spell_components
+print(f&quot;First ingredient: {first_component}&quot;)
+</code></pre>
+<hr>
+<h2 id="%F0%9F%8E%AF-basic-magical-operations" tabindex="-1"><a class="header-anchor" href="#%F0%9F%8E%AF-basic-magical-operations">🎯 Basic Magical Operations</a></h2>
+<h3 id="%F0%9F%A7%AE-arithmetic-magic" tabindex="-1"><a class="header-anchor" href="#%F0%9F%A7%AE-arithmetic-magic">🧮 Arithmetic Magic</a></h3>
+<pre><code class="language-python">// Basic magical calculations
+power_level = 100
+experience = 250
+bonus = 50
+
+total_power = power_level + bonus
+remaining_exp = experience - 100
+double_power = power_level * 2
+half_power = power_level / 2
+
+print(f&quot;Total Power: {total_power}&quot;)
+print(f&quot;Double Power: {double_power}&quot;)
+
+// Advanced magical operations
+squared_power = power_level ** 2        // Exponentiation
+magic_remainder = experience % 7        // Modulo
+floor_division = experience // 3        // Integer division
+
+print(f&quot;Squared Power: {squared_power}&quot;)
+print(f&quot;Magic Remainder: {magic_remainder}&quot;)
+</code></pre>
+<h3 id="%F0%9F%94%A4-text-magic-operations" tabindex="-1"><a class="header-anchor" href="#%F0%9F%94%A4-text-magic-operations">🔤 Text Magic Operations</a></h3>
+<pre><code class="language-python">// Combining magical texts
+greeting = &quot;Hello&quot;
+target = &quot;Fellow Mage&quot;
+full_greeting = greeting + &quot;, &quot; + target + &quot;!&quot;
+print(full_greeting)
+
+// Magical text repetition
+magical_chant = &quot;Abracadabra! &quot; * 3
+print(magical_chant)
+
+// Text magic properties
+spell_name = &quot;Teleportation&quot;
+print(f&quot;Spell length: {len(spell_name)}&quot;)
+print(f&quot;Uppercase: {spell_name.upper()}&quot;)
+print(f&quot;Lowercase: {spell_name.lower()}&quot;)
+</code></pre>
+<hr>
+<h2 id="%F0%9F%8E%AA-interactive-magic---input-%26-output" tabindex="-1"><a class="header-anchor" href="#%F0%9F%8E%AA-interactive-magic---input-%26-output">🎪 Interactive Magic - Input &amp; Output</a></h2>
+<h3 id="%F0%9F%93%A4-displaying-magic-(output)" tabindex="-1"><a class="header-anchor" href="#%F0%9F%93%A4-displaying-magic-(output)">📤 Displaying Magic (Output)</a></h3>
+<pre><code class="language-python">// Basic magical output
+print(&quot;Welcome to the magic academy!&quot;)
+
+// Displaying multiple magical values
+name = &quot;Merlin&quot;
+age = 1000
+print(&quot;Wizard:&quot;, name, &quot;Age:&quot;, age)
+
+// Formatted magical output
+print(f&quot;The great {name} is {age} years old!&quot;)
+
+// Different ways to display
+print(&quot;First line&quot;)
+print(&quot;Second line&quot;)
+print(&quot;Same line:&quot;, end=&quot; &quot;)
+print(&quot;continued here!&quot;)
+</code></pre>
+<h3 id="%F0%9F%93%A5-gathering-magic-(input)" tabindex="-1"><a class="header-anchor" href="#%F0%9F%93%A5-gathering-magic-(input)">📥 Gathering Magic (Input)</a></h3>
+<pre><code class="language-python">// Asking for magical input
+wizard_name = input(&quot;What is your wizard name? &quot;)
+print(f&quot;Welcome, {wizard_name}!&quot;)
+
+// Converting magical input
+age_text = input(&quot;How old are you? &quot;)
+age_number = int(age_text)
+print(f&quot;You are {age_number} years old!&quot;)
+
+// Or do it in one magical step
+spell_power = int(input(&quot;Enter your spell power level: &quot;))
+print(f&quot;Your magic power is {spell_power}!&quot;)
+</code></pre>
+<hr>
+<h2 id="%F0%9F%8E%AE-your-first-interactive-spell" tabindex="-1"><a class="header-anchor" href="#%F0%9F%8E%AE-your-first-interactive-spell">🎮 Your First Interactive Spell</a></h2>
+<p>Let’s create a simple interactive magic program:</p>
+<pre><code class="language-python">// Create a file called: magical_greeting.crl
+
+print(&quot;🪄 Welcome to the Magical Greeting Spell! 🪄&quot;)
+print()
+
+// Gather magical information
+wizard_name = input(&quot;Enter your wizard name: &quot;)
+favorite_spell = input(&quot;What's your favorite spell? &quot;)
+power_level = int(input(&quot;What's your power level (1-100)? &quot;))
+
+// Process the magical data
+if power_level &gt;= 80:
+    rank = &quot;Archmage&quot;
+    symbol = &quot;🌟&quot;
+elif power_level &gt;= 50:
+    rank = &quot;Master Wizard&quot;
+    symbol = &quot;✨&quot;
+elif power_level &gt;= 20:
+    rank = &quot;Apprentice&quot;
+    symbol = &quot;🪄&quot;
+else:
+    rank = &quot;Novice&quot;
+    symbol = &quot;📚&quot;
+
+// Display magical results
+print()
+print(&quot;=&quot; * 40)
+print(f&quot;{symbol} Magical Profile {symbol}&quot;)
+print(&quot;=&quot; * 40)
+print(f&quot;Name: {wizard_name}&quot;)
+print(f&quot;Rank: {rank}&quot;)
+print(f&quot;Favorite Spell: {favorite_spell}&quot;)
+print(f&quot;Power Level: {power_level}/100&quot;)
+print()
+print(f&quot;May your {favorite_spell} spell serve you well, {rank} {wizard_name}!&quot;)
+print(&quot;=&quot; * 40)
+</code></pre>
+<p>Run it with:</p>
+<pre><code class="language-bash">carrion magical_greeting.crl
+</code></pre>
+<hr>
+<h2 id="%F0%9F%94%8D-exploring-your-magic---type-checking" tabindex="-1"><a class="header-anchor" href="#%F0%9F%94%8D-exploring-your-magic---type-checking">🔍 Exploring Your Magic - Type Checking</a></h2>
+<p>Carrion provides magical functions to examine your data:</p>
+<pre><code class="language-python">// Magical inspection spells
+mysterious_value = 42
+
+print(&quot;Value:&quot;, mysterious_value)
+print(&quot;Type:&quot;, type(mysterious_value))        // &quot;INTEGER&quot;
+print(&quot;Length:&quot;, len(&quot;Hello&quot;))                // 5
+
+// Check if values are the same type
+print(is_sametype(42, 17))                   // True
+print(is_sametype(42, 3.14))                 // False
+print(is_sametype(&quot;hello&quot;, &quot;world&quot;))         // True
+</code></pre>
+<hr>
+<h2 id="%F0%9F%8E%AF-practice-challenges" tabindex="-1"><a class="header-anchor" href="#%F0%9F%8E%AF-practice-challenges">🎯 Practice Challenges</a></h2>
+<p>Try these challenges to master the basics:</p>
+<h3 id="%F0%9F%8F%85-challenge-1%3A-personal-magic-calculator" tabindex="-1"><a class="header-anchor" href="#%F0%9F%8F%85-challenge-1%3A-personal-magic-calculator">🏅 Challenge 1: Personal Magic Calculator</a></h3>
+<p>Create a program that:</p>
+<ol>
+<li>Asks for your name and age</li>
+<li>Calculates how many days you’ve been alive</li>
+<li>Displays a magical message with the result</li>
+</ol>
+<h3 id="%F0%9F%8F%85-challenge-2%3A-spell-component-mixer" tabindex="-1"><a class="header-anchor" href="#%F0%9F%8F%85-challenge-2%3A-spell-component-mixer">🏅 Challenge 2: Spell Component Mixer</a></h3>
+<p>Create a program that:</p>
+<ol>
+<li>Asks for three spell components</li>
+<li>Combines them into a magical spell name</li>
+<li>Calculates the “power level” based on the total length</li>
+</ol>
+<h3 id="%F0%9F%8F%85-challenge-3%3A-magic-number-guesser" tabindex="-1"><a class="header-anchor" href="#%F0%9F%8F%85-challenge-3%3A-magic-number-guesser">🏅 Challenge 3: Magic Number Guesser</a></h3>
+<p>Create a simple number guessing game using basic input/output.</p>
+<hr>
+<h2 id="%F0%9F%94%97-what%E2%80%99s-next%3F" tabindex="-1"><a class="header-anchor" href="#%F0%9F%94%97-what%E2%80%99s-next%3F">🔗 What’s Next?</a></h2>
+<p>Congratulations! You’ve mastered the basics of Carrion magic. Here’s your next quest:</p>
+<ol>
+<li><strong>⚡ <a href="Quick-Start.md">Quick Start Tutorial</a></strong> - Learn more advanced basics</li>
+<li><strong>🎮 <a href="REPL-Guide.md">REPL Guide</a></strong> - Master the interactive environment</li>
+<li><strong>📚 <a href="../Language-Fundamentals/Data-Types.md">Data Types Deep Dive</a></strong> - Understand magical data types</li>
+<li><strong>✨ <a href="../Language-Fundamentals/Functions.md">Functions (Spells)</a></strong> - Create reusable magic</li>
+</ol>
+<hr>
+<h2 id="%F0%9F%92%A1-tips-for-new-mages" tabindex="-1"><a class="header-anchor" href="#%F0%9F%92%A1-tips-for-new-mages">💡 Tips for New Mages</a></h2>
+<ol>
+<li><strong>🎪 Use the REPL</strong>: It’s perfect for experimenting with small spells</li>
+<li><strong>📖 Read Error Messages</strong>: They often contain helpful guidance</li>
+<li><strong>🔍 Use <code>type()</code></strong>: When unsure about data types</li>
+<li><strong>💬 Use Comments</strong>: Document your magical intentions</li>
+<li><strong>🎯 Start Small</strong>: Begin with simple spells and build complexity</li>
+</ol>
+<hr>
+<p><em>Remember: Every great wizard started with “Hello, World!” Your magical journey has just begun! 🪄✨</em></p>
+<blockquote>
+<p>“The first spell is always the hardest to cast, but also the most magical to remember.” - <em>Ancient Programming Wisdom</em></p>
+</blockquote>
+</div>
+    </div>
+    <div class="footer">
+        <p>🪄 Carrion Programming Language Wiki - Where Code Meets Magic ✨</p>
+        <p>Built with ❤️ by the Carrion Community | <a href="https://github.com/javanhut/TheCarrionLanguage" style="color: var(--link-color);">GitHub Repository</a></p>
+    </div>
+</body>
+</html>

@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚡ Quick Start Tutorial - Learn Carrion in 30 Minutes - Carrion Language Wiki</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐦‍⬛</text></svg>">
+    <style>
+        :root {
+            --bg-primary: #0f0f23;
+            --bg-secondary: #1a1a2e;
+            --bg-tertiary: #16213e;
+            --text-primary: #cccccc;
+            --text-secondary: #999999;
+            --accent-primary: #00cc99;
+            --accent-secondary: #9900cc;
+            --accent-warning: #ffcc00;
+            --border-color: #333355;
+            --code-bg: #0f0f1a;
+            --link-color: #66ccff;
+            --link-hover: #99ddff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 40px 20px;
+            background: var(--bg-tertiary);
+            border-radius: 20px;
+            border: 2px solid var(--border-color);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .header h1 {
+            font-size: 3em;
+            background: linear-gradient(45deg, var(--accent-primary), var(--accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+
+        .header .subtitle {
+            font-size: 1.2em;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+        }
+
+        .ascii-art {
+            font-family: monospace;
+            font-size: 0.7em;
+            line-height: 1.2;
+            color: var(--accent-primary);
+            margin: 20px 0;
+            white-space: pre;
+        }
+
+        .navigation {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .nav-section {
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            border-radius: 15px;
+            padding: 25px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-section:hover {
+            border-color: var(--accent-primary);
+            box-shadow: 0 5px 20px rgba(0, 204, 153, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .nav-section h2 {
+            color: var(--accent-primary);
+            margin-bottom: 15px;
+            font-size: 1.4em;
+        }
+
+        .nav-section ul {
+            list-style: none;
+        }
+
+        .nav-section li {
+            margin: 8px 0;
+        }
+
+        .nav-section a {
+            color: var(--link-color);
+            text-decoration: none;
+            font-size: 1.05em;
+            transition: color 0.3s ease;
+        }
+
+        .nav-section a:hover {
+            color: var(--link-hover);
+            text-shadow: 0 0 10px rgba(102, 204, 255, 0.3);
+        }
+
+        .content {
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            border-radius: 15px;
+            padding: 40px;
+            margin-bottom: 40px;
+        }
+
+        .content h1, .content h2, .content h3 {
+            color: var(--accent-primary);
+            margin: 30px 0 15px 0;
+        }
+
+        .content h1 {
+            font-size: 2.5em;
+            border-bottom: 3px solid var(--accent-primary);
+            padding-bottom: 10px;
+        }
+
+        .content p {
+            margin-bottom: 15px;
+            color: var(--text-primary);
+        }
+
+        .content pre {
+            background: var(--code-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 20px;
+            overflow-x: auto;
+            margin: 20px 0;
+            font-family: 'Fira Code', 'Courier New', monospace;
+        }
+
+        .content code {
+            background: var(--code-bg);
+            padding: 3px 6px;
+            border-radius: 4px;
+            font-family: 'Fira Code', 'Courier New', monospace;
+            color: var(--accent-primary);
+        }
+
+        .content blockquote {
+            border-left: 4px solid var(--accent-primary);
+            margin: 20px 0;
+            padding: 15px 20px;
+            background: var(--bg-tertiary);
+            border-radius: 0 10px 10px 0;
+        }
+
+        .table-of-contents {
+            background: var(--bg-tertiary);
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .table-of-contents h2 {
+            color: var(--accent-secondary);
+            margin-bottom: 15px;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 30px;
+            color: var(--text-secondary);
+            border-top: 2px solid var(--border-color);
+            margin-top: 40px;
+        }
+
+        .badge {
+            display: inline-block;
+            background: var(--accent-primary);
+            color: var(--bg-primary);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: bold;
+            margin: 5px;
+        }
+
+        .emoji {
+            font-size: 1.2em;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .container {
+                padding: 10px;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+            
+            .navigation {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="content"><h1 id="%E2%9A%A1-quick-start-tutorial---learn-carrion-in-30-minutes" tabindex="-1"><a class="header-anchor" href="#%E2%9A%A1-quick-start-tutorial---learn-carrion-in-30-minutes">⚡ Quick Start Tutorial - Learn Carrion in 30 Minutes</a></h1>
+<p>Ready to master the basics of Carrion magic quickly? This tutorial will have you casting spells and creating grimoires in just 30 minutes! Perfect for experienced programmers who want to learn Carrion’s unique magical approach.</p>
+<hr>
+<h2 id="%F0%9F%8E%AF-what-you%E2%80%99ll-learn" tabindex="-1"><a class="header-anchor" href="#%F0%9F%8E%AF-what-you%E2%80%99ll-learn">🎯 What You’ll Learn</a></h2>
+<ul>
+<li>✨ <strong>Basic Syntax</strong> - Variables, operators, and data types</li>
+<li>🪄 <strong>Functions (Spells)</strong> - Creating reusable magical code</li>
+<li>📖 <strong>Classes (Grimoires)</strong> - Object-oriented magic</li>
+<li>🔍 <strong>Standard Library</strong> - Using Munin’s powerful grimoires</li>
+<li>🎮 <strong>Interactive Features</strong> - REPL and error handling</li>
+</ul>
+<hr>
+<h2 id="%F0%9F%9A%80-let%E2%80%99s-start-coding!" tabindex="-1"><a class="header-anchor" href="#%F0%9F%9A%80-let%E2%80%99s-start-coding!">🚀 Let’s Start Coding!</a></h2>
+<h3 id="step-1%3A-your-first-magic-(5-minutes)" tabindex="-1"><a class="header-anchor" href="#step-1%3A-your-first-magic-(5-minutes)">Step 1: Your First Magic (5 minutes)</a></h3>
+<p>Open your Carrion REPL:</p>
+<pre><code class="language-bash">carrion
+</code></pre>
+<p>Try these basic spells:</p>
+<pre><code class="language-python">// Variables and basic operations
+name = &quot;Aspiring Mage&quot;
+power_level = 42
+is_magical = True
+
+print(f&quot;Hello, {name}! Your power level is {power_level}&quot;)
+
+// Dynamic typing - variables can change type
+magic_value = 100        // Integer
+magic_value = &quot;Powerful&quot; // Now a string
+magic_value = True       // Now a boolean
+
+// Collections
+spell_list = [&quot;Fireball&quot;, &quot;Heal&quot;, &quot;Teleport&quot;]
+wizard_stats = {&quot;health&quot;: 100, &quot;mana&quot;: 50, &quot;level&quot;: 5}
+
+print(f&quot;Known spells: {spell_list}&quot;)
+print(f&quot;Current health: {wizard_stats['health']}&quot;)
+</code></pre>
+<p><strong>Key Takeaway</strong>: Carrion is dynamically typed with familiar Python-like syntax, but uses magical terminology!</p>
+<h3 id="step-2%3A-spell-creation-(functions)-(8-minutes)" tabindex="-1"><a class="header-anchor" href="#step-2%3A-spell-creation-(functions)-(8-minutes)">Step 2: Spell Creation (Functions) (8 minutes)</a></h3>
+<p>Functions in Carrion are called “spells”:</p>
+<pre><code class="language-python">// Basic spell
+spell greet(wizard_name):
+    return f&quot;Greetings, {wizard_name}! Welcome to the magical realm!&quot;
+
+// Spell with default parameters
+spell cast_damage_spell(base_damage, multiplier = 1.5):
+    total_damage = base_damage * multiplier
+    return f&quot;💥 Dealing {total_damage} magical damage!&quot;
+
+// Advanced spell with multiple returns
+spell analyze_creature(creature_type):
+    if creature_type == &quot;dragon&quot;:
+        return &quot;fire&quot;, 1000, True  // element, power, dangerous
+    elif creature_type == &quot;unicorn&quot;:
+        return &quot;light&quot;, 500, False
+    else:
+        return &quot;unknown&quot;, 100, False
+
+// Test your spells
+print(greet(&quot;Merlin&quot;))
+print(cast_damage_spell(50))
+print(cast_damage_spell(50, 2.0))  // Custom multiplier
+
+element, power, dangerous = analyze_creature(&quot;dragon&quot;)
+print(f&quot;Dragon: {element} element, {power} power, dangerous: {dangerous}&quot;)
+</code></pre>
+<p><strong>Key Takeaway</strong>: Spells (functions) use the <code>spell</code> keyword and support default parameters, multiple returns, and unpacking!</p>
+<h3 id="step-3%3A-grimoire-crafting-(classes)-(10-minutes)" tabindex="-1"><a class="header-anchor" href="#step-3%3A-grimoire-crafting-(classes)-(10-minutes)">Step 3: Grimoire Crafting (Classes) (10 minutes)</a></h3>
+<p>Classes in Carrion are called “grimoires” (magical spellbooks):</p>
+<pre><code class="language-python">// Basic grimoire
+grim MagicalCreature:
+    init(name, element, health = 100):
+        self.name = name
+        self.element = element
+        self.health = health
+        self.max_health = health
+    
+    spell introduce():
+        return f&quot;I am {self.name}, a creature of {self.element}!&quot;
+    
+    spell take_damage(damage):
+        self.health = max(0, self.health - damage)
+        if self.health == 0:
+            return f&quot;💀 {self.name} has been defeated!&quot;
+        else:
+            return f&quot;💔 {self.name} takes {damage} damage! Health: {self.health}/{self.max_health}&quot;
+    
+    spell heal(amount):
+        old_health = self.health
+        self.health = min(self.max_health, self.health + amount)
+        healed = self.health - old_health
+        return f&quot;💚 {self.name} heals for {healed} HP! Health: {self.health}/{self.max_health}&quot;
+
+// Inheritance - specialized grimoires
+grim Dragon(MagicalCreature):
+    init(name, color):
+        super.init(name, &quot;fire&quot;, 200)  // Dragons have more health
+        self.color = color
+        self.breath_attack_power = 75
+    
+    spell breathe_fire():
+        return f&quot;🔥 {self.color} dragon {self.name} breathes fire for {self.breath_attack_power} damage!&quot;
+    
+    spell intimidate():
+        return f&quot;😱 {self.name} roars menacingly! All enemies are frightened!&quot;
+
+// Create and use magical creatures
+unicorn = MagicalCreature(&quot;Stardust&quot;, &quot;light&quot;, 80)
+dragon = Dragon(&quot;Smaug&quot;, &quot;Red&quot;)
+
+print(unicorn.introduce())
+print(dragon.introduce())
+print(dragon.breathe_fire())
+print(unicorn.take_damage(30))
+print(unicorn.heal(20))
+</code></pre>
+<p><strong>Key Takeaway</strong>: Grimoires use <code>grim</code> keyword, methods are “spells”, and inheritance works like Python with <code>super</code>!</p>
+<h3 id="step-4%3A-standard-library-magic-(5-minutes)" tabindex="-1"><a class="header-anchor" href="#step-4%3A-standard-library-magic-(5-minutes)">Step 4: Standard Library Magic (5 minutes)</a></h3>
+<p>Carrion comes with Munin, a powerful standard library:</p>
+<pre><code class="language-python">// Array grimoire magic
+magical_items = [&quot;Wand&quot;, &quot;Staff&quot;, &quot;Orb&quot;, &quot;Crystal&quot;]
+enhanced_array = Array(magical_items)
+
+enhanced_array.append(&quot;Tome&quot;)
+print(f&quot;Items count: {enhanced_array.length()}&quot;)
+print(f&quot;Contains Wand: {enhanced_array.contains('Wand')}&quot;)
+print(f&quot;Sorted items: {enhanced_array.sort().to_string()}&quot;)
+
+// String grimoire magic
+spell_name = String(&quot;FIREBALL SUPREME&quot;)
+print(f&quot;Lowercase: {spell_name.lower()}&quot;)
+print(f&quot;Length: {spell_name.length()}&quot;)
+print(f&quot;Contains 'FIRE': {spell_name.contains('FIRE')}&quot;)
+print(f&quot;Reversed: {spell_name.reverse()}&quot;)
+
+// Number grimoire magic (automatic enhancement)
+magic_number = 42
+print(f&quot;Binary: {magic_number.to_bin()}&quot;)   // Automatic Integer grimoire!
+print(f&quot;Is prime: {magic_number.is_prime()}&quot;)
+
+pi_approximation = 3.14159
+print(f&quot;Rounded: {pi_approximation.round(2)}&quot;)  // Automatic Float grimoire!
+</code></pre>
+<p><strong>Key Takeaway</strong>: Munin provides enhanced grimoires for arrays, strings, numbers, and more - with automatic primitive wrapping!</p>
+<h3 id="step-5%3A-control-flow-%26-error-handling-(2-minutes)" tabindex="-1"><a class="header-anchor" href="#step-5%3A-control-flow-%26-error-handling-(2-minutes)">Step 5: Control Flow &amp; Error Handling (2 minutes)</a></h3>
+<pre><code class="language-python">// Control flow with magical keywords
+for i in range(5):
+    if i % 2 == 0:
+        print(f&quot;Even magic: {i}&quot;)
+    else:
+        skip  // &quot;skip&quot; instead of &quot;continue&quot;
+
+// Enhanced conditionals
+magic_level = 75
+if magic_level &gt;= 90:
+    rank = &quot;Archmage&quot;
+otherwise magic_level &gt;= 50:  // &quot;otherwise&quot; instead of &quot;elif&quot;
+    rank = &quot;Master&quot;
+else:
+    rank = &quot;Apprentice&quot;
+
+print(f&quot;Your rank: {rank}&quot;)
+
+// Error handling with magical syntax
+attempt:
+    risky_spell = 10 / 0
+ensnare:  // &quot;ensnare&quot; instead of &quot;except&quot;
+    print(&quot;🚫 Magical error prevented!&quot;)
+resolve:  // &quot;resolve&quot; instead of &quot;finally&quot;
+    print(&quot;✨ Spell casting complete&quot;)
+</code></pre>
+<hr>
+<h2 id="%F0%9F%8E%AA-build-something-cool---magical-battle-system" tabindex="-1"><a class="header-anchor" href="#%F0%9F%8E%AA-build-something-cool---magical-battle-system">🎪 Build Something Cool - Magical Battle System</a></h2>
+<p>Let’s combine everything into a fun project:</p>
+<pre><code class="language-python">grim BattleMage:
+    init(name, element):
+        self.name = name
+        self.element = element
+        self.health = 100
+        self.mana = 50
+        self.spells = Array([&quot;Magic Missile&quot;])
+    
+    spell learn_spell(spell_name):
+        if not self.spells.contains(spell_name):
+            self.spells.append(spell_name)
+            return f&quot;📚 {self.name} learned {spell_name}!&quot;
+        return f&quot;🤔 {self.name} already knows {spell_name}&quot;
+    
+    spell cast_spell(spell_name, target):
+        if not self.spells.contains(spell_name):
+            return f&quot;❌ {self.name} doesn't know {spell_name}!&quot;
+        
+        if self.mana &lt; 10:
+            return f&quot;💫 {self.name} is out of mana!&quot;
+        
+        self.mana -= 10
+        damage = 25
+        
+        if spell_name == &quot;Fireball&quot; and self.element == &quot;fire&quot;:
+            damage *= 2  // Elemental bonus
+        
+        target.health = max(0, target.health - damage)
+        return f&quot;✨ {self.name} casts {spell_name} on {target.name} for {damage} damage!&quot;
+    
+    spell status():
+        spell_list = &quot;, &quot;.join([self.spells.get(i) for i in range(self.spells.length())])
+        return f&quot;{self.name} ({self.element}): HP {self.health}/100, Mana {self.mana}/50, Spells: {spell_list}&quot;
+
+// Create magical battle
+fire_mage = BattleMage(&quot;Ignis&quot;, &quot;fire&quot;)
+ice_mage = BattleMage(&quot;Frost&quot;, &quot;ice&quot;)
+
+// Learning phase
+print(fire_mage.learn_spell(&quot;Fireball&quot;))
+print(ice_mage.learn_spell(&quot;Ice Shard&quot;))
+
+// Battle phase
+print(&quot;\n🔥 MAGICAL BATTLE BEGINS! ❄️&quot;)
+print(fire_mage.status())
+print(ice_mage.status())
+
+print(&quot;\n⚔️ Round 1:&quot;)
+print(fire_mage.cast_spell(&quot;Fireball&quot;, ice_mage))
+print(ice_mage.cast_spell(&quot;Ice Shard&quot;, fire_mage))
+
+print(&quot;\n📊 After Round 1:&quot;)
+print(fire_mage.status())
+print(ice_mage.status())
+</code></pre>
+<hr>
+<h2 id="%F0%9F%8E%AF-interactive-features" tabindex="-1"><a class="header-anchor" href="#%F0%9F%8E%AF-interactive-features">🎯 Interactive Features</a></h2>
+<h3 id="repl-magic" tabindex="-1"><a class="header-anchor" href="#repl-magic">REPL Magic</a></h3>
+<pre><code class="language-python">// In the REPL, try these magical commands:
+help()      // Basic help
+version()   // Version information
+modules()   // Available modules
+mimir       // Interactive help system! (Type this in REPL)
+
+// Tab completion works for:
+print  // &lt;TAB&gt; - shows print function
+Array  // &lt;TAB&gt; - shows Array grimoire
+&quot;hello&quot;.  // &lt;TAB&gt; - shows string methods
+</code></pre>
+<h3 id="automatic-enhancements" tabindex="-1"><a class="header-anchor" href="#automatic-enhancements">Automatic Enhancements</a></h3>
+<pre><code class="language-python">// These work automatically without importing:
+[1, 2, 3].sort()           // Array methods
+&quot;hello&quot;.upper()            // String methods
+42.to_bin()               // Integer methods
+3.14.round(1)             // Float methods
+True.to_int()             // Boolean methods
+</code></pre>
+<hr>
+<h2 id="%F0%9F%9A%80-what%E2%80%99s-next%3F" tabindex="-1"><a class="header-anchor" href="#%F0%9F%9A%80-what%E2%80%99s-next%3F">🚀 What’s Next?</a></h2>
+<p>Congratulations! You’ve learned Carrion basics in 30 minutes. Here’s your magical progression path:</p>
+<h3 id="immediate-next-steps%3A" tabindex="-1"><a class="header-anchor" href="#immediate-next-steps%3A">Immediate Next Steps:</a></h3>
+<ol>
+<li><strong>🎮 <a href="REPL-Guide.md">REPL Guide</a></strong> - Master the interactive environment</li>
+<li><strong>📚 <a href="../Language-Fundamentals/Syntax-and-Terminology.md">Language Fundamentals</a></strong> - Deeper dive into syntax</li>
+<li><strong>🏰 <a href="../Advanced-Features/Classes-Grimoires.md">Advanced Grimoires</a></strong> - Advanced OOP patterns</li>
+</ol>
+<h3 id="build-projects%3A" tabindex="-1"><a class="header-anchor" href="#build-projects%3A">Build Projects:</a></h3>
+<ol>
+<li><strong>🎲 Dice Rolling Game</strong> - Practice spells and randomization</li>
+<li><strong>📚 Spell Book Manager</strong> - Use arrays and file operations</li>
+<li><strong>⚔️ Text Adventure</strong> - Combine grimoires and control flow</li>
+<li><strong>🧮 Magical Calculator</strong> - Advanced mathematical operations</li>
+</ol>
+<h3 id="explore-standard-library%3A" tabindex="-1"><a class="header-anchor" href="#explore-standard-library%3A">Explore Standard Library:</a></h3>
+<ol>
+<li><strong><a href="../Standard-Library/Array-Grimoire.md">📋 Array Grimoire</a></strong> - Master list manipulation</li>
+<li><strong><a href="../Standard-Library/String-Grimoire.md">🔤 String Grimoire</a></strong> - Text processing magic</li>
+<li><strong><a href="../Standard-Library/File-OS-Grimoires.md">📁 File &amp; OS</a></strong> - System interaction</li>
+</ol>
+<hr>
+<h2 id="%F0%9F%92%A1-quick-reference-card" tabindex="-1"><a class="header-anchor" href="#%F0%9F%92%A1-quick-reference-card">💡 Quick Reference Card</a></h2>
+<table>
+<thead>
+<tr>
+<th>Python</th>
+<th>Carrion</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>def</code></td>
+<td><code>spell</code></td>
+<td>Define function</td>
+</tr>
+<tr>
+<td><code>class</code></td>
+<td><code>grim</code></td>
+<td>Define class</td>
+</tr>
+<tr>
+<td><code>elif</code></td>
+<td><code>otherwise</code></td>
+<td>Else-if condition</td>
+</tr>
+<tr>
+<td><code>continue</code></td>
+<td><code>skip</code></td>
+<td>Skip iteration</td>
+</tr>
+<tr>
+<td><code>break</code></td>
+<td><code>stop</code></td>
+<td>Break loop</td>
+</tr>
+<tr>
+<td><code>try/except/finally</code></td>
+<td><code>attempt/ensnare/resolve</code></td>
+<td>Error handling</td>
+</tr>
+<tr>
+<td><code>self.__init__</code></td>
+<td><code>init</code></td>
+<td>Constructor</td>
+</tr>
+<tr>
+<td><code>super()</code></td>
+<td><code>super</code></td>
+<td>Parent class access</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="%F0%9F%8E%8A-you%E2%80%99re-now-a-carrion-mage!" tabindex="-1"><a class="header-anchor" href="#%F0%9F%8E%8A-you%E2%80%99re-now-a-carrion-mage!">🎊 You’re Now a Carrion Mage!</a></h2>
+<p>You’ve successfully learned:</p>
+<ul>
+<li>✅ <strong>Variables &amp; Data Types</strong> - Storing magical energy</li>
+<li>✅ <strong>Spells (Functions)</strong> - Creating reusable magic</li>
+<li>✅ <strong>Grimoires (Classes)</strong> - Object-oriented spellcrafting</li>
+<li>✅ <strong>Standard Library</strong> - Using Munin’s power</li>
+<li>✅ <strong>Control Flow</strong> - Directing magical energy</li>
+<li>✅ <strong>Error Handling</strong> - Protecting against magical mishaps</li>
+</ul>
+<p><em>Welcome to the mystical world of Carrion programming! May your code be bug-free and your spells compile cleanly! 🪄✨</em></p>
+<blockquote>
+<p>“The journey of a thousand spells begins with a single <code>print('Hello, World!')</code> incantation.” - <em>Ancient Carrion Wisdom</em></p>
+</blockquote>
+</div>
+    </div>
+    <div class="footer">
+        <p>🪄 Carrion Programming Language Wiki - Where Code Meets Magic ✨</p>
+        <p>Built with ❤️ by the Carrion Community | <a href="https://github.com/javanhut/TheCarrionLanguage" style="color: var(--link-color);">GitHub Repository</a></p>
+    </div>
+</body>
+</html>

@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📖 Classes (Grimoires) - Object-Oriented Spellcrafting - Carrion Language Wiki</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐦‍⬛</text></svg>">
+    <style>
+        :root {
+            --bg-primary: #0f0f23;
+            --bg-secondary: #1a1a2e;
+            --bg-tertiary: #16213e;
+            --text-primary: #cccccc;
+            --text-secondary: #999999;
+            --accent-primary: #00cc99;
+            --accent-secondary: #9900cc;
+            --accent-warning: #ffcc00;
+            --border-color: #333355;
+            --code-bg: #0f0f1a;
+            --link-color: #66ccff;
+            --link-hover: #99ddff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 40px 20px;
+            background: var(--bg-tertiary);
+            border-radius: 20px;
+            border: 2px solid var(--border-color);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .header h1 {
+            font-size: 3em;
+            background: linear-gradient(45deg, var(--accent-primary), var(--accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+
+        .header .subtitle {
+            font-size: 1.2em;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+        }
+
+        .ascii-art {
+            font-family: monospace;
+            font-size: 0.7em;
+            line-height: 1.2;
+            color: var(--accent-primary);
+            margin: 20px 0;
+            white-space: pre;
+        }
+
+        .navigation {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .nav-section {
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            border-radius: 15px;
+            padding: 25px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-section:hover {
+            border-color: var(--accent-primary);
+            box-shadow: 0 5px 20px rgba(0, 204, 153, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .nav-section h2 {
+            color: var(--accent-primary);
+            margin-bottom: 15px;
+            font-size: 1.4em;
+        }
+
+        .nav-section ul {
+            list-style: none;
+        }
+
+        .nav-section li {
+            margin: 8px 0;
+        }
+
+        .nav-section a {
+            color: var(--link-color);
+            text-decoration: none;
+            font-size: 1.05em;
+            transition: color 0.3s ease;
+        }
+
+        .nav-section a:hover {
+            color: var(--link-hover);
+            text-shadow: 0 0 10px rgba(102, 204, 255, 0.3);
+        }
+
+        .content {
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            border-radius: 15px;
+            padding: 40px;
+            margin-bottom: 40px;
+        }
+
+        .content h1, .content h2, .content h3 {
+            color: var(--accent-primary);
+            margin: 30px 0 15px 0;
+        }
+
+        .content h1 {
+            font-size: 2.5em;
+            border-bottom: 3px solid var(--accent-primary);
+            padding-bottom: 10px;
+        }
+
+        .content p {
+            margin-bottom: 15px;
+            color: var(--text-primary);
+        }
+
+        .content pre {
+            background: var(--code-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 20px;
+            overflow-x: auto;
+            margin: 20px 0;
+            font-family: 'Fira Code', 'Courier New', monospace;
+        }
+
+        .content code {
+            background: var(--code-bg);
+            padding: 3px 6px;
+            border-radius: 4px;
+            font-family: 'Fira Code', 'Courier New', monospace;
+            color: var(--accent-primary);
+        }
+
+        .content blockquote {
+            border-left: 4px solid var(--accent-primary);
+            margin: 20px 0;
+            padding: 15px 20px;
+            background: var(--bg-tertiary);
+            border-radius: 0 10px 10px 0;
+        }
+
+        .table-of-contents {
+            background: var(--bg-tertiary);
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .table-of-contents h2 {
+            color: var(--accent-secondary);
+            margin-bottom: 15px;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 30px;
+            color: var(--text-secondary);
+            border-top: 2px solid var(--border-color);
+            margin-top: 40px;
+        }
+
+        .badge {
+            display: inline-block;
+            background: var(--accent-primary);
+            color: var(--bg-primary);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: bold;
+            margin: 5px;
+        }
+
+        .emoji {
+            font-size: 1.2em;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .container {
+                padding: 10px;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+            
+            .navigation {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="content"><h1 id="%F0%9F%93%96-classes-(grimoires)---object-oriented-spellcrafting" tabindex="-1"><a class="header-anchor" href="#%F0%9F%93%96-classes-(grimoires)---object-oriented-spellcrafting">📖 Classes (Grimoires) - Object-Oriented Spellcrafting</a></h1>
+<p>Welcome to the mystical art of <strong>Grimoire crafting</strong>! In Carrion, classes are called <strong>“grimoires”</strong> (magical spellbooks) that contain <strong>“spells”</strong> (methods) and store <strong>magical knowledge</strong> (data). Master this ancient art to create powerful, reusable magical objects!</p>
+<hr>
+<h2 id="%F0%9F%AA%84-what-are-grimoires%3F" tabindex="-1"><a class="header-anchor" href="#%F0%9F%AA%84-what-are-grimoires%3F">🪄 What Are Grimoires?</a></h2>
+<p><strong>Grimoires</strong> (classes) are magical blueprints that define:</p>
+<ul>
+<li>🏗️ <strong>Structure</strong> - What magical properties objects possess</li>
+<li>✨ <strong>Spells</strong> - What magical actions objects can perform</li>
+<li>🎭 <strong>Behavior</strong> - How objects interact with the magical world</li>
+<li>🧬 <strong>Inheritance</strong> - How magical knowledge passes from master to apprentice</li>
+</ul>
+<p>Think of a grimoire as a <strong>template for creating magical beings</strong> with shared characteristics and abilities!</p>
+<hr>
+<h2 id="%F0%9F%8E%AD-basic-grimoire-creation" tabindex="-1"><a class="header-anchor" href="#%F0%9F%8E%AD-basic-grimoire-creation">🎭 Basic Grimoire Creation</a></h2>
+<h3 id="your-first-magical-grimoire" tabindex="-1"><a class="header-anchor" href="#your-first-magical-grimoire">Your First Magical Grimoire</a></h3>
+<pre><code class="language-python">grim MagicalCreature:
+    init(name, element):
+        self.name = name
+        self.element = element
+        self.health = 100
+        self.mana = 50
+    
+    spell introduce():
+        return f&quot;I am {self.name}, a creature of {self.element}!&quot;
+    
+    spell cast_elemental_spell():
+        if self.mana &gt;= 10:
+            self.mana -= 10
+            return f&quot;✨ {self.name} casts a {self.element} spell!&quot;
+        else:
+            return f&quot;💫 {self.name} is out of mana!&quot;
+
+// Create magical beings from the grimoire
+dragon = MagicalCreature(&quot;Smaug&quot;, &quot;fire&quot;)
+unicorn = MagicalCreature(&quot;Stardust&quot;, &quot;light&quot;)
+
+// Use their magical abilities
+print(dragon.introduce())              // I am Smaug, a creature of fire!
+print(unicorn.cast_elemental_spell())  // ✨ Stardust casts a light spell!
+print(f&quot;Dragon's mana: {dragon.mana}&quot;) // Dragon's mana: 40
+</code></pre>
+<h3 id="the-init-spell-(constructor)" tabindex="-1"><a class="header-anchor" href="#the-init-spell-(constructor)">The <code>init</code> Spell (Constructor)</a></h3>
+<p>The <code>init</code> spell is a special constructor that runs when creating new magical beings:</p>
+<pre><code class="language-python">grim Wizard:
+    init(name, school_of_magic, starting_level = 1):
+        // Magical properties (attributes)
+        self.name = name
+        self.school = school_of_magic
+        self.level = starting_level
+        self.spells_known = []
+        self.magical_items = []
+        self.experience = 0
+    
+    spell get_title():
+        if self.level &gt;= 20:
+            return f&quot;Archmage {self.name}&quot;
+        elif self.level &gt;= 10:
+            return f&quot;Master {self.name}&quot;
+        elif self.level &gt;= 5:
+            return f&quot;Mage {self.name}&quot;
+        else:
+            return f&quot;Apprentice {self.name}&quot;
+
+// Create wizards with different starting conditions
+harry = Wizard(&quot;Harry Potter&quot;, &quot;Defense Against Dark Arts&quot;)
+gandalf = Wizard(&quot;Gandalf&quot;, &quot;Light Magic&quot;, 50)
+
+print(harry.get_title())    // Apprentice Harry Potter
+print(gandalf.get_title())  // Archmage Gandalf
+</code></pre>
+<hr>
+<h2 id="%F0%9F%8E%AA-grimoire-spells-(methods)" tabindex="-1"><a class="header-anchor" href="#%F0%9F%8E%AA-grimoire-spells-(methods)">🎪 Grimoire Spells (Methods)</a></h2>
+<h3 id="instance-spells" tabindex="-1"><a class="header-anchor" href="#instance-spells">Instance Spells</a></h3>
+<p>These spells work with specific magical beings (instances):</p>
+<pre><code class="language-python">grim MagicalLibrary:
+    init():
+        self.books = []
+        self.visitors = 0
+        self.magical_energy = 1000
+    
+    spell add_book(title, author, magic_level):
+        magical_book = {
+            &quot;title&quot;: title,
+            &quot;author&quot;: author,
+            &quot;magic_level&quot;: magic_level,
+            &quot;times_borrowed&quot;: 0
+        }
+        self.books.append(magical_book)
+        print(f&quot;📚 Added '{title}' by {author} to the library!&quot;)
+    
+    spell find_books_by_magic_level(min_level):
+        powerful_books = []
+        for book in self.books:
+            if book[&quot;magic_level&quot;] &gt;= min_level:
+                powerful_books.append(book)
+        return powerful_books
+    
+    spell borrow_book(title):
+        for book in self.books:
+            if book[&quot;title&quot;].lower() == title.lower():
+                book[&quot;times_borrowed&quot;] += 1
+                self.visitors += 1
+                return f&quot;📖 You borrowed '{book['title']}'. Magic level: {book['magic_level']}&quot;
+        return f&quot;❌ '{title}' not found in the magical library!&quot;
+    
+    spell library_status():
+        total_books = len(self.books)
+        avg_magic = sum(book[&quot;magic_level&quot;] for book in self.books) / total_books if total_books &gt; 0 else 0
+        return {
+            &quot;total_books&quot;: total_books,
+            &quot;visitors&quot;: self.visitors,
+            &quot;average_magic_level&quot;: avg_magic,
+            &quot;energy&quot;: self.magical_energy
+        }
+
+// Create and use a magical library
+hogwarts_library = MagicalLibrary()
+hogwarts_library.add_book(&quot;Advanced Transfiguration&quot;, &quot;McGonagall&quot;, 85)
+hogwarts_library.add_book(&quot;Potions Mastery&quot;, &quot;Snape&quot;, 90)
+hogwarts_library.add_book(&quot;Basic Charms&quot;, &quot;Flitwick&quot;, 30)
+
+powerful_books = hogwarts_library.find_books_by_magic_level(80)
+print(f&quot;Powerful books: {len(powerful_books)}&quot;)
+
+print(hogwarts_library.borrow_book(&quot;Advanced Transfiguration&quot;))
+print(hogwarts_library.library_status())
+</code></pre>
+<h3 id="class-level-spells-(static-like)" tabindex="-1"><a class="header-anchor" href="#class-level-spells-(static-like)">Class-level Spells (Static-like)</a></h3>
+<p>Spells that work with the grimoire itself, not specific instances:</p>
+<pre><code class="language-python">grim MagicalConverter:
+    // Class-level magical constants
+    FIRE_TO_ICE_RATIO = 0.5
+    LIGHT_TO_DARK_RATIO = 1.0
+    
+    spell convert_fire_to_ice(fire_power):
+        return fire_power * MagicalConverter.FIRE_TO_ICE_RATIO
+    
+    spell convert_light_to_dark(light_power):
+        return light_power * MagicalConverter.LIGHT_TO_DARK_RATIO
+    
+    spell get_conversion_rates():
+        return {
+            &quot;fire_to_ice&quot;: MagicalConverter.FIRE_TO_ICE_RATIO,
+            &quot;light_to_dark&quot;: MagicalConverter.LIGHT_TO_DARK_RATIO
+        }
+
+// Use class-level spells without creating instances
+ice_power = MagicalConverter.convert_fire_to_ice(100)
+print(f&quot;100 fire power = {ice_power} ice power&quot;)
+
+rates = MagicalConverter.get_conversion_rates()
+print(f&quot;Conversion rates: {rates}&quot;)
+</code></pre>
+<hr>
+<h2 id="%F0%9F%A7%AC-magical-inheritance" tabindex="-1"><a class="header-anchor" href="#%F0%9F%A7%AC-magical-inheritance">🧬 Magical Inheritance</a></h2>
+<h3 id="basic-inheritance---apprentice-and-master" tabindex="-1"><a class="header-anchor" href="#basic-inheritance---apprentice-and-master">Basic Inheritance - Apprentice and Master</a></h3>
+<pre><code class="language-python">// Base grimoire - the master's knowledge
+grim Mage:
+    init(name, magical_school):
+        self.name = name
+        self.school = magical_school
+        self.level = 1
+        self.mana = 100
+        self.spells = [&quot;Basic Magic Missile&quot;]
+    
+    spell cast_spell(spell_name):
+        if spell_name in self.spells:
+            if self.mana &gt;= 10:
+                self.mana -= 10
+                return f&quot;✨ {self.name} casts {spell_name}!&quot;
+            else:
+                return f&quot;💫 {self.name} is out of mana!&quot;
+        else:
+            return f&quot;❌ {self.name} doesn't know {spell_name}!&quot;
+    
+    spell meditate():
+        self.mana = min(self.mana + 20, 100)
+        return f&quot;🧘 {self.name} meditates and recovers mana. Current: {self.mana}/100&quot;
+    
+    spell learn_spell(new_spell):
+        if new_spell not in self.spells:
+            self.spells.append(new_spell)
+            return f&quot;📚 {self.name} learned {new_spell}!&quot;
+        else:
+            return f&quot;🤔 {self.name} already knows {new_spell}!&quot;
+
+// Specialized grimoire - the apprentice's path
+grim FireMage(Mage):
+    init(name):
+        super.init(name, &quot;School of Fire&quot;)  // Call parent constructor
+        self.fire_resistance = 50
+        self.spells.append(&quot;Fireball&quot;)      // Add fire-specific spell
+    
+    spell cast_fireball():
+        return self.cast_spell(&quot;Fireball&quot;)
+    
+    spell fire_shield():
+        self.fire_resistance += 10
+        return f&quot;🔥 {self.name} creates a fire shield! Resistance: {self.fire_resistance}&quot;
+    
+    spell pyroblast():  // Unique fire mage spell
+        if self.mana &gt;= 25:
+            self.mana -= 25
+            return f&quot;🔥🔥🔥 {self.name} unleashes PYROBLAST! Devastating fire magic!&quot;
+        else:
+            return f&quot;💫 Not enough mana for Pyroblast (need 25, have {self.mana})&quot;
+
+// Another specialized path
+grim IceMage(Mage):
+    init(name):
+        super.init(name, &quot;School of Ice&quot;)
+        self.ice_resistance = 50
+        self.spells.append(&quot;Ice Shard&quot;)
+    
+    spell cast_ice_shard():
+        return self.cast_spell(&quot;Ice Shard&quot;)
+    
+    spell freeze():
+        if self.mana &gt;= 15:
+            self.mana -= 15
+            return f&quot;❄️ {self.name} freezes the target solid!&quot;
+        else:
+            return f&quot;💫 Not enough mana for Freeze!&quot;
+    
+    spell blizzard():  // Ultimate ice spell
+        if self.mana &gt;= 30:
+            self.mana -= 30
+            return f&quot;❄️🌨️❄️ {self.name} summons a devastating BLIZZARD!&quot;
+        else:
+            return f&quot;💫 Not enough mana for Blizzard (need 30, have {self.mana})&quot;
+
+// Create specialized mages
+pyromancer = FireMage(&quot;Ignitus&quot;)
+cryomancer = IceMage(&quot;Frost&quot;)
+
+// Test inherited abilities
+print(pyromancer.cast_spell(&quot;Basic Magic Missile&quot;))  // Inherited from Mage
+print(pyromancer.cast_fireball())                    // Fire-specific spell
+print(pyromancer.pyroblast())                        // Unique fire ultimate
+
+print(cryomancer.learn_spell(&quot;Teleport&quot;))            // Inherited learning
+print(cryomancer.freeze())                           // Ice-specific spell
+print(cryomancer.blizzard())                         // Ice ultimate
+</code></pre>
+<h3 id="method-overriding---personalizing-magic" tabindex="-1"><a class="header-anchor" href="#method-overriding---personalizing-magic">Method Overriding - Personalizing Magic</a></h3>
+<pre><code class="language-python">grim Animal:
+    init(name, species):
+        self.name = name
+        self.species = species
+    
+    spell make_sound():
+        return f&quot;{self.name} makes a generic animal sound.&quot;
+    
+    spell info():
+        return f&quot;{self.name} is a {self.species}.&quot;
+
+grim MagicalDragon(Animal):
+    init(name, element):
+        super.init(name, &quot;Dragon&quot;)
+        self.element = element
+        self.hoard_size = 0
+    
+    spell make_sound():  // Override parent method
+        return f&quot;🐉 {self.name} ROARS with {self.element} magic!&quot;
+    
+    spell breathe_fire():
+        return f&quot;🔥 {self.name} breathes {self.element} breath!&quot;
+    
+    spell add_to_hoard(treasure):
+        self.hoard_size += 1
+        return f&quot;💎 {self.name} adds {treasure} to their hoard! Total: {self.hoard_size}&quot;
+
+grim MagicalUnicorn(Animal):
+    init(name):
+        super.init(name, &quot;Unicorn&quot;)
+        self.purity_level = 100
+    
+    spell make_sound():  // Override with unicorn-specific sound
+        return f&quot;🦄 {self.name} whinnies melodically, spreading magical harmony!&quot;
+    
+    spell heal_others():
+        if self.purity_level &gt;= 20:
+            self.purity_level -= 20
+            return f&quot;💚 {self.name} uses pure magic to heal! Purity: {self.purity_level}/100&quot;
+        else:
+            return f&quot;✨ {self.name} needs to restore purity before healing again.&quot;
+
+// Test method overriding
+smaug = MagicalDragon(&quot;Smaug&quot;, &quot;fire&quot;)
+stardust = MagicalUnicorn(&quot;Stardust&quot;)
+
+print(smaug.make_sound())      // Dragon's roar
+print(stardust.make_sound())   // Unicorn's whinny
+print(smaug.info())            // Inherited info method
+print(stardust.heal_others())  // Unicorn-specific magic
+</code></pre>
+<hr>
+<h2 id="%F0%9F%94%92-access-control-%26-encapsulation" tabindex="-1"><a class="header-anchor" href="#%F0%9F%94%92-access-control-%26-encapsulation">🔒 Access Control &amp; Encapsulation</a></h2>
+<h3 id="public%2C-protected%2C-and-private-magic" tabindex="-1"><a class="header-anchor" href="#public%2C-protected%2C-and-private-magic">Public, Protected, and Private Magic</a></h3>
+<pre><code class="language-python">grim SecretSpellBook:
+    init(owner_name):
+        self.owner = owner_name                    // Public: Anyone can access
+        self._protected_spells = []                // Protected: Subclasses can access
+        self.__secret_spells = [&quot;Ultimate Power&quot;]  // Private: Only this class
+        self._spell_count = 0
+    
+    spell add_public_spell(spell_name):  // Public method
+        self._protected_spells.append(spell_name)
+        self._spell_count += 1
+        return f&quot;📖 Added public spell: {spell_name}&quot;
+    
+    spell _protected_method(self):  // Protected method
+        return f&quot;🔐 Protected knowledge accessible to {self.owner}&quot;
+    
+    spell __private_method(self):  // Private method
+        return f&quot;🚫 Secret magic known only to the original grimoire&quot;
+    
+    spell get_spell_info(self):
+        // Public method that uses private functionality
+        secret_count = len(self.__secret_spells)
+        return {
+            &quot;owner&quot;: self.owner,
+            &quot;public_spells&quot;: len(self._protected_spells),
+            &quot;secret_spells&quot;: secret_count,  // Can access private data internally
+            &quot;total&quot;: self._spell_count + secret_count
+        }
+    
+    spell reveal_secret():  // Public method accessing private
+        return self.__private_method()
+
+grim AdvancedSpellBook(SecretSpellBook):
+    init(owner_name, specialty):
+        super.init(owner_name)
+        self.specialty = specialty
+    
+    spell access_protected_knowledge():
+        // Can access protected members from parent
+        count = len(self._protected_spells)
+        return f&quot;🔓 {self.specialty} mage {self.owner} knows {count} protected spells&quot;
+    
+    spell try_access_private():
+        // Cannot access private members from parent
+        // return self.__private_method()  // ❌ This would cause an error
+        return &quot;❌ Cannot access private methods from parent grimoire&quot;
+
+// Test encapsulation
+basic_book = SecretSpellBook(&quot;Merlin&quot;)
+advanced_book = AdvancedSpellBook(&quot;Gandalf&quot;, &quot;Light Magic&quot;)
+
+print(basic_book.add_public_spell(&quot;Lightning Bolt&quot;))
+print(basic_book.get_spell_info())
+
+print(advanced_book.access_protected_knowledge())
+print(advanced_book.try_access_private())
+
+// Direct access examples
+print(f&quot;Public access: {basic_book.owner}&quot;)              // ✅ Works
+print(f&quot;Protected access: {len(basic_book._protected_spells)}&quot;)  // ⚠️ Works but discouraged
+// print(basic_book.__secret_spells)  // ❌ Error: Private access not allowed
+</code></pre>
+<hr>
+<h2 id="%F0%9F%8C%9F-abstract-grimoires---defining-magical-contracts" tabindex="-1"><a class="header-anchor" href="#%F0%9F%8C%9F-abstract-grimoires---defining-magical-contracts">🌟 Abstract Grimoires - Defining Magical Contracts</a></h2>
+<h3 id="arcane-grimoires-(abstract-classes)" tabindex="-1"><a class="header-anchor" href="#arcane-grimoires-(abstract-classes)">Arcane Grimoires (Abstract Classes)</a></h3>
+<pre><code class="language-python">arcane grim MagicalWeapon:
+    init(name, damage):
+        self.name = name
+        self.damage = damage
+        self.durability = 100
+    
+    @arcanespell  // Abstract method - must be implemented by children
+    spell attack():
+        ignore  // No implementation in abstract class
+    
+    @arcanespell
+    spell special_ability():
+        ignore
+    
+    spell repair():  // Concrete method - can be used by all weapons
+        self.durability = min(self.durability + 20, 100)
+        return f&quot;🔧 {self.name} repaired! Durability: {self.durability}/100&quot;
+    
+    spell get_weapon_info():  // Another concrete method
+        return f&quot;Weapon: {self.name}, Damage: {self.damage}, Durability: {self.durability}/100&quot;
+
+// Concrete implementation of the abstract weapon
+grim MagicalSword(MagicalWeapon):
+    init(name, damage, element):
+        super.init(name, damage)
+        self.element = element
+    
+    spell attack():  // Must implement abstract method
+        self.durability -= 5
+        return f&quot;⚔️ {self.name} slashes with {self.element} energy! Damage: {self.damage}&quot;
+    
+    spell special_ability():  // Must implement abstract method
+        if self.durability &gt;= 20:
+            self.durability -= 20
+            special_damage = self.damage * 2
+            return f&quot;✨ {self.name} unleashes {self.element} wave! Special damage: {special_damage}&quot;
+        else:
+            return f&quot;💔 {self.name} is too damaged for special attacks!&quot;
+
+grim MagicalBow(MagicalWeapon):
+    init(name, damage, arrow_type):
+        super.init(name, damage)
+        self.arrow_type = arrow_type
+        self.arrows = 30
+    
+    spell attack():  // Must implement abstract method
+        if self.arrows &gt; 0:
+            self.arrows -= 1
+            self.durability -= 2
+            return f&quot;🏹 {self.name} fires a {self.arrow_type} arrow! Damage: {self.damage}, Arrows left: {self.arrows}&quot;
+        else:
+            return f&quot;🎯 {self.name} is out of arrows!&quot;
+    
+    spell special_ability():  // Must implement abstract method
+        if self.arrows &gt;= 3:
+            self.arrows -= 3
+            self.durability -= 10
+            triple_damage = self.damage * 3
+            return f&quot;🎯🎯🎯 {self.name} fires triple {self.arrow_type} shot! Damage: {triple_damage}&quot;
+        else:
+            return f&quot;🏹 Not enough arrows for special attack (need 3, have {self.arrows})&quot;
+
+// Use the concrete weapons
+excalibur = MagicalSword(&quot;Excalibur&quot;, 50, &quot;holy&quot;)
+elven_bow = MagicalBow(&quot;Elven Longbow&quot;, 35, &quot;piercing&quot;)
+
+print(excalibur.attack())
+print(excalibur.special_ability())
+print(excalibur.get_weapon_info())
+
+print(elven_bow.attack())
+print(elven_bow.special_ability())
+print(elven_bow.repair())
+</code></pre>
+<hr>
+<h2 id="%F0%9F%8E%AA-advanced-grimoire-patterns" tabindex="-1"><a class="header-anchor" href="#%F0%9F%8E%AA-advanced-grimoire-patterns">🎪 Advanced Grimoire Patterns</a></h2>
+<h3 id="builder-pattern---crafting-complex-objects" tabindex="-1"><a class="header-anchor" href="#builder-pattern---crafting-complex-objects">Builder Pattern - Crafting Complex Objects</a></h3>
+<pre><code class="language-python">grim MagicalPotion:
+    init():
+        self.name = &quot;Unknown Potion&quot;
+        self.ingredients = []
+        self.brewing_time = 0
+        self.potency = 1.0
+        self.effects = []
+        self.side_effects = []
+    
+    spell add_ingredient(ingredient, amount = 1):
+        self.ingredients.append({&quot;name&quot;: ingredient, &quot;amount&quot;: amount})
+        return self  // Return self for method chaining
+    
+    spell set_name(name):
+        self.name = name
+        return self
+    
+    spell set_brewing_time(minutes):
+        self.brewing_time = minutes
+        self.potency = min(1.0 + (minutes / 60), 3.0)  // Longer brewing = more potent
+        return self
+    
+    spell add_effect(effect):
+        self.effects.append(effect)
+        return self
+    
+    spell add_side_effect(side_effect):
+        self.side_effects.append(side_effect)
+        return self
+    
+    spell brew():
+        ingredient_list = [f&quot;{ing['amount']}x {ing['name']}&quot; for ing in self.ingredients]
+        result = {
+            &quot;name&quot;: self.name,
+            &quot;ingredients&quot;: ingredient_list,
+            &quot;brewing_time&quot;: f&quot;{self.brewing_time} minutes&quot;,
+            &quot;potency&quot;: f&quot;{self.potency:.1f}x&quot;,
+            &quot;effects&quot;: self.effects,
+            &quot;side_effects&quot;: self.side_effects
+        }
+        return f&quot;🧪 Successfully brewed: {self.name}! Recipe: {result}&quot;
+
+// Use builder pattern with method chaining
+healing_potion = MagicalPotion()
+    .set_name(&quot;Greater Healing Potion&quot;)
+    .add_ingredient(&quot;Phoenix Feather&quot;, 2)
+    .add_ingredient(&quot;Unicorn Hair&quot;, 1)
+    .add_ingredient(&quot;Spring Water&quot;, 3)
+    .set_brewing_time(120)
+    .add_effect(&quot;Restore 100 HP&quot;)
+    .add_effect(&quot;Remove poison&quot;)
+    .add_side_effect(&quot;Temporary drowsiness&quot;)
+    .brew()
+
+print(healing_potion)
+</code></pre>
+<h3 id="observer-pattern---magical-event-system" tabindex="-1"><a class="header-anchor" href="#observer-pattern---magical-event-system">Observer Pattern - Magical Event System</a></h3>
+<pre><code class="language-python">grim MagicalEvent:
+    init():
+        self.observers = []  // List of grimoires watching for events
+    
+    spell add_observer(observer):
+        if observer not in self.observers:
+            self.observers.append(observer)
+            return f&quot;👁️ {observer.name} is now watching for magical events&quot;
+    
+    spell remove_observer(observer):
+        if observer in self.observers:
+            self.observers.remove(observer)
+            return f&quot;👁️ {observer.name} stopped watching for events&quot;
+    
+    spell notify_observers(event_type, event_data):
+        notifications = []
+        for observer in self.observers:
+            response = observer.handle_event(event_type, event_data)
+            notifications.append(response)
+        return notifications
+
+grim MagicalGuard:
+    init(name, location):
+        self.name = name
+        self.location = location
+        self.alert_level = &quot;normal&quot;
+    
+    spell handle_event(event_type, event_data):
+        if event_type == &quot;intruder_detected&quot;:
+            self.alert_level = &quot;high&quot;
+            return f&quot;🚨 Guard {self.name} at {self.location}: INTRUDER ALERT! {event_data}&quot;
+        elif event_type == &quot;magical_disturbance&quot;:
+            return f&quot;⚡ Guard {self.name}: Magical disturbance detected - {event_data}&quot;
+        elif event_type == &quot;all_clear&quot;:
+            self.alert_level = &quot;normal&quot;
+            return f&quot;✅ Guard {self.name}: All clear signal received&quot;
+        else:
+            return f&quot;📢 Guard {self.name}: Unknown event - {event_type}&quot;
+
+grim MagicalAlarm:
+    init(name):
+        self.name = name
+        self.activation_count = 0
+    
+    spell handle_event(event_type, event_data):
+        if event_type == &quot;intruder_detected&quot;:
+            self.activation_count += 1
+            return f&quot;🔔 ALARM {self.name}: INTRUDER! Count: {self.activation_count}&quot;
+        else:
+            return f&quot;🔕 Alarm {self.name}: Monitoring...&quot;
+
+// Set up the magical security system
+security_system = MagicalEvent()
+guard1 = MagicalGuard(&quot;Alaric&quot;, &quot;North Tower&quot;)
+guard2 = MagicalGuard(&quot;Lyra&quot;, &quot;Main Gate&quot;)
+alarm = MagicalAlarm(&quot;Central Security&quot;)
+
+// Add observers
+print(security_system.add_observer(guard1))
+print(security_system.add_observer(guard2))
+print(security_system.add_observer(alarm))
+
+// Trigger events
+print(&quot;\n--- Intruder Detected ---&quot;)
+responses = security_system.notify_observers(&quot;intruder_detected&quot;, &quot;Unauthorized mage in courtyard&quot;)
+for response in responses:
+    print(response)
+
+print(&quot;\n--- All Clear ---&quot;)
+responses = security_system.notify_observers(&quot;all_clear&quot;, &quot;Threat neutralized&quot;)
+for response in responses:
+    print(response)
+</code></pre>
+<hr>
+<h2 id="%F0%9F%8F%86-practice-challenges" tabindex="-1"><a class="header-anchor" href="#%F0%9F%8F%86-practice-challenges">🏆 Practice Challenges</a></h2>
+<h3 id="%F0%9F%A5%89-beginner-grimoire-challenges" tabindex="-1"><a class="header-anchor" href="#%F0%9F%A5%89-beginner-grimoire-challenges">🥉 Beginner Grimoire Challenges</a></h3>
+<ol>
+<li><strong>Magical Pet</strong>: Create a <code>MagicalPet</code> grimoire with feeding, playing, and status methods</li>
+<li><strong>Spell Component</strong>: Design a <code>SpellComponent</code> grimoire with rarity, power, and combination methods</li>
+<li><strong>Magic Shop</strong>: Build a <code>MagicShop</code> grimoire to buy/sell magical items</li>
+</ol>
+<h3 id="%F0%9F%A5%88-intermediate-grimoire-challenges" tabindex="-1"><a class="header-anchor" href="#%F0%9F%A5%88-intermediate-grimoire-challenges">🥈 Intermediate Grimoire Challenges</a></h3>
+<ol>
+<li><strong>RPG Character System</strong>: Create a full character system with different classes</li>
+<li><strong>Magical Inventory</strong>: Design an inventory system with sorting and filtering</li>
+<li><strong>Spell Crafting System</strong>: Build a system to combine spell components into new spells</li>
+</ol>
+<h3 id="%F0%9F%A5%87-advanced-grimoire-challenges" tabindex="-1"><a class="header-anchor" href="#%F0%9F%A5%87-advanced-grimoire-challenges">🥇 Advanced Grimoire Challenges</a></h3>
+<ol>
+<li><strong>Magical Academy</strong>: Create a complete academy system with students, teachers, and courses</li>
+<li><strong>Battle System</strong>: Design a turn-based magical combat system</li>
+<li><strong>Magical Economy</strong>: Build a complex trading system for magical goods</li>
+</ol>
+<hr>
+<h2 id="%F0%9F%94%97-what%E2%80%99s-next%3F" tabindex="-1"><a class="header-anchor" href="#%F0%9F%94%97-what%E2%80%99s-next%3F">🔗 What’s Next?</a></h2>
+<p>Master the deeper mysteries of grimoire crafting:</p>
+<ol>
+<li><strong>🌟 <a href="Inheritance.md">Inheritance &amp; Polymorphism</a></strong> - Advanced magical hierarchies</li>
+<li><strong>⚔️ <a href="Error-Handling.md">Error Handling</a></strong> - Protect your grimoires from magical mishaps</li>
+<li><strong>📦 <a href="Modules.md">Modules &amp; Imports</a></strong> - Organize your magical libraries</li>
+<li><strong>📚 <a href="../Standard-Library/Munin-Overview.md">Standard Library</a></strong> - Use pre-built magical grimoires</li>
+</ol>
+<hr>
+<h2 id="%F0%9F%92%A1-grimoire-crafting-wisdom" tabindex="-1"><a class="header-anchor" href="#%F0%9F%92%A1-grimoire-crafting-wisdom">💡 Grimoire Crafting Wisdom</a></h2>
+<ol>
+<li><strong>🎯 Single Responsibility</strong>: Each grimoire should have one clear purpose</li>
+<li><strong>🏗️ Composition over Inheritance</strong>: Prefer “has-a” relationships over “is-a”</li>
+<li><strong>🔒 Encapsulation</strong>: Keep internal magic private, expose only what’s needed</li>
+<li><strong>📝 Clear Interfaces</strong>: Make it obvious how to use your grimoires</li>
+<li><strong>🧪 Test Your Magic</strong>: Ensure your grimoires work in all situations</li>
+<li><strong>📚 Document Thoroughly</strong>: Explain how to use your magical creations</li>
+</ol>
+<hr>
+<p><em>Remember: Great grimoires are like ancient spellbooks - they contain wisdom that can be passed down through generations of mages. Craft yours with care and pride! 🪄✨</em></p>
+<blockquote>
+<p>“A well-crafted grimoire is not just code, but a legacy of magical knowledge that empowers all who wield it.” - <em>Master Grimoire Architect</em></p>
+</blockquote>
+</div>
+    </div>
+    <div class="footer">
+        <p>🪄 Carrion Programming Language Wiki - Where Code Meets Magic ✨</p>
+        <p>Built with ❤️ by the Carrion Community | <a href="https://github.com/javanhut/TheCarrionLanguage" style="color: var(--link-color);">GitHub Repository</a></p>
+    </div>
+</body>
+</html>

@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📋 Array Grimoire - Master of List Manipulation - Carrion Language Wiki</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐦‍⬛</text></svg>">
+    <style>
+        :root {
+            --bg-primary: #0f0f23;
+            --bg-secondary: #1a1a2e;
+            --bg-tertiary: #16213e;
+            --text-primary: #cccccc;
+            --text-secondary: #999999;
+            --accent-primary: #00cc99;
+            --accent-secondary: #9900cc;
+            --accent-warning: #ffcc00;
+            --border-color: #333355;
+            --code-bg: #0f0f1a;
+            --link-color: #66ccff;
+            --link-hover: #99ddff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 40px 20px;
+            background: var(--bg-tertiary);
+            border-radius: 20px;
+            border: 2px solid var(--border-color);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .header h1 {
+            font-size: 3em;
+            background: linear-gradient(45deg, var(--accent-primary), var(--accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+
+        .header .subtitle {
+            font-size: 1.2em;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+        }
+
+        .ascii-art {
+            font-family: monospace;
+            font-size: 0.7em;
+            line-height: 1.2;
+            color: var(--accent-primary);
+            margin: 20px 0;
+            white-space: pre;
+        }
+
+        .navigation {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .nav-section {
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            border-radius: 15px;
+            padding: 25px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-section:hover {
+            border-color: var(--accent-primary);
+            box-shadow: 0 5px 20px rgba(0, 204, 153, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .nav-section h2 {
+            color: var(--accent-primary);
+            margin-bottom: 15px;
+            font-size: 1.4em;
+        }
+
+        .nav-section ul {
+            list-style: none;
+        }
+
+        .nav-section li {
+            margin: 8px 0;
+        }
+
+        .nav-section a {
+            color: var(--link-color);
+            text-decoration: none;
+            font-size: 1.05em;
+            transition: color 0.3s ease;
+        }
+
+        .nav-section a:hover {
+            color: var(--link-hover);
+            text-shadow: 0 0 10px rgba(102, 204, 255, 0.3);
+        }
+
+        .content {
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            border-radius: 15px;
+            padding: 40px;
+            margin-bottom: 40px;
+        }
+
+        .content h1, .content h2, .content h3 {
+            color: var(--accent-primary);
+            margin: 30px 0 15px 0;
+        }
+
+        .content h1 {
+            font-size: 2.5em;
+            border-bottom: 3px solid var(--accent-primary);
+            padding-bottom: 10px;
+        }
+
+        .content p {
+            margin-bottom: 15px;
+            color: var(--text-primary);
+        }
+
+        .content pre {
+            background: var(--code-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 20px;
+            overflow-x: auto;
+            margin: 20px 0;
+            font-family: 'Fira Code', 'Courier New', monospace;
+        }
+
+        .content code {
+            background: var(--code-bg);
+            padding: 3px 6px;
+            border-radius: 4px;
+            font-family: 'Fira Code', 'Courier New', monospace;
+            color: var(--accent-primary);
+        }
+
+        .content blockquote {
+            border-left: 4px solid var(--accent-primary);
+            margin: 20px 0;
+            padding: 15px 20px;
+            background: var(--bg-tertiary);
+            border-radius: 0 10px 10px 0;
+        }
+
+        .table-of-contents {
+            background: var(--bg-tertiary);
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .table-of-contents h2 {
+            color: var(--accent-secondary);
+            margin-bottom: 15px;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 30px;
+            color: var(--text-secondary);
+            border-top: 2px solid var(--border-color);
+            margin-top: 40px;
+        }
+
+        .badge {
+            display: inline-block;
+            background: var(--accent-primary);
+            color: var(--bg-primary);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: bold;
+            margin: 5px;
+        }
+
+        .emoji {
+            font-size: 1.2em;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .container {
+                padding: 10px;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+            
+            .navigation {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="content"><h1 id="%F0%9F%93%8B-array-grimoire---master-of-list-manipulation" tabindex="-1"><a class="header-anchor" href="#%F0%9F%93%8B-array-grimoire---master-of-list-manipulation">📋 Array Grimoire - Master of List Manipulation</a></h1>
+<p>Welcome to the <strong>Array Grimoire</strong>, one of the most powerful and frequently used grimoires in the Munin standard library! Arrays are the workhorses of data storage and manipulation in Carrion, and the Array grimoire transforms simple lists into powerful magical collections.</p>
+<hr>
+<h2 id="%F0%9F%AA%84-what-is-the-array-grimoire%3F" tabindex="-1"><a class="header-anchor" href="#%F0%9F%AA%84-what-is-the-array-grimoire%3F">🪄 What is the Array Grimoire?</a></h2>
+<p>The <strong>Array Grimoire</strong> is a magical enhancement that wraps around Carrion’s basic arrays, providing them with powerful spells for:</p>
+<ul>
+<li>🔍 <strong>Searching</strong> - Find elements quickly and efficiently</li>
+<li>🛠️ <strong>Manipulation</strong> - Add, remove, and modify elements</li>
+<li>📊 <strong>Analysis</strong> - Get insights about your data</li>
+<li>🔄 <strong>Transformation</strong> - Sort, reverse, and reorganize</li>
+<li>✨ <strong>Validation</strong> - Check properties and states</li>
+</ul>
+<hr>
+<h2 id="%F0%9F%8E%AD-creating-array-magic" tabindex="-1"><a class="header-anchor" href="#%F0%9F%8E%AD-creating-array-magic">🎭 Creating Array Magic</a></h2>
+<h3 id="basic-array-creation" tabindex="-1"><a class="header-anchor" href="#basic-array-creation">Basic Array Creation</a></h3>
+<pre><code class="language-python">// Create arrays the normal way
+basic_array = [1, 2, 3, 4, 5]
+mixed_array = [&quot;wizard&quot;, 42, True, 3.14]
+empty_array = []
+
+// Enhance them with Array grimoire magic
+magical_numbers = Array([1, 2, 3, 4, 5])
+magical_mix = Array([&quot;wizard&quot;, 42, True, 3.14])
+magical_empty = Array([])
+
+// Arrays also get automatic enhancement!
+auto_enhanced = [10, 20, 30]
+print(auto_enhanced.length())  // Works automatically! Returns 3
+</code></pre>
+<h3 id="array-grimoire-constructor" tabindex="-1"><a class="header-anchor" href="#array-grimoire-constructor">Array Grimoire Constructor</a></h3>
+<pre><code class="language-python">// Various ways to create magical arrays
+numbers = Array([1, 2, 3, 4, 5])
+words = Array([&quot;hello&quot;, &quot;magical&quot;, &quot;world&quot;])
+from_range = Array(range(1, 11))  // [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+copy_array = Array(existing_array)
+</code></pre>
+<hr>
+<h2 id="%F0%9F%93%8A-information-%26-analysis-spells" tabindex="-1"><a class="header-anchor" href="#%F0%9F%93%8A-information-%26-analysis-spells">📊 Information &amp; Analysis Spells</a></h2>
+<h3 id=".length()---measure-your-collection" tabindex="-1"><a class="header-anchor" href="#.length()---measure-your-collection"><code>.length()</code> - Measure Your Collection</a></h3>
+<pre><code class="language-python">spells = Array([&quot;Fireball&quot;, &quot;Healing&quot;, &quot;Teleport&quot;, &quot;Shield&quot;])
+print(f&quot;Spell count: {spells.length()}&quot;)  // Spell count: 4
+
+empty_grimoire = Array([])
+print(f&quot;Empty grimoire size: {empty_grimoire.length()}&quot;)  // 0
+
+// Also works with auto-enhanced arrays
+auto_array = [1, 2, 3]
+print(f&quot;Auto array length: {auto_array.length()}&quot;)  // 3
+</code></pre>
+<h3 id=".is_empty()---check-for-magical-presence" tabindex="-1"><a class="header-anchor" href="#.is_empty()---check-for-magical-presence"><code>.is_empty()</code> - Check for Magical Presence</a></h3>
+<pre><code class="language-python">full_inventory = Array([&quot;Sword&quot;, &quot;Shield&quot;, &quot;Potion&quot;])
+empty_bag = Array([])
+
+print(f&quot;Full inventory empty? {full_inventory.is_empty()}&quot;)  // False
+print(f&quot;Empty bag empty? {empty_bag.is_empty()}&quot;)           // True
+
+// Perfect for conditional magic
+if not my_spells.is_empty():
+    print(&quot;Ready to cast magic!&quot;)
+else:
+    print(&quot;Need to learn some spells first!&quot;)
+</code></pre>
+<h3 id=".contains(value)---detect-magical-presence" tabindex="-1"><a class="header-anchor" href="#.contains(value)---detect-magical-presence"><code>.contains(value)</code> - Detect Magical Presence</a></h3>
+<pre><code class="language-python">magical_elements = Array([&quot;fire&quot;, &quot;water&quot;, &quot;earth&quot;, &quot;air&quot;, &quot;spirit&quot;])
+
+print(magical_elements.contains(&quot;fire&quot;))     // True
+print(magical_elements.contains(&quot;ice&quot;))      // False
+print(magical_elements.contains(&quot;spirit&quot;))   // True
+
+// Case-sensitive checking
+creatures = Array([&quot;Dragon&quot;, &quot;dragon&quot;, &quot;DRAGON&quot;])
+print(creatures.contains(&quot;Dragon&quot;))  // True
+print(creatures.contains(&quot;dragon&quot;))  // True
+print(creatures.contains(&quot;DRAGON&quot;))  // True
+</code></pre>
+<hr>
+<h2 id="%F0%9F%94%8D-search-%26-access-spells" tabindex="-1"><a class="header-anchor" href="#%F0%9F%94%8D-search-%26-access-spells">🔍 Search &amp; Access Spells</a></h2>
+<h3 id=".get(index)---retrieve-magical-items" tabindex="-1"><a class="header-anchor" href="#.get(index)---retrieve-magical-items"><code>.get(index)</code> - Retrieve Magical Items</a></h3>
+<pre><code class="language-python">treasure_chest = Array([&quot;Gold&quot;, &quot;Gems&quot;, &quot;Magic Ring&quot;, &quot;Ancient Scroll&quot;])
+
+// Positive indexing (0-based)
+print(treasure_chest.get(0))   // &quot;Gold&quot;
+print(treasure_chest.get(2))   // &quot;Magic Ring&quot;
+
+// Negative indexing (from the end)
+print(treasure_chest.get(-1))  // &quot;Ancient Scroll&quot; (last item)
+print(treasure_chest.get(-2))  // &quot;Magic Ring&quot; (second to last)
+
+// Safe access (returns None for invalid indices)
+print(treasure_chest.get(10))  // None (index too high)
+print(treasure_chest.get(-10)) // None (index too low)
+</code></pre>
+<h3 id=".index_of(value)---find-magical-locations" tabindex="-1"><a class="header-anchor" href="#.index_of(value)---find-magical-locations"><code>.index_of(value)</code> - Find Magical Locations</a></h3>
+<pre><code class="language-python">spell_book = Array([&quot;Heal&quot;, &quot;Fireball&quot;, &quot;Teleport&quot;, &quot;Fireball&quot;, &quot;Shield&quot;])
+
+first_fireball = spell_book.index_of(&quot;Fireball&quot;)
+print(f&quot;First Fireball at index: {first_fireball}&quot;)  // 1
+
+teleport_location = spell_book.index_of(&quot;Teleport&quot;)
+print(f&quot;Teleport at index: {teleport_location}&quot;)     // 2
+
+// Returns -1 if not found
+lightning_location = spell_book.index_of(&quot;Lightning Bolt&quot;)
+print(f&quot;Lightning Bolt location: {lightning_location}&quot;)  // -1
+
+// Useful for conditional logic
+if spell_book.index_of(&quot;Heal&quot;) != -1:
+    print(&quot;Healing magic available!&quot;)
+</code></pre>
+<h3 id=".first()-%26-.last()---access-magical-extremes" tabindex="-1"><a class="header-anchor" href="#.first()-%26-.last()---access-magical-extremes"><code>.first()</code> &amp; <code>.last()</code> - Access Magical Extremes</a></h3>
+<pre><code class="language-python">magical_journey = Array([&quot;Start&quot;, &quot;Forest&quot;, &quot;Mountain&quot;, &quot;Castle&quot;, &quot;End&quot;])
+
+beginning = magical_journey.first()
+destination = magical_journey.last()
+
+print(f&quot;Journey begins at: {beginning}&quot;)      // &quot;Start&quot;
+print(f&quot;Journey ends at: {destination}&quot;)      // &quot;End&quot;
+
+// Safe for empty arrays
+empty_path = Array([])
+print(empty_path.first())  // None
+print(empty_path.last())   // None
+</code></pre>
+<hr>
+<h2 id="%F0%9F%9B%A0%EF%B8%8F-modification-spells" tabindex="-1"><a class="header-anchor" href="#%F0%9F%9B%A0%EF%B8%8F-modification-spells">🛠️ Modification Spells</a></h2>
+<h3 id=".append(value)---add-magical-items" tabindex="-1"><a class="header-anchor" href="#.append(value)---add-magical-items"><code>.append(value)</code> - Add Magical Items</a></h3>
+<pre><code class="language-python">spell_arsenal = Array([&quot;Magic Missile&quot;])
+
+spell_arsenal.append(&quot;Fireball&quot;)
+spell_arsenal.append(&quot;Healing&quot;)
+print(spell_arsenal.to_string())  // Array([&quot;Magic Missile&quot;, &quot;Fireball&quot;, &quot;Healing&quot;])
+
+// Append different types
+magical_collection = Array([42])
+magical_collection.append(&quot;text&quot;)
+magical_collection.append(True)
+magical_collection.append(3.14)
+print(magical_collection.to_string())  // Mixed types array
+</code></pre>
+<h3 id=".set(index%2C-value)---modify-magical-items" tabindex="-1"><a class="header-anchor" href="#.set(index%2C-value)---modify-magical-items"><code>.set(index, value)</code> - Modify Magical Items</a></h3>
+<pre><code class="language-python">party_members = Array([&quot;Warrior&quot;, &quot;Placeholder&quot;, &quot;Healer&quot;])
+
+// Replace the placeholder
+party_members.set(1, &quot;Wizard&quot;)
+print(party_members.to_string())  // Array([&quot;Warrior&quot;, &quot;Wizard&quot;, &quot;Healer&quot;])
+
+// Update with negative indexing
+party_members.set(-1, &quot;Cleric&quot;)
+print(party_members.to_string())  // Array([&quot;Warrior&quot;, &quot;Wizard&quot;, &quot;Cleric&quot;])
+
+// Safe setting (does nothing for invalid indices)
+party_members.set(10, &quot;Ghost&quot;)  // No error, just ignored
+</code></pre>
+<h3 id=".remove(value)---banish-magical-items" tabindex="-1"><a class="header-anchor" href="#.remove(value)---banish-magical-items"><code>.remove(value)</code> - Banish Magical Items</a></h3>
+<pre><code class="language-python">magic_ingredients = Array([&quot;Eye of Newt&quot;, &quot;Bad Ingredient&quot;, &quot;Dragon Scale&quot;, &quot;Bad Ingredient&quot;])
+
+// Remove first occurrence
+magic_ingredients.remove(&quot;Bad Ingredient&quot;)
+print(magic_ingredients.to_string())  // Array([&quot;Eye of Newt&quot;, &quot;Dragon Scale&quot;, &quot;Bad Ingredient&quot;])
+
+// Remove again to get the second occurrence
+magic_ingredients.remove(&quot;Bad Ingredient&quot;)
+print(magic_ingredients.to_string())  // Array([&quot;Eye of Newt&quot;, &quot;Dragon Scale&quot;])
+
+// Safe removal (no error if item not found)
+magic_ingredients.remove(&quot;Nonexistent Item&quot;)  // Just ignored
+</code></pre>
+<h3 id=".clear()---empty-your-magical-container" tabindex="-1"><a class="header-anchor" href="#.clear()---empty-your-magical-container"><code>.clear()</code> - Empty Your Magical Container</a></h3>
+<pre><code class="language-python">temporary_storage = Array([1, 2, 3, 4, 5])
+print(f&quot;Before clear: {temporary_storage.length()}&quot;)  // 5
+
+temporary_storage.clear()
+print(f&quot;After clear: {temporary_storage.length()}&quot;)   // 0
+print(f&quot;Is empty: {temporary_storage.is_empty()}&quot;)    // True
+</code></pre>
+<hr>
+<h2 id="%F0%9F%94%84-transformation-spells" tabindex="-1"><a class="header-anchor" href="#%F0%9F%94%84-transformation-spells">🔄 Transformation Spells</a></h2>
+<h3 id=".reverse()---mirror-your-magic" tabindex="-1"><a class="header-anchor" href="#.reverse()---mirror-your-magic"><code>.reverse()</code> - Mirror Your Magic</a></h3>
+<pre><code class="language-python">countdown = Array([1, 2, 3, 4, 5])
+reversed_countdown = countdown.reverse()
+
+print(f&quot;Original: {countdown.to_string()}&quot;)          // [1, 2, 3, 4, 5]
+print(f&quot;Reversed: {reversed_countdown.to_string()}&quot;)  // [5, 4, 3, 2, 1]
+
+// Original array is unchanged - reverse() creates a new array
+print(f&quot;Original still: {countdown.to_string()}&quot;)     // [1, 2, 3, 4, 5]
+
+// Works with mixed types
+mixed = Array([&quot;first&quot;, 42, True, &quot;last&quot;])
+reversed_mixed = mixed.reverse()
+print(reversed_mixed.to_string())  // [&quot;last&quot;, True, 42, &quot;first&quot;]
+</code></pre>
+<h3 id=".sort()---organize-your-magic" tabindex="-1"><a class="header-anchor" href="#.sort()---organize-your-magic"><code>.sort()</code> - Organize Your Magic</a></h3>
+<pre><code class="language-python">// Sort numbers
+numbers = Array([3, 1, 4, 1, 5, 9, 2, 6])
+sorted_numbers = numbers.sort()
+print(f&quot;Sorted numbers: {sorted_numbers.to_string()}&quot;)  // [1, 1, 2, 3, 4, 5, 6, 9]
+
+// Sort strings (alphabetical)
+spells = Array([&quot;Fireball&quot;, &quot;Heal&quot;, &quot;Teleport&quot;, &quot;Shield&quot;])
+sorted_spells = spells.sort()
+print(f&quot;Sorted spells: {sorted_spells.to_string()}&quot;)  // [&quot;Fireball&quot;, &quot;Heal&quot;, &quot;Shield&quot;, &quot;Teleport&quot;]
+
+// Mixed types sort by string representation
+mixed = Array([3, &quot;apple&quot;, 1, &quot;zebra&quot;])
+sorted_mixed = mixed.sort()
+print(f&quot;Sorted mixed: {sorted_mixed.to_string()}&quot;)
+
+// Original array remains unchanged
+print(f&quot;Original numbers: {numbers.to_string()}&quot;)  // Still [3, 1, 4, 1, 5, 9, 2, 6]
+</code></pre>
+<h3 id=".slice(start%2C-end)---extract-magical-segments" tabindex="-1"><a class="header-anchor" href="#.slice(start%2C-end)---extract-magical-segments"><code>.slice(start, end)</code> - Extract Magical Segments</a></h3>
+<pre><code class="language-python">magical_alphabet = Array([&quot;A&quot;, &quot;B&quot;, &quot;C&quot;, &quot;D&quot;, &quot;E&quot;, &quot;F&quot;, &quot;G&quot;])
+
+// Get middle section
+middle = magical_alphabet.slice(2, 5)
+print(middle.to_string())  // [&quot;C&quot;, &quot;D&quot;, &quot;E&quot;]
+
+// Get from start
+beginning = magical_alphabet.slice(0, 3)
+print(beginning.to_string())  // [&quot;A&quot;, &quot;B&quot;, &quot;C&quot;]
+
+// Get to end (omit end parameter)
+end_part = magical_alphabet.slice(4, 7)
+print(end_part.to_string())  // [&quot;E&quot;, &quot;F&quot;, &quot;G&quot;]
+
+// Negative indices work too
+last_three = magical_alphabet.slice(-3, 7)
+print(last_three.to_string())  // [&quot;E&quot;, &quot;F&quot;, &quot;G&quot;]
+
+// Original array unchanged
+print(f&quot;Original: {magical_alphabet.to_string()}&quot;)
+</code></pre>
+<hr>
+<h2 id="%F0%9F%8E%AA-advanced-array-magic" tabindex="-1"><a class="header-anchor" href="#%F0%9F%8E%AA-advanced-array-magic">🎪 Advanced Array Magic</a></h2>
+<h3 id="chaining-array-spells" tabindex="-1"><a class="header-anchor" href="#chaining-array-spells">Chaining Array Spells</a></h3>
+<pre><code class="language-python">// Build complex transformations by chaining methods
+numbers = Array([5, 2, 8, 1, 9, 3])
+
+// Note: Some methods modify the array, others return new arrays
+result = numbers.sort()  // Returns new sorted array
+print(f&quot;Sorted: {result.to_string()}&quot;)
+
+// For methods that modify the original, you can still chain
+magical_list = Array([])
+magical_list.append(&quot;first&quot;)
+magical_list.append(&quot;second&quot;)
+magical_list.append(&quot;third&quot;)
+print(f&quot;Built list: {magical_list.to_string()}&quot;)
+</code></pre>
+<h3 id="working-with-complex-data" tabindex="-1"><a class="header-anchor" href="#working-with-complex-data">Working with Complex Data</a></h3>
+<pre><code class="language-python">// Arrays can hold complex magical data
+magical_creatures = Array([
+    {&quot;name&quot;: &quot;Dragon&quot;, &quot;power&quot;: 1000, &quot;element&quot;: &quot;fire&quot;},
+    {&quot;name&quot;: &quot;Unicorn&quot;, &quot;power&quot;: 500, &quot;element&quot;: &quot;light&quot;},
+    {&quot;name&quot;: &quot;Phoenix&quot;, &quot;power&quot;: 800, &quot;element&quot;: &quot;fire&quot;}
+])
+
+print(f&quot;Creature count: {magical_creatures.length()}&quot;)
+
+// Access complex data
+first_creature = magical_creatures.get(0)
+print(f&quot;First creature: {first_creature['name']} with {first_creature['power']} power&quot;)
+
+// Check for specific creatures
+has_dragon = magical_creatures.contains({&quot;name&quot;: &quot;Dragon&quot;, &quot;power&quot;: 1000, &quot;element&quot;: &quot;fire&quot;})
+print(f&quot;Has dragon: {has_dragon}&quot;)  // Note: Object comparison might be tricky
+</code></pre>
+<h3 id="array-transformation-patterns" tabindex="-1"><a class="header-anchor" href="#array-transformation-patterns">Array Transformation Patterns</a></h3>
+<pre><code class="language-python">// Common magical patterns
+spell create_magical_sequence(start, end, step = 1):
+    sequence = Array([])
+    current = start
+    while current &lt; end:
+        sequence.append(current)
+        current += step
+    return sequence
+
+spell filter_by_element(creatures, target_element):
+    filtered = Array([])
+    for i in range(creatures.length()):
+        creature = creatures.get(i)
+        if creature[&quot;element&quot;] == target_element:
+            filtered.append(creature)
+    return filtered
+
+spell sum_magical_powers(creatures):
+    total = 0
+    for i in range(creatures.length()):
+        creature = creatures.get(i)
+        total += creature[&quot;power&quot;]
+    return total
+
+// Use the patterns
+sequence = create_magical_sequence(0, 10, 2)
+print(f&quot;Magical sequence: {sequence.to_string()}&quot;)  // [0, 2, 4, 6, 8]
+
+creatures = Array([
+    {&quot;name&quot;: &quot;Fire Dragon&quot;, &quot;element&quot;: &quot;fire&quot;, &quot;power&quot;: 1000},
+    {&quot;name&quot;: &quot;Ice Dragon&quot;, &quot;element&quot;: &quot;ice&quot;, &quot;power&quot;: 900},
+    {&quot;name&quot;: &quot;Fire Phoenix&quot;, &quot;element&quot;: &quot;fire&quot;, &quot;power&quot;: 800}
+])
+
+fire_creatures = filter_by_element(creatures, &quot;fire&quot;)
+print(f&quot;Fire creatures: {fire_creatures.length()}&quot;)
+
+total_power = sum_magical_powers(creatures)
+print(f&quot;Total magical power: {total_power}&quot;)
+</code></pre>
+<hr>
+<h2 id="%F0%9F%8E%AF-practical-array-magic-examples" tabindex="-1"><a class="header-anchor" href="#%F0%9F%8E%AF-practical-array-magic-examples">🎯 Practical Array Magic Examples</a></h2>
+<h3 id="magical-inventory-system" tabindex="-1"><a class="header-anchor" href="#magical-inventory-system">Magical Inventory System</a></h3>
+<pre><code class="language-python">spell create_magical_inventory():
+    inventory = Array([])
+    
+    spell add_item(item_name, quantity = 1):
+        // Check if item already exists
+        for i in range(inventory.length()):
+            item = inventory.get(i)
+            if item[&quot;name&quot;] == item_name:
+                item[&quot;quantity&quot;] += quantity
+                return f&quot;Added {quantity} {item_name}(s). Total: {item['quantity']}&quot;
+        
+        // Add new item
+        new_item = {&quot;name&quot;: item_name, &quot;quantity&quot;: quantity}
+        inventory.append(new_item)
+        return f&quot;Added new item: {quantity} {item_name}(s)&quot;
+    
+    spell remove_item(item_name, quantity = 1):
+        for i in range(inventory.length()):
+            item = inventory.get(i)
+            if item[&quot;name&quot;] == item_name:
+                if item[&quot;quantity&quot;] &gt;= quantity:
+                    item[&quot;quantity&quot;] -= quantity
+                    if item[&quot;quantity&quot;] == 0:
+                        inventory.remove(item)
+                    return f&quot;Removed {quantity} {item_name}(s)&quot;
+                else:
+                    return f&quot;Not enough {item_name} (have {item['quantity']}, need {quantity})&quot;
+        return f&quot;Item {item_name} not found in inventory&quot;
+    
+    spell list_items():
+        if inventory.is_empty():
+            return &quot;Inventory is empty&quot;
+        
+        items = []
+        for i in range(inventory.length()):
+            item = inventory.get(i)
+            items.append(f&quot;{item['name']}: {item['quantity']}&quot;)
+        return &quot;Inventory: &quot; + &quot;, &quot;.join(items)
+    
+    return {
+        &quot;add&quot;: add_item,
+        &quot;remove&quot;: remove_item,
+        &quot;list&quot;: list_items,
+        &quot;raw&quot;: inventory
+    }
+
+// Use the magical inventory
+bag = create_magical_inventory()
+print(bag[&quot;add&quot;](&quot;Health Potion&quot;, 5))
+print(bag[&quot;add&quot;](&quot;Magic Sword&quot;, 1))
+print(bag[&quot;add&quot;](&quot;Health Potion&quot;, 2))
+print(bag[&quot;list&quot;]())
+print(bag[&quot;remove&quot;](&quot;Health Potion&quot;, 3))
+print(bag[&quot;list&quot;]())
+</code></pre>
+<h3 id="magical-battle-queue-system" tabindex="-1"><a class="header-anchor" href="#magical-battle-queue-system">Magical Battle Queue System</a></h3>
+<pre><code class="language-python">grim BattleMage:
+    init(name, speed, health):
+        self.name = name
+        self.speed = speed
+        self.health = health
+        self.is_alive = True
+    
+    spell to_string():
+        status = &quot;💚&quot; if self.is_alive else &quot;💀&quot;
+        return f&quot;{status} {self.name} (Speed: {self.speed}, HP: {self.health})&quot;
+
+spell create_battle_queue():
+    battle_queue = Array([])
+    
+    spell add_combatant(mage):
+        // Insert based on speed (highest first)
+        inserted = False
+        for i in range(battle_queue.length()):
+            if mage.speed &gt; battle_queue.get(i).speed:
+                battle_queue.set(i, mage)  // This replaces, not inserts
+                inserted = True
+                stop
+        
+        if not inserted:
+            battle_queue.append(mage)
+        
+        return f&quot;Added {mage.name} to battle queue&quot;
+    
+    spell get_next_combatant():
+        if not battle_queue.is_empty():
+            next_mage = battle_queue.get(0)
+            battle_queue.remove(next_mage)
+            return next_mage
+        return None
+    
+    spell show_queue():
+        if battle_queue.is_empty():
+            return &quot;Battle queue is empty&quot;
+        
+        queue_display = &quot;Battle Queue:\n&quot;
+        for i in range(battle_queue.length()):
+            mage = battle_queue.get(i)
+            queue_display += f&quot;{i + 1}. {mage.to_string()}\n&quot;
+        return queue_display
+    
+    return {
+        &quot;add&quot;: add_combatant,
+        &quot;next&quot;: get_next_combatant,
+        &quot;show&quot;: show_queue,
+        &quot;queue&quot;: battle_queue
+    }
+
+// Create battle system
+battle = create_battle_queue()
+mage1 = BattleMage(&quot;Fire Wizard&quot;, 85, 100)
+mage2 = BattleMage(&quot;Ice Sorceress&quot;, 90, 95)
+mage3 = BattleMage(&quot;Lightning Mage&quot;, 95, 90)
+
+battle[&quot;add&quot;](mage1)
+battle[&quot;add&quot;](mage2)
+battle[&quot;add&quot;](mage3)
+
+print(battle[&quot;show&quot;]())
+
+next_fighter = battle[&quot;next&quot;]()
+print(f&quot;Next to act: {next_fighter.to_string()}&quot;)
+print(battle[&quot;show&quot;]())
+</code></pre>
+<hr>
+<h2 id="%F0%9F%8F%86-array-magic-challenges" tabindex="-1"><a class="header-anchor" href="#%F0%9F%8F%86-array-magic-challenges">🏆 Array Magic Challenges</a></h2>
+<h3 id="%F0%9F%A5%89-beginner-challenges" tabindex="-1"><a class="header-anchor" href="#%F0%9F%A5%89-beginner-challenges">🥉 Beginner Challenges</a></h3>
+<ol>
+<li><strong>Spell List Manager</strong>: Create an array of spells and implement add/remove/search functionality</li>
+<li><strong>Magic Number Calculator</strong>: Use arrays to store and calculate magical number sequences</li>
+<li><strong>Ingredient Sorter</strong>: Sort magical ingredients alphabetically and by rarity</li>
+</ol>
+<h3 id="%F0%9F%A5%88-intermediate-challenges" tabindex="-1"><a class="header-anchor" href="#%F0%9F%A5%88-intermediate-challenges">🥈 Intermediate Challenges</a></h3>
+<ol>
+<li><strong>Magical Deck Builder</strong>: Create a card game deck with shuffling and dealing</li>
+<li><strong>Adventure Path Finder</strong>: Use arrays to represent and navigate magical paths</li>
+<li><strong>Spell Combo System</strong>: Build combinations of spells stored in arrays</li>
+</ol>
+<h3 id="%F0%9F%A5%87-advanced-challenges" tabindex="-1"><a class="header-anchor" href="#%F0%9F%A5%87-advanced-challenges">🥇 Advanced Challenges</a></h3>
+<ol>
+<li><strong>Magical Matrix Operations</strong>: Implement matrix operations using nested arrays</li>
+<li><strong>Spell Pattern Recognition</strong>: Find patterns in spell sequences using array analysis</li>
+<li><strong>Dynamic Quest System</strong>: Create branching quest paths using arrays</li>
+</ol>
+<hr>
+<h2 id="%F0%9F%94%97-related-magic" tabindex="-1"><a class="header-anchor" href="#%F0%9F%94%97-related-magic">🔗 Related Magic</a></h2>
+<p>Explore other grimoires that work well with arrays:</p>
+<ul>
+<li><strong><a href="String-Grimoire.md">String Grimoire</a></strong> - For text arrays and string manipulation</li>
+<li><strong><a href="Number-Grimoires.md">Number Grimoires</a></strong> - For numerical array operations</li>
+<li><strong><a href="File-OS-Grimoires.md">File &amp; OS Grimoires</a></strong> - For reading/writing array data</li>
+<li><strong><a href="../Reference/Builtin-Functions.md">Builtin Functions</a></strong> - Core functions that work with arrays</li>
+</ul>
+<hr>
+<h2 id="%F0%9F%92%A1-array-mastery-tips" tabindex="-1"><a class="header-anchor" href="#%F0%9F%92%A1-array-mastery-tips">💡 Array Mastery Tips</a></h2>
+<ol>
+<li><strong>🔄 Remember Mutability</strong>: Some methods modify the array, others return new ones</li>
+<li><strong>🔍 Use <code>.contains()</code> for Existence</strong>: Better than manually searching</li>
+<li><strong>📐 Leverage Negative Indexing</strong>: <code>.get(-1)</code> for last element</li>
+<li><strong>🛡️ Handle Empty Arrays</strong>: Always check <code>.is_empty()</code> when needed</li>
+<li><strong>⚡ Chain Operations</strong>: Combine methods for powerful transformations</li>
+<li><strong>📊 Use Arrays for Complex Data</strong>: Store objects and hashes in arrays</li>
+</ol>
+<hr>
+<p><em>Master the Array Grimoire, and you’ll have the power to organize, search, and manipulate any collection of magical data! Arrays are the foundation of many advanced spells and enchantments. 🪄✨</em></p>
+<blockquote>
+<p>“An organized array is a powerful spell waiting to be cast.” - <em>Master Array Sorceress</em></p>
+</blockquote>
+</div>
+    </div>
+    <div class="footer">
+        <p>🪄 Carrion Programming Language Wiki - Where Code Meets Magic ✨</p>
+        <p>Built with ❤️ by the Carrion Community | <a href="https://github.com/javanhut/TheCarrionLanguage" style="color: var(--link-color);">GitHub Repository</a></p>
+    </div>
+</body>
+</html>
