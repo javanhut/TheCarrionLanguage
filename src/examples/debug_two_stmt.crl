@@ -1,5 +1,0 @@
-spell test(param):
-    print("About to print param")
-    print(param)
-
-test(5)

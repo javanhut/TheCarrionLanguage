@@ -1,4 +1,0 @@
-spell test(param):
-    return param
-
-test(5)

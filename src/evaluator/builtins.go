@@ -29,6 +29,48 @@ var builtins = map[string]*object.Builtin{
 				return &object.Integer{Value: int64(len(arg.Value))}
 			case *object.Array:
 				return &object.Integer{Value: int64(len(arg.Elements))}
+			case *object.Tuple:
+				return &object.Integer{Value: int64(len(arg.Elements))}
+			case *object.Hash:
+				return &object.Integer{Value: int64(len(arg.Pairs))}
+			case *object.Instance:
+				// Handle instances based on their grimoire type
+				switch arg.Grimoire.Name {
+				case "Array":
+					if elements, exists := arg.Env.Get("elements"); exists {
+						// Check if elements is a direct Array
+						if arr, isArray := elements.(*object.Array); isArray {
+							return &object.Integer{Value: int64(len(arr.Elements))}
+						}
+						// Check if elements is an Instance wrapping an Array
+						if elemInstance, isInstance := elements.(*object.Instance); isInstance {
+							// Check if it's an Array instance containing value
+							if value, valueExists := elemInstance.Env.Get("value"); valueExists {
+								if arr, isArray := value.(*object.Array); isArray {
+									return &object.Integer{Value: int64(len(arr.Elements))}
+								}
+							}
+							// Try to see if it's a direct wrapped array
+							if elemInstance.Grimoire.Name == "Array" {
+								if innerElements, innerExists := elemInstance.Env.Get("elements"); innerExists {
+									if arr, isArray := innerElements.(*object.Array); isArray {
+										return &object.Integer{Value: int64(len(arr.Elements))}
+									}
+								}
+							}
+						}
+					}
+					return newError("invalid Array instance: missing or invalid elements")
+				case "String":
+					if value, exists := arg.Env.Get("value"); exists {
+						if str, isString := value.(*object.String); isString {
+							return &object.Integer{Value: int64(len(str.Value))}
+						}
+					}
+					return newError("invalid String instance: missing value")
+				default:
+					return newError("len() not supported for %s instances", arg.Grimoire.Name)
+				}
 			default:
 				return newError("argument to `len` not supported, got %s",
 					args[0].Type())

@@ -334,8 +334,26 @@ func wrapPrimitive(obj object.Object, env *object.Environment, ctx *CallContext)
 // unwrapPrimitive extracts the primitive value from a wrapped instance if applicable
 func unwrapPrimitive(obj object.Object) object.Object {
 	if instance, ok := obj.(*object.Instance); ok {
+		// Check for primitive values wrapped in "value" field (String, Integer, Float, Boolean)
 		if value, exists := instance.Env.Get("value"); exists {
 			return value
+		}
+		// Check for Array instances which store data in "elements" field
+		if instance.Grimoire.Name == "Array" {
+			if elements, exists := instance.Env.Get("elements"); exists {
+				// If elements is a direct Array, return it
+				if arr, isArray := elements.(*object.Array); isArray {
+					return arr
+				}
+				// If elements is another instance, try to unwrap it recursively
+				if elemInstance, isInstance := elements.(*object.Instance); isInstance {
+					if innerValue, innerExists := elemInstance.Env.Get("value"); innerExists {
+						if arr, isArray := innerValue.(*object.Array); isArray {
+							return arr
+						}
+					}
+				}
+			}
 		}
 	}
 	return obj
@@ -1630,15 +1648,60 @@ func evalTupleLiteral(
 }
 
 func evalIndexExpression(left, index object.Object, node ast.Node, ctx *CallContext) object.Object {
+	// Unwrap instances to get the underlying primitive values
+	unwrappedLeft := unwrapPrimitive(left)
+	unwrappedIndex := unwrapPrimitive(index)
+	
 	switch {
-	case left.Type() == object.TUPLE_OBJ:
-		return evalTupleIndexExpression(left, index, node, ctx)
-	case left.Type() == object.ARRAY_OBJ && index.Type() == object.INTEGER_OBJ:
-		return evalArrayIndexExpression(left, index, node, ctx)
-	case left.Type() == object.HASH_OBJ:
-		return evalHashIndexExpression(left, index, node, ctx)
-	case left.Type() == object.STRING_OBJ && index.Type() == object.INTEGER_OBJ:
-		return evalStringIndexExpression(left, index, node, ctx)
+	case unwrappedLeft.Type() == object.TUPLE_OBJ:
+		return evalTupleIndexExpression(unwrappedLeft, unwrappedIndex, node, ctx)
+	case unwrappedLeft.Type() == object.ARRAY_OBJ && unwrappedIndex.Type() == object.INTEGER_OBJ:
+		return evalArrayIndexExpression(unwrappedLeft, unwrappedIndex, node, ctx)
+	case unwrappedLeft.Type() == object.HASH_OBJ:
+		return evalHashIndexExpression(unwrappedLeft, unwrappedIndex, node, ctx)
+	case unwrappedLeft.Type() == object.STRING_OBJ && unwrappedIndex.Type() == object.INTEGER_OBJ:
+		result := evalStringIndexExpression(unwrappedLeft, unwrappedIndex, node, ctx)
+		// If the original left was an instance, wrap the result back to maintain consistency
+		if left.Type() == object.INSTANCE_OBJ {
+			// Get current environment - use a simple approach
+			var currentEnv *object.Environment
+			if ctx != nil && ctx.env != nil {
+				currentEnv = ctx.env
+			} else {
+				// Create a temporary environment if none available
+				currentEnv = object.NewEnvironment()
+			}
+			return wrapPrimitive(result, currentEnv, ctx)
+		}
+		return result
+	case left.Type() == object.INSTANCE_OBJ:
+		// Handle special case where instance might have custom indexing behavior
+		if instance, ok := left.(*object.Instance); ok {
+			// Check if the instance has a get method for custom indexing
+			if _, exists := instance.Grimoire.Methods["get"]; exists {
+				// Get current environment for method call
+				var currentEnv *object.Environment
+				if ctx != nil && ctx.env != nil {
+					currentEnv = ctx.env
+				} else {
+					currentEnv = object.NewEnvironment()
+				}
+				return evalGrimoireMethodCall(instance, "get", []object.Object{index}, currentEnv, ctx)
+			}
+			// If no custom get method, fall back to unwrapped handling
+			if unwrappedLeft.Type() == object.STRING_OBJ && unwrappedIndex.Type() == object.INTEGER_OBJ {
+				result := evalStringIndexExpression(unwrappedLeft, unwrappedIndex, node, ctx)
+				// Wrap result back since original was instance
+				var currentEnv *object.Environment
+				if ctx != nil && ctx.env != nil {
+					currentEnv = ctx.env
+				} else {
+					currentEnv = object.NewEnvironment()
+				}
+				return wrapPrimitive(result, currentEnv, ctx)
+			}
+		}
+		return newErrorWithTrace("invalid instance for indexing: %s", node, ctx, left.Type())
 	default:
 		return newErrorWithTrace("index operator not supported: %s", node, ctx, left.Type())
 	}
@@ -1990,6 +2053,57 @@ func evalInfixExpression(
 			return nativeBoolToBooleanObject(true)
 		}
 		return newErrorWithTrace("operation not supported with None: %s", node, ctx, operator)
+	case left.Type() == object.INSTANCE_OBJ && right.Type() == object.INSTANCE_OBJ:
+		// Handle instance operations specially
+		leftInstance := left.(*object.Instance)
+		rightInstance := right.(*object.Instance)
+		
+		// Check if both are Array instances and handle concatenation
+		if leftInstance.Grimoire.Name == "Array" && rightInstance.Grimoire.Name == "Array" && operator == "+" {
+			// Get the actual arrays from the instances
+			var leftArray, rightArray *object.Array
+			
+			if leftElements, exists := leftInstance.Env.Get("elements"); exists {
+				if arr, isArray := leftElements.(*object.Array); isArray {
+					leftArray = arr
+				} else if elemInstance, isInstance := leftElements.(*object.Instance); isInstance {
+					if innerValue, innerExists := elemInstance.Env.Get("value"); innerExists {
+						if arr, isArray := innerValue.(*object.Array); isArray {
+							leftArray = arr
+						}
+					}
+				}
+			}
+			
+			if rightElements, exists := rightInstance.Env.Get("elements"); exists {
+				if arr, isArray := rightElements.(*object.Array); isArray {
+					rightArray = arr
+				} else if elemInstance, isInstance := rightElements.(*object.Instance); isInstance {
+					if innerValue, innerExists := elemInstance.Env.Get("value"); innerExists {
+						if arr, isArray := innerValue.(*object.Array); isArray {
+							rightArray = arr
+						}
+					}
+				}
+			}
+			
+			if leftArray != nil && rightArray != nil {
+				combined := make([]object.Object, len(leftArray.Elements)+len(rightArray.Elements))
+				copy(combined, leftArray.Elements)
+				copy(combined[len(leftArray.Elements):], rightArray.Elements)
+				result := &object.Array{Elements: combined}
+				
+				// Wrap the result back as an Array instance if we're in an environment with Array grimoire
+				if ctx != nil && ctx.env != nil {
+					return wrapPrimitive(result, ctx.env, ctx)
+				}
+				return result
+			}
+		}
+		
+		// If not handled above, fall through to type mismatch error
+		return newErrorWithTrace("type mismatch: %s %s %s", node, ctx,
+			left.Type(), operator, right.Type())
 	case unwrappedLeft.Type() != unwrappedRight.Type():
 		return newErrorWithTrace("type mismatch: %s %s %s", node, ctx,
 			unwrappedLeft.Type(), operator, unwrappedRight.Type())
@@ -2054,13 +2168,28 @@ func evalStringInfixExpression(
 	node ast.Node,
 	ctx *CallContext,
 ) object.Object {
-	if operator != "+" {
+	leftVal := left.(*object.String).Value
+	rightVal := right.(*object.String).Value
+	
+	switch operator {
+	case "+":
+		return &object.String{Value: leftVal + rightVal}
+	case "==":
+		return nativeBoolToBooleanObject(leftVal == rightVal)
+	case "!=":
+		return nativeBoolToBooleanObject(leftVal != rightVal)
+	case "<":
+		return nativeBoolToBooleanObject(leftVal < rightVal)
+	case ">":
+		return nativeBoolToBooleanObject(leftVal > rightVal)
+	case "<=":
+		return nativeBoolToBooleanObject(leftVal <= rightVal)
+	case ">=":
+		return nativeBoolToBooleanObject(leftVal >= rightVal)
+	default:
 		return newErrorWithTrace("unknown operator: %s %s %s",
 			node, ctx, left.Type(), operator, right.Type())
 	}
-	leftVal := left.(*object.String).Value
-	rightVal := right.(*object.String).Value
-	return &object.String{Value: leftVal + rightVal}
 }
 
 func evalBooleanInfixExpression(
@@ -2095,8 +2224,22 @@ func evalPrefixIncrementDecrement(
 			return newErrorWithTrace("undefined variable '%s'", node, ctx, operand.Value)
 		}
 
-		intObj, ok := obj.(*object.Integer)
-		if !ok {
+		// Handle both direct Integer objects and Instance-wrapped integers
+		var intObj *object.Integer
+		if directInt, ok := obj.(*object.Integer); ok {
+			intObj = directInt
+		} else if instance, ok := obj.(*object.Instance); ok {
+			// Check if this is an Integer wrapper instance
+			if instance.Grimoire.Name == "Integer" {
+				if value, exists := instance.Env.Get("value"); exists {
+					if wrappedInt, ok := value.(*object.Integer); ok {
+						intObj = wrappedInt
+					}
+				}
+			}
+		}
+
+		if intObj == nil {
 			return newErrorWithTrace("prefix '%s' operator requires an integer variable '%s'",
 				node, ctx, operator, operand.Value)
 		}
@@ -2107,7 +2250,13 @@ func evalPrefixIncrementDecrement(
 			intObj.Value -= 1
 		}
 
-		env.Set(operand.Value, intObj)
+		// If it was an instance, update the instance's value
+		if instance, ok := obj.(*object.Instance); ok {
+			instance.Env.Set("value", intObj)
+			env.Set(operand.Value, instance)
+		} else {
+			env.Set(operand.Value, intObj)
+		}
 		return intObj
 
 	default:
@@ -2129,8 +2278,22 @@ func evalPostfixIncrementDecrement(
 			return newErrorWithTrace("undefined variable '%s'", node, ctx, operand.Value)
 		}
 
-		intObj, ok := obj.(*object.Integer)
-		if !ok {
+		// Handle both direct Integer objects and Instance-wrapped integers
+		var intObj *object.Integer
+		if directInt, ok := obj.(*object.Integer); ok {
+			intObj = directInt
+		} else if instance, ok := obj.(*object.Instance); ok {
+			// Check if this is an Integer wrapper instance
+			if instance.Grimoire.Name == "Integer" {
+				if value, exists := instance.Env.Get("value"); exists {
+					if wrappedInt, ok := value.(*object.Integer); ok {
+						intObj = wrappedInt
+					}
+				}
+			}
+		}
+
+		if intObj == nil {
 			return newErrorWithTrace("postfix '%s' operator requires an integer variable '%s'",
 				node, ctx, operator, operand.Value)
 		}
@@ -2144,9 +2307,15 @@ func evalPostfixIncrementDecrement(
 			newValue = oldValue - 1
 		}
 
-		newObj := &object.Integer{Value: newValue}
+		newIntObj := &object.Integer{Value: newValue}
 
-		env.Set(operand.Value, newObj)
+		// If it was an instance, update the instance's value
+		if instance, ok := obj.(*object.Instance); ok {
+			instance.Env.Set("value", newIntObj)
+			env.Set(operand.Value, instance)
+		} else {
+			env.Set(operand.Value, newIntObj)
+		}
 
 		return &object.Integer{Value: oldValue}
 	default:
@@ -2177,18 +2346,21 @@ func evalMinusPrefixOperatorExpression(
 	env *object.Environment,
 	ctx *CallContext,
 ) object.Object {
-	if right.Type() != object.INTEGER_OBJ && right.Type() != object.FLOAT_OBJ {
+	// Unwrap primitive values from instances if needed
+	unwrapped := unwrapPrimitive(right)
+	
+	if unwrapped.Type() != object.INTEGER_OBJ && unwrapped.Type() != object.FLOAT_OBJ {
 		// Unknown operand type for prefix minus
 		return newError("unknown operator: -%s", right.Type())
 	}
-	switch right := right.(type) {
+	switch unwrapped := unwrapped.(type) {
 	case *object.Integer:
-		return &object.Integer{Value: -right.Value}
+		return &object.Integer{Value: -unwrapped.Value}
 	case *object.Float:
-		return &object.Float{Value: -right.Value}
+		return &object.Float{Value: -unwrapped.Value}
 	default:
 		// Fallback for unexpected types
-		return newError("unknown type for minus operator: %s", right.Type())
+		return newError("unknown type for minus operator: %s", unwrapped.Type())
 	}
 }
 
@@ -2278,8 +2450,15 @@ func evalCompoundAssignment(
 			return newVal
 		}
 
-		env.Set(leftNode.Value, newVal)
-		return newVal
+		// If the current value is an Instance, update its wrapped value
+		if instance, ok := currVal.(*object.Instance); ok {
+			instance.Env.Set("value", newVal)
+			env.Set(leftNode.Value, instance)
+			return newVal
+		} else {
+			env.Set(leftNode.Value, newVal)
+			return newVal
+		}
 
 	default:
 		return newErrorWithTrace("invalid assignment target: %T", node, ctx, leftNode)
@@ -2292,55 +2471,89 @@ func applyCompoundOperator(
 	node ast.Node,
 	ctx *CallContext,
 ) object.Object {
-	switch l := leftVal.(type) {
-	case *object.Integer:
-		rInt, ok := rightVal.(*object.Integer)
+	// Helper function to extract the actual integer/float value from either direct objects or Instance wrappers
+	extractInteger := func(obj object.Object) (*object.Integer, bool) {
+		if intObj, ok := obj.(*object.Integer); ok {
+			return intObj, true
+		}
+		if instance, ok := obj.(*object.Instance); ok {
+			if instance.Grimoire.Name == "Integer" {
+				if value, exists := instance.Env.Get("value"); exists {
+					if intObj, ok := value.(*object.Integer); ok {
+						return intObj, true
+					}
+				}
+			}
+		}
+		return nil, false
+	}
+
+	extractFloat := func(obj object.Object) (*object.Float, bool) {
+		if floatObj, ok := obj.(*object.Float); ok {
+			return floatObj, true
+		}
+		if instance, ok := obj.(*object.Instance); ok {
+			if instance.Grimoire.Name == "Float" {
+				if value, exists := instance.Env.Get("value"); exists {
+					if floatObj, ok := value.(*object.Float); ok {
+						return floatObj, true
+					}
+				}
+			}
+		}
+		return nil, false
+	}
+
+	// Try to extract integers first
+	if lInt, ok := extractInteger(leftVal); ok {
+		rInt, ok := extractInteger(rightVal)
 		if !ok {
 			return newErrorWithTrace("type mismatch: expected INTEGER, got %s",
 				node, ctx, rightVal.Type())
 		}
 		switch operator {
 		case "+=":
-			return &object.Integer{Value: l.Value + rInt.Value}
+			return &object.Integer{Value: lInt.Value + rInt.Value}
 		case "-=":
-			return &object.Integer{Value: l.Value - rInt.Value}
+			return &object.Integer{Value: lInt.Value - rInt.Value}
 		case "*=":
-			return &object.Integer{Value: l.Value * rInt.Value}
+			return &object.Integer{Value: lInt.Value * rInt.Value}
 		case "/=":
 			if rInt.Value == 0 {
 				return newErrorWithTrace("division by zero", node, ctx)
 			}
-			return &object.Integer{Value: l.Value / rInt.Value}
+			return &object.Integer{Value: lInt.Value / rInt.Value}
 		default:
 			return newErrorWithTrace("unknown operator: %s", node, ctx, operator)
 		}
+	}
 
-	case *object.Float:
-		rFloat, ok := rightVal.(*object.Float)
+	// Try to extract floats 
+	if lFloat, ok := extractFloat(leftVal); ok {
+		rFloat, ok := extractFloat(rightVal)
 		if !ok {
 			return newErrorWithTrace("type mismatch: expected FLOAT, got %s",
 				node, ctx, rightVal.Type())
 		}
 		switch operator {
 		case "+=":
-			return &object.Float{Value: l.Value + rFloat.Value}
+			return &object.Float{Value: lFloat.Value + rFloat.Value}
 		case "-=":
-			return &object.Float{Value: l.Value - rFloat.Value}
+			return &object.Float{Value: lFloat.Value - rFloat.Value}
 		case "*=":
-			return &object.Float{Value: l.Value * rFloat.Value}
+			return &object.Float{Value: lFloat.Value * rFloat.Value}
 		case "/=":
 			if rFloat.Value == 0 {
 				return newErrorWithTrace("division by zero", node, ctx)
 			}
-			return &object.Float{Value: l.Value / rFloat.Value}
+			return &object.Float{Value: lFloat.Value / rFloat.Value}
 		default:
 			return newErrorWithTrace("unknown operator: %s", node, ctx, operator)
 		}
-
-	default:
-		return newErrorWithTrace("unsupported type for compound assignment: %s",
-			node, ctx, leftVal.Type())
 	}
+
+	return newErrorWithTrace("unsupported type for compound assignment: %s",
+		node, ctx, leftVal.Type())
 }
 
 func evalIfExpression(

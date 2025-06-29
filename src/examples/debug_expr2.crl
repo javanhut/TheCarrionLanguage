@@ -1,5 +1,0 @@
-spell test(param):
-    return param + 1
-
-result = test(5)
-print(result)

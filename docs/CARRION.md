@@ -17,7 +17,66 @@
 ⠀⠀⠀⠀⠀⠀⠀⠸⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠉⠙⠛⠋⠉⠉⠀⠀⠀⠀⠀⠀⠀⠀
 ```
-### The Carrion programming language is a dynamically typed, interpreted programming language written in Go. It's designed to be similar to Python with creative syntax modifications and unique functionality. Don't be intimidated - it's meant to be easy to learn and features a fun crow theme! It's named after the Carrion Crow and has Norse mythology inspirations (with the standard library named Munin after Odin's raven).  
+### The Carrion programming language is a dynamically typed, interpreted programming language written in Go. It's designed to be similar to Python with creative syntax modifications and unique functionality. Don't be intimidated - it's meant to be easy to learn and features a fun crow theme! It's named after the Carrion Crow and has Norse mythology inspirations (with the standard library named Munin after Odin's raven).
+
+## ✨ What's New in Version 0.1.6-alpha
+
+### 🔮 Interactive Help System "Mimir"
+The REPL now features a comprehensive interactive help system called **Mimir** (named after Odin's wisdom-seeking raven):
+
+```python
+// Launch interactive help in REPL
+mimir
+```
+
+**Features:**
+- 📚 6 main help categories with detailed sub-menus
+- 🔍 Function search by name or purpose  
+- 💡 Built-in function documentation with examples
+- 🏛️ Complete standard library reference
+- 🎯 Language feature guides and tutorials
+- ⚡ REPL tips and keyboard shortcuts
+
+### 🚀 Enhanced Tab Completion
+Intelligent auto-completion for:
+- **Keywords**: `if`, `for`, `grim`, `spell`, `attempt`, etc.
+- **Built-ins**: `print`, `len`, `Array`, `String`, etc.
+- **Methods**: `.append()`, `.sort()`, `.upper()`, `.to_bin()`, etc.
+- **Standard Library**: All Munin module functions
+
+### 🔧 Fixed Operators & Assignment
+All operators now work correctly with tuple unpacking and variable assignment:
+
+```python
+// Tuple unpacking now works with all operators
+x, y = (10, 20)
+x++        // Post-increment ✅
+++y        // Pre-increment ✅
+x += 5     // Compound assignment ✅
+y -= 3     // All compound operators work ✅
+z = -x     // Unary minus fixed ✅
+```
+
+### 📝 Enhanced String Operations
+Strings now support indexing and enhanced grimoire methods:
+
+```python
+s = "Hello World"
+print(s[0])     // "H" - Direct indexing
+print(s[-1])    // "d" - Negative indexing
+
+sg = String(s)
+print(sg.upper())    // "HELLO WORLD"
+print(sg.find("World"))  // 6
+```
+
+### 🔢 Character Conversion Functions
+New built-in functions for character/ASCII conversion:
+
+```python
+print(ord("A"))  // 65 - Character to ASCII
+print(chr(65))   // "A" - ASCII to character
+```  
 
 
 ## Notes:
@@ -105,6 +164,13 @@ carrion
 ```
 Running `carrion` without arguments starts the interactive REPL with command history support.
 
+**REPL Commands:**
+- `mimir` - Launch interactive help system
+- `clear` - Clear the screen
+- `quit`, `exit`, `q` - Exit the REPL
+- Tab completion for all functions and keywords
+- Command history with up/down arrows
+
 ## Running Scripts
 ```bash
 carrion script.crl
@@ -141,6 +207,13 @@ Carrion supports the following data types:
 - `print(*args)` - Print values to console
 - `input(prompt)` - Read user input from terminal
 - `range(start, stop[, step])` - Generate a sequence of numbers
+- `ord(char)` - Convert character to ASCII/Unicode code
+- `chr(code)` - Convert ASCII/Unicode code to character
+- `max(*args)` - Return maximum value from arguments
+- `abs(value)` - Return absolute value of a number
+- `enumerate(array)` - Return array of (index, value) tuples
+- `pairs(hash)` - Return key-value pairs from hash
+- `is_sametype(obj1, obj2)` - Check if objects have same type
 
 ## Error Handling
 - `Error(message)` - Create a generic error
@@ -464,15 +537,15 @@ The Munin standard library (named after Odin's raven) provides essential functio
 ## Available Modules
 
 ### Core Modules
-- **Array**: Enhanced array manipulation with the `Array` grimoire
-- **String**: String operations and utilities
-- **Integer**: Integer-specific operations
-- **Float**: Float-specific operations
-- **Boolean**: Boolean logic operations
+- **Array**: Enhanced array manipulation with methods like `.append()`, `.sort()`, `.reverse()`, `.contains()`
+- **String**: String operations including `.upper()`, `.lower()`, `.find()`, `.char_at()`, `.reverse()`
+- **Integer**: Integer utilities with `.to_bin()`, `.to_hex()`, `.is_prime()`, `.gcd()`, `.lcm()`
+- **Float**: Float operations with `.round()`, `.sqrt()`, `.sin()`, `.cos()`, `.abs()`
+- **Boolean**: Boolean logic with `.to_int()`, `.negate()`, `.and_with()`, `.or_with()`
 
 ### System Modules
-- **OS**: Operating system interface
-- **File**: File I/O operations
+- **OS**: Operating system interface with `.cwd()`, `.listdir()`, `.getenv()`, `.run()`, `.sleep()`
+- **File**: File I/O operations with `.read()`, `.write()`, `.append()`, `.exists()`
 - **Math**: Mathematical functions and constants
 
 ### Development Tools
@@ -486,17 +559,36 @@ The standard library is automatically loaded when Carrion starts. You can check 
 ```python
 modules()  // List all available modules
 version()  // Check Carrion and Munin versions
-help()     // Get help information
+help()     // Get basic help information
+mimir      // Launch interactive help system (REPL only)
 ```
 
-## Example: Using the Array Grimoire
+## Example: Using Enhanced Standard Library
 
 ```python
-// Create an enhanced array
-arr = Array([1, 2, 3])
-arr.append(4)
-print(arr.length())  // Output: 4
-print(arr.get(0))    // Output: 1
+// Enhanced Array operations
+arr = Array([3, 1, 4, 1, 5])
+arr.append(9)
+print(arr.sort())        // [1, 1, 3, 4, 5, 9]
+print(arr.contains(3))   // True
+print(arr.length())      // 6
+
+// String manipulation with indexing
+s = "Hello World"
+print(s[0])              // "H"
+print(s[-1])             // "d"
+sg = String(s)
+print(sg.upper())        // "HELLO WORLD"
+print(sg.find("World"))  // 6
+
+// Integer utilities
+num = Integer(42)
+print(num.to_bin())      // "0b101010"
+print(num.to_hex())      // "0x2a"
+
+// Character conversion
+print(ord("A"))          // 65
+print(chr(65))           // "A"
 ```
 
 # Language Reference
