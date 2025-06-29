@@ -1,7 +1,7 @@
 <meta name="google-site-verification" content="7L-IkFjwJUUVamMg0bj1PwYOVcpowQyomYVhYM4e6lk" />
 <meta name="description" content="Carrion Programming Language is a modern, dynamically typed, interpreted language inspired by Python and built in Go. Discover its fun crow theme, unique syntax, and powerful features for fast development and learning." />The Carrion Programming Language
 
-Latest Version: `0.1.6` [![Release](https://img.shields.io/badge/version-0.1.6-blue.svg)]()
+Latest Version: `{{VERSION}}` [![Release](https://img.shields.io/badge/version-{{VERSION}}-blue.svg)]()
 
 ```bash
 
@@ -91,27 +91,33 @@ docker run -it carrion
 ## Documentation
 
 ### Core Documentation
+
 - **[Language Documentation](docs/CARRION.md)** - Comprehensive guide to Carrion syntax and features
 - **[Language Overview](docs/Language-Overview.md)** - High-level introduction to Carrion's design principles
 - **[Language Reference](docs/Language-Reference.md)** - Complete language specification and reference
 
 ### Language Features
+
 - **[Control Flow](docs/Control-Flow.md)** - Loops, conditionals, and flow control structures
 - **[Error Handling](docs/Error-Handling.md)** - Exception handling with attempt/ensnare/resolve
 - **[Operators](docs/Operators.md)** - Arithmetic, logical, and comparison operators
 - **[Modules](docs/Modules.md)** - Import system and module organization
 
 ### Object-Oriented Programming
+
 - **[Grimoires (Classes)](docs/Grimoires.md)** - Object-oriented programming with grimoires
 
 ### Standard Library
+
 - **[Standard Library (Munin)](docs/Standard-Library.md)** - Built-in functions and modules
 - **[Builtin Functions](docs/Builtin-Functions.md)** - Core functions available in every program
 
 ### Tools & Interactive Features
+
 - **[Interactive Help](docs/Interactive-Help-Demo.md)** - REPL and interactive development features
 
 ### Additional Resources
+
 - **[Examples](src/examples/)** - Sample programs demonstrating various language features
 - **[Changelog](Changelog/README.md)** - Version history and updates
 
@@ -156,7 +162,7 @@ Carrion is an evolving language with exciting future updates planned:
 
 ## Build and Release Status
 
-- Current Version: `0.1.6`
+- Current Version: `{{VERSION}}`
 - Standard Library (Munin): 0.1.0
 - Status: Active Development
 
