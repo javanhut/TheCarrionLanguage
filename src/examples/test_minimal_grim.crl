@@ -1,0 +1,9 @@
+grim SimpleTest:
+    init():
+        self.value = 42
+    
+    spell get_value():
+        return self.value
+
+test = SimpleTest()
+print(test.get_value())

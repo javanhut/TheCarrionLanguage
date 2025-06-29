@@ -1,10 +1,12 @@
 package evaluator
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"os/exec"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/peterh/liner"
@@ -12,10 +14,6 @@ import (
 	"github.com/javanhut/TheCarrionLanguage/src/object"
 )
 
-func flushInputBuffer() {
-	var discard string
-	fmt.Scanln(&discard)
-}
 
 var LineReader *liner.State
 
@@ -31,6 +29,48 @@ var builtins = map[string]*object.Builtin{
 				return &object.Integer{Value: int64(len(arg.Value))}
 			case *object.Array:
 				return &object.Integer{Value: int64(len(arg.Elements))}
+			case *object.Tuple:
+				return &object.Integer{Value: int64(len(arg.Elements))}
+			case *object.Hash:
+				return &object.Integer{Value: int64(len(arg.Pairs))}
+			case *object.Instance:
+				// Handle instances based on their grimoire type
+				switch arg.Grimoire.Name {
+				case "Array":
+					if elements, exists := arg.Env.Get("elements"); exists {
+						// Check if elements is a direct Array
+						if arr, isArray := elements.(*object.Array); isArray {
+							return &object.Integer{Value: int64(len(arr.Elements))}
+						}
+						// Check if elements is an Instance wrapping an Array
+						if elemInstance, isInstance := elements.(*object.Instance); isInstance {
+							// Check if it's an Array instance containing value
+							if value, valueExists := elemInstance.Env.Get("value"); valueExists {
+								if arr, isArray := value.(*object.Array); isArray {
+									return &object.Integer{Value: int64(len(arr.Elements))}
+								}
+							}
+							// Try to see if it's a direct wrapped array
+							if elemInstance.Grimoire.Name == "Array" {
+								if innerElements, innerExists := elemInstance.Env.Get("elements"); innerExists {
+									if arr, isArray := innerElements.(*object.Array); isArray {
+										return &object.Integer{Value: int64(len(arr.Elements))}
+									}
+								}
+							}
+						}
+					}
+					return newError("invalid Array instance: missing or invalid elements")
+				case "String":
+					if value, exists := arg.Env.Get("value"); exists {
+						if str, isString := value.(*object.String); isString {
+							return &object.Integer{Value: int64(len(str.Value))}
+						}
+					}
+					return newError("invalid String instance: missing value")
+				default:
+					return newError("len() not supported for %s instances", arg.Grimoire.Name)
+				}
 			default:
 				return newError("argument to `len` not supported, got %s",
 					args[0].Type())
@@ -68,9 +108,14 @@ var builtins = map[string]*object.Builtin{
 			}
 
 			fmt.Print(prompt)
-			var input string
-			fmt.Scanln(&input)
-			flushInputBuffer()
+			reader := bufio.NewReader(os.Stdin)
+			input, err := reader.ReadString('\n')
+			if err != nil {
+				return &object.Error{Message: "error reading input: " + err.Error()}
+			}
+			// Remove the trailing newline
+			input = strings.TrimSuffix(input, "\n")
+			input = strings.TrimSuffix(input, "\r") // Handle Windows line endings
 			return &object.String{Value: input}
 		},
 	},
@@ -154,6 +199,46 @@ var builtins = map[string]*object.Builtin{
 				return newError("wrong number of arguments. got=%d, want=1", len(args))
 			}
 			return &object.String{Value: args[0].Inspect()}
+		},
+	},
+	"bool": {
+		Fn: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newError("wrong number of arguments. got=%d, want=1", len(args))
+			}
+			switch arg := args[0].(type) {
+			case *object.Boolean:
+				return arg
+			case *object.Integer:
+				if arg.Value == 0 {
+					return FALSE
+				}
+				return TRUE
+			case *object.Float:
+				if arg.Value == 0.0 {
+					return FALSE
+				}
+				return TRUE
+			case *object.String:
+				if arg.Value == "" {
+					return FALSE
+				}
+				return TRUE
+			case *object.Array:
+				if len(arg.Elements) == 0 {
+					return FALSE
+				}
+				return TRUE
+			case *object.Hash:
+				if len(arg.Pairs) == 0 {
+					return FALSE
+				}
+				return TRUE
+			case *object.None:
+				return FALSE
+			default:
+				return TRUE
+			}
 		},
 	},
 	"list": {
@@ -722,6 +807,36 @@ var builtins = map[string]*object.Builtin{
 			}
 
 			return &object.Boolean{Value: args[0].Type() == args[1].Type()}
+		},
+	},
+	"ord": {
+		Fn: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newError("ord requires exactly 1 argument, got=%d", len(args))
+			}
+			str, ok := args[0].(*object.String)
+			if !ok {
+				return newError("ord argument must be STRING, got=%s", args[0].Type())
+			}
+			if len(str.Value) != 1 {
+				return newError("ord expects a single character string, got length %d", len(str.Value))
+			}
+			return &object.Integer{Value: int64(str.Value[0])}
+		},
+	},
+	"chr": {
+		Fn: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newError("chr requires exactly 1 argument, got=%d", len(args))
+			}
+			num, ok := args[0].(*object.Integer)
+			if !ok {
+				return newError("chr argument must be INTEGER, got=%s", args[0].Type())
+			}
+			if num.Value < 0 || num.Value > 255 {
+				return newError("chr argument must be in range 0-255, got=%d", num.Value)
+			}
+			return &object.String{Value: string(rune(num.Value))}
 		},
 	},
 }

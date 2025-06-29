@@ -1,0 +1,6 @@
+arr = Array()
+print("Array created:", arr)
+arr.append(10)
+print("After append")
+length = arr.length()
+print("Length:", length)

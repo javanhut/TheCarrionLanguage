@@ -1,0 +1,48 @@
+print("=== Recursion Demo ===\n")
+
+// Factorial
+spell factorial(n):
+    if n <= 1:
+        return 1
+    return n * factorial(n - 1)
+
+print("Factorials:")
+print("5! = " + str(factorial(5)))
+print("7! = " + str(factorial(7)))
+
+// Fibonacci  
+spell fib(n):
+    if n <= 1:
+        return n
+    a = fib(n - 1)
+    b = fib(n - 2)
+    return a + b
+
+print("\nFibonacci numbers:")
+print("fib(8) = " + str(fib(8)))
+print("fib(12) = " + str(fib(12)))
+
+// Mutual recursion example
+spell is_even(n):
+    if n == 0:
+        return True
+    return is_odd(n - 1)
+
+spell is_odd(n):
+    if n == 0:
+        return False
+    return is_even(n - 1)
+
+print("\nMutual recursion:")
+print("is_even(10) = " + str(is_even(10)))
+print("is_odd(7) = " + str(is_odd(7)))
+
+// Deep recursion test (with max depth protection)
+spell countdown(n):
+    if n <= 0:
+        return "Blast off!"
+    print(str(n) + "...")
+    return countdown(n - 1)
+
+print("\nCountdown from 5:")
+print(countdown(5))

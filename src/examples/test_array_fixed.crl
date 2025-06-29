@@ -1,0 +1,22 @@
+// Test with simplified Array
+grim TestArray:
+    init(elements):
+        self.elements = elements
+    
+    spell append(val):
+        new_list = self.elements + [val]
+        self.elements = new_list
+        return None
+    
+    spell length():
+        return len(self.elements)
+
+// Now test it
+print("Creating array...")
+arr = TestArray([1, 2, 3])
+print("Array created")
+print("Length:", arr.length())
+print("Calling append...")
+arr.append(4)
+print("Append completed")
+print("New length:", arr.length())

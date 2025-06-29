@@ -1,37 +1,18 @@
-arcane grim Exception:
-    @arcanespell
+# Standard error types for Carrion language
+# TODO: Implement when parameter access is fixed
+
+grim ValueError:
     init():
         ignore
-    @arcanespell
-    spell Type():
+
+grim TypeError:
+    init():
         ignore
 
+grim IndexError:
+    init():
+        ignore
 
-grim GenericError(Exception):
-    init(message: str = ""):
-        self.message = message
-
-    spell Type(type:str = "GenericError"):
-        return type
-
-grim ValueError(Exception):
-    init(message: str= ""):
-        self.message = message
-
-    spell Type(type:str = "GenericError"):
-        return type
-
-grim RaiseError:
-    init(err: GenericError):
-        self.err = err
-        self.message = self.err.message
-
-    spell throw():
-        raise self.err(self.message)
-
-
-grim AssertionError(Exception):
-    init(message: str = ""):
-      self.message = f"Assertion Failed due to: {message}"
-    spell Type(type: str = "AssertionError"):
-      return type
+grim KeyError:
+    init():
+        ignore

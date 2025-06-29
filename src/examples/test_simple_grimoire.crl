@@ -1,0 +1,6 @@
+grim Test:
+    init():
+        self.value = 42
+    
+    spell get_value():
+        return self.value

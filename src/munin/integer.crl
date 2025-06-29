@@ -1,0 +1,141 @@
+grim Integer:
+    init(value = 0):
+        self.value = value
+    
+    spell to_bin():
+        if self.value == 0:
+            return "0b0"
+        
+        is_negative = self.value < 0
+        num = self.value
+        if is_negative:
+            num = -num
+        
+        result = ""
+        while num > 0:
+            remainder = num % 2
+            result = str(remainder) + result
+            num = num // 2
+        
+        if is_negative:
+            return "-0b" + result
+        else:
+            return "0b" + result
+    
+    spell to_oct():
+        if self.value == 0:
+            return "0o0"
+        
+        is_negative = self.value < 0
+        num = self.value
+        if is_negative:
+            num = -num
+        
+        result = ""
+        while num > 0:
+            remainder = num % 8
+            result = str(remainder) + result
+            num = num // 8
+        
+        if is_negative:
+            return "-0o" + result
+        else:
+            return "0o" + result
+    
+    spell to_hex():
+        if self.value == 0:
+            return "0x0"
+        
+        is_negative = self.value < 0
+        num = self.value
+        if is_negative:
+            num = -num
+        
+        hex_chars = "0123456789abcdef"
+        result = ""
+        while num > 0:
+            remainder = num % 16
+            result = hex_chars[remainder] + result
+            num = num // 16
+        
+        if is_negative:
+            return "-0x" + result
+        else:
+            return "0x" + result
+    
+    spell abs():
+        if self.value < 0:
+            return -self.value
+        return self.value
+    
+    spell pow(exponent):
+        result = 1
+        base = self.value
+        exp = exponent
+        
+        if exp < 0:
+            return 0  # Integer division for negative exponents
+        
+        while exp > 0:
+            if exp % 2 == 1:
+                result = result * base
+            base = base * base
+            exp = exp // 2
+        
+        return result
+    
+    spell gcd(other):
+        a = self.value
+        b = other
+        if type(other) == "INSTANCE":
+            b = other.value
+        
+        if a < 0:
+            a = -a
+        if b < 0:
+            b = -b
+        
+        while b != 0:
+            temp = b
+            b = a % b
+            a = temp
+        
+        return a
+    
+    spell lcm(other):
+        a = self.value
+        b = other
+        if type(other) == "INSTANCE":
+            b = other.value
+        
+        gcd_val = self.gcd(b)
+        lcm_val = (a * b) // gcd_val
+        return lcm_val
+    
+    spell is_even():
+        return self.value % 2 == 0
+    
+    spell is_odd():
+        return self.value % 2 != 0
+    
+    spell is_prime():
+        if self.value < 2:
+            return False
+        if self.value == 2:
+            return True
+        if self.value % 2 == 0:
+            return False
+        
+        i = 3
+        while i * i <= self.value:
+            if self.value % i == 0:
+                return False
+            i = i + 2
+        
+        return True
+    
+    spell to_string():
+        return str(self.value)
+    
+    spell to_float():
+        return float(self.value)

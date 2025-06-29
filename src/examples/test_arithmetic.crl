@@ -1,0 +1,20 @@
+```
+Example demonstrating function definition and arithmetic operations.
+
+This script shows how to define custom functions (spells) that perform
+arithmetic operations and return results. Demonstrates parameter passing,
+local variable assignment, and function calls with return values.
+```
+
+# Define a function that increments a number by 1
+spell test(num):
+    ```
+    Simple arithmetic function that adds 1 to the input parameter.
+    Demonstrates basic function parameter usage and return values.
+    ```
+    # Perform arithmetic operation on the parameter
+    result = num + 1
+    return result
+
+# Call the function with a test value and display the result
+print(test(5))

@@ -1,0 +1,4 @@
+grim Test:
+    spell append(val):
+        self.elements = 42
+        return None

@@ -79,7 +79,8 @@ func (e *Error) Type() ObjectType { return ERROR_OBJ }
 func (e *Error) Inspect() string  { return "ERROR: " + e.Message }
 
 type Function struct {
-	Parameters  []*ast.Parameter
+   // Parameters holds function parameters, either simple identifiers or full Parameter nodes
+   Parameters  []ast.Expression
 	Body        *ast.BlockStatement
 	Env         *Environment
 	IsAbstract  bool
@@ -227,7 +228,29 @@ type Instance struct {
 }
 
 func (i *Instance) Type() ObjectType { return INSTANCE_OBJ }
-func (i *Instance) Inspect() string  { return fmt.Sprintf("<instance of %s>", i.Grimoire.Name) }
+func (i *Instance) Inspect() string {
+	// Special handling for primitive wrapper instances
+	switch i.Grimoire.Name {
+	case "Integer", "Float", "String", "Boolean":
+		if value, ok := i.Env.Get("value"); ok {
+			return value.Inspect()
+		}
+	case "Array":
+		if elements, ok := i.Env.Get("elements"); ok {
+			if arr, isArray := elements.(*Array); isArray {
+				return arr.Inspect()
+			}
+		}
+	}
+	
+	// Check if the instance has a to_string method
+	if _, ok := i.Grimoire.Methods["to_string"]; ok {
+		// We would need the evaluator to call this method properly
+		// For now, fall through to default behavior
+	}
+	
+	return fmt.Sprintf("<instance of %s>", i.Grimoire.Name)
+}
 
 // object/object.go
 

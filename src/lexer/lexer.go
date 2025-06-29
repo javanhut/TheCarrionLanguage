@@ -17,6 +17,7 @@ type Lexer struct {
 	sourceFile  string // Source file name for error reporting
 
 	indentResolved bool
+	tokenQueue     []token.Token // Queue for pending DEDENT tokens
 }
 
 func New(input string) *Lexer {
@@ -40,21 +41,47 @@ func NewWithFilename(input string, sourceFile string) *Lexer {
 }
 
 func (l *Lexer) NextToken() token.Token {
-	if l.finished {
-		return l.newToken(token.EOF, "")
-	}
+   // First check if there are queued tokens to return
+   if len(l.tokenQueue) > 0 {
+       token := l.tokenQueue[0]
+       l.tokenQueue = l.tokenQueue[1:]
+       return token
+   }
 
-	if l.charIndex == 0 && !l.indentResolved {
-		l.indentResolved = true
-		newIndent := measureIndent(l.currLine)
-		return l.handleIndentChange(newIndent)
-	}
+   if l.finished {
+       // At EOF, unwind any remaining indents
+       if len(l.indentStack) > 1 {
+           l.indentStack = l.indentStack[:len(l.indentStack)-1]
+           return l.newToken(token.DEDENT, "")
+       }
+       return l.newToken(token.EOF, "")
+   }
 
-	if l.charIndex >= len(l.currLine) {
-		tok := l.newToken(token.NEWLINE, "\\n")
-		l.advanceLine()
-		return tok
-	}
+   // Handle indentation changes at the start of a new line, skipping simple newlines/indents
+   // Skip blank or whitespace-only lines entirely
+   if l.charIndex == 0 && strings.TrimSpace(l.currLine) == "" {
+       l.advanceLine()
+       return l.NextToken()
+   }
+   // Handle indentation changes at the start of a new line, but be selective about tokens
+   if l.charIndex == 0 && !l.indentResolved {
+       l.indentResolved = true
+       newIndent := measureIndent(l.currLine)
+       tok := l.handleIndentChange(newIndent)
+       // Return all indentation-related tokens
+       if tok.Type == token.NEWLINE || tok.Type == token.INDENT || tok.Type == token.DEDENT {
+           return tok
+       }
+       // Continue to next token for other cases
+       return l.NextToken()
+   }
+
+   // Generate NEWLINE token at end of line
+   if l.charIndex >= len(l.currLine) {
+       l.advanceLine()
+       // Return NEWLINE token for explicit line break
+       return l.newToken(token.NEWLINE, "")
+   }
 
 	ch := l.currLine[l.charIndex]
 
@@ -130,14 +157,18 @@ func (l *Lexer) NextToken() token.Token {
 			l.charIndex++
 			return token.Token{Type: token.UNDERSCORE, Literal: "_"}
 		}
+	case '#':
+		l.skipLineComment()
+		return l.NextToken()
 	case '/':
 		next := l.peekChar()
 		if next == '=' {
 			l.charIndex += 2
 			return token.Token{Type: token.DIVASSGN, Literal: "/="}
 		} else if next == '/' {
-			l.skipLineComment()
-			return l.NextToken()
+			// Always treat // as integer division operator
+			l.charIndex += 2
+			return token.Token{Type: token.INTDIV, Literal: "//"}
 		} else if next == '*' {
 			l.skipBlockComment()
 			return l.NextToken()
@@ -226,9 +257,6 @@ func (l *Lexer) NextToken() token.Token {
 		l.charIndex++
 		return l.newToken(token.DOT, ".")
 
-	case '#':
-		l.charIndex++
-		return l.newToken(token.HASH, "#")
 
 	case '&':
 		l.charIndex++
@@ -247,6 +275,16 @@ func (l *Lexer) NextToken() token.Token {
 	case '\'':
 		return l.readString()
 
+	case '`':
+		// Check for triple backtick multiline comments
+		if l.peekChar() == '`' && l.peekCharAt(2) == '`' {
+			l.skipTripleBacktickComment()
+			return l.NextToken()
+		}
+		// Single backtick is treated as illegal for now
+		l.charIndex++
+		return token.Token{Type: token.ILLEGAL, Literal: "`"}
+
 	default:
 		if isLetter(ch) {
 			return l.readIdentifier()
@@ -257,6 +295,24 @@ func (l *Lexer) NextToken() token.Token {
 			return token.Token{Type: token.ILLEGAL, Literal: string(ch)}
 		}
 	}
+}
+
+// Add this helper function to check if a specific word follows the current position
+func (l *Lexer) wordFollows(word string) bool {
+	// Check if there's enough characters left
+	if l.charIndex+len(word) > len(l.currLine) {
+		return false
+	}
+
+	// Check if the substring matches the word
+	wordStart := l.charIndex
+	wordEnd := l.charIndex + len(word)
+	possibleWord := l.currLine[wordStart:wordEnd]
+
+	// Ensure it's a complete word by checking if it's followed by a non-identifier character
+	isComplete := wordEnd >= len(l.currLine) || !isLetterOrDigit(l.currLine[wordEnd])
+
+	return possibleWord == word && isComplete
 }
 
 func (l *Lexer) readFString() token.Token {
@@ -397,6 +453,32 @@ func (l *Lexer) skipBlockComment() {
 	}
 }
 
+func (l *Lexer) skipTripleBacktickComment() {
+	// Skip the opening ```
+	l.charIndex += 3
+
+	for {
+		if l.charIndex >= len(l.currLine) {
+			l.advanceLine()
+			if l.finished {
+				return
+			}
+			continue
+		}
+
+		// Check for closing ``` (need exactly 3 characters from current position)
+		if l.charIndex+2 < len(l.currLine) &&
+			l.currLine[l.charIndex] == '`' &&
+			l.currLine[l.charIndex+1] == '`' &&
+			l.currLine[l.charIndex+2] == '`' {
+			l.charIndex += 3
+			return
+		}
+
+		l.charIndex++
+	}
+}
+
 func (l *Lexer) handleIndentChange(newIndent int) token.Token {
 	currentIndent := l.indentStack[len(l.indentStack)-1]
 
@@ -411,7 +493,22 @@ func (l *Lexer) handleIndentChange(newIndent int) token.Token {
 		return l.newToken(token.INDENT, "")
 	}
 
-	l.indentStack = l.indentStack[:len(l.indentStack)-1]
+	// Handle multiple DEDENT levels - generate multiple DEDENT tokens
+	dedentCount := 0
+	for len(l.indentStack) > 1 && l.indentStack[len(l.indentStack)-1] > newIndent {
+		l.indentStack = l.indentStack[:len(l.indentStack)-1]
+		dedentCount++
+	}
+	
+	// Set charIndex to the new indentation level
+	l.charIndex = newIndent
+	
+	// Queue additional DEDENT tokens if needed
+	for i := 1; i < dedentCount; i++ {
+		l.tokenQueue = append(l.tokenQueue, l.newToken(token.DEDENT, ""))
+	}
+	
+	// Return the first DEDENT token
 	return l.newToken(token.DEDENT, "")
 }
 
@@ -432,6 +529,13 @@ func (l *Lexer) peekChar() byte {
 		return 0
 	}
 	return l.currLine[l.charIndex+1]
+}
+
+func (l *Lexer) peekCharAt(offset int) byte {
+	if l.charIndex+offset >= len(l.currLine) {
+		return 0
+	}
+	return l.currLine[l.charIndex+offset]
 }
 
 func measureIndent(line string) int {
@@ -558,8 +662,45 @@ func (l *Lexer) readIdentifier() token.Token {
 		l.charIndex++
 	}
 	literal := l.currLine[start:l.charIndex]
+
+	// Handle "not in" as a special case
+	if literal == "not" {
+		// Save current position
+		savedCharIndex := l.charIndex
+
+		// Skip any whitespace
+		for l.charIndex < len(l.currLine) && isHorizontalWhitespace(l.currLine[l.charIndex]) {
+			l.charIndex++
+		}
+
+		// Check if "in" follows
+		if l.wordFollows("in") {
+			// Consume "in"
+			// oldCharIndex := l.charIndex
+			l.charIndex += 2 // Length of "in"
+
+			// Return "not in" token
+			return token.Token{
+				Type:     token.NOT_IN,
+				Literal:  "not in",
+				Filename: l.sourceFile,
+				Line:     l.lineIndex + 1,
+				Column:   start + 1,
+			}
+		}
+
+		// If "in" doesn't follow, restore position and continue normally
+		l.charIndex = savedCharIndex
+	}
+
 	tokType := token.LookupIdent(literal)
-	return token.Token{Type: tokType, Literal: literal}
+	return token.Token{
+		Type:     tokType,
+		Literal:  literal,
+		Filename: l.sourceFile,
+		Line:     l.lineIndex + 1,
+		Column:   start + 1,
+	}
 }
 
 func isLetterOrDigit(ch byte) bool {

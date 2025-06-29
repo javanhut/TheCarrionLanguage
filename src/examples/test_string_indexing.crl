@@ -1,0 +1,25 @@
+// Test string indexing
+s = "hello world"
+
+print("String: " + s)
+print("s[0] = " + s[0])
+print("s[1] = " + s[1])
+print("s[6] = " + s[6])
+
+// Test negative indices
+print("\nNegative indices:")
+print("s[-1] = " + s[-1])  // Last character
+print("s[-2] = " + s[-2])  // Second to last
+print("s[-5] = " + s[-5])
+
+// Test recursive string reversal now that indexing works!
+spell reverse_string(s, index):
+    if index < 0:
+        return ""
+    return s[index] + reverse_string(s, index - 1)
+
+spell reverse(s):
+    return reverse_string(s, len(s) - 1)
+
+print("\nReverse of 'hello': " + reverse("hello"))
+print("Reverse of 'Carrion': " + reverse("Carrion"))

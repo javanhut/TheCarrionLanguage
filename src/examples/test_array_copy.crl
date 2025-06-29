@@ -1,0 +1,13 @@
+grim Array:
+    spell length():
+        return 42
+        
+    spell append(val):
+        return "appended"
+
+arr = Array()
+print("Array instance:", arr)
+result = arr.length()
+print("Length result:", result)
+append_result = arr.append(10)
+print("Append result:", append_result)

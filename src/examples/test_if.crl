@@ -1,11 +1,24 @@
-// ignore me im a useless comment 
+```
+Example demonstrating conditional statements and control flow in Carrion.
+
+This script showcases the if-otherwise-else conditional structure unique
+to Carrion, along with increment/decrement operators and string concatenation.
+Demonstrates how different conditional branches execute based on variable values.
+```
+
+# Initialize a test variable for conditional evaluation
 x = 3
+
+# Demonstrate Carrion's if-otherwise-else conditional structure
 if x < 1:
+    # Increment and display if x is less than 1
     x++
     print(str(x) + "\n")
 otherwise x >= 2:
+    # Decrement and display if x is greater than or equal to 2
     x--
     print(str(x) + "\n")
 else:
+    # Default case for any other values
     print(str(x) + "\n")
 

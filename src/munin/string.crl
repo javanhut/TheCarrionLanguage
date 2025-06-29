@@ -1,0 +1,197 @@
+```
+String manipulation and text processing grimoire for the Carrion language.
+
+This grimoire provides comprehensive string manipulation capabilities including
+case conversion, searching, character access, and text transformation operations.
+The String grimoire implements common string operations found in modern programming
+languages while maintaining the magical naming conventions of Carrion.
+
+All string operations are designed to be memory-efficient and handle Unicode
+characters properly through ASCII code manipulation. The grimoire supports both
+positive and negative indexing for flexible character access.
+```
+grim String:
+    ```
+    Initializes a new String grimoire instance with the provided text value.
+    
+    This constructor stores the string value that will be operated upon by
+    all the string manipulation spells. The value is stored as-is without
+    any modification or validation.
+    
+    Parameters:
+        value: The string content to be managed by this grimoire instance
+    ```
+    init(value):
+        self.value = value
+    
+    ```
+    Returns the number of characters in the string.
+    
+    This spell provides a convenient way to determine the length of the string
+    without needing to access the built-in len() function directly. This is
+    particularly useful in object-oriented contexts where method chaining
+    is preferred.
+    
+    Returns:
+        Integer representing the total number of characters in the string
+    ```
+    spell length():
+        return len(self.value)
+    
+    ```
+    Converts all uppercase letters in the string to lowercase.
+    
+    This spell iterates through each character in the string and converts
+    any uppercase ASCII letters (A-Z, codes 65-90) to their lowercase
+    equivalents by adding 32 to their ASCII values. Non-alphabetic
+    characters are preserved unchanged.
+    
+    Returns:
+        A new string with all uppercase letters converted to lowercase
+    ```
+    spell lower():
+        result = ""
+        for i in range(0, len(self.value)):
+            char = self.value[i]
+            char_code = ord(char)
+            # ASCII uppercase letters range from 65 (A) to 90 (Z)
+            if char_code >= 65 and char_code <= 90:
+                result = result + chr(char_code + 32)
+            else:
+                result = result + char
+        return result
+    
+    ```
+    Converts all lowercase letters in the string to uppercase.
+    
+    This spell iterates through each character in the string and converts
+    any lowercase ASCII letters (a-z, codes 97-122) to their uppercase
+    equivalents by subtracting 32 from their ASCII values. Non-alphabetic
+    characters are preserved unchanged.
+    
+    Returns:
+        A new string with all lowercase letters converted to uppercase
+    ```
+    spell upper():
+        result = ""
+        for i in range(0, len(self.value)):
+            char = self.value[i]
+            char_code = ord(char)
+            # ASCII lowercase letters range from 97 (a) to 122 (z)
+            if char_code >= 97 and char_code <= 122:
+                result = result + chr(char_code - 32)
+            else:
+                result = result + char
+        return result
+    
+    ```
+    Creates a new string with characters in reverse order.
+    
+    This spell builds a new string by iterating through the original string
+    from the last character to the first, effectively reversing the order
+    of all characters. This is useful for palindrome checking, text effects,
+    or algorithm implementations that require reversed strings.
+    
+    Returns:
+        A new string containing the same characters in reverse order
+    ```
+    spell reverse():
+        result = ""
+        # Iterate from last character to first (reverse order)
+        for i in range(len(self.value) - 1, -1, -1):
+            result = result + self.value[i]
+        return result
+    
+    ```
+    Searches for the first occurrence of a substring within the string.
+    
+    This spell implements a basic string search algorithm that examines
+    each possible position in the string to find where the substring begins.
+    It uses a nested loop approach to compare characters at each potential
+    starting position. Returns the index of the first match or -1 if not found.
+    
+    Parameters:
+        substring: The text to search for within this string
+    
+    Returns:
+        Integer index of the first occurrence, or -1 if substring not found
+    ```
+    spell find(substring):
+        sub_len = len(substring)
+        str_len = len(self.value)
+        
+        # Early return if substring is longer than the string
+        if sub_len > str_len:
+            return -1
+        
+        # Check each possible starting position
+        for i in range(0, str_len - sub_len + 1):
+            found = True
+            # Compare each character of the substring
+            for j in range(0, sub_len):
+                if self.value[i + j] != substring[j]:
+                    found = False
+                    stop
+            if found:
+                return i
+        return -1
+    
+    ```
+    Checks whether the string contains the specified substring.
+    
+    This spell provides a convenient boolean check for substring existence
+    by leveraging the find() spell. It's more readable than checking the
+    return value of find() when you only need to know if a substring exists
+    rather than where it's located.
+    
+    Parameters:
+        substring: The text to search for within this string
+    
+    Returns:
+        True if the substring is found anywhere in the string, False otherwise
+    ```
+    spell contains(substring):
+        found_at = self.find(substring)
+        if found_at >= 0:
+            return True
+        else:
+            return False
+    
+    ```
+    Retrieves the character at the specified index position.
+    
+    This spell supports both positive and negative indexing. Positive indices
+    start from 0 at the beginning of the string, while negative indices start
+    from -1 at the end of the string (Python-style). Returns None for invalid
+    indices to prevent errors.
+    
+    Parameters:
+        index: The position of the character to retrieve (supports negative indexing)
+    
+    Returns:
+        The character at the specified position, or None if index is out of bounds
+    ```
+    spell char_at(index):
+        # Convert negative index to positive equivalent
+        if index < 0:
+            index = len(self.value) + index
+        
+        # Validate index bounds
+        if index < 0 or index >= len(self.value):
+            return None
+        
+        return self.value[index]
+    
+    ```
+    Returns the string value as a standard string type.
+    
+    This spell provides explicit conversion back to a standard string,
+    which is useful for compatibility with functions that expect plain
+    strings rather than String grimoire objects. Also serves as a way
+    to extract the underlying string value from the grimoire wrapper.
+    
+    Returns:
+        The underlying string value without grimoire wrapper
+    ```
+    spell to_string():
+        return self.value

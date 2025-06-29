@@ -1,17 +1,17 @@
 grim File:
-    // Read entire file into a string
+    # Read entire file into a string
     spell read(path):
         return fileRead(path)
 
-    // Write (overwrite) a file
+    # Write (overwrite) a file
     spell write(path, content):
         return fileWrite(path, content)
 
-    // Append content to a file
+    # Append content to a file
     spell append(path, content):
         return fileAppend(path, content)
 
-    // Check if file (or directory) exists
+    # Check if file (or directory) exists
     spell exists(path):
         return fileExists(path)
 

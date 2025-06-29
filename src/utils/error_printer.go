@@ -21,11 +21,23 @@ const (
 	Cyan   = "\033[36m"
 )
 
+const MAX_REPL_HISTORY = 1000
+
 // Store REPL history for error context
 var replHistory = make(map[int]string)
 
 // RegisterReplLine stores a line from REPL history for error context
 func RegisterReplLine(lineNum int, content string) {
+	// Implement bounded history to prevent memory leaks
+	if len(replHistory) >= MAX_REPL_HISTORY {
+		// Remove oldest entries (lowest line numbers)
+		oldestToKeep := lineNum - MAX_REPL_HISTORY + 1
+		for k := range replHistory {
+			if k < oldestToKeep {
+				delete(replHistory, k)
+			}
+		}
+	}
 	replHistory[lineNum] = content
 }
 
@@ -198,13 +210,11 @@ func printSourceContext(pos object.SourcePosition, isMainError bool) {
 				if pos.Column > 0 {
 					pointerCol := min(pos.Column, len(line)+1)
 					// padding := strings.Repeat(" ", pointerCol+lineNumWidth+3)
-					fmt.Printf("  %s |%s%s%s%s^ %sError occurs here%s\n",
+					fmt.Printf("  %s |%s%s%s^ Error occurs here\n",
 						strings.Repeat(" ", lineNumWidth),
 						Reset,
 						strings.Repeat(" ", pointerCol),
-						Bold+Red,
-						Reset+Yellow,
-						Reset)
+						Bold+Red)
 				}
 			} else {
 				// Context line
@@ -237,12 +247,10 @@ func printReplContext(line int, column int, isMainError bool) {
 	if column > 0 {
 		pointerCol := min(column, len(codeLine)+1)
 		padding := strings.Repeat(" ", pointerCol)
-		fmt.Printf("      |%s%s%s%s^ %sError occurs here%s\n",
+		fmt.Printf("      |%s%s%s^ Error occurs here\n",
 			Reset,
 			padding,
-			Bold+Red,
-			Reset+Yellow,
-			Reset)
+			Bold+Red)
 	}
 	fmt.Println()
 }
@@ -270,10 +278,10 @@ func printFixSuggestions(err *object.ErrorWithTrace) {
 			fmt.Println(
 				"Carrion doesn't support direct array element assignment like arr[i] = value.",
 			)
-			fmt.Println(
-				"  Try creating an Array spellbook with a 'set(index, value)' method instead:",
-			)
-			fmt.Println("    spellbook Array:")
+            fmt.Println(
+                "  Try creating an Array grim with a 'set(index, value)' method instead:",
+            )
+            fmt.Println("    grim Array:")
 			fmt.Println("      spell set(index, value):")
 			fmt.Println("        new_elements = []")
 			fmt.Println("        for i in range(len(self.elements)):")
@@ -286,7 +294,7 @@ func printFixSuggestions(err *object.ErrorWithTrace) {
 		case "invalid_index":
 			fmt.Println("You're trying to use [] indexing on a type that doesn't support it.")
 			fmt.Println("  If this is a custom object, try implementing a 'get(index)' method:")
-			fmt.Println("    spellbook YourType:")
+            fmt.Println("    grim YourType:")
 			fmt.Println("      spell get(index):")
 			fmt.Println("        // Your implementation here")
 
@@ -359,13 +367,11 @@ func PrintParseFail(filename string, content string, errors []string) {
 						if colNum > 0 {
 							pointerCol := min(colNum, len(lines[i-1])+1)
 							padding := strings.Repeat(" ", pointerCol)
-							fmt.Printf("  %s |%s%s%s%s^ %sError occurs here%s\n",
+							fmt.Printf("  %s |%s%s%s^ Error occurs here\n",
 								strings.Repeat(" ", lineNumWidth),
 								Reset,
 								padding,
-								Bold+Red,
-								Reset+Yellow,
-								Reset)
+								Bold+Red)
 						}
 					} else {
 						fmt.Printf("  %*d | %s\n", lineNumWidth, i, lines[i-1])

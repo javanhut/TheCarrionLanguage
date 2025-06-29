@@ -31,6 +31,7 @@ const (
 	MINUS           TokenType = "-"
 	ASTERISK        TokenType = "*"
 	SLASH           TokenType = "/"
+	INTDIV          TokenType = "//"
 	MOD             TokenType = "%"
 	EXPONENT        TokenType = "**"
 	INCREMENT       TokenType = "+="
@@ -106,6 +107,7 @@ const (
 	AND         TokenType = "AND"
 	OR          TokenType = "OR"
 	NOT         TokenType = "NOT"
+	NOT_IN      TokenType = "NOT_IN"
 )
 
 var keywords = map[string]TokenType{
@@ -141,6 +143,7 @@ var keywords = map[string]TokenType{
 	"arcanespell": ARCANESPELL,
 	"super":       SUPER,
 	"check":       CHECK,
+	"not in":      NOT_IN,
 
 	//"range":     RANGE,
 	"None": NONE,

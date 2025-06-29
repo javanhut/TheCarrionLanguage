@@ -17,11 +17,70 @@
 ⠀⠀⠀⠀⠀⠀⠀⠸⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠉⠙⠛⠋⠉⠉⠀⠀⠀⠀⠀⠀⠀⠀
 ```
-### The Carrion programming language is a dynamically typed programming language written in Go. It's supposed to be similar to python with some syntax changes and functionality that i like. Don't beintimidated. It's meant to be easy to learn it just has a fun crow theme! It's named after the Carrion Crow. And has some norse inspirations.  
+### The Carrion programming language is a dynamically typed, interpreted programming language written in Go. It's designed to be similar to Python with creative syntax modifications and unique functionality. Don't be intimidated - it's meant to be easy to learn and features a fun crow theme! It's named after the Carrion Crow and has Norse mythology inspirations (with the standard library named Munin after Odin's raven).
+
+## ✨ What's New in Version 0.1.6-alpha
+
+### 🔮 Interactive Help System "Mimir"
+The REPL now features a comprehensive interactive help system called **Mimir** (named after Odin's wisdom-seeking raven):
+
+```python
+// Launch interactive help in REPL
+mimir
+```
+
+**Features:**
+- 📚 6 main help categories with detailed sub-menus
+- 🔍 Function search by name or purpose  
+- 💡 Built-in function documentation with examples
+- 🏛️ Complete standard library reference
+- 🎯 Language feature guides and tutorials
+- ⚡ REPL tips and keyboard shortcuts
+
+### 🚀 Enhanced Tab Completion
+Intelligent auto-completion for:
+- **Keywords**: `if`, `for`, `grim`, `spell`, `attempt`, etc.
+- **Built-ins**: `print`, `len`, `Array`, `String`, etc.
+- **Methods**: `.append()`, `.sort()`, `.upper()`, `.to_bin()`, etc.
+- **Standard Library**: All Munin module functions
+
+### 🔧 Fixed Operators & Assignment
+All operators now work correctly with tuple unpacking and variable assignment:
+
+```python
+// Tuple unpacking now works with all operators
+x, y = (10, 20)
+x++        // Post-increment ✅
+++y        // Pre-increment ✅
+x += 5     // Compound assignment ✅
+y -= 3     // All compound operators work ✅
+z = -x     // Unary minus fixed ✅
+```
+
+### 📝 Enhanced String Operations
+Strings now support indexing and enhanced grimoire methods:
+
+```python
+s = "Hello World"
+print(s[0])     // "H" - Direct indexing
+print(s[-1])    // "d" - Negative indexing
+
+sg = String(s)
+print(sg.upper())    // "HELLO WORLD"
+print(sg.find("World"))  // 6
+```
+
+### 🔢 Character Conversion Functions
+New built-in functions for character/ASCII conversion:
+
+```python
+print(ord("A"))  // 65 - Character to ASCII
+print(chr(65))   // "A" - ASCII to character
+```  
 
 
 ## Notes:
-Currently the language is in development.
+Currently the language is in active development (Version 0.1.6-alpha).
 
 ## Fun things I'm doing to the language.
 2 types of increments are accepted 
@@ -36,7 +95,9 @@ It has similar syntax to python but no typing just yet will have optional type h
 
 # Comments:
 
-Comments in carrion are either // or /* */ i just like using those so idc if you like # functions i like those and it's my language.
+Comments in Carrion use C-style syntax:
+- Single-line comments: `//`
+- Multi-line comments: `/* */`
 
 
 
@@ -61,7 +122,7 @@ All of these are valid:
 - i"Double String Interpolation"
 - i'Single String Interpolation'
 
-* Note: The F Strings won't throw an error for not using a replacement char for it but hey it will eventually. probably better than using string concatenation
+* Note: F-strings and interpolated strings currently don't throw errors for unused replacement characters, but proper validation is planned for future versions. String interpolation is generally preferred over concatenation for readability.
 
 ### String concatenation
  You can add strings together by using +
@@ -76,7 +137,7 @@ print(result)
 
 # Defaults
 
-Spells work just like methods in python if you're familar with python if not here's an example
+Spells are Carrion's functions, working similarly to Python methods. Here's how they work:
 
 ```python
 spell foobar(name="foobar"):
@@ -95,43 +156,71 @@ This allows you to set default arguments in the parameters.
 - Working REPL
 - OS and File functions
 
-# Run REPL
+# Running Carrion
+
+## REPL (Interactive Mode)
 ```bash
 carrion
 ```
-- Note: Run carrion without a file to run REPL
+Running `carrion` without arguments starts the interactive REPL with command history support.
 
-# Data Types Currently supported:
- - Arrays
- - Hashmap
- - Integers
- - Float
- - Strings
- - Tuples
+**REPL Commands:**
+- `mimir` - Launch interactive help system
+- `clear` - Clear the screen
+- `quit`, `exit`, `q` - Exit the REPL
+- Tab completion for all functions and keywords
+- Command history with up/down arrows
 
-# Builtin Methods
+## Running Scripts
+```bash
+carrion script.crl
+```
+Carrion scripts use the `.crl` file extension.
 
-- len() - Gets the length of the object input
+# Data Types
 
-- print() - prints out the input of the content
+Carrion supports the following data types:
 
-- int() - converts to integer
+## Primitive Types
+- **Integer**: Whole numbers (64-bit)
+- **Float**: Decimal numbers (64-bit)
+- **String**: Text data with support for single quotes, double quotes, docstrings, and interpolation
+- **Boolean**: `True` or `False`
+- **None**: Represents absence of value
 
-- float() - converts int to float
+## Collection Types
+- **Array**: Ordered, mutable list of elements `[1, 2, 3]`
+- **Hash**: Key-value pairs (dictionary) `{"key": "value"}`
+- **Tuple**: Immutable ordered collection `(1, 2, 3)`
 
-- str() - convert to string 
+# Built-in Functions
 
-- type() - get the data type of input object
+## Type Conversion
+- `int(value)` - Convert to integer
+- `float(value)` - Convert to float
+- `str(value)` - Convert to string
+- `list(string)` - Convert string to list of characters
 
-- list() - converts string to list of runes
+## Utility Functions
+- `len(object)` - Get length of strings, arrays, or other collections
+- `type(object)` - Get the type of an object
+- `print(*args)` - Print values to console
+- `input(prompt)` - Read user input from terminal
+- `range(start, stop[, step])` - Generate a sequence of numbers
+- `ord(char)` - Convert character to ASCII/Unicode code
+- `chr(code)` - Convert ASCII/Unicode code to character
+- `max(*args)` - Return maximum value from arguments
+- `abs(value)` - Return absolute value of a number
+- `enumerate(array)` - Return array of (index, value) tuples
+- `pairs(hash)` - Return key-value pairs from hash
+- `is_sametype(obj1, obj2)` - Check if objects have same type
 
-- input() - takes user input from terminal
+## Error Handling
+- `Error(message)` - Create a generic error
+- `check(condition, message)` - Assert a condition, raise error if false
 
-- range() - makes a range function from any numbers
-
-- Error() - Base generic Error function
-
-- os and file functions from golang but wrapped in Carrion Lang.
+## OS and File Operations
+Carrion provides wrapped Go functions for file and OS operations through the standard library.
 
 # Type Hints
 * For fun you can add in type hints for extra clarity i haven't implemented a checker yet but here is the Implementation.
@@ -141,7 +230,7 @@ You can set a type hint for variables and parameters.
 ```python
 x: str = "Foo"
 
-spellbook Foo:
+grim Foo:
     init(x:str = x):
         self.x = x
 
@@ -165,8 +254,10 @@ while x < 20:
 ```
 ## Skip/Stop
 
-* For conditons inside a loop perhaps you might want to skip over something or stop execution based on a rule.
-This is where the keywords skip and stiop come in skip skips over a condition asn stop stops based on a condition.
+* For conditions inside a loop, you might want to skip over something or stop execution based on a rule.
+This is where the keywords `skip` and `stop` come in:
+- `skip`: Skips to the next iteration (equivalent to Python's `continue`)
+- `stop`: Stops the loop execution (equivalent to Python's `break`)
 
 e.g.
 ```python
@@ -184,7 +275,7 @@ while i < 10:
         stop
     else:
         print(i)
-// Should return 0,1,2
+// Should output 0,1,2
 
 ```
 
@@ -205,16 +296,17 @@ match foo:
 
 ```
 
-*Notes: Currently no support for list comprehensions like in python
+*Note: List comprehensions are not currently supported but are planned for future versions.
 
 # Classes and Imports
 * Currently Classes are implemented as well as Imports
-- Classes in Carrion are known as "Spellbooks" and the Methods are spells within those Spellbooks
+- Classes in Carrion are conceptually called "Spellbooks" but use the keyword `grim` (short for grimoire)
+- Methods within classes are called "spells"
 
-# Example of how spellbooks are implemented
+# Example of how classes (grimoires/spellbooks) are implemented
 ```python
 
-spellbook Foobar:
+grim Foobar:
     init(foo):
         self.foo = foo
     spell foobar_method():
@@ -235,8 +327,8 @@ example.example_method()
 
 * Note: Once you import a file you have access to it's methods by calling in the class name.
 
-# OOP part of Spellbooks
-Spellbooks are Carrion's classes.
+# OOP with Grimoires (Spellbooks)
+Grimoires (conceptually called Spellbooks) are Carrion's classes. Use the `grim` keyword to define them.
 Not all OOP aspects are implemented but some are.
 You can declare self from any method and set them in the init.
 
@@ -246,7 +338,7 @@ e.g.
 # With init: init() constructor:
 
 ```python
-spellbook Foobar:
+grim Foobar:
     init(foo, bar):
         self.foo = foo
         self.bar = bar
@@ -263,7 +355,7 @@ foo.print_bar()
 # With spell init: spell init() constructor:
 
 ```python
-spellbook Foobar:
+grim Foobar:
     spell init(foo, bar):
         self.foo = foo
         self.bar = bar
@@ -284,10 +376,10 @@ So inspired by python it's no surprise.
 ## Abstraction
 In Carrion Language there is abstract classes but they are labeled by the keyword arcane.
 
-To declare an arcane spellbook you declare it as follows:
+To declare an arcane grimoire (abstract class) you declare it as follows:
 
 ```python
-arcane spellbook Foo:
+arcane grim Foo:
     init();
         ignore
 
@@ -299,7 +391,7 @@ For abstracted method they are labeled as arcane spells but uses the @ symbol an
 
 
 ```python
-arcane spellbook Foo:
+arcane grim Foo:
     @arcanespell
     spell foobar():
         ignore
@@ -312,11 +404,11 @@ You're probably wondering about the ignore. Yes ignore is the keyword that indic
 Inheritance is pretty similar to python. Currently the super method isn't implemented but you can share resources with self and inheriting from parent class.
 
 ```python
-spellbook Parent:
+grim Parent:
     spell parent_method():
         ignore
 
-spellbook Child(Parent):
+grim Child(Parent):
     init():
         ignore
 
@@ -332,7 +424,7 @@ Protected are declare by '__' double underscore while private are declared by '_
 
 e.g Protected:
 ```python
-spellbook Foo:
+grim Foo:
     init(var="foobar"):
         self.var = var
 
@@ -351,7 +443,7 @@ foobar.return_protected()
 
 e.g Private:
 ```python
-spellbook Foo:
+grim Foo:
     init(var="foobar"):
         self.var = var
 
@@ -373,23 +465,20 @@ Last OOP concept.
 You can overwrite spells from inherited parents.
 
 ```python
-spellbook Parent:
+grim Parent:
     init(name="parent"):
         self.name = name
     spell parent_method():
         return self.name
 
 
-spellbook Child(Parent):
+grim Child(Parent):
     init(name="child"):
         self.name = name
     spell parent_method(child_age="age"):
         return "Name: " + str(self.name) + "/t Age: " + child_age
 ```
 
-Yay i'm a genius.
-
-Anyways
 
 
 # Error Handling
@@ -404,7 +493,7 @@ Finally resolve just finishes the functionality that if specified will always ru
 
 // Custom error
  // Define a custom error
-spellbook ValueError:
+grim ValueError:
     spell init(message):
         self.message = message
 
@@ -435,13 +524,190 @@ See i really do love you makes sense right?
 
 
 
-# Example file run.
+# Running Example Files
 ```bash
 carrion examples/test_file.crl
 ```
+
+The `examples/` directory contains numerous test files demonstrating various language features.
 # Standard Library - Munin
 
-## Current Implementation
-- OS and File Functionality
-- Basic Math Functions
+The Munin standard library (named after Odin's raven) provides essential functionality for Carrion programs.
+
+## Available Modules
+
+### Core Modules
+- **Array**: Enhanced array manipulation with methods like `.append()`, `.sort()`, `.reverse()`, `.contains()`
+- **String**: String operations including `.upper()`, `.lower()`, `.find()`, `.char_at()`, `.reverse()`
+- **Integer**: Integer utilities with `.to_bin()`, `.to_hex()`, `.is_prime()`, `.gcd()`, `.lcm()`
+- **Float**: Float operations with `.round()`, `.sqrt()`, `.sin()`, `.cos()`, `.abs()`
+- **Boolean**: Boolean logic with `.to_int()`, `.negate()`, `.and_with()`, `.or_with()`
+
+### System Modules
+- **OS**: Operating system interface with `.cwd()`, `.listdir()`, `.getenv()`, `.run()`, `.sleep()`
+- **File**: File I/O operations with `.read()`, `.write()`, `.append()`, `.exists()`
+- **Math**: Mathematical functions and constants
+
+### Development Tools
+- **Debug**: Debugging utilities
+- **Primitive**: Basic type operations
+
+## Using the Standard Library
+
+The standard library is automatically loaded when Carrion starts. You can check the loaded modules with:
+
+```python
+modules()  // List all available modules
+version()  // Check Carrion and Munin versions
+help()     // Get basic help information
+mimir      // Launch interactive help system (REPL only)
+```
+
+## Example: Using Enhanced Standard Library
+
+```python
+// Enhanced Array operations
+arr = Array([3, 1, 4, 1, 5])
+arr.append(9)
+print(arr.sort())        // [1, 1, 3, 4, 5, 9]
+print(arr.contains(3))   // True
+print(arr.length())      // 6
+
+// String manipulation with indexing
+s = "Hello World"
+print(s[0])              // "H"
+print(s[-1])             // "d"
+sg = String(s)
+print(sg.upper())        // "HELLO WORLD"
+print(sg.find("World"))  // 6
+
+// Integer utilities
+num = Integer(42)
+print(num.to_bin())      // "0b101010"
+print(num.to_hex())      // "0x2a"
+
+// Character conversion
+print(ord("A"))          // 65
+print(chr(65))           // "A"
+```
+
+# Language Reference
+
+## Keywords
+
+### Control Flow
+- `if`, `else`, `otherwise` - Conditional statements
+- `for`, `while` - Loop constructs
+- `skip` - Continue to next iteration
+- `stop` - Break from loop
+- `return` - Return from function
+- `match`, `case` - Pattern matching
+
+### Object-Oriented Programming
+- `grim` - Class definition keyword (short for grimoire/spellbook, can be preceded by `arcane` for abstract classes)
+- `spell` - Method definition
+- `init` - Constructor method
+- `self` - Reference to current instance
+- `super` - Reference to parent class
+
+### Error Handling
+- `attempt` - Try block
+- `ensnare` - Catch block
+- `resolve` - Finally block
+- `raise` - Throw an error
+- `check` - Assert a condition
+
+### Special Keywords
+- `import` - Import modules
+- `as` - Alias in imports
+- `in` - Membership test
+- `not in` - Negative membership test
+- `and`, `or`, `not` - Boolean operators
+- `True`, `False` - Boolean literals
+- `None` - Null value
+- `ignore` - Empty statement placeholder
+
+### Decorators
+- `@arcanespell` - Mark abstract methods
+
+## Operators
+
+### Arithmetic
+- `+` - Addition
+- `-` - Subtraction
+- `*` - Multiplication
+- `/` - Division
+- `%` - Modulo
+- `**` - Exponentiation
+
+### Assignment
+- `=` - Basic assignment
+- `+=` - Addition assignment
+- `-=` - Subtraction assignment
+- `*=` - Multiplication assignment
+- `/=` - Division assignment
+- `++` - Increment (prefix/postfix)
+- `--` - Decrement (prefix/postfix)
+
+### Comparison
+- `==` - Equal
+- `!=` - Not equal
+- `<` - Less than
+- `>` - Greater than
+- `<=` - Less than or equal
+- `>=` - Greater than or equal
+
+### Bitwise
+- `&` - Bitwise AND
+- `|` - Bitwise OR
+- `^` - Bitwise XOR
+- `~` - Bitwise NOT
+- `<<` - Left shift
+- `>>` - Right shift
+
+## Type Hints (Optional)
+
+Carrion supports optional type hints for clarity:
+
+```python
+x: int = 42
+name: str = "Carrion"
+
+spell calculate(a: int, b: int) -> int:
+    return a + b
+```
+
+## Best Practices
+
+1. **Naming Conventions**
+   - Use snake_case for variables and functions
+   - Use PascalCase for grimoires/classes (defined with `grim`)
+   - Private methods: prefix with `_`
+   - Protected methods: prefix with `__`
+
+2. **Error Handling**
+   - Always use attempt/ensnare for operations that might fail
+   - Create custom error classes for specific error types
+   - Use `check` for precondition validation
+
+3. **Code Organization**
+   - One grimoire/class per file for large classes
+   - Group related functions together
+   - Use the standard library modules when available
+
+## Limitations and Future Features
+
+### Current Limitations
+- No list comprehensions (planned)
+- No generator expressions
+- Limited metaclass support
+- No async/await syntax
+
+### Planned Features
+- JIT compilation for performance
+- Virtual machine implementation
+- Enhanced type system with static checking
+- List comprehensions
+- More comprehensive standard library
+- Better interoperability with other languages
 

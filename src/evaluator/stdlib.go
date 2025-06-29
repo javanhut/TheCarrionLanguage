@@ -34,6 +34,10 @@ func LoadMuninStdlib(env *object.Environment) error {
 
 			// 5. Check for parse errors
 			if len(p.Errors()) > 0 {
+				fmt.Printf("Parse errors in %s:\n", entry.Name())
+				for i, err := range p.Errors() {
+					fmt.Printf("  Error %d: %s\n", i+1, err)
+				}
 				return fmt.Errorf("parse errors in %s: %v", entry.Name(), p.Errors())
 			}
 

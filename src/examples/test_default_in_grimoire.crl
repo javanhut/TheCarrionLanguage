@@ -1,4 +1,4 @@
-spellbook Default:
+grim Default:
   init(default="Carrion"):
     self.default = default
   spell print_language():

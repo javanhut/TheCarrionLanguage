@@ -1,0 +1,27 @@
+// This demonstrates the string indexing limitation
+
+s = "hello"
+arr = [1, 2, 3, 4, 5]
+
+// This works - array indexing is implemented
+print("Array index: arr[2] = " + str(arr[2]))
+
+// This would fail - string indexing is NOT implemented
+// Uncommenting the next line would cause an error:
+// print("String index: s[1] = " + s[1])
+
+// The error would be: "index operator not supported: STRING"
+
+// Why? Because in evalIndexExpression, the code only handles:
+// - Arrays (ARRAY_OBJ)
+// - Tuples (TUPLE_OBJ)  
+// - Hashes/Dictionaries (HASH_OBJ)
+// But not Strings (STRING_OBJ)
+
+// To add string indexing, we'd need to:
+// 1. Add a case for STRING_OBJ in evalIndexExpression
+// 2. Implement bounds checking (negative indices, out of bounds)
+// 3. Return a single-character string
+
+print("String indexing is not yet implemented in Carrion")
+print("But recursion works perfectly fine with other data types!")

@@ -1,0 +1,6 @@
+spell test(n):
+    if n == 5:
+        return "found"
+    return "not found"
+
+print(test(5))

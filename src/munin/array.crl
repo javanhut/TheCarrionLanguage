@@ -1,215 +1,233 @@
 grim Array:
-    init(elements=[]):
-        // Initialize with elements from a standard array
-        self.elements = elements
+    init(elements):
+        if elements == None:
+            self.elements = []
+        else:
+            self.elements = elements
     
-    // Core indexing methods
+    spell length():
+        return Integer(len(self.elements))
+
+    spell append(val):
+        self.elements = self.elements + [val]
+        return None
+
+    spell to_string():
+        result = "["
+        for i in range(0, len(self.elements)):
+            if i > 0:
+                result = result + ", "
+            result = result + str(self.elements[i])
+        result = result + "]"
+        return String(result)
+
     spell get(index):
-        // Handle negative indices (Python-style)
-        if index < 0:
-            index = len(self.elements) + index
+        idx = index
+        if type(index) == "INSTANCE":
+            idx = index.value
         
-        // Check bounds
-        if index < 0 or index >= len(self.elements):
-            raise "IndexError: Index out of range"
+        if idx < 0:
+            idx = len(self.elements) + idx
         
-        return self.elements[index]
-    
+        if idx < 0 or idx >= len(self.elements):
+            return None
+        
+        return self.elements[idx]
+
     spell set(index, value):
-        // Handle negative indices (Python-style)
-        if index < 0:
-            index = len(self.elements) + index
+        idx = index
+        if type(index) == "INSTANCE":
+            idx = index.value
         
-        // Check bounds
-        if index < 0 or index >= len(self.elements):
-            raise "IndexError: Index out of range"
+        if idx < 0:
+            idx = len(self.elements) + idx
         
-        // Create a new array with the updated value
-        new_elements = [] 
-        for i in range(len(self.elements)):
-            if i == index:
-                new_elements = new_elements + [value]
-            else:
-                new_elements = new_elements + [self.elements[i]]
-        
-        self.elements = new_elements
-        return value
-    
-    // Size and capacity methods
-    spell size():
-        return len(self.elements)
-    
+        if idx >= 0 and idx < len(self.elements):
+            new_elements = []
+            for i in range(0, len(self.elements)):
+                if i == idx:
+                    new_elements = new_elements + [value]
+                else:
+                    new_elements = new_elements + [self.elements[i]]
+            self.elements = new_elements
+        return None
+
     spell is_empty():
-        return len(self.elements) == 0
+        return Boolean(len(self.elements) == 0)
     
-    // Stack operations
-    spell push(value):
-        self.elements = self.elements + [value]
-        return self
-    
-    // Queue operations
-    spell enqueue(value):
-        return self.push(value)
-    
-    // Search and contains
     spell contains(value):
-        for item in self.elements:
-            if item == value:
-                return True
-        return False
+        for element in self.elements:
+            if element == value:
+                return Boolean(True)
+        return Boolean(False)
     
+    ```
+    Finds the index position of the first occurrence of a value.
+    
+    This spell searches through the array from beginning to end to locate
+    the specified value. Returns the index wrapped in an Integer grimoire
+    object, or -1 if the value is not found anywhere in the array.
+    
+    Parameters:
+        value: The value to locate within the array
+    
+    Returns:
+        Integer grimoire object containing the index, or -1 if not found
+    ```
     spell index_of(value):
-        for i in range(len(self.elements)):
+        for i in range(0, len(self.elements)):
             if self.elements[i] == value:
-                return i
-        return -1
+                return Integer(i)
+        return Integer(-1)
     
-    // Modification methods
+    ```
+    Removes the first occurrence of the specified value from the array.
+    
+    This spell searches for the specified value and removes only the first
+    matching element found. All subsequent occurrences remain unchanged.
+    The operation modifies the current array and returns whether any element
+    was actually removed.
+    
+    Parameters:
+        value: The value to remove from the array
+    
+    Returns:
+        Boolean grimoire object: True if element was removed, False if not found
+    ```
+    spell remove(value):
+        new_elements = []
+        found = False
+        for element in self.elements:
+            if element != value or found:
+                new_elements = new_elements + [element]
+            else:
+                found = True
+        self.elements = new_elements
+        return Boolean(found)
+    
+    ```
+    Removes all elements from the array, making it empty.
+    
+    This spell resets the array to an empty state by replacing the elements
+    collection with a new empty array. Useful for reusing array instances
+    without creating new objects.
+    
+    Returns:
+        None to indicate the operation completed successfully
+    ```
     spell clear():
         self.elements = []
-        return self
+        return None
     
-    spell append(value):
-        return self.push(value)
+    ```
+    Retrieves the first element from the array.
     
-    spell insert(index, value):
-        if index < 0:
-            index = len(self.elements) + index
+    This spell provides convenient access to the first element without
+    needing to use indexing syntax. Returns None if the array is empty
+    to prevent errors and provide safe access patterns.
+    
+    Returns:
+        The first element in the array, or None if array is empty
+    ```
+    spell first():
+        if len(self.elements) > 0:
+            return self.elements[0]
+        return None
+    
+    ```
+    Retrieves the last element from the array.
+    
+    This spell provides convenient access to the last element without
+    needing to calculate the index manually. Returns None if the array
+    is empty to prevent errors and provide safe access patterns.
+    
+    Returns:
+        The last element in the array, or None if array is empty
+    ```
+    spell last():
+        if len(self.elements) > 0:
+            return self.elements[len(self.elements) - 1]
+        return None
+    
+    ```
+    Creates a new array containing elements from a specified range.
+    
+    This spell extracts a portion of the array between the start and end
+    indices (end exclusive). Supports both positive and negative indexing
+    with automatic type handling for Integer grimoire objects. Invalid
+    indices are silently skipped to prevent errors.
+    
+    Parameters:
+        start: Beginning index of the slice (inclusive)
+        end: Ending index of the slice (exclusive)
+    
+    Returns:
+        New Array grimoire object containing the sliced elements
+    ```
+    spell slice(start, end):
+        start_idx = start
+        end_idx = end
+        # Handle Integer grimoire objects by extracting their values
+        if type(start) == "INSTANCE":
+            start_idx = start.value
+        if type(end) == "INSTANCE":
+            end_idx = end.value
         
-        if index < 0 or index > len(self.elements):
-            raise "IndexError: Invalid insertion index"
+        # Convert negative indices to positive equivalents
+        if start_idx < 0:
+            start_idx = len(self.elements) + start_idx
+        if end_idx < 0:
+            end_idx = len(self.elements) + end_idx
         
-        // Create new array with inserted element
+        # Build new array with elements in the specified range
         new_elements = []
-        for i in range(len(self.elements) + 1):
-            if i < index:
-                new_elements = new_elements + [self.elements[i]]
-            otherwise i == index:
-                new_elements = new_elements + [value]
-            else:
-                new_elements = new_elements + [self.elements[i-1]]
-        
-        self.elements = new_elements
-        return self
-    
-    spell remove(value):
-        index = self.index_of(value)
-        if index != -1:
-            return self.remove_at(index)
-        return self
-    
-    spell remove_at(index):
-        if index < 0:
-            index = len(self.elements) + index
-        
-        if index < 0 or index >= len(self.elements):
-            raise "IndexError: Index out of range"
-        
-        // Create new array without the element at index
-        new_elements = []
-        for i in range(len(self.elements)):
-            if i != index:
+        for i in range(start_idx, end_idx):
+            if i >= 0 and i < len(self.elements):
                 new_elements = new_elements + [self.elements[i]]
         
-        self.elements = new_elements
-        return self
+        return Array(new_elements)
     
-    // Iteration and traversal
-    spell for_each(callback_function):
-        for i in range(len(self.elements)):
-            callback_function(self.elements[i], i)
-        return self
+    ```
+    Creates a new array with elements in reverse order.
     
-    spell map(transform_function):
-        result = []
-        for item in self.elements:
-            result = result + [transform_function(item)]
-        return Array(result)
+    This spell builds a new array by iterating through the original elements
+    from last to first, effectively reversing their order. The original array
+    remains unchanged. Useful for reverse iteration, stack-like operations,
+    or algorithm implementations requiring reversed data.
     
-    spell filter(predicate_function):
-        result = []
-        for item in self.elements:
-            if predicate_function(item):
-                result = result + [item]
-        return Array(result)
-    
-    spell reduce(reducer_function, initial_value):
-        accumulator = initial_value
-        for item in self.elements:
-            accumulator = reducer_function(accumulator, item)
-        return accumulator
-    
-    // Sorting and ordering
-    spell sort():
-        // Simple bubble sort implementation
-        n = len(self.elements)
-        for i in range(n):
-            for j in range(0, n - i - 1):
-                if self.elements[j] > self.elements[j + 1]:
-                    // Swap elements
-                    temp = self.elements[j]
-                    self.elements[j] = self.elements[j + 1]
-                    self.elements[j + 1] = temp
-        return self
-    
+    Returns:
+        New Array grimoire object containing elements in reverse order
+    ```
     spell reverse():
         new_elements = []
+        # Iterate from last element to first to reverse order
         for i in range(len(self.elements) - 1, -1, -1):
             new_elements = new_elements + [self.elements[i]]
-        self.elements = new_elements
-        return self
+        return Array(new_elements)
     
-    // Utility methods
-    spell slice(start, end=None):
-        if start < 0:
-            start = len(self.elements) + start
+    ```
+    Creates a new sorted array using bubble sort algorithm.
+    
+    This spell implements a simple bubble sort to arrange elements in ascending
+    order. A copy of the original elements is created to preserve the original
+    array. The algorithm compares adjacent elements and swaps them if they are
+    in the wrong order, repeating until the array is fully sorted.
+    
+    Returns:
+        New Array grimoire object containing elements in sorted order
+    ```
+    spell sort():
+        # Simple bubble sort algorithm implementation for element ordering
+        new_elements = []
+        for element in self.elements:
+            new_elements = new_elements + [element]
         
-        if end == None:
-            end = len(self.elements)
-        otherwise end < 0:
-            end = len(self.elements) + end
+        n = len(new_elements)
+        for i in range(0, n):
+            for j in range(0, n - i - 1):
+                if new_elements[j] > new_elements[j + 1]:
+                    temp = new_elements[j]
+                    new_elements[j] = new_elements[j + 1]
+                    new_elements[j + 1] = temp
         
-        result = []
-        for i in range(start, end):
-            if i >= 0 and i < len(self.elements):
-                result = result + [self.elements[i]]
-        
-        return Array(result)
-    
-    spell join(separator=""):
-        if len(self.elements) == 0:
-            return ""
-        
-        result = str(self.elements[0])
-        for i in range(1, len(self.elements)):
-            result = result + separator + str(self.elements[i])
-        
-        return result
-    
-    spell to_array():
-        return self.elements
-    
-    spell to_string():
-        return str(self.elements)
-    
-    spell print():
-        print(self.elements)
-        return self
-    
-    // Create a new Array with concatenated elements
-    spell concat(other_array):
-        if type(other_array) == "ARRAY":
-            return Array(self.elements + other_array)
-        otherwise type(other_array) == "INSTANCE":
-            // Assume it's another Array or compatible object
-            if other_array.elements:
-                return Array(self.elements + other_array.elements)
-        raise "TypeError: Cannot concatenate with non-array type"
-
-    spell pop():
-        length = len(self.elements)
-        if length > 0:
-            return self.remove_at(0)
-        else:
-            raise f"Cannot remove element at index 0, length: {length}"
-
+        return Array(new_elements)

@@ -19,7 +19,12 @@ type AssignStatement struct {
 func (as *AssignStatement) statementNode()       {}
 func (as *AssignStatement) TokenLiteral() string { return as.Token.Literal }
 func (as *AssignStatement) String() string {
-	return fmt.Sprintf("%s %s %s", as.Name.String(), as.Operator, as.Value.String())
+   // Use explicit operator or fall back to token literal
+   op := as.Operator
+   if op == "" {
+       op = as.Token.Literal
+   }
+   return fmt.Sprintf("%s %s %s", as.Name.String(), op, as.Value.String())
 }
 
 type ReturnStatement struct {
@@ -155,7 +160,7 @@ func (p *Parameter) String() string {
 type FunctionDefinition struct {
 	Token      token.Token
 	Name       *Identifier
-	Parameters []*Parameter
+	Parameters []Expression
 	Body       *BlockStatement
 	DocString  *StringLiteral
 }
@@ -371,7 +376,7 @@ func (rs *RaiseStatement) String() string {
 type ArcaneSpell struct {
 	Token      token.Token
 	Name       *Identifier
-	Parameters []*Parameter
+	Parameters []Expression
 	Body       *BlockStatement
 }
 
@@ -454,5 +459,19 @@ func (cs *CheckStatement) String() string {
 		out.WriteString(" : ")
 		out.WriteString(cs.Message.String())
 	}
+	return out.String()
+}
+
+type ElseStatement struct {
+	Token token.Token
+	Body  *BlockStatement
+}
+
+func (es *ElseStatement) statementNode()       {}
+func (es *ElseStatement) TokenLiteral() string { return es.Token.Literal }
+func (es *ElseStatement) String() string {
+	var out strings.Builder
+	out.WriteString("else:\n")
+	out.WriteString(es.Body.String())
 	return out.String()
 }

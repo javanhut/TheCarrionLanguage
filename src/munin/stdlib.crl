@@ -1,0 +1,70 @@
+```
+Main standard library module for Carrion Language
+
+This serves as the entry point for the Munin standard library, providing
+core functionality and utility functions that form the foundation of the
+Carrion programming experience.
+
+The Munin standard library is named after Odin's ravens Huginn and Munin,
+which represent thought and memory respectively. This naming reflects the
+library's role in providing both computational capabilities (thought) and
+data management features (memory).
+
+This module contains essential utility functions including:
+- Version information and system details
+- Module discovery and documentation
+- Help system for interactive assistance
+- Core library initialization functions
+```
+
+
+```
+Provides interactive help information for users of the Carrion language.
+
+This function returns a comprehensive help message that guides users through
+the available system functions and how to access more detailed information
+about the language and its capabilities. It serves as the primary entry point
+for new users to discover the available functionality.
+
+Returns:
+    A formatted string containing help information about version checking,
+    module discovery, and accessing the interactive help system.
+```
+spell help():
+  return "To check current version use: version() function\nTo check Available modules use: modules() function.\nTo run interactive helper functions type: help in interactive repl"
+
+```
+Returns version information for the Carrion language and Munin standard library.
+
+This function provides version details for both the core Carrion language
+interpreter and the Munin standard library. This information is essential
+for debugging compatibility issues and ensuring proper feature availability.
+The version string follows semantic versioning principles.
+
+Returns:
+    A string containing the current version numbers for both Carrion language
+    and the Munin standard library in a human-readable format.
+```
+spell version():
+    return "Carrion Verison 0.1.6 Munin Standard Library 0.1.0"
+
+```
+Returns detailed information about all available modules in the Munin standard library.
+
+This function provides a comprehensive overview of all modules included in the
+Munin standard library, along with brief descriptions of their primary purposes.
+This serves as a quick reference for developers to understand what functionality
+is available without needing to consult external documentation.
+
+The modules cover a wide range of functionality from basic data type operations
+to system-level interactions, providing a complete foundation for Carrion
+applications.
+
+Returns:
+    A formatted string listing all available modules with descriptions,
+    organized in a readable tabulated format for easy reference.
+```
+spell modules():
+  return "Munin Standard Library\nAvailable modules:\n\tArray: Array manipulation\n\tBoolean: Boolean operations\n\tString: String operations\n\tInteger: Integer utilities\n\tFloat: Float utilities\n\tMath: Mathematical functions\n\tFile: File operations\n\tOS: Operating system interface\n\tDebug: Debug utilities"
+
+# Standard library initialization completed successfully

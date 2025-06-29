@@ -1,0 +1,8 @@
+spell test(n):
+    print("n is:")
+    print(n)
+    return n
+
+result = test(5)
+print("result is:")
+print(result)

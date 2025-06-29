@@ -1,4 +1,4 @@
-spellbook Person:
+grim Person:
     spell init(name):
         self.name = name
 

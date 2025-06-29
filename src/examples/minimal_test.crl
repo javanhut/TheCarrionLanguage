@@ -1,0 +1,13 @@
+grim TestClass:
+    init(elements):
+        if elements == None:
+            self.elements = []
+        else:
+            self.elements = elements
+            
+    spell hello():
+        return "world"
+
+tc = TestClass()
+result = tc.hello()
+print("Result:", result)

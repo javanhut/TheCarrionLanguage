@@ -1,67 +1,15 @@
-// Debug library for Carrion language
-spellbook Debug:
-  spell log(message):
-    print("LOG: " + str(message))
-  
-  spell error(message):
-    print("ERROR: " + str(message))
-
-// Array implementation without index assignment
-spellbook SimpleArray:
-  init():
-    debug = Debug()
-    debug.log("Initializing SimpleArray")
-    self.elements = []
-    debug.log("SimpleArray initialized with empty array")
-  
-  spell append(value):
-    debug = Debug()
-    debug.log("Appending value: " + str(value))
+grim SimpleArray:
+    init(elements):
+        self.elements = elements
     
-    // Create a new array with all existing elements plus the new one
-    new_elements = []
-    for i in range(len(self.elements)):
-      new_elements = new_elements + [self.elements[i]]
+    spell append(val):
+        self.elements = self.elements + [val]
+        return None
     
-    // Add the new element
-    new_elements = new_elements + [value]
-    self.elements = new_elements
-    
-    debug.log("Value appended, new length: " + str(len(self.elements)))
-  
-  spell get(index):
-    debug = Debug()
-    debug.log("Getting value at index: " + str(index))
-    
-    if index < 0 or index >= len(self.elements):
-      debug.error("Index out of bounds: " + str(index))
-      return None
-    
-    value = self.elements[index]
-    debug.log("Retrieved value: " + str(value))
-    return value
-  
-  spell print():
-    debug = Debug()
-    debug.log("Printing array")
-    print(str(self.elements))
+    spell length():
+        return len(self.elements)
 
-// Test the array
-debug = Debug()
-debug.log("Starting test")
-
-arr = SimpleArray()
-debug.log("SimpleArray created")
-
-arr.append(10)
-arr.append(20)
-arr.append(30)
-
-debug.log("Getting element at index 1")
-value = arr.get(1)
-debug.log("Value retrieved: " + str(value))
-
-debug.log("Printing final array")
-arr.print()
-
-debug.log("Test complete")
+arr = SimpleArray([1, 2, 3])
+print("Created array with length:", arr.length())
+arr.append(4)
+print("After append, length:", arr.length())

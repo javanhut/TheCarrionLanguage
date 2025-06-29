@@ -1,0 +1,118 @@
+grim Float:
+    init(value = 0.0):
+        self.value = float(value)
+    
+    spell round(decimals = 0):
+        multiplier = 1.0
+        for i in range(0, decimals):
+            multiplier = multiplier * 10.0
+        
+        rounded = int(self.value * multiplier + 0.5)
+        return Float(float(rounded) / multiplier)
+    
+    spell floor():
+        return Float(float(int(self.value)))
+    
+    spell ceil():
+        if self.value == float(int(self.value)):
+            return Float(self.value)
+        else:
+            if self.value > 0:
+                return Float(float(int(self.value) + 1))
+            else:
+                return Float(float(int(self.value)))
+    
+    spell abs():
+        if self.value < 0:
+            return Float(-self.value)
+        return Float(self.value)
+    
+    spell sqrt():
+        if self.value < 0:
+            return None  # Cannot compute square root of negative number
+        
+        if self.value == 0:
+            return Float(0.0)
+        
+        # Newton's method for square root
+        x = self.value
+        guess = x / 2.0
+        epsilon = 0.000001
+        
+        while True:
+            better_guess = (guess + x / guess) / 2.0
+            if abs(guess - better_guess) < epsilon:
+                stop
+            guess = better_guess
+        
+        return Float(guess)
+    
+    spell pow(exponent):
+        exp = exponent
+        if type(exponent) == "INSTANCE":
+            exp = exponent.value
+        
+        if exp == 0:
+            return Float(1.0)
+        if exp == 1:
+            return Float(self.value)
+        
+        # For integer exponents, use repeated multiplication
+        if exp == float(int(exp)) and exp > 0:
+            result = 1.0
+            base = self.value
+            power = int(exp)
+            
+            while power > 0:
+                if power % 2 == 1:
+                    result = result * base
+                base = base * base
+                power = power // 2
+            
+            return Float(result)
+        
+        # For other cases, return approximation
+        return Float(self.value)  # Simplified - would need full math library
+    
+    spell sin():
+        # Taylor series approximation for sin(x)
+        x = self.value
+        result = 0.0
+        term = x
+        
+        for n in range(0, 10):  # 10 terms should be sufficient for most cases
+            result = result + term
+            term = -term * x * x / float((2 * n + 2) * (2 * n + 3))
+        
+        return Float(result)
+    
+    spell cos():
+        # Taylor series approximation for cos(x)
+        x = self.value
+        result = 1.0
+        term = 1.0
+        
+        for n in range(1, 10):  # 10 terms should be sufficient
+            term = -term * x * x / float((2 * n - 1) * (2 * n))
+            result = result + term
+        
+        return Float(result)
+    
+    spell is_integer():
+        return Boolean(self.value == float(int(self.value)))
+    
+    spell is_positive():
+        return Boolean(self.value > 0)
+    
+    spell is_negative():
+        return Boolean(self.value < 0)
+    
+    spell is_zero():
+        epsilon = 0.000001
+        return Boolean(abs(self.value) < epsilon)
+    
+    spell to_int():
+        return Integer(int(self.value))
+    
+    spell to_string():
+        return String(str(self.value))

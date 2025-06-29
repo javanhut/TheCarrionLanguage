@@ -1,0 +1,12 @@
+// Test debug with grimoire
+grim Math:
+    spell square(x):
+        return x * x
+    
+    spell cube(x):
+        return x * x * x
+
+m = Math()
+result = m.square(5)
+print("Square of 5:", result)
+print("Cube of 3:", m.cube(3))

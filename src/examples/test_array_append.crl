@@ -1,0 +1,4 @@
+arr = Array([1, 2, 3])
+print("Testing append method...")
+arr.append(4)
+print("Append completed successfully")
