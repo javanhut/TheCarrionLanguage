@@ -156,7 +156,7 @@ Carrion is an evolving language with exciting future updates planned:
 
 ## Build and Release Status
 
-- Current Version: 0.1.6-alpha
+- Current Version: `{{VERSION}}`
 - Standard Library (Munin): 0.1.0
 - Status: Active Development
 
