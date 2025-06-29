@@ -35,7 +35,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          npm install -g markdown-it markdown-it-anchor markdown-it-toc-done-right
+          npm install markdown-it markdown-it-anchor markdown-it-toc-done-right
 
       - name: Create index.html from wiki
         run: |
