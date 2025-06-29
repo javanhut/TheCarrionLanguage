@@ -1,0 +1,383 @@
+name: Deploy Carrion Wiki to GitHub Pages
+
+on:
+  push:
+    branches: [ wiki-pages ]
+  pull_request:
+    branches: [ wiki-pages ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: wiki-pages
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: |
+          npm install -g markdown-it markdown-it-anchor markdown-it-toc-done-right
+
+      - name: Create index.html from wiki
+        run: |
+          cat > build-wiki.js << 'EOF'
+          const fs = require('fs');
+          const path = require('path');
+          const MarkdownIt = require('markdown-it');
+          const anchor = require('markdown-it-anchor');
+          const toc = require('markdown-it-toc-done-right');
+
+          const md = new MarkdownIt({
+            html: true,
+            linkify: true,
+            typographer: true
+          })
+          .use(anchor, {
+            permalink: anchor.permalink.headerLink()
+          })
+          .use(toc, {
+            containerClass: 'table-of-contents',
+            containerId: 'toc',
+            listType: 'ul'
+          });
+
+          // Create the HTML template
+          const template = `<!DOCTYPE html>
+          <html lang="en">
+          <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>{{TITLE}} - Carrion Language Wiki</title>
+              <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐦‍⬛</text></svg>">
+              <style>
+                  :root {
+                      --bg-primary: #0f0f23;
+                      --bg-secondary: #1a1a2e;
+                      --bg-tertiary: #16213e;
+                      --text-primary: #cccccc;
+                      --text-secondary: #999999;
+                      --accent-primary: #00cc99;
+                      --accent-secondary: #9900cc;
+                      --accent-warning: #ffcc00;
+                      --border-color: #333355;
+                      --code-bg: #0f0f1a;
+                      --link-color: #66ccff;
+                      --link-hover: #99ddff;
+                  }
+
+                  * {
+                      margin: 0;
+                      padding: 0;
+                      box-sizing: border-box;
+                  }
+
+                  body {
+                      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                      background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+                      color: var(--text-primary);
+                      line-height: 1.6;
+                      min-height: 100vh;
+                  }
+
+                  .container {
+                      max-width: 1200px;
+                      margin: 0 auto;
+                      padding: 20px;
+                  }
+
+                  .header {
+                      text-align: center;
+                      margin-bottom: 40px;
+                      padding: 40px 20px;
+                      background: var(--bg-tertiary);
+                      border-radius: 20px;
+                      border: 2px solid var(--border-color);
+                      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+                  }
+
+                  .header h1 {
+                      font-size: 3em;
+                      background: linear-gradient(45deg, var(--accent-primary), var(--accent-secondary));
+                      -webkit-background-clip: text;
+                      -webkit-text-fill-color: transparent;
+                      background-clip: text;
+                      margin-bottom: 10px;
+                  }
+
+                  .header .subtitle {
+                      font-size: 1.2em;
+                      color: var(--text-secondary);
+                      margin-bottom: 20px;
+                  }
+
+                  .ascii-art {
+                      font-family: monospace;
+                      font-size: 0.7em;
+                      line-height: 1.2;
+                      color: var(--accent-primary);
+                      margin: 20px 0;
+                      white-space: pre;
+                  }
+
+                  .navigation {
+                      display: grid;
+                      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                      gap: 20px;
+                      margin-bottom: 40px;
+                  }
+
+                  .nav-section {
+                      background: var(--bg-secondary);
+                      border: 2px solid var(--border-color);
+                      border-radius: 15px;
+                      padding: 25px;
+                      transition: all 0.3s ease;
+                  }
+
+                  .nav-section:hover {
+                      border-color: var(--accent-primary);
+                      box-shadow: 0 5px 20px rgba(0, 204, 153, 0.1);
+                      transform: translateY(-2px);
+                  }
+
+                  .nav-section h2 {
+                      color: var(--accent-primary);
+                      margin-bottom: 15px;
+                      font-size: 1.4em;
+                  }
+
+                  .nav-section ul {
+                      list-style: none;
+                  }
+
+                  .nav-section li {
+                      margin: 8px 0;
+                  }
+
+                  .nav-section a {
+                      color: var(--link-color);
+                      text-decoration: none;
+                      font-size: 1.05em;
+                      transition: color 0.3s ease;
+                  }
+
+                  .nav-section a:hover {
+                      color: var(--link-hover);
+                      text-shadow: 0 0 10px rgba(102, 204, 255, 0.3);
+                  }
+
+                  .content {
+                      background: var(--bg-secondary);
+                      border: 2px solid var(--border-color);
+                      border-radius: 15px;
+                      padding: 40px;
+                      margin-bottom: 40px;
+                  }
+
+                  .content h1, .content h2, .content h3 {
+                      color: var(--accent-primary);
+                      margin: 30px 0 15px 0;
+                  }
+
+                  .content h1 {
+                      font-size: 2.5em;
+                      border-bottom: 3px solid var(--accent-primary);
+                      padding-bottom: 10px;
+                  }
+
+                  .content p {
+                      margin-bottom: 15px;
+                      color: var(--text-primary);
+                  }
+
+                  .content pre {
+                      background: var(--code-bg);
+                      border: 1px solid var(--border-color);
+                      border-radius: 10px;
+                      padding: 20px;
+                      overflow-x: auto;
+                      margin: 20px 0;
+                      font-family: 'Fira Code', 'Courier New', monospace;
+                  }
+
+                  .content code {
+                      background: var(--code-bg);
+                      padding: 3px 6px;
+                      border-radius: 4px;
+                      font-family: 'Fira Code', 'Courier New', monospace;
+                      color: var(--accent-primary);
+                  }
+
+                  .content blockquote {
+                      border-left: 4px solid var(--accent-primary);
+                      margin: 20px 0;
+                      padding: 15px 20px;
+                      background: var(--bg-tertiary);
+                      border-radius: 0 10px 10px 0;
+                  }
+
+                  .table-of-contents {
+                      background: var(--bg-tertiary);
+                      border: 2px solid var(--border-color);
+                      border-radius: 10px;
+                      padding: 20px;
+                      margin: 20px 0;
+                  }
+
+                  .table-of-contents h2 {
+                      color: var(--accent-secondary);
+                      margin-bottom: 15px;
+                  }
+
+                  .footer {
+                      text-align: center;
+                      padding: 30px;
+                      color: var(--text-secondary);
+                      border-top: 2px solid var(--border-color);
+                      margin-top: 40px;
+                  }
+
+                  .badge {
+                      display: inline-block;
+                      background: var(--accent-primary);
+                      color: var(--bg-primary);
+                      padding: 5px 12px;
+                      border-radius: 20px;
+                      font-size: 0.9em;
+                      font-weight: bold;
+                      margin: 5px;
+                  }
+
+                  .emoji {
+                      font-size: 1.2em;
+                  }
+
+                  @media (max-width: 768px) {
+                      .header h1 {
+                          font-size: 2em;
+                      }
+                      
+                      .container {
+                          padding: 10px;
+                      }
+                      
+                      .content {
+                          padding: 20px;
+                      }
+                      
+                      .navigation {
+                          grid-template-columns: 1fr;
+                      }
+                  }
+              </style>
+          </head>
+          <body>
+              <div class="container">
+                  {{CONTENT}}
+              </div>
+              <div class="footer">
+                  <p>🪄 Carrion Programming Language Wiki - Where Code Meets Magic ✨</p>
+                  <p>Built with ❤️ by the Carrion Community | <a href="https://github.com/javanhut/TheCarrionLanguage" style="color: var(--link-color);">GitHub Repository</a></p>
+              </div>
+          </body>
+          </html>`;
+
+          // Function to process markdown files
+          function processMarkdownFile(filePath, outputPath) {
+              try {
+                  const content = fs.readFileSync(filePath, 'utf8');
+                  const html = md.render(content);
+                  
+                  // Extract title from first heading
+                  const titleMatch = content.match(/^#\s+(.+)$/m);
+                  const title = titleMatch ? titleMatch[1] : path.basename(filePath, '.md');
+                  
+                  const finalHtml = template
+                      .replace('{{TITLE}}', title)
+                      .replace('{{CONTENT}}', '<div class="content">' + html + '</div>');
+                  
+                  // Ensure output directory exists
+                  const outputDir = path.dirname(outputPath);
+                  if (!fs.existsSync(outputDir)) {
+                      fs.mkdirSync(outputDir, { recursive: true });
+                  }
+                  
+                  fs.writeFileSync(outputPath, finalHtml);
+                  console.log(\`Generated: \${outputPath}\`);
+              } catch (error) {
+                  console.error(\`Error processing \${filePath}:\`, error.message);
+              }
+          }
+
+          // Create output directory
+          if (!fs.existsSync('docs')) {
+              fs.mkdirSync('docs');
+          }
+
+          // Process Home.md as index.html
+          if (fs.existsSync('wiki/Home.md')) {
+              processMarkdownFile('wiki/Home.md', 'docs/index.html');
+          }
+
+          // Process all other markdown files recursively
+          function processDirectory(dir, outputDir) {
+              if (!fs.existsSync(dir)) return;
+              
+              const items = fs.readdirSync(dir);
+              
+              items.forEach(item => {
+                  const itemPath = path.join(dir, item);
+                  const stats = fs.statSync(itemPath);
+                  
+                  if (stats.isDirectory()) {
+                      const newOutputDir = path.join(outputDir, item);
+                      processDirectory(itemPath, newOutputDir);
+                  } else if (item.endsWith('.md') && item !== 'Home.md') {
+                      const outputPath = path.join(outputDir, item.replace('.md', '.html'));
+                      processMarkdownFile(itemPath, outputPath);
+                  }
+              });
+          }
+
+          processDirectory('wiki', 'docs');
+
+          console.log('Wiki build completed!');
+          EOF
+
+          node build-wiki.js
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './docs'
+
+  deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/wiki-pages'
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
