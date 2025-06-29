@@ -35,7 +35,7 @@ jobs:
       - name: Update README version
         run: |
           # Update version in README
-          sed -i "s/{{VERSION}}/$VERSION/g" README.md
+          sed -i "s/{{VERSION}}/$VERSION/g" docs/README.md
           
           # Configure Git
           git config --global user.name "GitHub Actions"
