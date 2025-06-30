@@ -59,5 +59,8 @@ func LoadMuninStdlib(env *object.Environment) error {
 		}
 	}
 
+	// Set the global reference to the stdlib environment for builtin functions
+	SetStdlibEnv(env)
+
 	return nil
 }

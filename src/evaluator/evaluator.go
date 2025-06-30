@@ -280,8 +280,8 @@ func wrapPrimitive(obj object.Object, env *object.Environment, ctx *CallContext)
 	
 	// Don't wrap if this is in a function call context that expects primitives
 	if ctx != nil && ctx.FunctionName != "" {
-		// Don't wrap arguments to builtin functions
-		if isBuiltinFunction(ctx.FunctionName) {
+		// Don't wrap arguments to builtin functions (except for input functions that should return String instances)
+		if isBuiltinFunction(ctx.FunctionName) && !shouldWrapStringResult(ctx.FunctionName) {
 			if debugPrimitiveWrapping {
 				fmt.Fprintf(os.Stderr, "WRAP: Builtin function %s, not wrapping\n", ctx.FunctionName)
 			}
@@ -377,6 +377,16 @@ func isGrimoireConstructor(name string, env *object.Environment) bool {
 		return isGrimoire
 	}
 	return false
+}
+
+// shouldWrapStringResult determines if string results from a function should be wrapped in String grimoire instances
+func shouldWrapStringResult(functionName string) bool {
+	switch functionName {
+	case "input", "fileRead", "osGetEnv", "osExpandEnv", "chr":
+		return true
+	default:
+		return false
+	}
 }
 
 // hasSelfInEnv checks if 'self' exists in the environment hierarchy
@@ -1510,6 +1520,12 @@ func evalCallExpression(
 		res := fnTyped.Fn(args...)
 		if err, ok := res.(*object.Error); ok {
 			return newErrorWithTrace(err.Message, ctx.Node, ctx)
+		}
+		// Wrap string results from input functions in String grimoire instances
+		if shouldWrapStringResult(ctx.FunctionName) {
+			if stringObj, isString := res.(*object.String); isString {
+				return wrapPrimitive(stringObj, env, ctx)
+			}
 		}
 		return res
 
