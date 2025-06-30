@@ -1,0 +1,1641 @@
+
+> carrion-website@0.1.0 start
+> react-scripts start
+
+(node:2669094) [DEP_WEBPACK_DEV_SERVER_ON_AFTER_SETUP_MIDDLEWARE] DeprecationWarning: 'onAfterSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:2669094) [DEP_WEBPACK_DEV_SERVER_ON_BEFORE_SETUP_MIDDLEWARE] DeprecationWarning: 'onBeforeSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
+Starting the development server...
+
+Compiled with warnings.
+
+[eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+Search for the keywords to learn more about each warning.
+To ignore, add // eslint-disable-next-line to the line before.
+
+WARNING in [eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+webpack compiled with 1 warning
+No issues found.
+Compiling...
+Compiled with warnings.
+
+[eslint] 
+src/pages/Home.tsx
+  Line 144:7:  'FeatureGrid' is assigned a value but never used         @typescript-eslint/no-unused-vars
+  Line 152:7:  'FeatureCard' is assigned a value but never used         @typescript-eslint/no-unused-vars
+  Line 167:7:  'FeatureIcon' is assigned a value but never used         @typescript-eslint/no-unused-vars
+  Line 172:7:  'FeatureTitle' is assigned a value but never used        @typescript-eslint/no-unused-vars
+  Line 177:7:  'FeatureDescription' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  Line 225:9:  'features' is assigned a value but never used            @typescript-eslint/no-unused-vars
+
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+Search for the keywords to learn more about each warning.
+To ignore, add // eslint-disable-next-line to the line before.
+
+WARNING in [eslint] 
+src/pages/Home.tsx
+  Line 144:7:  'FeatureGrid' is assigned a value but never used         @typescript-eslint/no-unused-vars
+  Line 152:7:  'FeatureCard' is assigned a value but never used         @typescript-eslint/no-unused-vars
+  Line 167:7:  'FeatureIcon' is assigned a value but never used         @typescript-eslint/no-unused-vars
+  Line 172:7:  'FeatureTitle' is assigned a value but never used        @typescript-eslint/no-unused-vars
+  Line 177:7:  'FeatureDescription' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  Line 225:9:  'features' is assigned a value but never used            @typescript-eslint/no-unused-vars
+
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+webpack compiled with 1 warning
+Files successfully emitted, waiting for typecheck results...
+Issues checking in progress...
+No issues found.
+Compiling...
+Compiled with warnings.
+
+[eslint] 
+src/pages/Home.tsx
+  Line 188:9:  'features' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+Search for the keywords to learn more about each warning.
+To ignore, add // eslint-disable-next-line to the line before.
+
+WARNING in [eslint] 
+src/pages/Home.tsx
+  Line 188:9:  'features' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+webpack compiled with 1 warning
+Files successfully emitted, waiting for typecheck results...
+Issues checking in progress...
+No issues found.
+Compiling...
+Compiled with warnings.
+
+[eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+Search for the keywords to learn more about each warning.
+To ignore, add // eslint-disable-next-line to the line before.
+
+WARNING in [eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+webpack compiled with 1 warning
+Files successfully emitted, waiting for typecheck results...
+Issues checking in progress...
+No issues found.
+Compiling...
+Failed to compile.
+
+[eslint] 
+src/pages/Home.tsx
+  Line 261:10:  'FeatureDescription' is not defined  react/jsx-no-undef
+
+Search for the keywords to learn more about each error.
+WARNING in [eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+ERROR in [eslint] 
+src/pages/Home.tsx
+  Line 261:10:  'FeatureDescription' is not defined  react/jsx-no-undef
+
+Search for the keywords to learn more about each error.
+
+webpack compiled with 1 error and 1 warning
+Files successfully emitted, waiting for typecheck results...
+Issues checking in progress...
+ERROR in src/pages/Home.tsx:261:10
+TS2552: Cannot find name 'FeatureDescription'. Did you mean 'FeatureSection'?
+    259 |       <FeatureSection>
+    260 |         <SectionTitle>A Magical Programming Experience</SectionTitle>
+  > 261 |         <FeatureDescription>
+        |          ^^^^^^^^^^^^^^^^^^
+    262 |           <p style={{ fontSize: '1.2rem', lineHeight: '1.8', marginBottom: '2rem' }}>
+    263 |             Carrion transforms mundane programming into an enchanting experience with its unique Norse mythology theme. 
+    264 |             Classes become "grimoires" (spellbooks), methods become "spells", and the standard library "Munin" is named 
+
+ERROR in src/pages/Home.tsx:273:11
+TS2552: Cannot find name 'FeatureDescription'. Did you mean 'FeatureSection'?
+    271 |             comprehensive error handling, module systems, and extensive documentation.
+    272 |           </p>
+  > 273 |         </FeatureDescription>
+        |           ^^^^^^^^^^^^^^^^^^
+    274 |       </FeatureSection>
+    275 |
+    276 |       <CTASection>
+
+Compiling...
+Compiled with warnings.
+
+[eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+Search for the keywords to learn more about each warning.
+To ignore, add // eslint-disable-next-line to the line before.
+
+WARNING in [eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+webpack compiled with 1 warning
+Files successfully emitted, waiting for typecheck results...
+Issues checking in progress...
+No issues found.
+Compiling...
+Compiled with warnings.
+
+[eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+Search for the keywords to learn more about each warning.
+To ignore, add // eslint-disable-next-line to the line before.
+
+WARNING in [eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+webpack compiled with 1 warning
+Files successfully emitted, waiting for typecheck results...
+Issues checking in progress...
+No issues found.
+Compiling...
+Compiled with warnings.
+
+[eslint] 
+src/pages/Download.tsx
+  Line 250:6:  React Hook useEffect has missing dependencies: 'osOptions' and 'updateInstallCommand'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+Search for the keywords to learn more about each warning.
+To ignore, add // eslint-disable-next-line to the line before.
+
+WARNING in [eslint] 
+src/pages/Download.tsx
+  Line 250:6:  React Hook useEffect has missing dependencies: 'osOptions' and 'updateInstallCommand'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+webpack compiled with 1 warning
+Files successfully emitted, waiting for typecheck results...
+Issues checking in progress...
+No issues found.
+Compiling...
+Compiled with warnings.
+
+[eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+Search for the keywords to learn more about each warning.
+To ignore, add // eslint-disable-next-line to the line before.
+
+WARNING in [eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+webpack compiled with 1 warning
+Files successfully emitted, waiting for typecheck results...
+Issues checking in progress...
+No issues found.
+Compiling...
+Compiled with warnings.
+
+[eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+Search for the keywords to learn more about each warning.
+To ignore, add // eslint-disable-next-line to the line before.
+
+WARNING in [eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+webpack compiled with 1 warning
+Files successfully emitted, waiting for typecheck results...
+Issues checking in progress...
+ERROR in src/pages/Download.tsx:244:35
+TS2339: Property 'extension' does not exist on type '{ value: string; label: string; filename: string; arch: string; }'.
+    242 |     } else {
+    243 |       const osOption = osOptions.find(os => os.value === selectedOS);
+  > 244 |       const extension = osOption?.extension || '';
+        |                                   ^^^^^^^^^
+    245 |       setDownloadUrl(`https://github.com/javanhut/TheCarrionLanguage/releases/download/${selectedVersion}/carrion-${selectedOS}${extension}`);
+    246 |     }
+    247 |
+
+ERROR in src/pages/Download.tsx:270:34
+TS2339: Property 'extension' does not exist on type '{ value: string; label: string; filename: string; arch: string; }'.
+    268 | carrion --version`);
+    269 |     } else {
+  > 270 |       const extension = osOption.extension || '';
+        |                                  ^^^^^^^^^
+    271 |       setInstallCommand(`# Download and install
+    272 | curl -L "${downloadUrl}" -o carrion${extension}
+    273 | chmod +x carrion${extension}
+
+Compiling...
+Compiled with warnings.
+
+[eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+Search for the keywords to learn more about each warning.
+To ignore, add // eslint-disable-next-line to the line before.
+
+WARNING in [eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+webpack compiled with 1 warning
+Files successfully emitted, waiting for typecheck results...
+Issues checking in progress...
+ERROR in src/pages/Download.tsx:243:35
+TS2339: Property 'extension' does not exist on type '{ value: string; label: string; filename: string; arch: string; }'.
+    241 |     } else {
+    242 |       const osOption = osOptions.find(os => os.value === selectedOS);
+  > 243 |       const extension = osOption?.extension || '';
+        |                                   ^^^^^^^^^
+    244 |       setDownloadUrl(`https://github.com/javanhut/TheCarrionLanguage/releases/download/${selectedVersion}/carrion-${selectedOS}${extension}`);
+    245 |     }
+    246 |
+
+ERROR in src/pages/Download.tsx:269:34
+TS2339: Property 'extension' does not exist on type '{ value: string; label: string; filename: string; arch: string; }'.
+    267 | carrion --version`);
+    268 |     } else {
+  > 269 |       const extension = osOption.extension || '';
+        |                                  ^^^^^^^^^
+    270 |       setInstallCommand(`# Download and install
+    271 | curl -L "${downloadUrl}" -o carrion${extension}
+    272 | chmod +x carrion${extension}
+
+Compiling...
+Compiled with warnings.
+
+[eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+Search for the keywords to learn more about each warning.
+To ignore, add // eslint-disable-next-line to the line before.
+
+WARNING in [eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+webpack compiled with 1 warning
+Files successfully emitted, waiting for typecheck results...
+Issues checking in progress...
+ERROR in src/pages/Download.tsx:276:34
+TS2339: Property 'extension' does not exist on type '{ value: string; label: string; filename: string; arch: string; }'.
+    274 | carrion --version`);
+    275 |     } else {
+  > 276 |       const extension = osOption.extension || '';
+        |                                  ^^^^^^^^^
+    277 |       setInstallCommand(`# Download and install
+    278 | curl -L "${downloadUrl}" -o carrion${extension}
+    279 | chmod +x carrion${extension}
+
+Compiling...
+Compiled with warnings.
+
+[eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+Search for the keywords to learn more about each warning.
+To ignore, add // eslint-disable-next-line to the line before.
+
+WARNING in [eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+webpack compiled with 1 warning
+Files successfully emitted, waiting for typecheck results...
+Issues checking in progress...
+No issues found.
+Compiling...
+Compiled with warnings.
+
+[eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+Search for the keywords to learn more about each warning.
+To ignore, add // eslint-disable-next-line to the line before.
+
+WARNING in [eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+webpack compiled with 1 warning
+Files successfully emitted, waiting for typecheck results...
+Issues checking in progress...
+No issues found.
+Compiling...
+Compiled with warnings.
+
+[eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+Search for the keywords to learn more about each warning.
+To ignore, add // eslint-disable-next-line to the line before.
+
+WARNING in [eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+webpack compiled with 1 warning
+Files successfully emitted, waiting for typecheck results...
+Issues checking in progress...
+No issues found.
+Compiling...
+Compiled with warnings.
+
+[eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+Search for the keywords to learn more about each warning.
+To ignore, add // eslint-disable-next-line to the line before.
+
+WARNING in [eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+webpack compiled with 1 warning
+Files successfully emitted, waiting for typecheck results...
+Issues checking in progress...
+No issues found.
+Compiling...
+Compiled with warnings.
+
+[eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+Search for the keywords to learn more about each warning.
+To ignore, add // eslint-disable-next-line to the line before.
+
+WARNING in [eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+webpack compiled with 1 warning
+Files successfully emitted, waiting for typecheck results...
+Issues checking in progress...
+No issues found.
+Compiling...
+Compiled with warnings.
+
+[eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+Search for the keywords to learn more about each warning.
+To ignore, add // eslint-disable-next-line to the line before.
+
+WARNING in [eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+webpack compiled with 1 warning
+Files successfully emitted, waiting for typecheck results...
+Issues checking in progress...
+No issues found.
+Compiling...
+Compiled with warnings.
+
+[eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+Search for the keywords to learn more about each warning.
+To ignore, add // eslint-disable-next-line to the line before.
+
+WARNING in [eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+webpack compiled with 1 warning
+Files successfully emitted, waiting for typecheck results...
+Issues checking in progress...
+No issues found.
+Compiling...
+Compiled with warnings.
+
+[eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+Search for the keywords to learn more about each warning.
+To ignore, add // eslint-disable-next-line to the line before.
+
+WARNING in [eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+webpack compiled with 1 warning
+Files successfully emitted, waiting for typecheck results...
+Issues checking in progress...
+No issues found.
+Compiling...
+Compiled with warnings.
+
+[eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+Search for the keywords to learn more about each warning.
+To ignore, add // eslint-disable-next-line to the line before.
+
+WARNING in [eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+webpack compiled with 1 warning
+Files successfully emitted, waiting for typecheck results...
+Issues checking in progress...
+No issues found.
+Compiling...
+Compiled with warnings.
+
+[eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+Search for the keywords to learn more about each warning.
+To ignore, add // eslint-disable-next-line to the line before.
+
+WARNING in [eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+webpack compiled with 1 warning
+Files successfully emitted, waiting for typecheck results...
+Issues checking in progress...
+No issues found.
+Compiling...
+Compiled with warnings.
+
+[eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+src/pages/docs/Installation.tsx
+  Line 222:45:  Unnecessary escape character: \c  no-useless-escape
+
+Search for the keywords to learn more about each warning.
+To ignore, add // eslint-disable-next-line to the line before.
+
+WARNING in [eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+src/pages/docs/Installation.tsx
+  Line 222:45:  Unnecessary escape character: \c  no-useless-escape
+
+webpack compiled with 1 warning
+Files successfully emitted, waiting for typecheck results...
+Issues checking in progress...
+No issues found.
+Compiling...
+Compiled with warnings.
+
+[eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+src/pages/docs/Installation.tsx
+  Line 222:45:  Unnecessary escape character: \c  no-useless-escape
+
+Search for the keywords to learn more about each warning.
+To ignore, add // eslint-disable-next-line to the line before.
+
+WARNING in [eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+src/pages/docs/Installation.tsx
+  Line 222:45:  Unnecessary escape character: \c  no-useless-escape
+
+webpack compiled with 1 warning
+Files successfully emitted, waiting for typecheck results...
+Issues checking in progress...
+No issues found.
+Compiling...
+Compiled with warnings.
+
+[eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+src/pages/docs/Installation.tsx
+  Line 222:45:  Unnecessary escape character: \c  no-useless-escape
+
+Search for the keywords to learn more about each warning.
+To ignore, add // eslint-disable-next-line to the line before.
+
+WARNING in [eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+src/pages/docs/Installation.tsx
+  Line 222:45:  Unnecessary escape character: \c  no-useless-escape
+
+webpack compiled with 1 warning
+Files successfully emitted, waiting for typecheck results...
+Issues checking in progress...
+No issues found.
+Compiling...
+Compiled with warnings.
+
+[eslint] 
+src/pages/Features.tsx
+  Line 386:30:  Comments inside children section of tag should be placed inside braces  react/jsx-no-comment-textnodes
+  Line 386:62:  Comments inside children section of tag should be placed inside braces  react/jsx-no-comment-textnodes
+
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+src/pages/docs/Installation.tsx
+  Line 222:45:  Unnecessary escape character: \c  no-useless-escape
+
+Search for the keywords to learn more about each warning.
+To ignore, add // eslint-disable-next-line to the line before.
+
+WARNING in [eslint] 
+src/pages/Features.tsx
+  Line 386:30:  Comments inside children section of tag should be placed inside braces  react/jsx-no-comment-textnodes
+  Line 386:62:  Comments inside children section of tag should be placed inside braces  react/jsx-no-comment-textnodes
+
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+src/pages/docs/Installation.tsx
+  Line 222:45:  Unnecessary escape character: \c  no-useless-escape
+
+webpack compiled with 1 warning
+Files successfully emitted, waiting for typecheck results...
+Issues checking in progress...
+No issues found.
+Compiling...
+Compiled with warnings.
+
+[eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+src/pages/docs/Installation.tsx
+  Line 222:45:  Unnecessary escape character: \c  no-useless-escape
+
+Search for the keywords to learn more about each warning.
+To ignore, add // eslint-disable-next-line to the line before.
+
+WARNING in [eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+src/pages/docs/Installation.tsx
+  Line 222:45:  Unnecessary escape character: \c  no-useless-escape
+
+webpack compiled with 1 warning
+Files successfully emitted, waiting for typecheck results...
+Issues checking in progress...
+No issues found.
+Compiling...
+Compiled with warnings.
+
+[eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+src/pages/docs/Installation.tsx
+  Line 222:45:  Unnecessary escape character: \c  no-useless-escape
+
+Search for the keywords to learn more about each warning.
+To ignore, add // eslint-disable-next-line to the line before.
+
+WARNING in [eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+src/pages/docs/Installation.tsx
+  Line 222:45:  Unnecessary escape character: \c  no-useless-escape
+
+webpack compiled with 1 warning
+Files successfully emitted, waiting for typecheck results...
+Issues checking in progress...
+No issues found.
+Compiling...
+Failed to compile.
+
+[eslint] 
+src/pages/docs/GettingStarted.tsx
+Syntax error: Expression expected (307:104)
+WARNING in [eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+src/pages/docs/Installation.tsx
+  Line 222:45:  Unnecessary escape character: \c  no-useless-escape
+
+ERROR in ./src/pages/docs/GettingStarted.tsx
+Module build failed (from ./node_modules/babel-loader/lib/index.js):
+SyntaxError: /home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/src/pages/docs/GettingStarted.tsx: Unexpected token (307:104)
+
+  305 |             <li><strong>Integer:</strong> <code>42</code>, <code>-10</code></li>
+  306 |             <li><strong>Float:</strong> <code>3.14</code>, <code>-2.5</code></li>
+> 307 |             <li><strong>String:</strong> <code>"Hello"</code>, <code>'World'</code>, <code>f"Formatted {var}"</code></li>
+      |                                                                                                         ^
+  308 |             <li><strong>Boolean:</strong> <code>True</code>, <code>False</code></li>
+  309 |             <li><strong>Array:</strong> <code>[1, 2, 3]</code></li>
+  310 |             <li><strong>Hash:</strong> <code>{"key": "value"}</code></li>
+    at constructor (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:363:19)
+    at TypeScriptParserMixin.raise (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:6612:19)
+    at TypeScriptParserMixin.unexpected (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:6632:16)
+    at TypeScriptParserMixin.parseExprAtom (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:11392:16)
+    at TypeScriptParserMixin.parseExprAtom (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:4779:20)
+    at TypeScriptParserMixin.parseExprSubscripts (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:11026:23)
+    at TypeScriptParserMixin.parseUpdate (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:11011:21)
+    at TypeScriptParserMixin.parseMaybeUnary (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10991:23)
+    at TypeScriptParserMixin.parseMaybeUnary (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:9808:18)
+    at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10844:61)
+    at TypeScriptParserMixin.parseExprOps (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10849:23)
+    at TypeScriptParserMixin.parseMaybeConditional (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10826:23)
+    at TypeScriptParserMixin.parseMaybeAssign (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10779:21)
+    at TypeScriptParserMixin.parseMaybeAssign (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:9757:20)
+    at TypeScriptParserMixin.parseExpressionBase (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10732:23)
+    at /home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10728:39
+    at TypeScriptParserMixin.allowInAnd (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:12375:12)
+    at TypeScriptParserMixin.parseExpression (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10728:17)
+    at TypeScriptParserMixin.jsxParseExpressionContainer (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:4647:31)
+    at TypeScriptParserMixin.jsxParseElementAt (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:4726:36)
+    at TypeScriptParserMixin.jsxParseElementAt (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:4713:32)
+    at TypeScriptParserMixin.jsxParseElementAt (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:4713:32)
+    at TypeScriptParserMixin.jsxParseElementAt (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:4713:32)
+    at TypeScriptParserMixin.jsxParseElementAt (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:4713:32)
+    at TypeScriptParserMixin.jsxParseElementAt (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:4713:32)
+    at TypeScriptParserMixin.jsxParseElement (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:4764:17)
+    at TypeScriptParserMixin.parseExprAtom (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:4774:19)
+    at TypeScriptParserMixin.parseExprSubscripts (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:11026:23)
+    at TypeScriptParserMixin.parseUpdate (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:11011:21)
+    at TypeScriptParserMixin.parseMaybeUnary (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10991:23)
+    at TypeScriptParserMixin.parseMaybeUnary (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:9808:18)
+    at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10844:61)
+    at TypeScriptParserMixin.parseExprOps (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10849:23)
+    at TypeScriptParserMixin.parseMaybeConditional (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10826:23)
+    at TypeScriptParserMixin.parseMaybeAssign (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10779:21)
+    at /home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:9746:39
+    at TypeScriptParserMixin.tryParse (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:6920:20)
+    at TypeScriptParserMixin.parseMaybeAssign (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:9746:18)
+    at /home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10748:39
+    at TypeScriptParserMixin.allowInAnd (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:12375:12)
+    at TypeScriptParserMixin.parseMaybeAssignAllowIn (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10748:17)
+    at TypeScriptParserMixin.parseParenAndDistinguishExpression (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:11622:28)
+    at TypeScriptParserMixin.parseExprAtom (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:11276:23)
+    at TypeScriptParserMixin.parseExprAtom (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:4779:20)
+    at TypeScriptParserMixin.parseExprSubscripts (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:11026:23)
+    at TypeScriptParserMixin.parseUpdate (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:11011:21)
+    at TypeScriptParserMixin.parseMaybeUnary (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10991:23)
+    at TypeScriptParserMixin.parseMaybeUnary (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:9808:18)
+    at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10844:61)
+    at TypeScriptParserMixin.parseExprOps (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10849:23)
+
+ERROR in [eslint] 
+src/pages/docs/GettingStarted.tsx
+  Line 307:104:  Parsing error: Expression expected
+
+webpack compiled with 2 errors and 1 warning
+Files successfully emitted, waiting for typecheck results...
+Issues checking in progress...
+ERROR in src/pages/docs/GettingStarted.tsx:307:105
+TS1109: Expression expected.
+    305 |             <li><strong>Integer:</strong> <code>42</code>, <code>-10</code></li>
+    306 |             <li><strong>Float:</strong> <code>3.14</code>, <code>-2.5</code></li>
+  > 307 |             <li><strong>String:</strong> <code>"Hello"</code>, <code>'World'</code>, <code>f"Formatted {var}"</code></li>
+        |                                                                                                         ^^^
+    308 |             <li><strong>Boolean:</strong> <code>True</code>, <code>False</code></li>
+    309 |             <li><strong>Array:</strong> <code>[1, 2, 3]</code></li>
+    310 |             <li><strong>Hash:</strong> <code>{"key": "value"}</code></li>
+
+ERROR in src/pages/docs/GettingStarted.tsx:307:108
+TS1381: Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+    305 |             <li><strong>Integer:</strong> <code>42</code>, <code>-10</code></li>
+    306 |             <li><strong>Float:</strong> <code>3.14</code>, <code>-2.5</code></li>
+  > 307 |             <li><strong>String:</strong> <code>"Hello"</code>, <code>'World'</code>, <code>f"Formatted {var}"</code></li>
+        |                                                                                                            ^
+    308 |             <li><strong>Boolean:</strong> <code>True</code>, <code>False</code></li>
+    309 |             <li><strong>Array:</strong> <code>[1, 2, 3]</code></li>
+    310 |             <li><strong>Hash:</strong> <code>{"key": "value"}</code></li>
+
+ERROR in src/pages/docs/GettingStarted.tsx:310:52
+TS1005: '}' expected.
+    308 |             <li><strong>Boolean:</strong> <code>True</code>, <code>False</code></li>
+    309 |             <li><strong>Array:</strong> <code>[1, 2, 3]</code></li>
+  > 310 |             <li><strong>Hash:</strong> <code>{"key": "value"}</code></li>
+        |                                                    ^
+    311 |             <li><strong>None:</strong> <code>None</code></li>
+    312 |           </ul>
+    313 |         </StepCard>
+
+ERROR in src/pages/docs/GettingStarted.tsx:310:61
+TS1381: Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+    308 |             <li><strong>Boolean:</strong> <code>True</code>, <code>False</code></li>
+    309 |             <li><strong>Array:</strong> <code>[1, 2, 3]</code></li>
+  > 310 |             <li><strong>Hash:</strong> <code>{"key": "value"}</code></li>
+        |                                                             ^
+    311 |             <li><strong>None:</strong> <code>None</code></li>
+    312 |           </ul>
+    313 |         </StepCard>
+
+Compiling...
+Failed to compile.
+
+[eslint] 
+src/pages/docs/GettingStarted.tsx
+Syntax error: '}' expected (310:56)
+WARNING in [eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+src/pages/docs/Installation.tsx
+  Line 222:45:  Unnecessary escape character: \c  no-useless-escape
+
+ERROR in ./src/pages/docs/GettingStarted.tsx
+Module build failed (from ./node_modules/babel-loader/lib/index.js):
+SyntaxError: /home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/src/pages/docs/GettingStarted.tsx: Unexpected token, expected "}" (310:56)
+
+  308 |             <li><strong>Boolean:</strong> <code>True</code>, <code>False</code></li>
+  309 |             <li><strong>Array:</strong> <code>[1, 2, 3]</code></li>
+> 310 |             <li><strong>Hash:</strong> <code>{'{'}{"key": "value"{'}'}</code></li>
+      |                                                         ^
+  311 |             <li><strong>None:</strong> <code>None</code></li>
+  312 |           </ul>
+  313 |         </StepCard>
+    at constructor (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:363:19)
+    at TypeScriptParserMixin.raise (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:6612:19)
+    at TypeScriptParserMixin.unexpected (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:6632:16)
+    at TypeScriptParserMixin.expect (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:6912:12)
+    at TypeScriptParserMixin.jsxParseExpressionContainer (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:4652:10)
+    at TypeScriptParserMixin.jsxParseElementAt (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:4726:36)
+    at TypeScriptParserMixin.jsxParseElementAt (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:4713:32)
+    at TypeScriptParserMixin.jsxParseElementAt (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:4713:32)
+    at TypeScriptParserMixin.jsxParseElementAt (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:4713:32)
+    at TypeScriptParserMixin.jsxParseElementAt (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:4713:32)
+    at TypeScriptParserMixin.jsxParseElementAt (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:4713:32)
+    at TypeScriptParserMixin.jsxParseElement (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:4764:17)
+    at TypeScriptParserMixin.parseExprAtom (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:4774:19)
+    at TypeScriptParserMixin.parseExprSubscripts (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:11026:23)
+    at TypeScriptParserMixin.parseUpdate (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:11011:21)
+    at TypeScriptParserMixin.parseMaybeUnary (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10991:23)
+    at TypeScriptParserMixin.parseMaybeUnary (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:9808:18)
+    at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10844:61)
+    at TypeScriptParserMixin.parseExprOps (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10849:23)
+    at TypeScriptParserMixin.parseMaybeConditional (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10826:23)
+    at TypeScriptParserMixin.parseMaybeAssign (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10779:21)
+    at /home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:9746:39
+    at TypeScriptParserMixin.tryParse (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:6920:20)
+    at TypeScriptParserMixin.parseMaybeAssign (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:9746:18)
+    at /home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10748:39
+    at TypeScriptParserMixin.allowInAnd (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:12375:12)
+    at TypeScriptParserMixin.parseMaybeAssignAllowIn (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10748:17)
+    at TypeScriptParserMixin.parseParenAndDistinguishExpression (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:11622:28)
+    at TypeScriptParserMixin.parseExprAtom (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:11276:23)
+    at TypeScriptParserMixin.parseExprAtom (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:4779:20)
+    at TypeScriptParserMixin.parseExprSubscripts (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:11026:23)
+    at TypeScriptParserMixin.parseUpdate (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:11011:21)
+    at TypeScriptParserMixin.parseMaybeUnary (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10991:23)
+    at TypeScriptParserMixin.parseMaybeUnary (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:9808:18)
+    at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10844:61)
+    at TypeScriptParserMixin.parseExprOps (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10849:23)
+    at TypeScriptParserMixin.parseMaybeConditional (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10826:23)
+    at TypeScriptParserMixin.parseMaybeAssign (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10779:21)
+    at TypeScriptParserMixin.parseMaybeAssign (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:9757:20)
+    at TypeScriptParserMixin.parseExpressionBase (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10732:23)
+    at /home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10728:39
+    at TypeScriptParserMixin.allowInAnd (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:12370:16)
+    at TypeScriptParserMixin.parseExpression (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10728:17)
+    at TypeScriptParserMixin.parseReturnStatement (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:13075:28)
+    at TypeScriptParserMixin.parseStatementContent (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:12730:21)
+    at TypeScriptParserMixin.parseStatementContent (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:9483:18)
+    at TypeScriptParserMixin.parseStatementLike (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:12699:17)
+    at TypeScriptParserMixin.parseStatementListItem (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:12679:17)
+    at TypeScriptParserMixin.parseBlockOrModuleBlockBody (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:13249:61)
+    at TypeScriptParserMixin.parseBlockBody (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:13242:10)
+
+ERROR in [eslint] 
+src/pages/docs/GettingStarted.tsx
+  Line 310:56:  Parsing error: '}' expected
+
+webpack compiled with 2 errors and 1 warning
+Files successfully emitted, waiting for typecheck results...
+Issues checking in progress...
+ERROR in src/pages/docs/GettingStarted.tsx:310:57
+TS1005: '}' expected.
+    308 |             <li><strong>Boolean:</strong> <code>True</code>, <code>False</code></li>
+    309 |             <li><strong>Array:</strong> <code>[1, 2, 3]</code></li>
+  > 310 |             <li><strong>Hash:</strong> <code>{'{'}{"key": "value"{'}'}</code></li>
+        |                                                         ^
+    311 |             <li><strong>None:</strong> <code>None</code></li>
+    312 |           </ul>
+    313 |         </StepCard>
+
+Compiling...
+Compiled with warnings.
+
+[eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+src/pages/docs/Installation.tsx
+  Line 222:45:  Unnecessary escape character: \c  no-useless-escape
+
+Search for the keywords to learn more about each warning.
+To ignore, add // eslint-disable-next-line to the line before.
+
+WARNING in [eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+src/pages/docs/Installation.tsx
+  Line 222:45:  Unnecessary escape character: \c  no-useless-escape
+
+webpack compiled with 1 warning
+Files successfully emitted, waiting for typecheck results...
+Issues checking in progress...
+No issues found.
+Compiling...
+Compiled with warnings.
+
+[eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+src/pages/docs/Installation.tsx
+  Line 222:45:  Unnecessary escape character: \c  no-useless-escape
+
+Search for the keywords to learn more about each warning.
+To ignore, add // eslint-disable-next-line to the line before.
+
+WARNING in [eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+src/pages/docs/Installation.tsx
+  Line 222:45:  Unnecessary escape character: \c  no-useless-escape
+
+webpack compiled with 1 warning
+Files successfully emitted, waiting for typecheck results...
+Issues checking in progress...
+No issues found.
+Compiling...
+Compiled with warnings.
+
+[eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+src/pages/docs/Installation.tsx
+  Line 222:45:  Unnecessary escape character: \c  no-useless-escape
+
+Search for the keywords to learn more about each warning.
+To ignore, add // eslint-disable-next-line to the line before.
+
+WARNING in [eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+src/pages/docs/Installation.tsx
+  Line 222:45:  Unnecessary escape character: \c  no-useless-escape
+
+webpack compiled with 1 warning
+Files successfully emitted, waiting for typecheck results...
+Issues checking in progress...
+No issues found.
+Compiling...
+Compiled with warnings.
+
+[eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+src/pages/docs/Installation.tsx
+  Line 222:45:  Unnecessary escape character: \c  no-useless-escape
+
+Search for the keywords to learn more about each warning.
+To ignore, add // eslint-disable-next-line to the line before.
+
+WARNING in [eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+src/pages/docs/Installation.tsx
+  Line 222:45:  Unnecessary escape character: \c  no-useless-escape
+
+webpack compiled with 1 warning
+Files successfully emitted, waiting for typecheck results...
+Issues checking in progress...
+No issues found.
+Compiling...
+Compiled with warnings.
+
+[eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+src/pages/docs/Installation.tsx
+  Line 222:45:  Unnecessary escape character: \c  no-useless-escape
+
+Search for the keywords to learn more about each warning.
+To ignore, add // eslint-disable-next-line to the line before.
+
+WARNING in [eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+src/pages/docs/Installation.tsx
+  Line 222:45:  Unnecessary escape character: \c  no-useless-escape
+
+webpack compiled with 1 warning
+Files successfully emitted, waiting for typecheck results...
+Issues checking in progress...
+No issues found.
+Compiling...
+Compiled with warnings.
+
+[eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+src/pages/docs/Installation.tsx
+  Line 222:45:  Unnecessary escape character: \c  no-useless-escape
+
+Search for the keywords to learn more about each warning.
+To ignore, add // eslint-disable-next-line to the line before.
+
+WARNING in [eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+src/pages/docs/Installation.tsx
+  Line 222:45:  Unnecessary escape character: \c  no-useless-escape
+
+webpack compiled with 1 warning
+Files successfully emitted, waiting for typecheck results...
+Issues checking in progress...
+No issues found.
+Compiling...
+Compiled with warnings.
+
+[eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+src/pages/docs/Installation.tsx
+  Line 222:45:  Unnecessary escape character: \c  no-useless-escape
+
+Search for the keywords to learn more about each warning.
+To ignore, add // eslint-disable-next-line to the line before.
+
+WARNING in [eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+src/pages/docs/Installation.tsx
+  Line 222:45:  Unnecessary escape character: \c  no-useless-escape
+
+webpack compiled with 1 warning
+Files successfully emitted, waiting for typecheck results...
+Issues checking in progress...
+No issues found.
+Compiling...
+Failed to compile.
+
+[eslint] 
+src/pages/Playground.tsx
+Syntax error: Identifier expected (498:20)
+WARNING in [eslint] 
+src/pages/docs/Installation.tsx
+  Line 222:45:  Unnecessary escape character: \c  no-useless-escape
+
+ERROR in ./src/pages/Playground.tsx
+Module build failed (from ./node_modules/babel-loader/lib/index.js):
+SyntaxError: /home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/src/pages/Playground.tsx: Unexpected token (498:20)
+
+  496 |             onChange={(e) => setCode(e.target.value)}
+  497 |             placeholder="# Write your Carrion code here...
+> 498 | # Try: print(\"Hello, Carrion!\")
+      |                     ^
+  499 | # Or load an example from below"
+  500 |             spellCheck={false}
+  501 |           />
+    at constructor (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:363:19)
+    at TypeScriptParserMixin.raise (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:6612:19)
+    at TypeScriptParserMixin.unexpected (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:6632:16)
+    at TypeScriptParserMixin.jsxParseIdentifier (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:4584:12)
+    at TypeScriptParserMixin.jsxParseNamespacedName (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:4591:23)
+    at TypeScriptParserMixin.jsxParseAttribute (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:4667:22)
+    at TypeScriptParserMixin.jsxParseOpeningElementAfterName (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:4682:28)
+    at TypeScriptParserMixin.jsxParseOpeningElementAfterName (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10018:18)
+    at TypeScriptParserMixin.jsxParseOpeningElementAt (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:4677:17)
+    at TypeScriptParserMixin.jsxParseElementAt (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:4701:33)
+    at TypeScriptParserMixin.jsxParseElementAt (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:4713:32)
+    at TypeScriptParserMixin.jsxParseElementAt (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:4713:32)
+    at TypeScriptParserMixin.jsxParseElementAt (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:4713:32)
+    at TypeScriptParserMixin.jsxParseElement (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:4764:17)
+    at TypeScriptParserMixin.parseExprAtom (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:4774:19)
+    at TypeScriptParserMixin.parseExprSubscripts (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:11026:23)
+    at TypeScriptParserMixin.parseUpdate (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:11011:21)
+    at TypeScriptParserMixin.parseMaybeUnary (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10991:23)
+    at TypeScriptParserMixin.parseMaybeUnary (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:9808:18)
+    at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10844:61)
+    at TypeScriptParserMixin.parseExprOps (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10849:23)
+    at TypeScriptParserMixin.parseMaybeConditional (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10826:23)
+    at TypeScriptParserMixin.parseMaybeAssign (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10779:21)
+    at /home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:9746:39
+    at TypeScriptParserMixin.tryParse (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:6920:20)
+    at TypeScriptParserMixin.parseMaybeAssign (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:9746:18)
+    at /home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10748:39
+    at TypeScriptParserMixin.allowInAnd (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:12375:12)
+    at TypeScriptParserMixin.parseMaybeAssignAllowIn (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10748:17)
+    at TypeScriptParserMixin.parseParenAndDistinguishExpression (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:11622:28)
+    at TypeScriptParserMixin.parseExprAtom (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:11276:23)
+    at TypeScriptParserMixin.parseExprAtom (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:4779:20)
+    at TypeScriptParserMixin.parseExprSubscripts (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:11026:23)
+    at TypeScriptParserMixin.parseUpdate (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:11011:21)
+    at TypeScriptParserMixin.parseMaybeUnary (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10991:23)
+    at TypeScriptParserMixin.parseMaybeUnary (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:9808:18)
+    at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10844:61)
+    at TypeScriptParserMixin.parseExprOps (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10849:23)
+    at TypeScriptParserMixin.parseMaybeConditional (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10826:23)
+    at TypeScriptParserMixin.parseMaybeAssign (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10779:21)
+    at TypeScriptParserMixin.parseMaybeAssign (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:9757:20)
+    at TypeScriptParserMixin.parseExpressionBase (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10732:23)
+    at /home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10728:39
+    at TypeScriptParserMixin.allowInAnd (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:12370:16)
+    at TypeScriptParserMixin.parseExpression (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10728:17)
+    at TypeScriptParserMixin.parseReturnStatement (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:13075:28)
+    at TypeScriptParserMixin.parseStatementContent (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:12730:21)
+    at TypeScriptParserMixin.parseStatementContent (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:9483:18)
+    at TypeScriptParserMixin.parseStatementLike (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:12699:17)
+    at TypeScriptParserMixin.parseStatementListItem (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:12679:17)
+
+ERROR in [eslint] 
+src/pages/Playground.tsx
+  Line 498:20:  Parsing error: Identifier expected
+
+webpack compiled with 2 errors and 1 warning
+Files successfully emitted, waiting for typecheck results...
+Issues checking in progress...
+ERROR in src/pages/Playground.tsx:498:16
+TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: PolymorphicComponentProps<"web", FastOmit<DetailedHTMLProps<TextareaHTMLAttributes<HTMLTextAreaElement>, HTMLTextAreaElement>, never>, void, void, {}, {}>): Element', gave the following error.
+    Type '{ value: string; onChange: (e: ChangeEvent<HTMLTextAreaElement>) => void; placeholder: string; Hello: true; }' is not assignable to type 'IntrinsicAttributes & FastOmit<Substitute<FastOmit<DetailedHTMLProps<TextareaHTMLAttributes<HTMLTextAreaElement>, HTMLTextAreaElement>, never>, FastOmit<...>>, keyof ExecutionProps> & FastOmit<...> & { ...; }'.
+      Property 'Hello' does not exist on type 'IntrinsicAttributes & FastOmit<Substitute<FastOmit<DetailedHTMLProps<TextareaHTMLAttributes<HTMLTextAreaElement>, HTMLTextAreaElement>, never>, FastOmit<...>>, keyof ExecutionProps> & FastOmit<...> & { ...; }'.
+  Overload 2 of 2, '(props: FastOmit<DetailedHTMLProps<TextareaHTMLAttributes<HTMLTextAreaElement>, HTMLTextAreaElement>, never>): ReactElement<...> | null', gave the following error.
+    Type '{ value: string; onChange: (e: ChangeEvent<HTMLTextAreaElement>) => void; placeholder: string; Hello: true; }' is not assignable to type 'IntrinsicAttributes & FastOmit<DetailedHTMLProps<TextareaHTMLAttributes<HTMLTextAreaElement>, HTMLTextAreaElement>, never>'.
+      Property 'Hello' does not exist on type 'IntrinsicAttributes & FastOmit<DetailedHTMLProps<TextareaHTMLAttributes<HTMLTextAreaElement>, HTMLTextAreaElement>, never>'.
+    496 |             onChange={(e) => setCode(e.target.value)}
+    497 |             placeholder="# Write your Carrion code here...
+  > 498 | # Try: print(\"Hello, Carrion!\")
+        |                ^^^^^
+    499 | # Or load an example from below"
+    500 |             spellCheck={false}
+    501 |           />
+
+ERROR in src/pages/Playground.tsx:498:21
+TS1003: Identifier expected.
+    496 |             onChange={(e) => setCode(e.target.value)}
+    497 |             placeholder="# Write your Carrion code here...
+  > 498 | # Try: print(\"Hello, Carrion!\")
+        |                     ^
+    499 | # Or load an example from below"
+    500 |             spellCheck={false}
+    501 |           />
+
+ERROR in src/pages/Playground.tsx:501:12
+TS1382: Unexpected token. Did you mean `{'>'}` or `&gt;`?
+    499 | # Or load an example from below"
+    500 |             spellCheck={false}
+  > 501 |           />
+        |            ^
+    502 |         </EditorContainer>
+    503 |
+    504 |         <OutputContainer
+
+Compiling...
+Failed to compile.
+
+[eslint] 
+src/pages/Playground.tsx
+Syntax error: Identifier expected (498:20)
+WARNING in [eslint] 
+src/pages/docs/Installation.tsx
+  Line 222:45:  Unnecessary escape character: \c  no-useless-escape
+
+ERROR in ./src/pages/Playground.tsx
+Module build failed (from ./node_modules/babel-loader/lib/index.js):
+SyntaxError: /home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/src/pages/Playground.tsx: Unexpected token (498:20)
+
+  496 |             onChange={(e) => setCode(e.target.value)}
+  497 |             placeholder="# Write your Carrion code here...
+> 498 | # Try: print(\"Hello, Carrion!\")
+      |                     ^
+  499 | # Or load an example from below"
+  500 |             spellCheck={false}
+  501 |           />
+    at constructor (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:363:19)
+    at TypeScriptParserMixin.raise (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:6612:19)
+    at TypeScriptParserMixin.unexpected (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:6632:16)
+    at TypeScriptParserMixin.jsxParseIdentifier (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:4584:12)
+    at TypeScriptParserMixin.jsxParseNamespacedName (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:4591:23)
+    at TypeScriptParserMixin.jsxParseAttribute (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:4667:22)
+    at TypeScriptParserMixin.jsxParseOpeningElementAfterName (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:4682:28)
+    at TypeScriptParserMixin.jsxParseOpeningElementAfterName (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10018:18)
+    at TypeScriptParserMixin.jsxParseOpeningElementAt (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:4677:17)
+    at TypeScriptParserMixin.jsxParseElementAt (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:4701:33)
+    at TypeScriptParserMixin.jsxParseElementAt (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:4713:32)
+    at TypeScriptParserMixin.jsxParseElementAt (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:4713:32)
+    at TypeScriptParserMixin.jsxParseElementAt (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:4713:32)
+    at TypeScriptParserMixin.jsxParseElement (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:4764:17)
+    at TypeScriptParserMixin.parseExprAtom (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:4774:19)
+    at TypeScriptParserMixin.parseExprSubscripts (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:11026:23)
+    at TypeScriptParserMixin.parseUpdate (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:11011:21)
+    at TypeScriptParserMixin.parseMaybeUnary (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10991:23)
+    at TypeScriptParserMixin.parseMaybeUnary (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:9808:18)
+    at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10844:61)
+    at TypeScriptParserMixin.parseExprOps (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10849:23)
+    at TypeScriptParserMixin.parseMaybeConditional (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10826:23)
+    at TypeScriptParserMixin.parseMaybeAssign (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10779:21)
+    at /home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:9746:39
+    at TypeScriptParserMixin.tryParse (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:6920:20)
+    at TypeScriptParserMixin.parseMaybeAssign (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:9746:18)
+    at /home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10748:39
+    at TypeScriptParserMixin.allowInAnd (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:12375:12)
+    at TypeScriptParserMixin.parseMaybeAssignAllowIn (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10748:17)
+    at TypeScriptParserMixin.parseParenAndDistinguishExpression (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:11622:28)
+    at TypeScriptParserMixin.parseExprAtom (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:11276:23)
+    at TypeScriptParserMixin.parseExprAtom (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:4779:20)
+    at TypeScriptParserMixin.parseExprSubscripts (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:11026:23)
+    at TypeScriptParserMixin.parseUpdate (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:11011:21)
+    at TypeScriptParserMixin.parseMaybeUnary (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10991:23)
+    at TypeScriptParserMixin.parseMaybeUnary (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:9808:18)
+    at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10844:61)
+    at TypeScriptParserMixin.parseExprOps (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10849:23)
+    at TypeScriptParserMixin.parseMaybeConditional (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10826:23)
+    at TypeScriptParserMixin.parseMaybeAssign (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10779:21)
+    at TypeScriptParserMixin.parseMaybeAssign (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:9757:20)
+    at TypeScriptParserMixin.parseExpressionBase (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10732:23)
+    at /home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10728:39
+    at TypeScriptParserMixin.allowInAnd (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:12370:16)
+    at TypeScriptParserMixin.parseExpression (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:10728:17)
+    at TypeScriptParserMixin.parseReturnStatement (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:13075:28)
+    at TypeScriptParserMixin.parseStatementContent (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:12730:21)
+    at TypeScriptParserMixin.parseStatementContent (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:9483:18)
+    at TypeScriptParserMixin.parseStatementLike (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:12699:17)
+    at TypeScriptParserMixin.parseStatementListItem (/home/javanstorm/CarrionRepos/TheCarrionLanguage/carrion-website/node_modules/@babel/parser/lib/index.js:12679:17)
+
+ERROR in [eslint] 
+src/pages/Playground.tsx
+  Line 498:20:  Parsing error: Identifier expected
+
+webpack compiled with 2 errors and 1 warning
+ERROR in src/pages/Playground.tsx:498:16
+TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: PolymorphicComponentProps<"web", FastOmit<DetailedHTMLProps<TextareaHTMLAttributes<HTMLTextAreaElement>, HTMLTextAreaElement>, never>, void, void, {}, {}>): Element', gave the following error.
+    Type '{ value: string; onChange: (e: ChangeEvent<HTMLTextAreaElement>) => void; placeholder: string; Hello: true; }' is not assignable to type 'IntrinsicAttributes & FastOmit<Substitute<FastOmit<DetailedHTMLProps<TextareaHTMLAttributes<HTMLTextAreaElement>, HTMLTextAreaElement>, never>, FastOmit<...>>, keyof ExecutionProps> & FastOmit<...> & { ...; }'.
+      Property 'Hello' does not exist on type 'IntrinsicAttributes & FastOmit<Substitute<FastOmit<DetailedHTMLProps<TextareaHTMLAttributes<HTMLTextAreaElement>, HTMLTextAreaElement>, never>, FastOmit<...>>, keyof ExecutionProps> & FastOmit<...> & { ...; }'.
+  Overload 2 of 2, '(props: FastOmit<DetailedHTMLProps<TextareaHTMLAttributes<HTMLTextAreaElement>, HTMLTextAreaElement>, never>): ReactElement<...> | null', gave the following error.
+    Type '{ value: string; onChange: (e: ChangeEvent<HTMLTextAreaElement>) => void; placeholder: string; Hello: true; }' is not assignable to type 'IntrinsicAttributes & FastOmit<DetailedHTMLProps<TextareaHTMLAttributes<HTMLTextAreaElement>, HTMLTextAreaElement>, never>'.
+      Property 'Hello' does not exist on type 'IntrinsicAttributes & FastOmit<DetailedHTMLProps<TextareaHTMLAttributes<HTMLTextAreaElement>, HTMLTextAreaElement>, never>'.
+    496 |             onChange={(e) => setCode(e.target.value)}
+    497 |             placeholder="# Write your Carrion code here...
+  > 498 | # Try: print(\"Hello, Carrion!\")
+        |                ^^^^^
+    499 | # Or load an example from below"
+    500 |             spellCheck={false}
+    501 |           />
+
+ERROR in src/pages/Playground.tsx:498:21
+TS1003: Identifier expected.
+    496 |             onChange={(e) => setCode(e.target.value)}
+    497 |             placeholder="# Write your Carrion code here...
+  > 498 | # Try: print(\"Hello, Carrion!\")
+        |                     ^
+    499 | # Or load an example from below"
+    500 |             spellCheck={false}
+    501 |           />
+
+ERROR in src/pages/Playground.tsx:501:12
+TS1382: Unexpected token. Did you mean `{'>'}` or `&gt;`?
+    499 | # Or load an example from below"
+    500 |             spellCheck={false}
+  > 501 |           />
+        |            ^
+    502 |         </EditorContainer>
+    503 |
+    504 |         <OutputContainer
+
+Compiling...
+Compiled with warnings.
+
+[eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+src/pages/docs/Installation.tsx
+  Line 222:45:  Unnecessary escape character: \c  no-useless-escape
+
+Search for the keywords to learn more about each warning.
+To ignore, add // eslint-disable-next-line to the line before.
+
+WARNING in [eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+src/pages/docs/Installation.tsx
+  Line 222:45:  Unnecessary escape character: \c  no-useless-escape
+
+webpack compiled with 1 warning
+Files successfully emitted, waiting for typecheck results...
+Issues checking in progress...
+No issues found.
+Compiling...
+Compiled with warnings.
+
+[eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+src/pages/docs/Installation.tsx
+  Line 222:45:  Unnecessary escape character: \c  no-useless-escape
+
+Search for the keywords to learn more about each warning.
+To ignore, add // eslint-disable-next-line to the line before.
+
+WARNING in [eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+src/pages/docs/Installation.tsx
+  Line 222:45:  Unnecessary escape character: \c  no-useless-escape
+
+webpack compiled with 1 warning
+Files successfully emitted, waiting for typecheck results...
+Issues checking in progress...
+No issues found.
+Compiling...
+Compiled with warnings.
+
+[eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+src/pages/docs/Installation.tsx
+  Line 222:45:  Unnecessary escape character: \c  no-useless-escape
+
+Search for the keywords to learn more about each warning.
+To ignore, add // eslint-disable-next-line to the line before.
+
+WARNING in [eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+src/pages/docs/Installation.tsx
+  Line 222:45:  Unnecessary escape character: \c  no-useless-escape
+
+webpack compiled with 1 warning
+Files successfully emitted, waiting for typecheck results...
+Issues checking in progress...
+No issues found.
+Compiling...
+Compiled with warnings.
+
+[eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+src/pages/docs/Installation.tsx
+  Line 222:45:  Unnecessary escape character: \c  no-useless-escape
+
+Search for the keywords to learn more about each warning.
+To ignore, add // eslint-disable-next-line to the line before.
+
+WARNING in [eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+src/pages/docs/Installation.tsx
+  Line 222:45:  Unnecessary escape character: \c  no-useless-escape
+
+webpack compiled with 1 warning
+Files successfully emitted, waiting for typecheck results...
+Issues checking in progress...
+No issues found.
+Compiling...
+Compiled with warnings.
+
+[eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+src/pages/docs/Installation.tsx
+  Line 222:45:  Unnecessary escape character: \c  no-useless-escape
+
+Search for the keywords to learn more about each warning.
+To ignore, add // eslint-disable-next-line to the line before.
+
+WARNING in [eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+src/pages/docs/Installation.tsx
+  Line 222:45:  Unnecessary escape character: \c  no-useless-escape
+
+webpack compiled with 1 warning
+Files successfully emitted, waiting for typecheck results...
+Issues checking in progress...
+No issues found.
+Compiling...
+Compiled with warnings.
+
+[eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+src/pages/docs/Installation.tsx
+  Line 222:45:  Unnecessary escape character: \c  no-useless-escape
+
+Search for the keywords to learn more about each warning.
+To ignore, add // eslint-disable-next-line to the line before.
+
+WARNING in [eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+src/pages/docs/Installation.tsx
+  Line 222:45:  Unnecessary escape character: \c  no-useless-escape
+
+webpack compiled with 1 warning
+No issues found.
+Compiling...
+Compiled with warnings.
+
+[eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+src/pages/docs/Installation.tsx
+  Line 222:45:  Unnecessary escape character: \c  no-useless-escape
+
+Search for the keywords to learn more about each warning.
+To ignore, add // eslint-disable-next-line to the line before.
+
+WARNING in [eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+src/pages/docs/Installation.tsx
+  Line 222:45:  Unnecessary escape character: \c  no-useless-escape
+
+webpack compiled with 1 warning
+Files successfully emitted, waiting for typecheck results...
+Issues checking in progress...
+No issues found.
+Compiling...
+Compiled with warnings.
+
+[eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+src/pages/docs/Installation.tsx
+  Line 222:45:  Unnecessary escape character: \c  no-useless-escape
+
+Search for the keywords to learn more about each warning.
+To ignore, add // eslint-disable-next-line to the line before.
+
+WARNING in [eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+src/pages/docs/Installation.tsx
+  Line 222:45:  Unnecessary escape character: \c  no-useless-escape
+
+webpack compiled with 1 warning
+Files successfully emitted, waiting for typecheck results...
+Issues checking in progress...
+No issues found.
+Compiling...
+Compiled with warnings.
+
+[eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+src/pages/docs/Installation.tsx
+  Line 222:45:  Unnecessary escape character: \c  no-useless-escape
+
+Search for the keywords to learn more about each warning.
+To ignore, add // eslint-disable-next-line to the line before.
+
+WARNING in [eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+src/pages/docs/Installation.tsx
+  Line 222:45:  Unnecessary escape character: \c  no-useless-escape
+
+webpack compiled with 1 warning
+No issues found.
+Compiling...
+Compiled with warnings.
+
+[eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+src/pages/docs/Installation.tsx
+  Line 222:45:  Unnecessary escape character: \c  no-useless-escape
+
+Search for the keywords to learn more about each warning.
+To ignore, add // eslint-disable-next-line to the line before.
+
+WARNING in [eslint] 
+src/pages/Playground.tsx
+  Line 3:19:  'SyntaxHighlighter' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 4:10:  'atomOneDark' is defined but never used        @typescript-eslint/no-unused-vars
+
+src/pages/docs/Installation.tsx
+  Line 222:45:  Unnecessary escape character: \c  no-useless-escape
+
+webpack compiled with 1 warning
+No issues found.
+Compiling...
+Compiled with warnings.
+
+[eslint] 
+src/pages/docs/Installation.tsx
+  Line 222:45:  Unnecessary escape character: \c  no-useless-escape
+
+Search for the keywords to learn more about each warning.
+To ignore, add // eslint-disable-next-line to the line before.
+
+WARNING in [eslint] 
+src/pages/docs/Installation.tsx
+  Line 222:45:  Unnecessary escape character: \c  no-useless-escape
+
+webpack compiled with 1 warning
+Files successfully emitted, waiting for typecheck results...
+Issues checking in progress...
+No issues found.
+Compiling...
+Compiled successfully!
+webpack compiled successfully
+Files successfully emitted, waiting for typecheck results...
+Issues checking in progress...
+No issues found.
+Compiling...
+Compiled successfully!
+webpack compiled successfully
+Files successfully emitted, waiting for typecheck results...
+Issues checking in progress...
+No issues found.
+Compiling...
+Compiled with warnings.
+
+[eslint] 
+src/pages/docs/Installation.tsx
+  Line 222:45:  Unnecessary escape character: \c  no-useless-escape
+
+Search for the keywords to learn more about each warning.
+To ignore, add // eslint-disable-next-line to the line before.
+
+WARNING in [eslint] 
+src/pages/docs/Installation.tsx
+  Line 222:45:  Unnecessary escape character: \c  no-useless-escape
+
+webpack compiled with 1 warning
+Files successfully emitted, waiting for typecheck results...
+Issues checking in progress...
+No issues found.
+Compiling...
+Compiled successfully!
+webpack compiled successfully
+Files successfully emitted, waiting for typecheck results...
+Issues checking in progress...
+No issues found.

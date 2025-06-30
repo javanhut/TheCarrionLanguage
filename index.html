@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carrion Programming Language - The Mystical Language with a Crow's Wisdom</title>
+    <meta name="description" content="Carrion is a dynamically typed, interpreted programming language that transforms mundane coding into a magical experience with Norse mythology themes.">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐦‍⬛</text></svg>">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <span class="logo-icon">🐦‍⬛</span>
+                <span class="logo-text">Carrion</span>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="#home" class="nav-link">Home</a></li>
+                <li><a href="#features" class="nav-link">Features</a></li>
+                <li><a href="#docs" class="nav-link">Documentation</a></li>
+                <li><a href="#playground" class="nav-link">Playground</a></li>
+                <li><a href="#download" class="nav-link">Download</a></li>
+                <li><a href="#community" class="nav-link">Community</a></li>
+            </ul>
+            <div class="nav-toggle" id="mobile-menu">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section id="home" class="hero">
+        <div class="hero-container">
+            <div class="hero-content">
+                <h1 class="hero-title">Welcome to Carrion</h1>
+                <p class="hero-subtitle">The Mystical Programming Language with a Crow's Wisdom</p>
+                <div class="hero-ascii">
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣀⣀⣀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣴⣿⣿⡟⠋⢻⣷⣄⡀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣤⣾⣿⣷⣿⣿⣿⣿⣿⣶⣾⣿⣿⠿⠿⠿⠶⠄⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⠉⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠃⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⣿⣿⣿⣿⣿⣿⣿⣿⡟⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⣿⣿⣿⣿⣿⣿⠟⠻⣧⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⣼⣿⣿⣿⣿⣿⣿⣆⣤⠿⢶⣦⡀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⢰⣿⣿⣿⣿⣿⣿⣿⣿⡀⠀⠀⠀⠑⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⣿⣿⣿⣿⣿⣿⣿⣿⣿⣇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠸⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠉⠙⠛⠋⠉⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+                </div>
+                <div class="hero-actions">
+                    <a href="#download" class="btn btn-primary">Download v0.1.6-alpha</a>
+                    <a href="#docs" class="btn btn-secondary">Get Started</a>
+                </div>
+                <div class="hero-code">
+                    <pre><code class="language-python">// Cast your first spell in Carrion
+spell greet(name):
+    return f"Welcome to the realm of magic, {name}!"
+
+print(greet("Fellow Mage"))</code></pre>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="features">
+        <div class="container">
+            <h2 class="section-title">Why Choose Carrion?</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🎭</div>
+                    <h3>Magical Terminology</h3>
+                    <p>Transform coding into spellcrafting with classes as "grimoires" and methods as "spells"</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🐦‍⬛</div>
+                    <h3>Norse Mythology Theme</h3>
+                    <p>Standard library "Munin" named after Odin's raven, representing memory and thought</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🚀</div>
+                    <h3>Python-Inspired</h3>
+                    <p>Familiar syntax enhanced with creative magical elements for an engaging experience</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <h3>Built with Go</h3>
+                    <p>Fast, reliable performance powered by Go's robust foundation</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🎪</div>
+                    <h3>Beginner Friendly</h3>
+                    <p>Easy to learn with engaging metaphors and comprehensive documentation</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🏗️</div>
+                    <h3>Full OOP Support</h3>
+                    <p>Complete object-oriented programming with inheritance and polymorphism</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Code Examples Section -->
+    <section class="code-examples">
+        <div class="container">
+            <h2 class="section-title">See Carrion in Action</h2>
+            <div class="examples-grid">
+                <div class="example-card">
+                    <h3>Create a Grimoire (Class)</h3>
+                    <pre><code class="language-python">grim MagicalCrow:
+    init(name, power):
+        self.name = name
+        self.power = power
+        self.spells = []
+    
+    spell learn(spell_name):
+        self.spells.append(spell_name)
+        print(f"{self.name} learned {spell_name}!")
+    
+    spell cast(target):
+        if len(self.spells) > 0:
+            spell = self.spells[0]
+            return f"{self.name} casts {spell} at {target}!"
+
+// Create and use a magical crow
+munin = MagicalCrow("Munin", 100)
+munin.learn("Lightning Bolt")
+print(munin.cast("darkness"))</code></pre>
+                </div>
+                <div class="example-card">
+                    <h3>Error Handling with Magic</h3>
+                    <pre><code class="language-python">// Carrion's unique error handling
+attempt:
+    risky_spell = cast_dangerous_magic()
+    print("Spell succeeded!")
+ensnare MagicError as err:
+    print(f"Magic failed: {err}")
+resolve:
+    print("Cleaning up magical residue...")
+
+// Handle multiple error types
+attempt:
+    result = divide_by_zero()
+ensnare DivisionError:
+    print("Cannot divide by void!")
+ensnare ValueError:
+    print("Invalid magical input!")</code></pre>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Documentation Section -->
+    <section id="docs" class="documentation">
+        <div class="container">
+            <h2 class="section-title">Learn Carrion</h2>
+            <div class="docs-grid">
+                <a href="docs/Getting-Started/Installation.html" class="doc-card">
+                    <div class="doc-icon">🏠</div>
+                    <h3>Installation Guide</h3>
+                    <p>Set up your magical development environment</p>
+                </a>
+                <a href="docs/Getting-Started/Quick-Start.html" class="doc-card">
+                    <div class="doc-icon">⚡</div>
+                    <h3>Quick Start</h3>
+                    <p>Learn the fundamentals in minutes</p>
+                </a>
+                <a href="docs/Language-Reference.md" class="doc-card">
+                    <div class="doc-icon">📚</div>
+                    <h3>Language Reference</h3>
+                    <p>Complete guide to syntax and features</p>
+                </a>
+                <a href="docs/Standard-Library.md" class="doc-card">
+                    <div class="doc-icon">🔮</div>
+                    <h3>Standard Library</h3>
+                    <p>Explore Munin's magical capabilities</p>
+                </a>
+                <a href="docs/Advanced-Features/Classes-Grimoires.html" class="doc-card">
+                    <div class="doc-icon">📖</div>
+                    <h3>Grimoires (Classes)</h3>
+                    <p>Master object-oriented spellcrafting</p>
+                </a>
+                <a href="docs/index.html" class="doc-card">
+                    <div class="doc-icon">🗺️</div>
+                    <h3>Full Documentation</h3>
+                    <p>Browse all documentation topics</p>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Playground Section -->
+    <section id="playground" class="playground">
+        <div class="container">
+            <h2 class="section-title">Try Carrion Online</h2>
+            <div class="playground-container">
+                <div class="playground-editor">
+                    <div class="editor-header">
+                        <span>main.crl</span>
+                        <button id="run-code" class="btn-run">▶ Run</button>
+                    </div>
+                    <textarea id="code-editor" class="code-input">// Welcome to the Carrion Playground!
+// Try editing this code and click Run
+
+spell fibonacci(n):
+    if n <= 1:
+        return n
+    return fibonacci(n-1) + fibonacci(n-2)
+
+// Calculate the 10th Fibonacci number
+result = fibonacci(10)
+print(f"The 10th Fibonacci number is: {result}")
+
+// Create a simple grimoire
+grim Counter:
+    init(start):
+        self.value = start
+    
+    spell increment():
+        self.value = self.value + 1
+        return self.value
+
+counter = Counter(0)
+repeat 5:
+    print(f"Count: {counter.increment()}")</textarea>
+                </div>
+                <div class="playground-output">
+                    <div class="output-header">Output</div>
+                    <pre id="output-console" class="output-content">Click "Run" to execute your Carrion code...</pre>
+                </div>
+            </div>
+            <p class="playground-note">Note: The online playground runs a limited version of Carrion in your browser. For full features, download the interpreter.</p>
+        </div>
+    </section>
+
+    <!-- Download Section -->
+    <section id="download" class="download">
+        <div class="container">
+            <h2 class="section-title">Download Carrion</h2>
+            <div class="download-options">
+                <div class="download-card featured">
+                    <h3>Latest Release</h3>
+                    <div class="version-tag">v0.1.6-alpha</div>
+                    <p>The newest version with all the latest magical features</p>
+                    <div class="download-buttons">
+                        <a href="https://github.com/javanhut/TheCarrionLanguage/releases/download/v0.1.6-alpha/carrion-linux-amd64" class="btn-download">
+                            <span class="os-icon">🐧</span> Linux (AMD64)
+                        </a>
+                        <a href="https://github.com/javanhut/TheCarrionLanguage/releases/download/v0.1.6-alpha/carrion-darwin-amd64" class="btn-download">
+                            <span class="os-icon">🍎</span> macOS (Intel)
+                        </a>
+                        <a href="https://github.com/javanhut/TheCarrionLanguage/releases/download/v0.1.6-alpha/carrion-darwin-arm64" class="btn-download">
+                            <span class="os-icon">🍎</span> macOS (M1/M2)
+                        </a>
+                        <a href="https://github.com/javanhut/TheCarrionLanguage/releases/download/v0.1.6-alpha/carrion-windows-amd64.exe" class="btn-download">
+                            <span class="os-icon">🪟</span> Windows (64-bit)
+                        </a>
+                    </div>
+                </div>
+                <div class="download-card">
+                    <h3>Install from Source</h3>
+                    <pre><code class="language-bash"># Clone the repository
+git clone https://github.com/javanhut/TheCarrionLanguage
+cd TheCarrionLanguage
+
+# Build from source
+cd src && go build -o carrion
+
+# Run Carrion
+./carrion</code></pre>
+                </div>
+                <div class="download-card">
+                    <h3>Quick Install Script</h3>
+                    <pre><code class="language-bash"># Linux/macOS one-liner
+curl -fsSL https://raw.githubusercontent.com/javanhut/TheCarrionLanguage/main/install/install.sh | sh
+
+# Or with wget
+wget -qO- https://raw.githubusercontent.com/javanhut/TheCarrionLanguage/main/install/install.sh | sh</code></pre>
+                </div>
+            </div>
+            <div class="version-history">
+                <h3>Previous Versions</h3>
+                <ul>
+                    <li><a href="https://github.com/javanhut/TheCarrionLanguage/releases/tag/v0.1.5">v0.1.5</a> - Stable release with core features</li>
+                    <li><a href="https://github.com/javanhut/TheCarrionLanguage/releases/tag/v0.1.4">v0.1.4</a> - Bug fixes and improvements</li>
+                    <li><a href="https://github.com/javanhut/TheCarrionLanguage/releases/">All releases</a></li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- Community Section -->
+    <section id="community" class="community">
+        <div class="container">
+            <h2 class="section-title">Join the Carrion Community</h2>
+            <div class="community-grid">
+                <a href="https://github.com/javanhut/TheCarrionLanguage" class="community-card">
+                    <div class="community-icon">📦</div>
+                    <h3>GitHub Repository</h3>
+                    <p>Star, fork, and contribute to Carrion</p>
+                </a>
+                <a href="https://github.com/javanhut/TheCarrionLanguage/issues" class="community-card">
+                    <div class="community-icon">🐛</div>
+                    <h3>Report Issues</h3>
+                    <p>Help us improve by reporting bugs</p>
+                </a>
+                <a href="https://github.com/javanhut/TheCarrionLanguage/discussions" class="community-card">
+                    <div class="community-icon">💬</div>
+                    <h3>Discussions</h3>
+                    <p>Ask questions and share ideas</p>
+                </a>
+                <a href="mailto:javanhut@carrionlang.com" class="community-card">
+                    <div class="community-icon">📧</div>
+                    <h3>Contact</h3>
+                    <p>Reach out directly via email</p>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>Carrion Language</h4>
+                    <p>Where code meets magic</p>
+                    <div class="footer-logo">🐦‍⬛</div>
+                </div>
+                <div class="footer-section">
+                    <h4>Quick Links</h4>
+                    <ul>
+                        <li><a href="#docs">Documentation</a></li>
+                        <li><a href="#playground">Playground</a></li>
+                        <li><a href="#download">Downloads</a></li>
+                        <li><a href="https://github.com/javanhut/TheCarrionLanguage">GitHub</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Resources</h4>
+                    <ul>
+                        <li><a href="docs/Getting-Started/Quick-Start.html">Getting Started</a></li>
+                        <li><a href="docs/Language-Reference.md">Language Reference</a></li>
+                        <li><a href="docs/Standard-Library.md">Standard Library</a></li>
+                        <li><a href="https://github.com/javanhut/TheCarrionLanguage/blob/main/CONTRIBUTING.md">Contributing</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Community</h4>
+                    <ul>
+                        <li><a href="https://github.com/javanhut/TheCarrionLanguage/discussions">Forum</a></li>
+                        <li><a href="https://github.com/javanhut/TheCarrionLanguage/issues">Issue Tracker</a></li>
+                        <li><a href="mailto:javanhut@carrionlang.com">Email</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 Carrion Programming Language. Licensed under MIT License.</p>
+                <p>Built with magic by the Carrion community</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+    <script src="assets/js/main.js"></script>
+</body>
+</html>

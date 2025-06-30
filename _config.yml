@@ -1,0 +1,21 @@
+# GitHub Pages Configuration for Carrion Language Website
+theme: null
+title: Carrion Programming Language
+description: The Mystical Programming Language with a Crow's Wisdom
+url: https://javanhut.github.io
+baseurl: /TheCarrionLanguage
+
+# Include/Exclude files
+include:
+  - index.html
+  - assets
+  - docs
+
+exclude:
+  - src
+  - Makefile
+  - go.mod
+  - go.sum
+  - Dockerfile
+  - .gitignore
+  - README.md
