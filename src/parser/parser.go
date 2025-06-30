@@ -2176,6 +2176,8 @@ func (p *Parser) parseMainStatement() ast.Statement {
 		return nil
 	}
 	
+	p.nextToken() // Move to INDENT token
+	p.nextToken() // Move past INDENT to first statement token
 	stmt.Body = p.parseBlockStatement()
 	return stmt
 }

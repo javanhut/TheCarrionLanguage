@@ -31,8 +31,14 @@ var TimeModule = map[string]*object.Builtin{
 
 			switch val := args[0].(type) {
 			case *object.Integer:
+				if val.Value < 0 {
+					return &object.Error{Message: "timeSleep duration cannot be negative"}
+				}
 				time.Sleep(time.Duration(val.Value) * time.Second)
 			case *object.Float:
+				if val.Value < 0 {
+					return &object.Error{Message: "timeSleep duration cannot be negative"}
+				}
 				nanos := int64(val.Value * 1_000_000_000)
 				time.Sleep(time.Duration(nanos))
 			case *object.Instance:
@@ -40,8 +46,14 @@ var TimeModule = map[string]*object.Builtin{
 				if value, exists := val.Env.Get("value"); exists {
 					switch innerVal := value.(type) {
 					case *object.Integer:
+						if innerVal.Value < 0 {
+							return &object.Error{Message: "timeSleep duration cannot be negative"}
+						}
 						time.Sleep(time.Duration(innerVal.Value) * time.Second)
 					case *object.Float:
+						if innerVal.Value < 0 {
+							return &object.Error{Message: "timeSleep duration cannot be negative"}
+						}
 						nanos := int64(innerVal.Value * 1_000_000_000)
 						time.Sleep(time.Duration(nanos))
 					default:

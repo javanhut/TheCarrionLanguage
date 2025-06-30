@@ -941,8 +941,13 @@ func evalAttemptStatement(
 				shouldCatch = true
 				ensnareEnv = object.NewEnclosedEnvironment(env)
 				// Bind the error to the alias, wrapped to prevent propagation
-				caughtError := &object.CaughtError{OriginalError: tryResult}
-				ensnareEnv.Set(ensnare.Alias.Value, caughtError)
+				if isError(tryResult) {
+					caughtError := &object.CaughtError{OriginalError: tryResult}
+					ensnareEnv.Set(ensnare.Alias.Value, caughtError)
+				} else {
+					// Handle non-error case - this shouldn't happen but is defensive
+					ensnareEnv.Set(ensnare.Alias.Value, tryResult)
+				}
 			} else if ensnare.Condition != nil {
 				// If there's a condition, evaluate it to check if we should catch
 				condition := Eval(ensnare.Condition, env, ctx)
@@ -2838,102 +2843,18 @@ func evalForStatement(
 
 	switch iter := iterable.(type) {
 	case *object.Array:
-		for _, elem := range iter.Elements {
-			switch varExpr := fs.Variable.(type) {
-			case *ast.Identifier:
-				env.Set(varExpr.Value, elem)
-			case *ast.TupleLiteral:
-				var items []object.Object
-				if tupObj, ok := elem.(*object.Tuple); ok {
-					items = tupObj.Elements
-				} else if arrObj, ok := elem.(*object.Array); ok {
-					items = arrObj.Elements
-				} else {
-					return newErrorWithTrace("cannot unpack non-iterable element: %s",
-						fs, ctx, elem.Type())
-				}
-				if len(varExpr.Elements) != len(items) {
-					return newErrorWithTrace("unpacking mismatch: expected %d values, got %d",
-						fs, ctx, len(varExpr.Elements), len(items))
-				}
-				for i, target := range varExpr.Elements {
-					ident, ok := target.(*ast.Identifier)
-					if !ok {
-						return newErrorWithTrace("invalid assignment target in for loop", fs, ctx)
-					}
-					env.Set(ident.Value, items[i])
-				}
-			default:
-				env.Set(fs.Variable.String(), elem)
-			}
-
-			if fs.Body != nil {
-				loopResult := Eval(fs.Body, env, forCtx)
-				if loopResult != nil {
-					rt := getObjectType(loopResult)
-					if rt == string(object.STOP.Type()) {
-						return object.STOP // Exit the entire for loop
-					}
-					if rt == string(object.SKIP.Type()) {
-						continue // Skip to the next element in the outer loop
-					}
-					if rt == object.RETURN_VALUE_OBJ || rt == object.ERROR_OBJ ||
-						rt == object.CUSTOM_ERROR_OBJ || isErrorWithTrace(loopResult) {
-						return loopResult
-					}
-				}
-			}
+		result := processArrayIteration(iter.Elements, fs, env, forCtx, ctx)
+		if result != NONE {
+			return result
 		}
 	case *object.Instance:
 		// Handle Array instances
 		if iter.Grimoire.Name == "Array" {
 			if elementsObj, ok := iter.Env.Get("elements"); ok {
 				if arr, ok := elementsObj.(*object.Array); ok {
-					for _, elem := range arr.Elements {
-						switch varExpr := fs.Variable.(type) {
-						case *ast.Identifier:
-							env.Set(varExpr.Value, elem)
-						case *ast.TupleLiteral:
-							var items []object.Object
-							if tupObj, ok := elem.(*object.Tuple); ok {
-								items = tupObj.Elements
-							} else if arrObj, ok := elem.(*object.Array); ok {
-								items = arrObj.Elements
-							} else {
-								return newErrorWithTrace("cannot unpack non-iterable element: %s",
-									fs, ctx, elem.Type())
-							}
-							if len(varExpr.Elements) != len(items) {
-								return newErrorWithTrace("unpacking mismatch: expected %d values, got %d",
-									fs, ctx, len(varExpr.Elements), len(items))
-							}
-							for i, target := range varExpr.Elements {
-								ident, ok := target.(*ast.Identifier)
-								if !ok {
-									return newErrorWithTrace("invalid assignment target in for loop", fs, ctx)
-								}
-								env.Set(ident.Value, items[i])
-							}
-						default:
-							env.Set(fs.Variable.String(), elem)
-						}
-
-						if fs.Body != nil {
-							loopResult := Eval(fs.Body, env, forCtx)
-							if loopResult != nil {
-								rt := getObjectType(loopResult)
-								if rt == string(object.STOP.Type()) {
-									return object.STOP // Exit the entire for loop
-								}
-								if rt == string(object.SKIP.Type()) {
-									continue // Skip to the next element in the outer loop
-								}
-								if rt == object.RETURN_VALUE_OBJ || rt == object.ERROR_OBJ ||
-									rt == object.CUSTOM_ERROR_OBJ || isErrorWithTrace(loopResult) {
-									return loopResult
-								}
-							}
-						}
+					result := processArrayIteration(arr.Elements, fs, env, forCtx, ctx)
+					if result != NONE {
+						return result
 					}
 				}
 			}
@@ -2942,6 +2863,63 @@ func evalForStatement(
 		}
 	default:
 		return newErrorWithTrace("for loop requires an iterable, got %s", fs, ctx, iterable.Type())
+	}
+	return NONE
+}
+
+// Helper function to process array iteration with variable unpacking and loop body execution
+func processArrayIteration(
+	elements []object.Object,
+	fs *ast.ForStatement,
+	env *object.Environment,
+	forCtx *CallContext,
+	ctx *CallContext,
+) object.Object {
+	for _, elem := range elements {
+		switch varExpr := fs.Variable.(type) {
+		case *ast.Identifier:
+			env.Set(varExpr.Value, elem)
+		case *ast.TupleLiteral:
+			var items []object.Object
+			if tupObj, ok := elem.(*object.Tuple); ok {
+				items = tupObj.Elements
+			} else if arrObj, ok := elem.(*object.Array); ok {
+				items = arrObj.Elements
+			} else {
+				return newErrorWithTrace("cannot unpack non-iterable element: %s",
+					fs, ctx, elem.Type())
+			}
+			if len(varExpr.Elements) != len(items) {
+				return newErrorWithTrace("unpacking mismatch: expected %d values, got %d",
+					fs, ctx, len(varExpr.Elements), len(items))
+			}
+			for i, target := range varExpr.Elements {
+				ident, ok := target.(*ast.Identifier)
+				if !ok {
+					return newErrorWithTrace("invalid assignment target in for loop", fs, ctx)
+				}
+				env.Set(ident.Value, items[i])
+			}
+		default:
+			env.Set(fs.Variable.String(), elem)
+		}
+
+		if fs.Body != nil {
+			loopResult := Eval(fs.Body, env, forCtx)
+			if loopResult != nil {
+				rt := getObjectType(loopResult)
+				if rt == string(object.STOP.Type()) {
+					return object.STOP // Exit the entire for loop
+				}
+				if rt == string(object.SKIP.Type()) {
+					continue // Skip to the next element in the outer loop
+				}
+				if rt == object.RETURN_VALUE_OBJ || rt == object.ERROR_OBJ ||
+					rt == object.CUSTOM_ERROR_OBJ || isErrorWithTrace(loopResult) {
+					return loopResult
+				}
+			}
+		}
 	}
 	return NONE
 }
