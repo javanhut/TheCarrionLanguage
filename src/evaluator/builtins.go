@@ -867,13 +867,13 @@ var builtins = map[string]*object.Builtin{
 // Global reference to the stdlib environment
 var stdlibEnv *object.Environment
 
-// SetStdlibEnv sets the global reference to the standard library environment
+// SetStdlibEnv assigns the provided environment as the global standard library environment reference.
 func SetStdlibEnv(env *object.Environment) {
 	stdlibEnv = env
 }
 
 // wrapPrimitiveForBuiltin wraps a primitive object in a grimoire instance for use in builtin functions
-// This creates String instances that support method calls like .lower()
+// wrapPrimitiveForBuiltin wraps a primitive object (String, Integer, Float, or Boolean) in a grimoire instance from the standard library environment, enabling method calls on the primitive. If the standard library environment or the corresponding grimoire is unavailable, the original object is returned.
 func wrapPrimitiveForBuiltin(obj object.Object) object.Object {
 	if stdlibEnv == nil {
 		// Fallback: return primitive if no stdlib environment available

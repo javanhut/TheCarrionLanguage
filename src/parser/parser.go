@@ -96,6 +96,9 @@ func (p *Parser) isInsideGrimoire() bool {
 	return p.contextStack[len(p.contextStack)-1] == "grim"
 }
 
+// New creates and initializes a Parser for The Carrion Language using the provided lexer.
+// It sets up token advancement, error tracking, and registers all prefix, infix, postfix, and statement parsing functions needed for the language's syntax.
+// Returns a pointer to the configured Parser instance.
 func New(l *lexer.Lexer) *Parser {
 	p := &Parser{
 		l: l, errors: []string{},
@@ -2121,6 +2124,7 @@ func (p *Parser) parseStringInterpolationLiteral() ast.Expression {
 	return si
 }
 
+// parseFormatSpec parses a format specification string and sets the corresponding formatting fields on the given StringExpr node, including fill character, alignment, width, and precision.
 func parseFormatSpec(se *ast.StringExpr, spec string) {
 	se.FormatSpec = spec
 
@@ -2193,6 +2197,7 @@ func (p *Parser) parseStringInterpolationExpression(exprStr string) ast.Expressi
 	return nil
 }
 
+// isDigit reports whether the given byte represents an ASCII digit ('0'–'9').
 func isDigit(ch byte) bool {
 	return ch >= '0' && ch <= '9'
 }

@@ -11,6 +11,7 @@ import (
 	"github.com/javanhut/TheCarrionLanguage/src/parser"
 )
 
+// LoadModules loads built-in functions from the time module into the provided environment.
 func LoadModules(env *object.Environment) {
 	// Load time module functions into the environment
 	for name, builtin := range modules.TimeModule {
@@ -18,6 +19,11 @@ func LoadModules(env *object.Environment) {
 	}
 }
 
+// LoadMuninStdlib loads the standard library into the provided environment.
+//
+// It first loads Go-based module functions, then reads and evaluates all embedded `.crl` standard library files into the environment. If any file fails to parse or evaluate, an error is returned. On success, the environment is set as the global standard library environment for built-in functions.
+//
+// Returns an error if reading, parsing, or evaluating any standard library file fails.
 func LoadMuninStdlib(env *object.Environment) error {
 	// Load Go modules first
 	LoadModules(env)

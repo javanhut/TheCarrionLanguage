@@ -10,12 +10,14 @@ type Environment struct {
 	globalVars  map[string]bool // tracks which variables are declared as global
 }
 
+// NewEnvironment creates and returns a new Environment with empty variable and global variable stores and no outer environment.
 func NewEnvironment() *Environment {
 	s := make(map[string]Object)
 	g := make(map[string]bool)
 	return &Environment{store: s, outer: nil, globalVars: g}
 }
 
+// NewEnclosedEnvironment creates a new Environment with the specified outer environment, enabling nested variable scopes.
 func NewEnclosedEnvironment(outer *Environment) *Environment {
 	env := NewEnvironment()
 	env.outer = outer

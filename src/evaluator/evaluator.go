@@ -196,7 +196,9 @@ func newErrorWithTrace(
 	return err
 }
 
-// newCustomErrorWithTrace creates a custom error with trace information
+// newCustomErrorWithTrace creates a custom error object with a stack trace and optional custom details.
+// The error includes the provided name and message, source position from the AST node, and a stack trace built from the call context chain.
+// If the details map is nil, it is initialized to an empty map.
 func newCustomErrorWithTrace(
 	name string,
 	message string,
@@ -256,6 +258,7 @@ func isPrimitiveLiteral(obj object.Object) bool {
 	}
 }
 
+// wrapPrimitive wraps primitive objects (integer, float, string, boolean) into their corresponding grimoire (class) instances, unless the current context is within a method, grimoire constructor, or most builtin functions. If the appropriate grimoire is not found in the environment, the original object is returned.
 func wrapPrimitive(obj object.Object, env *object.Environment, ctx *CallContext) object.Object {
 	if debugPrimitiveWrapping {
 		fmt.Fprintf(os.Stderr, "WRAP: Evaluating %T, ctx=%s, hasSelf=%t\n", obj, getContextName(ctx), hasSelfInEnv(env))
@@ -370,7 +373,7 @@ func isBuiltinFunction(name string) bool {
 	return isBuiltin
 }
 
-// isGrimoireConstructor checks if a function name is a grimoire constructor
+// isGrimoireConstructor returns true if the given name refers to a grimoire constructor in the provided environment.
 func isGrimoireConstructor(name string, env *object.Environment) bool {
 	if obj, exists := env.Get(name); exists {
 		_, isGrimoire := obj.(*object.Grimoire)
@@ -379,7 +382,7 @@ func isGrimoireConstructor(name string, env *object.Environment) bool {
 	return false
 }
 
-// shouldWrapStringResult determines if string results from a function should be wrapped in String grimoire instances
+// shouldWrapStringResult returns true if the given function name produces string results that should be wrapped in String grimoire instances.
 func shouldWrapStringResult(functionName string) bool {
 	switch functionName {
 	case "input", "fileRead", "osGetEnv", "osExpandEnv", "chr":
@@ -389,7 +392,7 @@ func shouldWrapStringResult(functionName string) bool {
 	}
 }
 
-// hasSelfInEnv checks if 'self' exists in the environment hierarchy
+// hasSelfInEnv returns true if the identifier 'self' is present in the given environment or its parent environments.
 func hasSelfInEnv(env *object.Environment) bool {
 	_, hasSelf := env.Get("self")
 	return hasSelf
@@ -424,7 +427,9 @@ func isErrorWithTrace(obj object.Object) bool {
 	return ok
 }
 
-// Main evaluation function
+// Eval interprets and executes a Carrion AST node within the given environment and call context.
+// 
+// It dispatches evaluation based on the node type, supporting all Carrion language constructs including expressions, statements, control flow, function and class definitions, error handling, and primitive value wrapping. Eval manages call contexts for stack traces, enforces recursion limits, and ensures correct handling of global state and environments. Returns the result of evaluation or an error object if execution fails.
 func Eval(node ast.Node, env *object.Environment, ctx *CallContext) object.Object {
 	// Add nil parameter validation
 	if node == nil {
@@ -849,6 +854,10 @@ func evalArcaneGrimoire(
 	return grimoire
 }
 
+// evalRaiseStatement evaluates a raise statement, converting the provided expression into a custom error with stack trace information.
+// If the expression is an instance, it extracts the error message from its "message" or "value" field and includes error details.
+// If the expression is a string or a wrapped String instance, it raises an error with the string as the message.
+// Returns an error object with trace, or an error if the raised value is not a valid error type.
 func evalRaiseStatement(
 	node *ast.RaiseStatement,
 	env *object.Environment,
@@ -914,6 +923,9 @@ func evalExpressions(
 	return result
 }
 
+// evalAttemptStatement evaluates an attempt statement, implementing try-catch-finally semantics with support for multiple ensnare (catch) clauses and an optional resolve (finally) block.
+// It executes the try block, matches and handles errors using ensnare clauses based on alias binding or condition, and always executes the resolve block if present.
+// Returns the result of the try or ensnare block, or propagates errors from the resolve block.
 func evalAttemptStatement(
 	node *ast.AttemptStatement,
 	env *object.Environment,
@@ -1005,6 +1017,7 @@ func evalAttemptStatement(
 	return result
 }
 
+// evalMatchStatement evaluates a match statement by comparing the match value against each case condition and executing the body of the first matching case, or the default case if provided. Returns the result of the executed case or NONE if no cases match.
 func evalMatchStatement(
 	ms *ast.MatchStatement,
 	env *object.Environment,
@@ -1045,6 +1058,8 @@ func evalMatchStatement(
 	return NONE
 }
 
+// isEqual compares two objects for equality, unwrapping primitive values from instances if necessary.
+// It supports comparison for integers, floats, strings, and booleans, returning true if both objects are of the same type and have equal values.
 func isEqual(obj1, obj2 object.Object) bool {
 	// Unwrap primitives if they are wrapped in instances
 	obj1 = unwrapPrimitive(obj1)
@@ -1073,6 +1088,8 @@ func isEqual(obj1, obj2 object.Object) bool {
 	return false
 }
 
+// evalAssignStatement assigns a value to a target, supporting identifiers, object fields, tuple unpacking, and indexed elements.
+// Returns the assigned value or an error if the assignment is invalid or fails.
 func evalAssignStatement(
 	node *ast.AssignStatement,
 	env *object.Environment,
@@ -1309,6 +1326,9 @@ func evalGrimoireDefinition(
 	return grimoire
 }
 
+// evalGrimoireMethodCall invokes a method on a grimoire (class) instance, handling access control, argument binding, and method context setup.
+// It enforces private and protected method restrictions, binds arguments (skipping 'self'), and executes the method body with recursion limits.
+// Returns the result of the method execution or an error if access is denied or the method is not found.
 func evalGrimoireMethodCall(
 	instance *object.Instance,
 	methodName string,
@@ -1419,6 +1439,9 @@ func evalWithRecursionLimit(
 	return unwrapReturnValue(result)
 }
 
+// evalCallExpression dispatches and evaluates a function, method, grimoire (class), or builtin call with the provided arguments.
+// It handles argument flattening for single-tuple calls, propagates errors, manages recursion depth, and wraps results from certain builtins as needed.
+// Returns the result of the call, a new instance, or an error if the call is invalid or exceeds recursion limits.
 func evalCallExpression(
 	fn object.Object,
 	args []object.Object,
@@ -1939,6 +1962,9 @@ func evalIdentifier(node *ast.Identifier, env *object.Environment, ctx *CallCont
 	return newErrorWithTrace("identifier not found: %s", node, ctx, node.Value)
 }
 
+// evalProgram evaluates a Carrion program node, handling top-level statements and optional main block execution.
+// If a main block is present, only function definitions, class definitions, and assignments are executed before main; other statements are deferred or skipped.
+// Returns the result of the last executed statement, or propagates return values and errors encountered during evaluation.
 func evalProgram(program *ast.Program, env *object.Environment, ctx *CallContext) object.Object {
 	var result object.Object
 	var mainStatement *ast.MainStatement
@@ -2319,6 +2345,8 @@ func evalBooleanInfixExpression(
 	}
 }
 
+// evalPrefixIncrementDecrement applies prefix increment or decrement to an integer variable or an Integer instance.
+// It updates the variable in the environment and returns the new integer value, or an error if the operand is not a valid integer or identifier.
 func evalPrefixIncrementDecrement(
 	operator string,
 	node *ast.PrefixExpression,
@@ -2373,6 +2401,8 @@ func evalPrefixIncrementDecrement(
 	}
 }
 
+// evalPostfixIncrementDecrement applies the postfix increment or decrement operator to an integer variable or an Integer instance.
+// It returns the original integer value before the operation, or an error if the operand is not a valid integer variable or identifier.
 func evalPostfixIncrementDecrement(
 	operator string,
 	node *ast.PostfixExpression,
@@ -2536,6 +2566,8 @@ func evalIntegerInfixExpression(
 	}
 }
 
+// evalCompoundAssignment evaluates a compound assignment expression (such as +=, -=, *=, /=) and updates the target variable or instance with the new value.
+// Returns the result of the compound operation or an error if the assignment target is invalid or the operation fails.
 func evalCompoundAssignment(
 	node *ast.InfixExpression,
 	env *object.Environment,
@@ -2819,6 +2851,7 @@ func isTruthy(obj object.Object) bool {
 	}
 }
 
+// evalForStatement evaluates a for loop statement, iterating over arrays or Array instances and assigning elements to loop variables, supporting tuple unpacking and control flow signals such as stop, skip, and return. Returns the result of the loop body or an error if the iterable is invalid or unpacking fails.
 func evalForStatement(
 	fs *ast.ForStatement,
 	env *object.Environment,
@@ -2946,6 +2979,8 @@ func evalForStatement(
 	return NONE
 }
 
+// evalImportStatement imports and evaluates a Carrion source file, optionally assigning its contents to a namespace or merging exported grimoires into the current environment.
+// If the file has already been imported, it is skipped. Parsing or evaluation errors are returned as error objects.
 func evalImportStatement(
 	node *ast.ImportStatement,
 	env *object.Environment,
@@ -3005,6 +3040,9 @@ func evalImportStatement(
 	return object.NONE
 }
 
+// evalGlobalStatement marks the specified variable names as global in the current environment.
+// This allows assignments to these variables to affect the global scope within the current function or block.
+// Returns the singleton NONE object.
 func evalGlobalStatement(
 	node *ast.GlobalStatement,
 	env *object.Environment,
