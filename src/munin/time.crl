@@ -1,0 +1,63 @@
+```
+Time module grimoire for Carrion language
+Provides time-related functionality using Go's time package
+```
+
+grim Time:
+    init():
+        self.name = "Time"
+    
+    spell now():
+        ```Get current Unix timestamp (seconds since epoch)```
+        return timeNow()
+    
+    spell now_nano():
+        ```Get current Unix timestamp in nanoseconds```
+        return timeNowNano()
+    
+    spell sleep(seconds):
+        ```Sleep for specified number of seconds (can be float)```
+        return timeSleep(seconds)
+    
+    spell format(timestamp, format_str = "2006-01-02 15:04:05"):
+        ```Format Unix timestamp to string using Go time format```
+        return timeFormat(timestamp, format_str)
+    
+    spell parse(format_str, time_str):
+        ```Parse time string using format, returns Unix timestamp```
+        return timeParse(format_str, time_str)
+    
+    spell date(timestamp = None):
+        ```Get date components [year, month, day] from timestamp or current time```
+        if timestamp == None:
+            return timeDate()
+        return timeDate(timestamp)
+    
+    spell add_duration(timestamp, seconds):
+        ```Add duration in seconds to timestamp, returns new timestamp```
+        return timeAddDuration(timestamp, seconds)
+    
+    spell diff(timestamp1, timestamp2):
+        ```Calculate difference between two timestamps in seconds```
+        return timeDiff(timestamp1, timestamp2)
+
+```Convenience functions for common time operations```
+spell now():
+    ```Get current Unix timestamp```
+    time = Time()
+    return time.now()
+
+spell sleep(seconds):
+    ```Sleep for specified number of seconds```
+    time = Time()
+    return time.sleep(seconds)
+
+spell date():
+    ```Get current date as [year, month, day]```
+    time = Time()
+    return time.date()
+
+spell format_time(timestamp, format_str = "2006-01-02 15:04:05"):
+    ```Format timestamp to string```
+    time = Time()
+    return time.format(timestamp, format_str)

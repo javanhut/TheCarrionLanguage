@@ -48,6 +48,11 @@ type BlockStatement struct {
 	Statements []Statement
 }
 
+type MainStatement struct {
+	Token token.Token
+	Body  *BlockStatement
+}
+
 func (bs *BlockStatement) statementNode()       {}
 func (bs *BlockStatement) TokenLiteral() string { return bs.Token.Literal }
 func (bs *BlockStatement) String() string {
@@ -55,6 +60,18 @@ func (bs *BlockStatement) String() string {
 	for _, s := range bs.Statements {
 		out.WriteString(s.String())
 		out.WriteString("\n")
+	}
+	return out.String()
+}
+
+func (ms *MainStatement) statementNode()       {}
+func (ms *MainStatement) TokenLiteral() string { return ms.Token.Literal }
+func (ms *MainStatement) String() string {
+	var out strings.Builder
+	out.WriteString("main:")
+	if ms.Body != nil {
+		out.WriteString("\n")
+		out.WriteString(ms.Body.String())
 	}
 	return out.String()
 }
@@ -473,5 +490,23 @@ func (es *ElseStatement) String() string {
 	var out strings.Builder
 	out.WriteString("else:\n")
 	out.WriteString(es.Body.String())
+	return out.String()
+}
+
+type GlobalStatement struct {
+	Token token.Token
+	Names []*Identifier
+}
+
+func (gs *GlobalStatement) statementNode()       {}
+func (gs *GlobalStatement) TokenLiteral() string { return gs.Token.Literal }
+func (gs *GlobalStatement) String() string {
+	var out strings.Builder
+	out.WriteString("global ")
+	names := []string{}
+	for _, name := range gs.Names {
+		names = append(names, name.String())
+	}
+	out.WriteString(strings.Join(names, ", "))
 	return out.String()
 }

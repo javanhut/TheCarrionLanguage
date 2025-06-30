@@ -3,7 +3,6 @@ package object
 
 import (
 	"fmt"
-	"strings"
 )
 
 // SourcePosition tracks the location of code in source files
@@ -46,50 +45,8 @@ func (e *ErrorWithTrace) Type() ObjectType {
 }
 
 func (e *ErrorWithTrace) Inspect() string {
-	var sb strings.Builder
-
-	// headline
-	sb.WriteString("Error: ")
-	sb.WriteString(e.Message)
-	sb.WriteString("\n  at ")
-	sb.WriteString(e.Position.Filename)
-	sb.WriteString(fmt.Sprintf(", Line: %d, Column: %d\n",
-		e.Position.Line, e.Position.Column))
-
-	// stack (most‑recent first)
-	if n := len(e.Stack); n > 0 {
-		sb.WriteString("Stack trace:\n")
-		for i := n - 1; i >= 0; i-- {
-			f := e.Stack[i]
-			name := f.FunctionName
-			if name == "" {
-				name = "<anon>"
-			}
-			sb.WriteString(fmt.Sprintf("  %d: %s (%s:Line: %d, Column: %d)\n",
-				n-1-i, name, f.Position.Filename, f.Position.Line, f.Position.Column))
-		}
-	}
-
-	// custom details
-	if e.ErrorType == CUSTOM_ERROR_OBJ && len(e.CustomDetails) > 0 {
-		sb.WriteString("Details:\n")
-		for k, v := range e.CustomDetails {
-			sb.WriteString("  ")
-			sb.WriteString(k)
-			sb.WriteString(": ")
-			sb.WriteString(v.Inspect())
-			sb.WriteString("\n")
-		}
-	}
-
-	// chained cause
-	if e.Cause != nil {
-		sb.WriteString("\nCaused by:\n  ")
-		sb.WriteString(strings.ReplaceAll(e.Cause.Inspect(), "\n", "\n  "))
-		sb.WriteString("\n")
-	}
-
-	return sb.String()
+	// For str() conversion, just return the message
+	return e.Message
 }
 
 // Optional, so fmt.Println(err) prints same view.

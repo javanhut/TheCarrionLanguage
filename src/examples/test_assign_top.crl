@@ -1,5 +1,0 @@
-spell test(n):
-    result = n
-    return result
-
-print(test(5))

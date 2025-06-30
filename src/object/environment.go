@@ -7,11 +7,13 @@ type Environment struct {
 	store       map[string]Object
 	outer       *Environment
 	debugConfig *debug.Config
+	globalVars  map[string]bool // tracks which variables are declared as global
 }
 
 func NewEnvironment() *Environment {
 	s := make(map[string]Object)
-	return &Environment{store: s, outer: nil}
+	g := make(map[string]bool)
+	return &Environment{store: s, outer: nil, globalVars: g}
 }
 
 func NewEnclosedEnvironment(outer *Environment) *Environment {
@@ -54,6 +56,11 @@ func (e *Environment) Clone() *Environment {
 		clone.store[name] = obj
 	}
 	
+	// Copy global variable markers
+	for name, isGlobal := range e.globalVars {
+		clone.globalVars[name] = isGlobal
+	}
+	
 	// Recursively clone the outer environment if it exists
 	if e.outer != nil {
 		clone.outer = e.outer.Clone()
@@ -81,4 +88,36 @@ func (e *Environment) GetDebugConfig() *debug.Config {
 		return e.outer.GetDebugConfig()
 	}
 	return nil
+}
+
+// MarkGlobal marks a variable as global in the current environment
+func (e *Environment) MarkGlobal(name string) {
+	if e.globalVars == nil {
+		e.globalVars = make(map[string]bool)
+	}
+	e.globalVars[name] = true
+}
+
+// IsGlobal checks if a variable is marked as global in this environment
+func (e *Environment) IsGlobal(name string) bool {
+	return e.globalVars[name]
+}
+
+// SetGlobal sets a variable in the global scope (outermost environment)
+func (e *Environment) SetGlobal(name string, val Object) Object {
+	// Find the outermost environment (global scope)
+	globalEnv := e
+	for globalEnv.outer != nil {
+		globalEnv = globalEnv.outer
+	}
+	globalEnv.store[name] = val
+	return val
+}
+
+// SetWithGlobalCheck sets a variable, checking if it should be set in global scope
+func (e *Environment) SetWithGlobalCheck(name string, val Object) Object {
+	if e.IsGlobal(name) {
+		return e.SetGlobal(name, val)
+	}
+	return e.Set(name, val)
 }

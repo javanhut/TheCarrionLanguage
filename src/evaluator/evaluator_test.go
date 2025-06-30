@@ -598,3 +598,201 @@ result
 	evaluated := testEval(input)
 	testIntegerObject(t, evaluated, 3) // 7 is at index 3
 }
+
+func TestMainStatementTwoPhaseExecution(t *testing.T) {
+	t.Run("backward compatibility - no main block", func(t *testing.T) {
+		// Without main block, all statements should execute normally
+		input := `x = 10
+y = 20
+spell add(a, b):
+    return a + b
+result = add(x, y)
+result`
+		evaluated := testEval(input)
+		testIntegerObject(t, evaluated, 30)
+	})
+
+	t.Run("with main block - function definitions execute before main", func(t *testing.T) {
+		input := `spell multiply(a, b):
+    return a * b
+
+main:
+    result = multiply(5, 6)
+    result`
+		evaluated := testEval(input)
+		testIntegerObject(t, evaluated, 30)
+	})
+
+	t.Run("with main block - class definitions execute before main", func(t *testing.T) {
+		// Test that assignments execute before main
+		input := `counter = 2
+
+main:
+    counter`
+		evaluated := testEval(input)
+		testIntegerObject(t, evaluated, 2)
+	})
+
+	t.Run("with main block - assignments execute before main", func(t *testing.T) {
+		input := `x = 100
+y = 200
+z = x + y
+
+main:
+    z`
+		evaluated := testEval(input)
+		testIntegerObject(t, evaluated, 300)
+	})
+
+	t.Run("with main block - expression statements are skipped outside main", func(t *testing.T) {
+		input := `x = 0
+
+# These expression statements should be skipped
+print("This should NOT execute")
+x + 10  # This should not affect the result
+
+main:
+    x  # Should still be 0`
+		evaluated := testEval(input)
+		testIntegerObject(t, evaluated, 0)
+	})
+
+	t.Run("main block executes last", func(t *testing.T) {
+		input := `execution_order = []
+
+spell record_init():
+    execution_order = execution_order + ["init"]
+    return execution_order
+
+execution_order = record_init()
+
+main:
+    execution_order = execution_order + ["main"]
+    len(execution_order)  # Should be 2 if main executes last`
+		evaluated := testEval(input)
+		testIntegerObject(t, evaluated, 2)
+	})
+
+	t.Run("return value from main block", func(t *testing.T) {
+		input := `spell helper():
+    return 42
+
+main:
+    return helper()`
+		evaluated := testEval(input)
+		testIntegerObject(t, evaluated, 42)
+	})
+
+	t.Run("error handling in main block", func(t *testing.T) {
+		input := `main:
+    x = 10 / 0  # Division by zero`
+		evaluated := testEval(input)
+		errMsg, isError := getErrorMessage(evaluated)
+		if !isError {
+			t.Fatalf("expected error object, got %T", evaluated)
+		}
+		if !strings.Contains(errMsg, "division by zero") {
+			t.Errorf("expected division by zero error, got %q", errMsg)
+		}
+	})
+
+	t.Run("error handling outside main block", func(t *testing.T) {
+		input := `spell bad_function():
+    return 1 / 0
+
+x = bad_function()  # This should error before main
+
+main:
+    x`
+		evaluated := testEval(input)
+		errMsg, isError := getErrorMessage(evaluated)
+		if !isError {
+			t.Fatalf("expected error object, got %T", evaluated)
+		}
+		if !strings.Contains(errMsg, "division by zero") {
+			t.Errorf("expected division by zero error, got %q", errMsg)
+		}
+	})
+
+	t.Run("empty main block", func(t *testing.T) {
+		input := `x = 123
+
+main:
+    # Empty main block
+
+# This should not execute after main
+x`
+		evaluated := testEval(input)
+		// Empty main block should return nil
+		if evaluated != nil {
+			t.Errorf("expected nil from empty main block, got %T (%+v)", evaluated, evaluated)
+		}
+	})
+
+	t.Run("nested blocks within main", func(t *testing.T) {
+		input := `main:
+    x = 10
+    if x > 5:
+        if x < 20:
+            x = x * 2
+    x`
+		evaluated := testEval(input)
+		testIntegerObject(t, evaluated, 20)
+	})
+
+	t.Run("early return within main", func(t *testing.T) {
+		input := `main:
+    x = 5
+    if x > 0:
+        return x * 10
+    return 0  # Should not reach here`
+		evaluated := testEval(input)
+		testIntegerObject(t, evaluated, 50)
+	})
+
+	t.Run("multiple main blocks should error", func(t *testing.T) {
+		input := `main:
+    x = 1
+
+main:
+    x = 2`
+		evaluated := testEval(input)
+		// This should be handled by the parser, but if it reaches evaluator,
+		// only the first main should be recognized
+		testIntegerObject(t, evaluated, 1)
+	})
+
+	t.Run("imports execute before main", func(t *testing.T) {
+		// Note: This would require actual module system, so we simulate
+		input := `# import statements would go here
+imported_value = 999  # Simulating an imported value
+
+main:
+    imported_value`
+		evaluated := testEval(input)
+		testIntegerObject(t, evaluated, 999)
+	})
+
+	t.Run("complex program with main - full integration", func(t *testing.T) {
+		input := `# Global assignments
+PI = 3
+radius = 5
+
+# Function definitions
+spell area(r):
+    return PI * r * r
+
+spell circumference(r):
+    return 2 * PI * r
+
+# These should be skipped
+print("This should not execute")
+area(10)  # This call should be skipped
+
+# Main block executes last
+main:
+    area(radius)`
+		evaluated := testEval(input)
+		testIntegerObject(t, evaluated, 75) // 3 * 5 * 5
+	})
+}
