@@ -228,6 +228,15 @@ type Instance struct {
 }
 
 func (i *Instance) Type() ObjectType { return INSTANCE_OBJ }
+
+// CaughtError wraps an error that has been caught by an ensnare clause
+// This prevents it from being treated as a propagatable error
+type CaughtError struct {
+	OriginalError Object
+}
+
+func (ce *CaughtError) Type() ObjectType { return "CAUGHT_ERROR" }
+func (ce *CaughtError) Inspect() string { return ce.OriginalError.Inspect() }
 func (i *Instance) Inspect() string {
 	// Special handling for primitive wrapper instances
 	switch i.Grimoire.Name {

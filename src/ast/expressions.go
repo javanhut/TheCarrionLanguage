@@ -328,3 +328,11 @@ func (si *StringInterpolation) String() string {
 	out.WriteString("\"")
 	return out.String()
 }
+
+type WildcardExpression struct {
+	Token token.Token
+}
+
+func (we *WildcardExpression) expressionNode()      {}
+func (we *WildcardExpression) TokenLiteral() string { return we.Token.Literal }
+func (we *WildcardExpression) String() string       { return "_" }

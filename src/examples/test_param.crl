@@ -1,4 +1,0 @@
-spell test(value): return value
-
-result = test(5)
-print(result)

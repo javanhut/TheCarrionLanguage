@@ -5,12 +5,22 @@ import (
 	"path/filepath"
 
 	"github.com/javanhut/TheCarrionLanguage/src/lexer"
+	"github.com/javanhut/TheCarrionLanguage/src/modules"
 	"github.com/javanhut/TheCarrionLanguage/src/munin"
 	"github.com/javanhut/TheCarrionLanguage/src/object"
 	"github.com/javanhut/TheCarrionLanguage/src/parser"
 )
 
+func LoadModules(env *object.Environment) {
+	// Load time module functions into the environment
+	for name, builtin := range modules.TimeModule {
+		env.Set(name, builtin)
+	}
+}
+
 func LoadMuninStdlib(env *object.Environment) error {
+	// Load Go modules first
+	LoadModules(env)
 	// 1. List embedded files in the current directory (".")
 	//    if you used //go:embed *.crl with no subdirectory
 	entries, err := munin.MuninFs.ReadDir(".")
@@ -48,6 +58,9 @@ func LoadMuninStdlib(env *object.Environment) error {
 			}
 		}
 	}
+
+	// Set the global reference to the stdlib environment for builtin functions
+	SetStdlibEnv(env)
 
 	return nil
 }

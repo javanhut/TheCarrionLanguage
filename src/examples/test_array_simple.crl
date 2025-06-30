@@ -1,3 +1,0 @@
-arr = Array([1, 2, 3])
-print("Array created:", arr)
-print("Array type:", type(arr))

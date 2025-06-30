@@ -1,6 +1,0 @@
-spell test(n):
-    if n == 5:
-        print("matched")
-    print("done")
-
-test(5)

@@ -17,6 +17,7 @@ import (
 
 var LineReader *liner.State
 
+
 var builtins = map[string]*object.Builtin{
 	"len": {
 		Fn: func(args ...object.Object) object.Object {
@@ -198,7 +199,29 @@ var builtins = map[string]*object.Builtin{
 			if len(args) != 1 {
 				return newError("wrong number of arguments. got=%d, want=1", len(args))
 			}
-			return &object.String{Value: args[0].Inspect()}
+			primitive := &object.String{Value: args[0].Inspect()}
+			// Create a String instance that supports method calls like .lower()
+			return wrapPrimitiveForBuiltin(primitive)
+		},
+	},
+	"String": {
+		Fn: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newError("wrong number of arguments. got=%d, want=1", len(args))
+			}
+			
+			// Convert input to string value
+			var strValue string
+			switch arg := args[0].(type) {
+			case *object.String:
+				strValue = arg.Value
+			default:
+				strValue = arg.Inspect()
+			}
+			
+			// Return regular string object for now
+			// String grimoire instances are created through the grimoire system
+			return &object.String{Value: strValue}
 		},
 	},
 	"bool": {
@@ -839,4 +862,56 @@ var builtins = map[string]*object.Builtin{
 			return &object.String{Value: string(rune(num.Value))}
 		},
 	},
+}
+
+// Global reference to the stdlib environment
+var stdlibEnv *object.Environment
+
+// SetStdlibEnv sets the global reference to the standard library environment
+func SetStdlibEnv(env *object.Environment) {
+	stdlibEnv = env
+}
+
+// wrapPrimitiveForBuiltin wraps a primitive object in a grimoire instance for use in builtin functions
+// This creates String instances that support method calls like .lower()
+func wrapPrimitiveForBuiltin(obj object.Object) object.Object {
+	if stdlibEnv == nil {
+		// Fallback: return primitive if no stdlib environment available
+		return obj
+	}
+
+	var grimName string
+
+	switch obj.Type() {
+	case object.STRING_OBJ:
+		grimName = "String"
+	case object.INTEGER_OBJ:
+		grimName = "Integer"
+	case object.FLOAT_OBJ:
+		grimName = "Float"
+	case object.BOOLEAN_OBJ:
+		grimName = "Boolean"
+	default:
+		return obj // Not a wrappable primitive, return as is
+	}
+
+	// Try to find the grimoire in the stdlib environment
+	if grimObj, ok := stdlibEnv.Get(grimName); ok {
+		if grimoire, isGrim := grimObj.(*object.Grimoire); isGrim {
+			// Create instance exactly like the normal grimoire constructor
+			instance := &object.Instance{
+				Grimoire: grimoire,
+				Env:      object.NewEnclosedEnvironment(grimoire.Env),
+			}
+
+			// Set up the instance environment
+			instance.Env.Set("self", instance)
+			instance.Env.Set("value", obj)
+
+			return instance
+		}
+	}
+
+	// If grimoire not found, return the original object
+	return obj
 }
