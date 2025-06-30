@@ -1,4 +1,0 @@
-spell test(n): return 42
-
-result = test(5)
-print(result)

@@ -1,4 +1,0 @@
-grim Test:
-    init(elements):
-        if elements == None:
-            self.elements = []

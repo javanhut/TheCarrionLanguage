@@ -108,6 +108,8 @@ const (
 	OR          TokenType = "OR"
 	NOT         TokenType = "NOT"
 	NOT_IN      TokenType = "NOT_IN"
+	MAIN        TokenType = "MAIN"
+	GLOBAL      TokenType = "GLOBAL"
 )
 
 var keywords = map[string]TokenType{
@@ -144,6 +146,8 @@ var keywords = map[string]TokenType{
 	"super":       SUPER,
 	"check":       CHECK,
 	"not in":      NOT_IN,
+	"main":        MAIN,
+	"global":      GLOBAL,
 
 	//"range":     RANGE,
 	"None": NONE,

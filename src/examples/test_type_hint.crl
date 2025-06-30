@@ -1,6 +1,0 @@
-name: str = "Name"
-
-spell print_name(name:str=name):
-  print(name)
-
-print_name()

@@ -212,6 +212,11 @@ func newCustomErrorWithTrace(
 		Stack:         []object.StackTraceEntry{},
 		CustomDetails: details,
 	}
+	
+	// Debug: ensure details is not nil
+	if err.CustomDetails == nil {
+		err.CustomDetails = make(map[string]object.Object)
+	}
 
 	// Build stack trace from context
 	currentCtx := ctx
@@ -456,6 +461,8 @@ func Eval(node ast.Node, env *object.Environment, ctx *CallContext) object.Objec
 		return evalBlockStatement(node, env, ctx)
 	case *ast.IfStatement:
 		return evalIfExpression(node, env, ctx)
+	case *ast.MainStatement:
+		return evalBlockStatement(node.Body, env, ctx)
 
 	case *ast.StopStatement:
 		return object.STOP
@@ -562,6 +569,8 @@ func Eval(node ast.Node, env *object.Environment, ctx *CallContext) object.Objec
 		return evalStringInterpolation(node, env, ctx)
 	case *ast.NoneLiteral:
 		return object.NONE
+	case *ast.WildcardExpression:
+		return &object.String{Value: "_"}
 	case *ast.ReturnStatement:
 		val := Eval(node.ReturnValue, env, ctx)
 		if isError(val) {
@@ -573,6 +582,8 @@ func Eval(node ast.Node, env *object.Environment, ctx *CallContext) object.Objec
 		return wrapPrimitive(primitive, env, ctx)
 	case *ast.AssignStatement:
 		return evalAssignStatement(node, env, ctx)
+	case *ast.GlobalStatement:
+		return evalGlobalStatement(node, env, ctx)
 	case *ast.WhileStatement:
 		return evalWhileStatement(node, env, ctx)
 	case *ast.ForStatement:
@@ -845,6 +856,15 @@ func evalRaiseStatement(
 				message = msgStr.Value
 			}
 		}
+		
+		// Check for String wrapper instances
+		if instance.Grimoire.Name == "String" {
+			if value, ok := instance.Env.Get("value"); ok {
+				if strVal, ok := value.(*object.String); ok {
+					message = strVal.Value
+				}
+			}
+		}
 
 		details := make(map[string]object.Object)
 		details["errorType"] = &object.String{Value: instance.Grimoire.Name}
@@ -854,7 +874,10 @@ func evalRaiseStatement(
 	}
 
 	if str, ok := errObj.(*object.String); ok {
-		return newCustomErrorWithTrace("Error", str.Value, node, ctx, nil)
+		details := make(map[string]object.Object)
+		details["errorType"] = &object.String{Value: "String"}
+		details["instance"] = str
+		return newCustomErrorWithTrace("Error", str.Value, node, ctx, details)
 	}
 
 	return newErrorWithTrace("cannot raise non-error object: %s", node, ctx, errObj.Type())
@@ -898,59 +921,54 @@ func evalAttemptStatement(
 	tryResult := Eval(node.TryBlock, env, tryCtx)
 
 	if isError(tryResult) {
-		if customErr, ok := tryResult.(*object.CustomError); ok {
-			for _, ensnare := range node.EnsnareClauses {
+		for _, ensnare := range node.EnsnareClauses {
+			var shouldCatch bool
+			var ensnareEnv *object.Environment
+			
+			// Check if this ensnare clause should catch the error
+			if ensnare.Alias != nil {
+				// If there's an alias, catch all errors and bind the error to the alias
+				shouldCatch = true
+				ensnareEnv = object.NewEnclosedEnvironment(env)
+				// Bind the error to the alias, wrapped to prevent propagation
+				caughtError := &object.CaughtError{OriginalError: tryResult}
+				ensnareEnv.Set(ensnare.Alias.Value, caughtError)
+			} else if ensnare.Condition != nil {
+				// If there's a condition, evaluate it to check if we should catch
 				condition := Eval(ensnare.Condition, env, ctx)
 				if isError(condition) {
 					result = condition
 					break
 				}
-
-				if grimoire, ok := condition.(*object.Grimoire); ok {
-					if customErr.ErrorType == grimoire {
-						ensnareCtx := &CallContext{
-							FunctionName: "ensnare",
-							Node:         ensnare.Consequence,
-							Parent:       ctx,
-							env:          env,
-						}
-						result = Eval(ensnare.Consequence, env, ensnareCtx)
-						break
+				
+				// Check different error types
+				if customErr, ok := tryResult.(*object.CustomError); ok {
+					if grimoire, ok := condition.(*object.Grimoire); ok {
+						shouldCatch = customErr.ErrorType == grimoire
+					} else if str, ok := condition.(*object.String); ok {
+						shouldCatch = customErr.Name == str.Value
 					}
-				} else if str, ok := condition.(*object.String); ok {
-					if customErr.Name == str.Value {
-						ensnareCtx := &CallContext{
-							FunctionName: "ensnare",
-							Node:         ensnare.Consequence,
-							Parent:       ctx,
-							env:          env,
-						}
-						result = Eval(ensnare.Consequence, env, ensnareCtx)
-						break
+				} else if errWithTrace, ok := tryResult.(*object.ErrorWithTrace); ok {
+					if str, ok := condition.(*object.String); ok {
+						shouldCatch = strings.HasPrefix(errWithTrace.Message, str.Value)
 					}
 				}
+				ensnareEnv = env
+			} else {
+				// No condition or alias, catch all errors
+				shouldCatch = true
+				ensnareEnv = env
 			}
-		} else if errWithTrace, ok := tryResult.(*object.ErrorWithTrace); ok {
-			// Similar handling for our new error type
-			for _, ensnare := range node.EnsnareClauses {
-				condition := Eval(ensnare.Condition, env, ctx)
-				if isError(condition) {
-					result = condition
-					break
+			
+			if shouldCatch {
+				ensnareCtx := &CallContext{
+					FunctionName: "ensnare",
+					Node:         ensnare.Consequence,
+					Parent:       ctx,
+					env:          ensnareEnv,
 				}
-
-				if str, ok := condition.(*object.String); ok {
-					if strings.HasPrefix(errWithTrace.Message, str.Value) {
-						ensnareCtx := &CallContext{
-							FunctionName: "ensnare",
-							Node:         ensnare.Consequence,
-							Parent:       ctx,
-							env:          env,
-						}
-						result = Eval(ensnare.Consequence, env, ensnareCtx)
-						break
-					}
-				}
+				result = Eval(ensnare.Consequence, ensnareEnv, ensnareCtx)
+				break
 			}
 		}
 
@@ -1018,6 +1036,10 @@ func evalMatchStatement(
 }
 
 func isEqual(obj1, obj2 object.Object) bool {
+	// Unwrap primitives if they are wrapped in instances
+	obj1 = unwrapPrimitive(obj1)
+	obj2 = unwrapPrimitive(obj2)
+	
 	switch obj1 := obj1.(type) {
 	case *object.Integer:
 		if obj2, ok := obj2.(*object.Integer); ok {
@@ -1025,6 +1047,14 @@ func isEqual(obj1, obj2 object.Object) bool {
 		}
 	case *object.String:
 		if obj2, ok := obj2.(*object.String); ok {
+			return obj1.Value == obj2.Value
+		}
+	case *object.Float:
+		if obj2, ok := obj2.(*object.Float); ok {
+			return obj1.Value == obj2.Value
+		}
+	case *object.Boolean:
+		if obj2, ok := obj2.(*object.Boolean); ok {
 			return obj1.Value == obj2.Value
 		}
 	default:
@@ -1048,8 +1078,8 @@ func evalAssignStatement(
 		// Don't wrap primitives - this breaks arithmetic operations
 		// Wrapping should only happen for explicit method calls on literals
 
-		env.Set(target.Value, val)
-			return val
+		env.SetWithGlobalCheck(target.Value, val)
+		return val
 
 	case *ast.DotExpression:
 		left := Eval(target.Left, env, ctx)
@@ -1305,19 +1335,31 @@ func evalGrimoireMethodCall(
 	}
 
 	// Bind arguments: support simple identifiers or full Parameter nodes
-	for i, pExpr := range method.Parameters {
+	// For method calls, we need to handle the 'self' parameter specially
+	argIndex := 0
+	for _, pExpr := range method.Parameters {
 		switch param := pExpr.(type) {
 		case *ast.Identifier:
 			name := param.Value
-			if i < len(args) {
-				methodEnv.Set(name, args[i])
+			// Skip 'self' parameter - it's already set in the method environment
+			if name == "self" {
+				continue
+			}
+			if argIndex < len(args) {
+				methodEnv.Set(name, args[argIndex])
+				argIndex++
 			} else {
 				methodEnv.Set(name, NONE)
 			}
 		case *ast.Parameter:
 			name := param.Name.Value
-			if i < len(args) {
-				methodEnv.Set(name, args[i])
+			// Skip 'self' parameter - it's already set in the method environment
+			if name == "self" {
+				continue
+			}
+			if argIndex < len(args) {
+				methodEnv.Set(name, args[argIndex])
+				argIndex++
 			} else if param.DefaultValue != nil {
 				methodEnv.Set(name, Eval(param.DefaultValue, method.Env, methodCtx))
 			} else {
@@ -1883,10 +1925,47 @@ func evalIdentifier(node *ast.Identifier, env *object.Environment, ctx *CallCont
 
 func evalProgram(program *ast.Program, env *object.Environment, ctx *CallContext) object.Object {
 	var result object.Object
-
+	var mainStatement *ast.MainStatement
+	
+	// First pass: check if main statement exists
 	for _, statement := range program.Statements {
-		result = Eval(statement, env, ctx)
-
+		if mainStmt, ok := statement.(*ast.MainStatement); ok {
+			mainStatement = mainStmt
+			break
+		}
+	}
+	
+	// Second pass: process statements based on whether main exists
+	for _, statement := range program.Statements {
+		if _, ok := statement.(*ast.MainStatement); ok {
+			// Skip main statement for now
+			continue
+		}
+		
+		// If main exists, only execute function definitions, class definitions, and assignments
+		// Skip other top-level executable statements
+		if mainStatement != nil {
+			if _, ok := statement.(*ast.FunctionDefinition); ok {
+				// Execute function definitions
+				result = Eval(statement, env, ctx)
+			} else if _, ok := statement.(*ast.GrimoireDefinition); ok {
+				// Execute class definitions
+				result = Eval(statement, env, ctx)
+			} else if _, ok := statement.(*ast.AssignStatement); ok {
+				// Execute assignment statements
+				result = Eval(statement, env, ctx)
+			} else if exprStmt, ok := statement.(*ast.ExpressionStatement); ok {
+				// Skip expression statements like print calls when main exists
+				_ = exprStmt // Avoid unused variable warning
+			} else {
+				// Execute other statements (imports, etc.)
+				result = Eval(statement, env, ctx)
+			}
+		} else {
+			// No main block, execute everything normally (backward compatibility)
+			result = Eval(statement, env, ctx)
+		}
+		
 		switch result.(type) {
 		case *object.ReturnValue:
 			return result.(*object.ReturnValue).Value
@@ -1894,6 +1973,19 @@ func evalProgram(program *ast.Program, env *object.Environment, ctx *CallContext
 			return result
 		}
 	}
+	
+	// If main statement exists, execute it last
+	if mainStatement != nil {
+		result = Eval(mainStatement, env, ctx)
+		
+		switch result.(type) {
+		case *object.ReturnValue:
+			return result.(*object.ReturnValue).Value
+		case *object.Error, *object.CustomError, *object.ErrorWithTrace:
+			return result
+		}
+	}
+	
 	return result
 }
 
@@ -2253,9 +2345,9 @@ func evalPrefixIncrementDecrement(
 		// If it was an instance, update the instance's value
 		if instance, ok := obj.(*object.Instance); ok {
 			instance.Env.Set("value", intObj)
-			env.Set(operand.Value, instance)
+			env.SetWithGlobalCheck(operand.Value, instance)
 		} else {
-			env.Set(operand.Value, intObj)
+			env.SetWithGlobalCheck(operand.Value, intObj)
 		}
 		return intObj
 
@@ -2312,9 +2404,9 @@ func evalPostfixIncrementDecrement(
 		// If it was an instance, update the instance's value
 		if instance, ok := obj.(*object.Instance); ok {
 			instance.Env.Set("value", newIntObj)
-			env.Set(operand.Value, instance)
+			env.SetWithGlobalCheck(operand.Value, instance)
 		} else {
-			env.Set(operand.Value, newIntObj)
+			env.SetWithGlobalCheck(operand.Value, newIntObj)
 		}
 
 		return &object.Integer{Value: oldValue}
@@ -2453,10 +2545,10 @@ func evalCompoundAssignment(
 		// If the current value is an Instance, update its wrapped value
 		if instance, ok := currVal.(*object.Instance); ok {
 			instance.Env.Set("value", newVal)
-			env.Set(leftNode.Value, instance)
+			env.SetWithGlobalCheck(leftNode.Value, instance)
 			return newVal
 		} else {
-			env.Set(leftNode.Value, newVal)
+			env.SetWithGlobalCheck(leftNode.Value, newVal)
 			return newVal
 		}
 
@@ -2760,7 +2852,7 @@ func evalForStatement(
 			}
 
 			if fs.Body != nil {
-										loopResult := Eval(fs.Body, env, forCtx)
+				loopResult := Eval(fs.Body, env, forCtx)
 				if loopResult != nil {
 					rt := getObjectType(loopResult)
 					if rt == string(object.STOP.Type()) {
@@ -2776,6 +2868,64 @@ func evalForStatement(
 				}
 			}
 		}
+	case *object.Instance:
+		// Handle Array instances
+		if iter.Grimoire.Name == "Array" {
+			if elementsObj, ok := iter.Env.Get("elements"); ok {
+				if arr, ok := elementsObj.(*object.Array); ok {
+					for _, elem := range arr.Elements {
+						switch varExpr := fs.Variable.(type) {
+						case *ast.Identifier:
+							env.Set(varExpr.Value, elem)
+						case *ast.TupleLiteral:
+							var items []object.Object
+							if tupObj, ok := elem.(*object.Tuple); ok {
+								items = tupObj.Elements
+							} else if arrObj, ok := elem.(*object.Array); ok {
+								items = arrObj.Elements
+							} else {
+								return newErrorWithTrace("cannot unpack non-iterable element: %s",
+									fs, ctx, elem.Type())
+							}
+							if len(varExpr.Elements) != len(items) {
+								return newErrorWithTrace("unpacking mismatch: expected %d values, got %d",
+									fs, ctx, len(varExpr.Elements), len(items))
+							}
+							for i, target := range varExpr.Elements {
+								ident, ok := target.(*ast.Identifier)
+								if !ok {
+									return newErrorWithTrace("invalid assignment target in for loop", fs, ctx)
+								}
+								env.Set(ident.Value, items[i])
+							}
+						default:
+							env.Set(fs.Variable.String(), elem)
+						}
+
+						if fs.Body != nil {
+							loopResult := Eval(fs.Body, env, forCtx)
+							if loopResult != nil {
+								rt := getObjectType(loopResult)
+								if rt == string(object.STOP.Type()) {
+									return object.STOP // Exit the entire for loop
+								}
+								if rt == string(object.SKIP.Type()) {
+									continue // Skip to the next element in the outer loop
+								}
+								if rt == object.RETURN_VALUE_OBJ || rt == object.ERROR_OBJ ||
+									rt == object.CUSTOM_ERROR_OBJ || isErrorWithTrace(loopResult) {
+									return loopResult
+								}
+							}
+						}
+					}
+				}
+			}
+		} else {
+			return newErrorWithTrace("for loop: %s instance is not iterable", fs, ctx, iter.Grimoire.Name)
+		}
+	default:
+		return newErrorWithTrace("for loop requires an iterable, got %s", fs, ctx, iterable.Type())
 	}
 	return NONE
 }
@@ -2836,5 +2986,17 @@ func evalImportStatement(
 		}
 	}
 
+	return object.NONE
+}
+
+func evalGlobalStatement(
+	node *ast.GlobalStatement,
+	env *object.Environment,
+	ctx *CallContext,
+) object.Object {
+	// Mark each variable name as global in the current environment
+	for _, name := range node.Names {
+		env.MarkGlobal(name.Value)
+	}
 	return object.NONE
 }

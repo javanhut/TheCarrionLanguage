@@ -1,9 +1,0 @@
-// Test if Array works when loaded from a file instead of stdlib
-import "test_array_copy"
-
-arr = Array()
-print("Array instance:", arr)
-result = arr.length()
-print("Length result:", result)
-arr.append(10)
-print("After append, length:", arr.length())
