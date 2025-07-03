@@ -1,0 +1,104 @@
+grim ApiRequest:
+    spell get(url, headers={}):
+        response = httpGet(url, headers)
+        if response["status"] >= 200 and response["status"] < 300:
+            return {"success": True, "data": response}
+        else:
+            return {"success": False, "error": "Request failed with status " + str(response["status"]), "response": response}
+
+    spell post(url, body, headers={}):
+        response = httpPost(url, body, headers)
+        if response["status"] >= 200 and response["status"] < 300:
+            return {"success": True, "data": response}
+        else:
+            return {"success": False, "error": "Request failed with status " + str(response["status"]), "response": response}
+
+    spell put(url, body, headers={}):
+        response = httpPut(url, body, headers)
+        if response["status"] >= 200 and response["status"] < 300:
+            return {"success": True, "data": response}
+        else:
+            return {"success": False, "error": "Request failed with status " + str(response["status"]), "response": response}
+
+    spell delete(url, headers={}):
+        response = httpDelete(url, headers)
+        if response["status"] >= 200 and response["status"] < 300:
+            return {"success": True, "data": response}
+        else:
+            return {"success": False, "error": "Request failed with status " + str(response["status"]), "response": response}
+
+    spell head(url, headers={}):
+        response = httpHead(url, headers)
+        if response["status"] >= 200 and response["status"] < 300:
+            return {"success": True, "data": response}
+        else:
+            return {"success": False, "error": "Request failed with status " + str(response["status"]), "response": response}
+
+    spell request(options):
+        response = httpRequest(options)
+        if response["status"] >= 200 and response["status"] < 300:
+            return {"success": True, "data": response}
+        else:
+            return {"success": False, "error": "Request failed with status " + str(response["status"]), "response": response}
+
+    spell get_json(url, headers={}):
+        result = self.get(url, headers)
+        if result["success"]:
+            attempt:
+                parsed = httpParseJSON(result["data"]["body"])
+                return {"success": True, "data": parsed}
+            ensnare:
+                return {"success": False, "error": "Failed to parse JSON"}
+        else:
+            return result
+
+    spell post_json(url, data, headers={}):
+        json_body = httpStringifyJSON(data)
+        all_headers = {"Content-Type": "application/json"}
+        for key in headers:
+            all_headers[key] = headers[key]
+        return self.post(url, json_body, all_headers)
+
+    spell put_json(url, data, headers={}):
+        json_body = httpStringifyJSON(data)
+        all_headers = {"Content-Type": "application/json"}
+        for key in headers:
+            all_headers[key] = headers[key]
+        return self.put(url, json_body, all_headers)
+
+    spell build_url(base_url, params):
+        query = httpBuildQuery(params)
+        if len(query) > 0:
+            return base_url + "?" + query
+        else:
+            return base_url
+
+    spell retry_request(fn, max_retries=3, delay=1):
+        attempts = 0
+        last_error = None
+        
+        while attempts < max_retries:
+            result = fn()
+            if result["success"]:
+                return result
+            
+            last_error = result["error"]
+            attempts = attempts + 1
+            
+            if attempts < max_retries:
+                osSleep(delay)
+        
+        return {"success": False, "error": "Max retries exceeded. Last error: " + last_error}
+
+    spell with_auth(headers, token, auth_type="Bearer"):
+        auth_headers = {}
+        # TODO: Need to implement proper hash iteration in Carrion
+        # For now, manually copy common headers
+        if headers["Accept"]:
+            auth_headers["Accept"] = headers["Accept"]
+        if headers["Content-Type"]:
+            auth_headers["Content-Type"] = headers["Content-Type"]
+        if headers["User-Agent"]:
+            auth_headers["User-Agent"] = headers["User-Agent"]
+        auth_headers["Authorization"] = auth_type + " " + token
+        return auth_headers

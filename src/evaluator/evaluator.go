@@ -1194,12 +1194,14 @@ func evalIndexAssignment(
 		return value
 
 	case *object.Hash:
-		key, ok := index.(object.Hashable)
+		// Unwrap primitives that may have been wrapped in Instance objects
+		unwrappedIndex := unwrapPrimitive(index)
+		key, ok := unwrappedIndex.(object.Hashable)
 		if !ok {
-			return newErrorWithTrace("unusable as hash key: %s", node, ctx, index.Type())
+			return newErrorWithTrace("unusable as hash key: %s", node, ctx, unwrappedIndex.Type())
 		}
 
-		pair := object.HashPair{Key: index, Value: value}
+		pair := object.HashPair{Key: unwrappedIndex, Value: value}
 		array.Pairs[key.HashKey()] = pair
 		return value
 
@@ -1683,16 +1685,18 @@ func evalHashLiteral(
 		if isError(key) {
 			return key
 		}
-		hashKey, ok := key.(object.Hashable)
+		// Unwrap primitives that may have been wrapped in Instance objects
+		unwrappedKey := unwrapPrimitive(key)
+		hashKey, ok := unwrappedKey.(object.Hashable)
 		if !ok {
-			return newErrorWithTrace("unusable as hash key: %s", node, ctx, key.Type())
+			return newErrorWithTrace("unusable as hash key: %s", node, ctx, unwrappedKey.Type())
 		}
 		value := Eval(valueNode, env, ctx)
 		if isError(value) {
 			return value
 		}
 		hashed := hashKey.HashKey()
-		pairs[hashed] = object.HashPair{Key: key, Value: value}
+		pairs[hashed] = object.HashPair{Key: unwrappedKey, Value: value}
 	}
 	return &object.Hash{Pairs: pairs}
 }
@@ -1808,9 +1812,11 @@ func evalHashIndexExpression(
 	if !ok {
 		return newErrorWithTrace("not a hash: %s", node, ctx, hash.Type())
 	}
-	key, ok := index.(object.Hashable)
+	// Unwrap primitives that may have been wrapped in Instance objects
+	unwrappedIndex := unwrapPrimitive(index)
+	key, ok := unwrappedIndex.(object.Hashable)
 	if !ok {
-		return newErrorWithTrace("unusable as hash key: %s", node, ctx, index.Type())
+		return newErrorWithTrace("unusable as hash key: %s", node, ctx, unwrappedIndex.Type())
 	}
 	pair, ok := hashObject.Pairs[key.HashKey()]
 	if !ok {

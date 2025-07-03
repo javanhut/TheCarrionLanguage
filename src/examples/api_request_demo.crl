@@ -1,0 +1,44 @@
+# Example demonstrating the ApiRequest grimoire with the new httpmodule
+
+# Simple GET request
+api_request = ApiRequest()
+result = api_request.get("https://api.github.com/users/github")
+if result["success"]:
+    print("Status:", result["data"]["status"])
+    print("Headers:", result["data"]["headers"])
+    print("Body length:", len(result["data"]["body"]))
+else:
+    print("Error:", result["error"])
+
+# GET JSON data
+jsonResult = api_request.get_json("https://api.github.com/users/github")
+if jsonResult["success"]:
+    userData = jsonResult["data"]
+    print("\nUser info:")
+    print("Login:", userData["login"])
+    print("Name:", userData["name"])
+    print("Public repos:", userData["public_repos"])
+else:
+    print("Error:", jsonResult["error"])
+
+# Build URL with query parameters
+params = {"q": "language:go", "sort": "stars", "order": "desc"}
+searchURL = api_request.build_url("https://api.github.com/search/repositories", params)
+print("\nBuilt URL:", searchURL)
+
+# POST JSON data (example - would need actual API endpoint)
+postData = {"title": "Test Issue", "body": "This is a test issue created from Carrion", "labels": ["bug", "help wanted"]}
+
+# Example with custom headers and authentication
+headers = {"Accept": "application/vnd.github.v3+json"}
+authHeaders = api_request.with_auth(headers, "your-token-here")
+
+# Example with retry mechanism
+spell retryableRequest():
+  return api_request.get("https://httpbin.org/status/500")  # This will fail
+
+retryResult = api_request.retry_request(retryableRequest, 3, 2)
+if retryResult["success"]:
+    print("\nRetry succeeded!")
+else:
+    print("\nAll retries failed:", retryResult["error"])

@@ -16,6 +16,11 @@ func LoadModules(env *object.Environment) {
 	for name, builtin := range modules.TimeModule {
 		env.Set(name, builtin)
 	}
+
+	// Load HTTP module functions into the environment
+	for name, builtin := range modules.HttpModule {
+		env.Set(name, builtin)
+	}
 }
 
 func LoadMuninStdlib(env *object.Environment) error {
