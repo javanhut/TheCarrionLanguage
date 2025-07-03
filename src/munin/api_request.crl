@@ -92,8 +92,6 @@ grim ApiRequest:
 
     spell with_auth(headers, token, auth_type="Bearer"):
         auth_headers = {}
-        # TODO: Need to implement proper hash iteration in Carrion
-        # For now, manually copy common headers
         if headers["Accept"]:
             auth_headers["Accept"] = headers["Accept"]
         if headers["Content-Type"]:
