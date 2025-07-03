@@ -151,6 +151,8 @@ func getNodeToken(node ast.Node) *token.Token {
 		return &n.Token
 	case *ast.AttemptStatement:
 		return &n.Token
+	case *ast.WithStatement:
+		return &n.Token
 	default:
 		// Return a synthetic token for unknown nodes to prevent nil pointer issues
 		return &token.Token{
@@ -661,6 +663,8 @@ func Eval(node ast.Node, env *object.Environment, ctx *CallContext) object.Objec
 		return evalGrimoireDefinition(node, env, ctx)
 	case *ast.AttemptStatement:
 		return evalAttemptStatement(node, env, ctx)
+	case *ast.WithStatement:
+		return evalWithStatement(node, env, ctx)
 	case *ast.IgnoreStatement:
 		return object.NONE
 	case *ast.CallExpression:
@@ -1004,6 +1008,57 @@ func evalAttemptStatement(
 		resolveResult := Eval(node.ResolveBlock, env, resolveCtx)
 		if isError(resolveResult) {
 			return resolveResult
+		}
+	}
+
+	return result
+}
+
+func evalWithStatement(
+	ws *ast.WithStatement,
+	env *object.Environment,
+	ctx *CallContext,
+) object.Object {
+	// Evaluate the expression to get the resource
+	resource := Eval(ws.Expression, env, ctx)
+	if isError(resource) {
+		return resource
+	}
+
+	// Create a new environment for the with block
+	withEnv := object.NewEnclosedEnvironment(env)
+	
+	// Bind the resource to the specified variable
+	if ws.Variable != nil {
+		withEnv.Set(ws.Variable.Value, resource)
+	}
+
+	// Create a new context for the with block
+	withCtx := &CallContext{
+		FunctionName: "with_block",
+		Node:         ws.Body,
+		Parent:       ctx,
+		env:          withEnv,
+	}
+
+	// Execute the body
+	result := Eval(ws.Body, withEnv, withCtx)
+
+	// Check if the resource has a close method and call it
+	if resource != nil {
+		if instance, ok := resource.(*object.Instance); ok {
+			if closeMethod, exists := instance.Env.Get("close"); exists {
+				if fn, isFn := closeMethod.(*object.Function); isFn {
+					// Call the close method
+					closeCtx := &CallContext{
+						FunctionName: "close",
+						Node:         ws,
+						Parent:       ctx,
+						env:          instance.Env,
+					}
+					evalCallExpression(fn, []object.Object{}, instance.Env, closeCtx)
+				}
+			}
 		}
 	}
 
@@ -1590,9 +1645,18 @@ func evalDotExpression(
 		}
 	}
 
+	// Handle namespace access (for import aliases)
+	if namespace, ok := leftObj.(*object.Namespace); ok {
+		fieldOrMethodName := node.Right.Value
+		if val, found := namespace.Env.Get(fieldOrMethodName); found {
+			return val
+		}
+		return newErrorWithTrace("undefined member in namespace: %s", node, ctx, fieldOrMethodName)
+	}
+
 	instance, ok := leftObj.(*object.Instance)
 	if !ok {
-		return newErrorWithTrace("type error: %s is not an instance", node, ctx, leftObj.Type())
+		return newErrorWithTrace("type error: %s is not an instance or namespace", node, ctx, leftObj.Type())
 	}
 
 	fieldOrMethodName := node.Right.Value

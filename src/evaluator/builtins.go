@@ -862,6 +862,94 @@ var builtins = map[string]*object.Builtin{
 			return &object.String{Value: string(rune(num.Value))}
 		},
 	},
+	"open": {
+		Fn: func(args ...object.Object) object.Object {
+			if len(args) < 1 || len(args) > 2 {
+				return newError("open requires 1 or 2 arguments: path, [mode]")
+			}
+
+			// Get path argument
+			pathArg, ok := args[0].(*object.String)
+			if !ok {
+				return newError("open path must be STRING, got=%s", args[0].Type())
+			}
+
+			// Get mode argument (default to "r")
+			mode := "r"
+			if len(args) == 2 {
+				modeArg, ok := args[1].(*object.String)
+				if !ok {
+					return newError("open mode must be STRING, got=%s", args[1].Type())
+				}
+				mode = modeArg.Value
+			}
+
+			// Validate mode
+			if mode != "r" && mode != "w" && mode != "a" {
+				return newError("invalid file mode: %s (must be 'r', 'w', or 'a')", mode)
+			}
+
+			// Get the File grimoire from stdlib environment
+			if stdlibEnv == nil {
+				return newError("stdlib not loaded")
+			}
+
+			fileGrimObj, exists := stdlibEnv.Get("File")
+			if !exists {
+				return newError("File grimoire not found in stdlib")
+			}
+
+			fileGrim, ok := fileGrimObj.(*object.Grimoire)
+			if !ok {
+				return newError("File is not a grimoire")
+			}
+
+			// Create a new File instance
+			instance := &object.Instance{
+				Grimoire: fileGrim,
+				Env:      object.NewEnclosedEnvironment(fileGrim.Env),
+			}
+
+			// Set self reference
+			instance.Env.Set("self", instance)
+
+			// Initialize the File instance state according to the File grimoire's init spell
+			instance.Env.Set("path", &object.String{Value: pathArg.Value})
+			instance.Env.Set("mode", &object.String{Value: mode})
+			instance.Env.Set("_handle", &object.None{})
+			instance.Env.Set("_closed", &object.Boolean{Value: false})
+
+			// Handle file operations based on mode
+			if mode == "r" {
+				// Read mode - read the file content
+				content, err := os.ReadFile(pathArg.Value)
+				if err != nil {
+					return newError("failed to open file '%s' for reading: %s", pathArg.Value, err)
+				}
+				instance.Env.Set("_content", &object.String{Value: string(content)})
+				instance.Env.Set("_position", &object.Integer{Value: 0})
+			} else if mode == "w" {
+				// Write mode - clear the file
+				err := os.WriteFile(pathArg.Value, []byte(""), 0644)
+				if err != nil {
+					return newError("failed to open file '%s' for writing: %s", pathArg.Value, err)
+				}
+			} else if mode == "a" {
+				// Append mode - check if file exists and get content
+				if _, err := os.Stat(pathArg.Value); err == nil {
+					content, err := os.ReadFile(pathArg.Value)
+					if err != nil {
+						return newError("failed to read file '%s' for append: %s", pathArg.Value, err)
+					}
+					instance.Env.Set("_content", &object.String{Value: string(content)})
+				} else {
+					instance.Env.Set("_content", &object.String{Value: ""})
+				}
+			}
+
+			return instance
+		},
+	},
 }
 
 // Global reference to the stdlib environment

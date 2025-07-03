@@ -510,3 +510,23 @@ func (gs *GlobalStatement) String() string {
 	out.WriteString(strings.Join(names, ", "))
 	return out.String()
 }
+
+type WithStatement struct {
+	Token      token.Token      // The 'autoclose' token
+	Expression Expression       // The expression that returns a resource
+	Variable   *Identifier      // The variable to bind the resource to
+	Body       *BlockStatement  // The body to execute
+}
+
+func (ws *WithStatement) statementNode()        {}
+func (ws *WithStatement) TokenLiteral() string { return ws.Token.Literal }
+func (ws *WithStatement) String() string {
+	var out strings.Builder
+	out.WriteString("autoclose ")
+	out.WriteString(ws.Expression.String())
+	out.WriteString(" as ")
+	out.WriteString(ws.Variable.String())
+	out.WriteString(":\n")
+	out.WriteString(ws.Body.String())
+	return out.String()
+}

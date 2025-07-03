@@ -58,7 +58,7 @@ not          while       skip        stop        return
 match        case        and         or          True
 False        None        grim        spell       init
 self         super       arcane      arcanespell import
-as           var         ignore
+as           var         ignore      autoclose
 ```
 
 ### Literals
@@ -349,6 +349,32 @@ return            // Return None
 return value      // Return specific value
 ```
 
+#### Autoclose Statements
+Automatic resource management for objects that need cleanup:
+```python
+autoclose expression as variable:
+    // code block
+    // variable.close() is called automatically
+```
+
+The `autoclose` statement ensures that resources are properly cleaned up when the block exits, even if an error occurs. It works with any object that has a `close()` method.
+
+Examples:
+```python
+// File operations
+autoclose open("data.txt", "r") as file:
+    content = file.read()
+    print(content)
+
+// Writing files
+autoclose open("output.txt", "w") as file:
+    file.write("Hello, World!")
+
+// Appending to files
+autoclose open("log.txt", "a") as file:
+    file.write("New entry\n")
+```
+
 ## Functions (Spells)
 
 ### Function Definition
@@ -526,6 +552,7 @@ statement       := assignment_stmt
                 |  return_stmt
                 |  skip_stmt
                 |  stop_stmt
+                |  autoclose_stmt
 
 assignment_stmt := identifier '=' expression
                 |  identifier compound_op expression
@@ -561,6 +588,7 @@ while_stmt      := 'while' expression ':' block
 match_stmt      := 'match' expression ':' case_stmt*
 
 error_stmt      := 'attempt' ':' block ('ensnare' '(' identifier ')' ':' block)* ('ensnare' ':' block)? ('resolve' ':' block)?
+autoclose_stmt  := 'autoclose' expression 'as' identifier ':' block
 
 literal         := INTEGER | FLOAT | STRING | BOOLEAN | NONE | array_literal | hash_literal | tuple_literal
 ```
@@ -598,6 +626,9 @@ literal         := INTEGER | FLOAT | STRING | BOOLEAN | NONE | array_literal | h
 ### Module System
 - `import` - Import statement
 - `as` - Import alias
+
+### Resource Management
+- `autoclose` - Automatic resource cleanup
 
 ### Miscellaneous
 - `var` - Variable declaration (optional)

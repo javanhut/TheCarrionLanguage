@@ -261,6 +261,86 @@ match (day, weather):
 print(f"Today's activity: {activity}")
 ```
 
+## Resource Management
+
+### Autoclose Statement
+The `autoclose` statement provides automatic resource management for objects that need cleanup, such as files, network connections, or database handles.
+
+```python
+autoclose expression as variable:
+    // code block
+    // variable.close() is called automatically
+```
+
+#### File Operations with Autoclose
+```python
+// Reading files - file is automatically closed
+autoclose open("data.txt", "r") as file:
+    content = file.read()
+    lines = content.split("\n")
+    for line in lines:
+        print(line)
+
+// Writing files - file is automatically closed
+autoclose open("output.txt", "w") as file:
+    file.write("Header\n")
+    for i in range(5):
+        file.write(f"Line {i}\n")
+
+// Appending to files - file is automatically closed
+autoclose open("log.txt", "a") as file:
+    timestamp = get_current_time()
+    file.write(f"[{timestamp}] Application started\n")
+```
+
+#### Autoclose with Error Handling
+The `autoclose` statement ensures resources are cleaned up even when errors occur:
+
+```python
+attempt:
+    autoclose open("important_data.txt", "r") as file:
+        content = file.read()
+        processed = process_complex_data(content)
+        return processed
+ensnare:
+    print("Error processing file")
+    return None
+// file.close() is called automatically even if an error occurs
+```
+
+#### Nested Autoclose Operations
+```python
+// Copy file contents with automatic cleanup
+autoclose open("source.txt", "r") as input_file:
+    autoclose open("destination.txt", "w") as output_file:
+        while True:
+            chunk = input_file.read_chunk(1024)  // If supported
+            if not chunk:
+                stop
+            output_file.write(chunk)
+```
+
+#### Custom Resources with Autoclose
+Any object with a `close()` method can be used with `autoclose`:
+
+```python
+// Hypothetical database connection
+autoclose database.connect("localhost", "mydb") as conn:
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM users")
+    results = cursor.fetchall()
+    for row in results:
+        print(row)
+// conn.close() is called automatically
+
+// Hypothetical network connection
+autoclose network.connect("api.example.com", 443) as conn:
+    response = conn.send_request("/api/data")
+    data = response.get_json()
+    process_api_data(data)
+// conn.close() is called automatically
+```
+
 ## Function Control Flow
 
 ### Return Statement
@@ -295,6 +375,12 @@ spell process_data(data):
     // Process data
     result = data.upper()
     return f"Processed: {result}"
+
+// Function using autoclose for file operations
+spell read_config(filename):
+    autoclose open(filename, "r") as file:
+        content = file.read()
+        return parse_config(content)
 ```
 
 ## Nested Control Flow

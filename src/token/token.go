@@ -110,6 +110,7 @@ const (
 	NOT_IN      TokenType = "NOT_IN"
 	MAIN        TokenType = "MAIN"
 	GLOBAL      TokenType = "GLOBAL"
+	AUTOCLOSE   TokenType = "AUTOCLOSE"
 )
 
 var keywords = map[string]TokenType{
@@ -148,7 +149,7 @@ var keywords = map[string]TokenType{
 	"not in":      NOT_IN,
 	"main":        MAIN,
 	"global":      GLOBAL,
-
+	"autoclose":   AUTOCLOSE,
 	//"range":     RANGE,
 	"None": NONE,
 }

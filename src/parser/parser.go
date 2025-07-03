@@ -204,6 +204,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerStatement(token.SKIP, p.parseSkipStatement)
 	p.registerStatement(token.CHECK, p.parseCheckStatement)
 	p.registerStatement(token.GLOBAL, p.parseGlobalStatement)
+	p.registerStatement(token.AUTOCLOSE, p.parseWithStatement)
 
 	return p
 }
@@ -424,7 +425,7 @@ func (p *Parser) parseFStringExpression(exprStr string) ast.Expression {
 	subParser := New(l)
 
 	program := subParser.ParseProgram()
-	
+
 	if len(subParser.Errors()) > 0 {
 		p.errors = append(p.errors, "error parsing f-string expression: "+subParser.Errors()[0])
 		return nil
@@ -545,7 +546,7 @@ func (p *Parser) parseRaiseStatement() ast.Statement {
 // parseAttemptStatement parses an attempt block with ensnare and resolve clauses
 func (p *Parser) parseAttemptStatement() ast.Statement {
 	stmt := &ast.AttemptStatement{Token: p.currToken}
-	
+
 	currentIndent := p.getCurrentIndent()
 	p.controlStack = append(p.controlStack, struct {
 		Type        string
@@ -558,12 +559,12 @@ func (p *Parser) parseAttemptStatement() ast.Statement {
 		HasElse:     false,
 		Token:       p.currToken,
 	})
-	
+
 	// Expect ':' after 'attempt'
 	if !p.expectPeek(token.COLON) {
 		return nil
 	}
-	
+
 	// Parse the try block body
 	if p.peekTokenIs(token.NEWLINE) {
 		p.nextToken()
@@ -584,18 +585,18 @@ func (p *Parser) parseAttemptStatement() ast.Statement {
 			Statements: []ast.Statement{p.parseStatement()},
 		}
 	}
-	
+
 	// Parse ensnare clauses
 	stmt.EnsnareClauses = []*ast.EnsnareClause{}
 	for p.peekTokenIs(token.ENSNARE) {
 		p.nextToken() // ENSNARE
 		clause := &ast.EnsnareClause{Token: p.currToken}
-		
+
 		// Optional condition or alias in parentheses
 		if p.peekTokenIs(token.LPAREN) {
 			p.nextToken() // consume '('
 			p.nextToken() // move to the content
-			
+
 			// Check if it's a simple identifier (alias) or an expression (condition)
 			if p.currTokenIs(token.IDENT) && p.peekTokenIs(token.RPAREN) {
 				// It's an alias like ensnare (e):
@@ -604,17 +605,17 @@ func (p *Parser) parseAttemptStatement() ast.Statement {
 				// It's a condition expression
 				clause.Condition = p.parseExpression(LOWEST)
 			}
-			
+
 			if !p.expectPeek(token.RPAREN) {
 				return nil
 			}
 		}
-		
+
 		// Expect ':'
 		if !p.expectPeek(token.COLON) {
 			return nil
 		}
-		
+
 		// Parse ensnare body
 		if p.peekTokenIs(token.NEWLINE) {
 			p.nextToken()
@@ -635,17 +636,17 @@ func (p *Parser) parseAttemptStatement() ast.Statement {
 				Statements: []ast.Statement{p.parseStatement()},
 			}
 		}
-		
+
 		stmt.EnsnareClauses = append(stmt.EnsnareClauses, clause)
 	}
-	
+
 	// Parse resolve clause
 	if p.peekTokenIs(token.RESOLVE) {
 		p.nextToken() // RESOLVE
 		if !p.expectPeek(token.COLON) {
 			return nil
 		}
-		
+
 		// Parse resolve body
 		if p.peekTokenIs(token.NEWLINE) {
 			p.nextToken()
@@ -667,12 +668,12 @@ func (p *Parser) parseAttemptStatement() ast.Statement {
 			}
 		}
 	}
-	
+
 	// Clean up control stack
 	if len(p.controlStack) > 0 {
 		p.controlStack = p.controlStack[:len(p.controlStack)-1]
 	}
-	
+
 	return stmt
 }
 
@@ -724,16 +725,16 @@ func (p *Parser) parseMatchStatement() ast.Statement {
 		caseClause := &ast.CaseClause{Token: p.currToken}
 
 		p.nextToken()
-		
+
 		// Check if this is a wildcard case (case _:)
 		if p.currTokenIs(token.UNDERSCORE) {
 			// This is a wildcard case, treat it as default
 			caseClause.Condition = &ast.WildcardExpression{Token: p.currToken}
-			
+
 			if !p.expectPeek(token.COLON) {
 				return nil
 			}
-			
+
 			if p.peekTokenIs(token.NEWLINE) {
 				p.nextToken()
 				if p.peekTokenIs(token.INDENT) {
@@ -752,7 +753,7 @@ func (p *Parser) parseMatchStatement() ast.Statement {
 					Statements: []ast.Statement{p.parseStatement()},
 				}
 			}
-			
+
 			// Set this as the default case instead of adding to regular cases
 			stmt.Default = caseClause
 			continue
@@ -1033,11 +1034,11 @@ func (p *Parser) ParseProgram() *ast.Program {
 	program.Statements = []ast.Statement{}
 
 	for p.currToken.Type != token.EOF {
-   // Skip blank lines, indentation dedents, and semicolons
-   for p.currToken.Type == token.NEWLINE ||
-       p.currToken.Type == token.INDENT ||
-       p.currToken.Type == token.DEDENT ||
-       p.currToken.Type == token.SEMICOLON {
+		// Skip blank lines, indentation dedents, and semicolons
+		for p.currToken.Type == token.NEWLINE ||
+			p.currToken.Type == token.INDENT ||
+			p.currToken.Type == token.DEDENT ||
+			p.currToken.Type == token.SEMICOLON {
 			p.nextToken()
 			if p.currToken.Type == token.EOF {
 				break
@@ -1054,8 +1055,8 @@ func (p *Parser) ParseProgram() *ast.Program {
 }
 
 func (p *Parser) parseStatement() ast.Statement {
-	if p.currToken.Type == token.NEWLINE || p.currToken.Type == token.EOF || 
-	   p.currToken.Type == token.INDENT || p.currToken.Type == token.DEDENT {
+	if p.currToken.Type == token.NEWLINE || p.currToken.Type == token.EOF ||
+		p.currToken.Type == token.INDENT || p.currToken.Type == token.DEDENT {
 		return nil
 	}
 	switch p.currToken.Type {
@@ -1101,6 +1102,8 @@ func (p *Parser) parseStatement() ast.Statement {
 		return p.parseCheckStatement()
 	case token.GLOBAL:
 		return p.parseGlobalStatement()
+	case token.AUTOCLOSE:
+		return p.parseWithStatement()
 	}
 	leftExpr := p.parseAssignmentLHS()
 	if leftExpr == nil {
@@ -1531,7 +1534,6 @@ func (p *Parser) getCurrentIndent() int {
 	return len(p.contextStack)
 }
 
-
 func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 	block := &ast.BlockStatement{Token: p.currToken}
 	block.Statements = []ast.Statement{}
@@ -1557,7 +1559,6 @@ func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 	}
 	return block
 }
-
 
 func (p *Parser) parseGroupedExpression() ast.Expression {
 	p.nextToken()
@@ -1703,7 +1704,7 @@ func (p *Parser) parseFunctionDefinition() ast.Statement {
 		return nil
 	}
 
-   stmt.Parameters = p.parseFunctionParameters()
+	stmt.Parameters = p.parseFunctionParameters()
 
 	// CRITICAL FIX: Explicitly exit parameter parsing mode
 	p.parsingParameters = false
@@ -1712,7 +1713,7 @@ func (p *Parser) parseFunctionDefinition() ast.Statement {
 		p.errors = append(p.errors, "Expected ':' after parameter list")
 		return nil
 	}
-	
+
 	// Keep track of the line where the colon is (before advancing)
 	colonLine := p.currToken.Line
 
@@ -1734,7 +1735,7 @@ func (p *Parser) parseFunctionDefinition() ast.Statement {
 	} else {
 		// Either single-line function or multi-line without NEWLINE token
 		stmt.Body = &ast.BlockStatement{Token: p.currToken, Statements: []ast.Statement{}}
-		
+
 		// Check if we're on the same line as the colon (single-line function)
 		if p.currToken.Line == colonLine {
 			// Single-line function
@@ -1749,18 +1750,18 @@ func (p *Parser) parseFunctionDefinition() ast.Statement {
 				if p.currToken.Column <= 1 && p.currToken.Line > colonLine {
 					break
 				}
-				
+
 				// Parse statement
 				s := p.parseStatement()
 				if s != nil {
 					stmt.Body.Statements = append(stmt.Body.Statements, s)
 				}
-				
+
 				// Check if next token is at top level
 				if p.peekToken.Column <= 1 || p.peekTokenIs(token.EOF) {
 					break
 				}
-				
+
 				p.nextToken()
 			}
 		}
@@ -1820,12 +1821,12 @@ func (p *Parser) parseFunctionParameters() []ast.Expression {
 		param.DefaultValue = p.parseExpression(LOWEST)
 	}
 
-    // Append identifier for simple params, otherwise full Parameter node
-    if param.TypeHint == nil && param.DefaultValue == nil {
-        parameters = append(parameters, param.Name)
-    } else {
-        parameters = append(parameters, param)
-    }
+	// Append identifier for simple params, otherwise full Parameter node
+	if param.TypeHint == nil && param.DefaultValue == nil {
+		parameters = append(parameters, param.Name)
+	} else {
+		parameters = append(parameters, param)
+	}
 
 	for p.peekTokenIs(token.COMMA) {
 		p.nextToken()
@@ -1861,12 +1862,12 @@ func (p *Parser) parseFunctionParameters() []ast.Expression {
 		}
 	}
 
-   if !p.expectPeek(token.RPAREN) {
-       // Error already added by expectPeek, return empty slice
-       return []ast.Expression{}
-   }
+	if !p.expectPeek(token.RPAREN) {
+		// Error already added by expectPeek, return empty slice
+		return []ast.Expression{}
+	}
 
-   return parameters
+	return parameters
 }
 
 func (p *Parser) parseWhileStatement() ast.Statement {
@@ -2159,23 +2160,23 @@ func parseFormatSpec(se *ast.StringExpr, spec string) {
 
 func (p *Parser) parseMainStatement() ast.Statement {
 	stmt := &ast.MainStatement{Token: p.currToken}
-	
+
 	if !p.expectPeek(token.COLON) {
 		p.errors = append(p.errors, "expected ':' after 'main'")
 		return nil
 	}
-	
+
 	// Handle newline after colon
 	if p.peekTokenIs(token.NEWLINE) {
 		p.nextToken() // consume the newline
 	}
-	
+
 	// Expect indented block
 	if !p.peekTokenIs(token.INDENT) {
 		p.errors = append(p.errors, "expected indented block after 'main:'")
 		return nil
 	}
-	
+
 	p.nextToken() // Move to INDENT token
 	p.nextToken() // Move past INDENT to first statement token
 	stmt.Body = p.parseBlockStatement()
@@ -2201,14 +2202,14 @@ func isDigit(ch byte) bool {
 
 func (p *Parser) parseGlobalStatement() ast.Statement {
 	stmt := &ast.GlobalStatement{Token: p.currToken}
-	
+
 	if !p.expectPeek(token.IDENT) {
 		return nil
 	}
-	
+
 	name := &ast.Identifier{Token: p.currToken, Value: p.currToken.Literal}
 	stmt.Names = []*ast.Identifier{name}
-	
+
 	for p.peekTokenIs(token.COMMA) {
 		p.nextToken()
 		if !p.expectPeek(token.IDENT) {
@@ -2217,6 +2218,47 @@ func (p *Parser) parseGlobalStatement() ast.Statement {
 		name := &ast.Identifier{Token: p.currToken, Value: p.currToken.Literal}
 		stmt.Names = append(stmt.Names, name)
 	}
+
+	return stmt
+}
+
+func (p *Parser) parseWithStatement() ast.Statement {
+	stmt := &ast.WithStatement{Token: p.currToken}
+	
+	// autoclose <expression> as <variable>:
+	if !p.expectPeek(token.IDENT) && !p.currTokenIs(token.LPAREN) {
+		return nil
+	}
+	
+	// Parse the expression (e.g., open("file.txt", "r"))
+	stmt.Expression = p.parseExpression(LOWEST)
+	
+	// Expect 'as'
+	if !p.expectPeek(token.AS) {
+		return nil
+	}
+	
+	// Parse the variable name
+	if !p.expectPeek(token.IDENT) {
+		return nil
+	}
+	stmt.Variable = &ast.Identifier{Token: p.currToken, Value: p.currToken.Literal}
+	
+	// Expect colon
+	if !p.expectPeek(token.COLON) {
+		return nil
+	}
+	
+	// Expect newline and indent
+	if !p.expectPeek(token.NEWLINE) {
+		return nil
+	}
+	if !p.expectPeek(token.INDENT) {
+		return nil
+	}
+	
+	// Parse the body
+	stmt.Body = p.parseBlockStatement()
 	
 	return stmt
 }

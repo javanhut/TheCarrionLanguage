@@ -200,6 +200,39 @@ is_sametype("a", "hello")  // → True (both strings)
 - `fileWrite(path, content)` - Write content to file (overwrite)
 - `fileAppend(path, content)` - Append content to file
 - `fileExists(path)` - Check if file exists
+- `open(path, mode="r")` - Open file and return File object
+
+### `open(path, mode="r")`
+Opens a file and returns a File object that can be used for reading, writing, or appending. The file is automatically closed when used with `autoclose`.
+
+**Parameters:**
+- `path` (string): The path to the file
+- `mode` (string, optional): The file mode - "r" (read), "w" (write), "a" (append). Defaults to "r".
+
+**Returns:** A File object with methods for file operations.
+
+**Examples:**
+```python
+// Open file for reading
+file = open("data.txt", "r")
+content = file.read()
+file.close()
+
+// Open file for writing
+file = open("output.txt", "w")
+file.write("Hello, World!")
+file.close()
+
+// Best practice: Use with autoclose
+autoclose open("data.txt", "r") as file:
+    content = file.read()
+    print(content)
+```
+
+**File Object Methods:**
+- `read()` - Read entire file content
+- `write(content)` - Write content to file
+- `close()` - Close the file (automatically called with autoclose)
 
 ### Error Functions
 - `Error(name, message="")` - Create custom error object

@@ -196,13 +196,54 @@ b.is_false()        // → False
 
 ## File Module
 
-The File grimoire provides file system operations.
+The File grimoire provides file system operations and automatic resource management.
 
-### File Operations
+### File Object Creation
 ```python
-f = File()
+// Create File objects using the open() builtin function
+file = open("filename.txt", "r")      // Read mode
+file = open("filename.txt", "w")      // Write mode  
+file = open("filename.txt", "a")      // Append mode
+```
 
-// Read and write operations
+### File Object Methods
+```python
+// Reading
+content = file.read()                 // Read entire file content
+
+// Writing
+file.write("Hello World")             // Write content to file
+
+// Closing
+file.close()                          // Close file handle
+```
+
+### Automatic Resource Management
+The File grimoire works seamlessly with the `autoclose` statement to ensure proper resource cleanup:
+
+```python
+// Automatic file closing - recommended approach
+autoclose open("data.txt", "r") as file:
+    content = file.read()
+    print(content)
+// file.close() is called automatically
+
+// Writing with autoclose
+autoclose open("output.txt", "w") as file:
+    file.write("Hello, World!")
+    file.write("Second line")
+
+// Appending with autoclose  
+autoclose open("log.txt", "a") as file:
+    file.write("New log entry\n")
+```
+
+### Static File Operations
+For simple file operations, static methods are still available:
+
+```python
+// Static methods (legacy approach)
+f = File()
 content = f.read("input.txt")
 f.write("output.txt", "Hello World")  // Overwrites file
 f.append("log.txt", "New entry\n")    // Appends to file
@@ -210,6 +251,26 @@ f.append("log.txt", "New entry\n")    // Appends to file
 // File existence check
 if f.exists("config.txt"):
     config = f.read("config.txt")
+```
+
+### File Modes
+- `"r"` - Read mode (default): Opens file for reading
+- `"w"` - Write mode: Creates new file or overwrites existing file  
+- `"a"` - Append mode: Opens file for appending, creates if doesn't exist
+
+### Error Handling
+File operations handle common errors gracefully:
+```python
+autoclose open("nonexistent.txt", "r") as file:
+    content = file.read()  // May raise file not found error
+
+// Use with error handling
+attempt:
+    autoclose open("data.txt", "r") as file:
+        content = file.read()
+        print(content)
+ensnare:
+    print("Error reading file")
 ```
 
 ## OS Module
@@ -296,12 +357,13 @@ print("Square root:", pi.sqrt())
 
 ### File and System Operations
 ```python
-// File operations
-file = File()
-if file.exists("data.txt"):
-    content = file.read("data.txt")
+// Modern file operations with autoclose
+autoclose open("data.txt", "r") as input_file:
+    content = input_file.read()
     processed = content.upper()
-    file.write("output.txt", processed)
+    
+    autoclose open("output.txt", "w") as output_file:
+        output_file.write(processed)
 
 // System operations
 os = OS()
@@ -309,6 +371,13 @@ print("Current directory:", os.cwd())
 files = os.listdir(".")
 for filename in files:
     print("Found file:", filename)
+
+// Legacy file operations (still supported)
+file = File()
+if file.exists("data.txt"):
+    content = file.read("data.txt")
+    processed = content.upper()
+    file.write("output.txt", processed)
 ```
 
 ## Module Organization

@@ -1,17 +1,50 @@
 grim File:
-    # Read entire file into a string
-    spell read(path):
-        return fileRead(path)
-
-    # Write (overwrite) a file
-    spell write(path, content):
-        return fileWrite(path, content)
-
-    # Append content to a file
-    spell append(path, content):
-        return fileAppend(path, content)
-
-    # Check if file (or directory) exists
-    spell exists(path):
-        return fileExists(path)
-
+    init(path, mode):
+        self.path = path
+        self.mode = mode
+        self._handle = None
+        self._closed = False
+        
+        # Open the file handle based on mode
+        if mode == "r":
+            self._content = fileRead(path)
+            self._position = 0
+        else:
+            if mode == "w":
+                # Clear file for writing
+                fileWrite(path, "")
+            else:
+                if mode == "a":
+                    # Append mode - get existing content
+                    if fileExists(path):
+                        self._content = fileRead(path)
+                    else:
+                        self._content = ""
+    
+    spell read():
+        if self._closed:
+            return None
+        if self.mode != "r":
+            return None
+        return self._content
+    
+    spell write(content):
+        if self._closed:
+            return None
+        if self.mode == "r":
+            return None
+        
+        # Extract string value if content is an instance
+        content_str = content
+        if type(content) == "INSTANCE":
+            content_str = content.value
+        
+        if self.mode == "w":
+            fileWrite(self.path, content_str)
+        else:
+            if self.mode == "a":
+                fileAppend(self.path, content_str)
+    
+    spell close():
+        self._closed = True
+        return None
