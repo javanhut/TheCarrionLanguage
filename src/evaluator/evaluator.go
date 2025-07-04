@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -2994,29 +2996,139 @@ func processArrayIteration(
 	return NONE
 }
 
+// resolveImportPath searches for an import file in multiple locations
+func resolveImportPath(importPath string) (string, error) {
+	// Get current working directory
+	currentDir, err := os.Getwd()
+	if err != nil {
+		currentDir = "."
+	}
+	
+	// Define search paths in order of priority
+	searchPaths := []string{
+		// 1. Current directory (relative imports)
+		currentDir,
+		// 2. Local project modules 
+		filepath.Join(currentDir, "carrion_modules"),
+		// 3. User-specific packages (~/.carrion/packages)
+		getUserCarrionPackages(),
+		// 4. Shared global packages (/usr/local/share/carrion/lib)
+		getSharedGlobalPackages(),
+	}
+	
+	// Try each search path
+	for _, basePath := range searchPaths {
+		if basePath == "" {
+			continue
+		}
+		
+		// Try direct file path
+		fullPath := filepath.Join(basePath, importPath+".crl")
+		if _, err := os.Stat(fullPath); err == nil {
+			return fullPath, nil
+		}
+		
+		// For package imports with slashes (e.g., "json-utils/parser")
+		if strings.Contains(importPath, "/") {
+			parts := strings.Split(importPath, "/")
+			if len(parts) >= 2 {
+				packageName := parts[0]
+				subPath := strings.Join(parts[1:], "/")
+				
+				// Look for versioned package directory
+				packagePath := filepath.Join(basePath, packageName)
+				if versions, err := getLatestPackageVersion(packagePath); err == nil && len(versions) > 0 {
+					latestVersion := versions[len(versions)-1]
+					versionedPath := filepath.Join(packagePath, latestVersion, subPath+".crl")
+					if _, err := os.Stat(versionedPath); err == nil {
+						return versionedPath, nil
+					}
+				}
+				
+				// Try without version directory
+				directPackagePath := filepath.Join(packagePath, subPath+".crl")
+				if _, err := os.Stat(directPackagePath); err == nil {
+					return directPackagePath, nil
+				}
+			}
+		}
+	}
+	
+	return "", fmt.Errorf("import not found: %s", importPath)
+}
+
+// getUserCarrionPackages returns the user-specific Carrion packages directory
+func getUserCarrionPackages() string {
+	if home := os.Getenv("CARRION_HOME"); home != "" {
+		return filepath.Join(home, "packages")
+	}
+	
+	userHome, err := os.UserHomeDir()
+	if err != nil {
+		return ""
+	}
+	return filepath.Join(userHome, ".carrion", "packages")
+}
+
+// getSharedGlobalPackages returns the shared global packages directory
+func getSharedGlobalPackages() string {
+	if runtime.GOOS == "windows" {
+		if programData := os.Getenv("ProgramData"); programData != "" {
+			return filepath.Join(programData, "Carrion", "lib")
+		}
+		return filepath.Join("C:", "ProgramData", "Carrion", "lib")
+	}
+	return "/usr/local/share/carrion/lib"
+}
+
+// getLatestPackageVersion returns sorted list of versions for a package
+func getLatestPackageVersion(packagePath string) ([]string, error) {
+	entries, err := os.ReadDir(packagePath)
+	if err != nil {
+		return nil, err
+	}
+	
+	var versions []string
+	for _, entry := range entries {
+		if entry.IsDir() {
+			versions = append(versions, entry.Name())
+		}
+	}
+	
+	// TODO: Sort by semantic version - for now just return alphabetical
+	return versions, nil
+}
+
 func evalImportStatement(
 	node *ast.ImportStatement,
 	env *object.Environment,
 	ctx *CallContext,
 ) object.Object {
-	filePath := node.FilePath.Value + ".crl"
-
-	if importedFiles[filePath] {
+	importPath := node.FilePath.Value
+	
+	// Check if already imported using the import path as key
+	if importedFiles[importPath] {
 		return object.NONE
 	}
-	importedFiles[filePath] = true
+	importedFiles[importPath] = true
 
-	fileContent, err := os.ReadFile(filePath)
+	// Resolve the import path to an actual file
+	resolvedPath, err := resolveImportPath(importPath)
 	if err != nil {
-		return newErrorWithTrace("could not import file: %s", node, ctx, err)
+		return newErrorWithTrace("could not resolve import: %s", node, ctx, err)
 	}
 
-	l := lexer.NewWithFilename(string(fileContent), filePath)
+	fileContent, err := os.ReadFile(resolvedPath)
+	if err != nil {
+		return newErrorWithTrace("could not read import file: %s", node, ctx, err)
+	}
+
+	l := lexer.NewWithFilename(string(fileContent), resolvedPath)
 	p := parser.New(l)
 	program := p.ParseProgram()
 
 	if len(p.Errors()) > 0 {
-		errorDetails := fmt.Sprintf("parsing errors in imported file %s:\n", filePath)
+		errorDetails := fmt.Sprintf("parsing errors in imported file %s:\n", resolvedPath)
 		for _, err := range p.Errors() {
 			errorDetails += fmt.Sprintf("- %s\n", err)
 		}
@@ -3025,7 +3137,7 @@ func evalImportStatement(
 
 	importEnv := object.NewEnclosedEnvironment(env)
 	importCtx := &CallContext{
-		FunctionName: "import_" + filePath,
+		FunctionName: "import_" + importPath,
 		Node:         program,
 		Parent:       ctx,
 		env:          importEnv,
@@ -3034,7 +3146,7 @@ func evalImportStatement(
 	evalResult := Eval(program, importEnv, importCtx)
 	if isError(evalResult) {
 		return newErrorWithTrace("error evaluating imported file %s: %s",
-			node, ctx, filePath, evalResult.Inspect())
+			node, ctx, resolvedPath, evalResult.Inspect())
 	}
 
 	namespace := &object.Namespace{Env: importEnv}

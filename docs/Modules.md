@@ -1,27 +1,48 @@
 # Module System and Imports
 
-Carrion provides a module system that allows you to organize code across multiple files and import functionality between them. This enables code reuse, better organization, and collaborative development.
+Carrion provides a comprehensive module system that allows you to organize code across multiple files and import functionality between them. This enables code reuse, better organization, and collaborative development. The system supports local file imports, project packages, user-specific packages, and system-wide global packages managed by Bifrost package manager.
 
-## Basic Import Syntax
+## Import Resolution System
 
-### Simple Import
+Carrion uses a sophisticated import resolution system that searches for modules in multiple locations, allowing for flexible project organization and package management.
+
+### Search Path Priority
+
+When you import a module, Carrion searches in this order:
+
+1. **Current Directory** - Local files relative to the current working directory
+2. **Project Modules** - `./carrion_modules/` directory for project-specific packages
+3. **User Packages** - `~/.carrion/packages/` for user-installed packages  
+4. **Global Packages** - `/usr/local/share/carrion/lib/` for system-wide packages (managed by Bifrost)
+5. **Standard Library** - Built-in Munin standard library modules
+
+### Basic Import Syntax
+
+#### Simple Import
 ```python
 import "filename"
 ```
 
 This imports all public functions and grimoires from the specified file.
 
-### Import with File Extension
+#### Import with File Extension
 ```python
 import "utilities.crl"  // Explicit .crl extension
 import "math_functions"  // Extension optional for .crl files
 ```
 
-### Importing from Subdirectories
+#### Package Imports
 ```python
-import "utils/helpers"
-import "lib/data_structures"
-import "../shared/common"  // Relative paths supported
+import "json-utils/parser"     // Import from package with slash notation
+import "http-client/request"   // Package/module structure
+import "math-lib/advanced"     // Nested package imports
+```
+
+#### Local and Relative Imports
+```python
+import "utils/helpers"         // Local subdirectory
+import "lib/data_structures"   // Local library folder
+import "../shared/common"      // Relative paths supported
 ```
 
 ## Import Examples
@@ -145,6 +166,114 @@ import "string_utilities.StringProcessor" as StrProc
 result = math_ops.complex_calculation(10, 20)
 processor = StrProc("Hello World")
 formatted = processor.format_title()
+```
+
+## Package Management with Bifrost
+
+Carrion integrates with the Bifrost package manager to provide seamless package installation and import capabilities.
+
+### Installing Packages
+
+Use Bifrost to install packages for use in Carrion projects:
+
+```bash
+# Install a package locally to the project
+bifrost install json-utils
+
+# Install a package globally (system-wide)
+bifrost install --global http-client
+
+# Initialize a new Carrion package
+bifrost init
+```
+
+### Package Directory Structure
+
+Packages are organized in versioned directories:
+
+```
+/usr/local/share/carrion/lib/          # Global packages
+├── json-utils/
+│   ├── 1.0.0/
+│   │   ├── parser.crl
+│   │   ├── formatter.crl
+│   │   └── Bifrost.toml
+│   └── 1.0.1/
+│       ├── parser.crl
+│       ├── formatter.crl
+│       └── Bifrost.toml
+└── http-client/
+    └── 2.1.0/
+        ├── request.crl
+        ├── response.crl
+        └── auth.crl
+
+./carrion_modules/                      # Project-local packages
+├── test-utils/
+│   ├── mock.crl
+│   └── assert.crl
+└── dev-helpers/
+    └── debug.crl
+```
+
+### Using Installed Packages
+
+Once installed, packages can be imported using their package name and module path:
+
+```python
+# Import from globally installed packages
+import "json-utils/parser"
+import "http-client/request"
+
+# Use imported functionality
+json_parser = JSONParser()
+data = json_parser.parse('{"name": "example"}')
+
+http = HTTPClient()
+response = http.get("https://api.example.com/data")
+```
+
+### Version Resolution
+
+Carrion automatically resolves to the latest available version of a package. The import system:
+
+1. Searches for the package in the priority order (local → project → user → global)
+2. Finds the latest version directory for the package
+3. Imports the requested module from that version
+
+### Environment Variables
+
+You can customize package locations using environment variables:
+
+```bash
+# Custom Carrion home directory
+export CARRION_HOME=/custom/path/.carrion
+
+# Additional import paths (colon-separated)
+export CARRION_IMPORT_PATH=/custom/lib:/another/path
+```
+
+### Package Import Examples
+
+```python
+# Import from different package locations
+
+# 1. Local file (current directory)
+import "helper"                    # ./helper.crl
+
+# 2. Project package (carrion_modules)
+import "test-utils/mock"          # ./carrion_modules/test-utils/mock.crl
+
+# 3. Global package (system-wide)
+import "json-utils/parser"        # /usr/local/share/carrion/lib/json-utils/1.0.0/parser.crl
+
+# 4. User package (~/.carrion/packages)
+import "my-lib/utils"             # ~/.carrion/packages/my-lib/1.0.0/utils.crl
+
+# Use imported modules
+mock = MockFramework()
+json_parser = JSONParser()
+local_helper = HelperClass()
 ```
 
 ## Module Organization Patterns

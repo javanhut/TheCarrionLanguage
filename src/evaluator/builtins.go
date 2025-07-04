@@ -304,30 +304,27 @@ var builtins = map[string]*object.Builtin{
 
 			switch len(args) {
 			case 1:
-
-				stopObj, ok := args[0].(*object.Integer)
-				if !ok {
+				stopValue, err := extractIntegerValue(args[0])
+				if err != nil {
 					return newError("argument to `range` must be INTEGER, got=%s", args[0].Type())
 				}
-				start, stop, step = 0, stopObj.Value, 1
+				start, stop, step = 0, stopValue, 1
 			case 2:
-
-				startObj, ok1 := args[0].(*object.Integer)
-				stopObj, ok2 := args[1].(*object.Integer)
-				if !ok1 || !ok2 {
+				startValue, err1 := extractIntegerValue(args[0])
+				stopValue, err2 := extractIntegerValue(args[1])
+				if err1 != nil || err2 != nil {
 					return newError(
 						"arguments to `range` must be INTEGER, got=%s and %s",
 						args[0].Type(),
 						args[1].Type(),
 					)
 				}
-				start, stop, step = startObj.Value, stopObj.Value, 1
+				start, stop, step = startValue, stopValue, 1
 			case 3:
-
-				startObj, ok1 := args[0].(*object.Integer)
-				stopObj, ok2 := args[1].(*object.Integer)
-				stepObj, ok3 := args[2].(*object.Integer)
-				if !ok1 || !ok2 || !ok3 {
+				startValue, err1 := extractIntegerValue(args[0])
+				stopValue, err2 := extractIntegerValue(args[1])
+				stepValue, err3 := extractIntegerValue(args[2])
+				if err1 != nil || err2 != nil || err3 != nil {
 					return newError(
 						"arguments to `range` must be INTEGER, got=%s, %s, %s",
 						args[0].Type(),
@@ -335,7 +332,7 @@ var builtins = map[string]*object.Builtin{
 						args[2].Type(),
 					)
 				}
-				start, stop, step = startObj.Value, stopObj.Value, stepObj.Value
+				start, stop, step = startValue, stopValue, stepValue
 			default:
 				return newError("wrong number of arguments. got=%d, want=1..3", len(args))
 			}
@@ -1002,4 +999,27 @@ func wrapPrimitiveForBuiltin(obj object.Object) object.Object {
 
 	// If grimoire not found, return the original object
 	return obj
+}
+
+// extractIntegerValue extracts an integer value from various object types
+func extractIntegerValue(obj object.Object) (int64, error) {
+	switch v := obj.(type) {
+	case *object.Integer:
+		return v.Value, nil
+	case *object.Instance:
+		// Check if it's an Integer instance with a value
+		if v.Grimoire.Name == "Integer" {
+			if valueObj, exists := v.Env.Get("value"); exists {
+				if intVal, ok := valueObj.(*object.Integer); ok {
+					return intVal.Value, nil
+				}
+			}
+		}
+		return 0, fmt.Errorf("instance is not an Integer")
+	case *object.Float:
+		// Allow converting float to int
+		return int64(v.Value), nil
+	default:
+		return 0, fmt.Errorf("cannot convert %s to integer", obj.Type())
+	}
 }

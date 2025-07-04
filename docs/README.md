@@ -88,6 +88,37 @@ docker build -t carrion .
 docker run -it carrion
 ```
 
+## Package Management
+
+Carrion integrates with **Bifrost**, the official package manager, for seamless dependency management:
+
+```bash
+# Install Bifrost package manager
+curl -fsSL https://raw.githubusercontent.com/javanhut/bifrost/main/scripts/install.sh | bash
+
+# Initialize a new Carrion package
+bifrost init
+
+# Install packages for your project
+bifrost install json-utils
+bifrost install --global http-client
+
+# Use installed packages in Carrion
+import "json-utils/parser"
+import "http-client/request"
+```
+
+### Package Import Resolution
+
+Carrion automatically resolves imports from multiple locations:
+- Local files (current directory)
+- Project packages (`./carrion_modules/`)
+- User packages (`~/.carrion/packages/`)
+- Global packages (`/usr/local/share/carrion/lib/`)
+- Standard library (Munin)
+
+See **[Modules Documentation](docs/Modules.md)** for detailed import and package management information.
+
 ## Documentation
 
 ### Core Documentation
