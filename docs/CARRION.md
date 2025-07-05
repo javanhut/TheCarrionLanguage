@@ -677,6 +677,39 @@ spell calculate(a: int, b: int) -> int:
     return a + b
 ```
 
+## Package Management with Bifrost
+
+Carrion includes **Bifrost**, the official package manager, which is automatically installed alongside Carrion. Bifrost provides seamless dependency management for Carrion projects.
+
+### Basic Usage
+
+```bash
+# Initialize a new Carrion project
+bifrost init
+
+# Install a package
+bifrost install json-utils
+
+# Install globally
+bifrost install --global http-client
+```
+
+### Using Packages in Carrion
+
+```python
+// Import installed packages
+import "json-utils/parser"
+import "http-client/request"
+
+// Use package functions
+json_data = parser.parse_json('{"key": "value"}')
+response = request.get("https://api.example.com")
+```
+
+### Documentation
+
+For complete Bifrost documentation, visit the [Bifrost Repository](https://github.com/javanhut/bifrost).
+
 ## Best Practices
 
 1. **Naming Conventions**

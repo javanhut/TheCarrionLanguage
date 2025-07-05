@@ -4,9 +4,32 @@
 USER_NAME ?= username
 IMAGE_NAME ?= carrionlanguage
 VERSION ?= latest
-OS ?= linux
 
-.PHONY: build push run clean install uninstall build-source build-linux build-windows
+# Auto-detect OS
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Linux)
+	DETECTED_OS ?= linux
+endif
+ifeq ($(UNAME_S),Darwin)
+	DETECTED_OS ?= mac
+endif
+ifneq ($(filter MINGW%,$(UNAME_S)),)
+	DETECTED_OS ?= windows
+endif
+
+# Set default or error if OS detection failed
+ifndef DETECTED_OS
+	DETECTED_OS := unsupported
+endif
+
+OS ?= $(DETECTED_OS)
+
+# Validate OS value
+ifeq ($(OS),unsupported)
+	$(error Unsupported operating system: $(UNAME_S). Please set OS manually to one of: linux, mac, windows)
+endif
+
+.PHONY: build push run clean install uninstall build-source build-linux build-windows bifrost-update
 
 # 1) Build a tarball of the uncompiled source
 build-source:
@@ -49,11 +72,28 @@ clean:
 	docker rmi -f "$(USER_NAME)/$(IMAGE_NAME):latest" || true
 
 install:
-	@echo "Installing Carrion Language...."
+	@echo "Installing Carrion Language and Bifrost Package Manager for $(OS)...."
 	@./setup.sh
 	@./install/install.sh "$(OS)"
+	@if [ -d "bifrost" ]; then \
+		echo "Installing Bifrost Package Manager..."; \
+		cd bifrost && make install; \
+	else \
+		echo "Bifrost directory not found, skipping Bifrost installation"; \
+	fi
 
 uninstall:
-	@echo "Uninstalling Carrion from disk..."
+	@echo "Uninstalling Carrion and Bifrost from disk..."
 	@./install/uninstall.sh
+	@if [ -d "bifrost" ]; then \
+		echo "Uninstalling Bifrost Package Manager..."; \
+		$(MAKE) -C bifrost uninstall; \
+	else \
+		echo "Bifrost directory not found, skipping Bifrost uninstallation"; \
+	fi
+
+bifrost-update:
+	@echo "Updating Bifrost submodule..."
+	@git submodule update --init --recursive
+	@git submodule update --remote
 
