@@ -482,14 +482,19 @@ check(condition, "Error message")
 
 ### Import Syntax
 ```python
-import "module_name"
-import "path/to/module"
-import "module.ClassName"
-import "module" as alias
+# Smart import patterns
+import "filename"                    # Local file
+import "filename.ClassName"          # Selective import
+import "package/module"              # Simplified package import
+import "package/module.ClassName"    # Package selective import
+import "./filename"                  # Relative current directory
+import "../filename"                 # Relative parent directory
+import "module" as alias             # Import with alias
+import "module.ClassName" as alias   # Selective import with alias
 ```
 
 ### Module Structure
-Each `.crl` file is a module that can export functions and classes.
+Each `.crl` file is a module that can export functions and grimoires (classes). The import system automatically resolves packages with version management and searches appropriate directories.
 
 ## Built-in Functions
 

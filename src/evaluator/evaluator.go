@@ -36,6 +36,7 @@ type CallContext struct {
 	Parent       *CallContext
 	env          *object.Environment
 	depth        int
+	IsDirectExecution bool  // True when file is run directly, false when imported
 }
 
 // A map to track call stack depth for recursive functions
@@ -688,6 +689,18 @@ func Eval(node ast.Node, env *object.Environment, ctx *CallContext) object.Objec
 
 // EvalWithDebug evaluates an AST node with debug output
 func EvalWithDebug(node ast.Node, env *object.Environment, ctx *CallContext, debugConfig *debug.Config) object.Object {
+	// If no context provided, create one for direct execution
+	if ctx == nil {
+		ctx = &CallContext{
+			FunctionName: "main",
+			Node:         node,
+			Parent:       nil,
+			env:          env,
+			depth:        0,
+			IsDirectExecution: true,
+		}
+	}
+	
 	if debugConfig == nil || !debugConfig.ShouldDebugEvaluator() {
 		return Eval(node, env, ctx)
 	}
@@ -2067,8 +2080,8 @@ func evalProgram(program *ast.Program, env *object.Environment, ctx *CallContext
 		}
 	}
 	
-	// If main statement exists, execute it last
-	if mainStatement != nil {
+	// If main statement exists, execute it last (only for direct execution)
+	if mainStatement != nil && ctx != nil && ctx.IsDirectExecution {
 		result = Eval(mainStatement, env, ctx)
 		
 		switch result.(type) {
@@ -2996,7 +3009,7 @@ func processArrayIteration(
 	return NONE
 }
 
-// resolveImportPath searches for an import file in multiple locations
+// resolveImportPath searches for an import file with smart resolution
 func resolveImportPath(importPath string) (string, error) {
 	// Get current working directory
 	currentDir, err := os.Getwd()
@@ -3004,9 +3017,44 @@ func resolveImportPath(importPath string) (string, error) {
 		currentDir = "."
 	}
 	
+	// Handle relative imports explicitly (starts with . or ..)
+	if strings.HasPrefix(importPath, "./") || strings.HasPrefix(importPath, "../") {
+		return resolveRelativeImport(importPath, currentDir)
+	}
+	
+	// Check if this looks like a package import
+	// Pattern analysis:
+	// - "packagename.filename" -> package import (look in carrion_modules)
+	// - "filename" -> local file (look in current dir first)
+	// - "path/filename" -> explicit path
+	
+	return resolvePackageOrFileImport(importPath, currentDir)
+}
+
+// resolveRelativeImport handles relative imports like ../file or ./file
+func resolveRelativeImport(importPath, currentDir string) (string, error) {
+	// Remove any .crl extension if provided
+	cleanPath := strings.TrimSuffix(importPath, ".crl")
+	
+	// Resolve the relative path
+	fullPath := filepath.Join(currentDir, cleanPath+".crl")
+	absPath, err := filepath.Abs(fullPath)
+	if err != nil {
+		return "", fmt.Errorf("could not resolve relative path %s: %v", importPath, err)
+	}
+	
+	if _, err := os.Stat(absPath); err == nil {
+		return absPath, nil
+	}
+	
+	return "", fmt.Errorf("relative import not found: %s", importPath)
+}
+
+// resolvePackageOrFileImport handles package and file imports with smart resolution
+func resolvePackageOrFileImport(importPath, currentDir string) (string, error) {
 	// Define search paths in order of priority
 	searchPaths := []string{
-		// 1. Current directory (relative imports)
+		// 1. Current directory (for local files)
 		currentDir,
 		// 2. Local project modules 
 		filepath.Join(currentDir, "carrion_modules"),
@@ -3016,41 +3064,94 @@ func resolveImportPath(importPath string) (string, error) {
 		getSharedGlobalPackages(),
 	}
 	
-	// Try each search path
+	// Smart import resolution logic
+	if strings.Contains(importPath, "/") {
+		// Explicit path provided - try as package/file structure
+		return resolveExplicitPath(importPath, searchPaths)
+	} else {
+		// Simple name - could be local file or package
+		return resolveSimpleName(importPath, searchPaths, currentDir)
+	}
+}
+
+// resolveExplicitPath handles imports with slashes like "package/file" or "path/to/file"
+func resolveExplicitPath(importPath string, searchPaths []string) (string, error) {
+	parts := strings.Split(importPath, "/")
+	if len(parts) < 2 {
+		return "", fmt.Errorf("invalid explicit path: %s", importPath)
+	}
+	
+	packageName := parts[0]
+	subPath := strings.Join(parts[1:], "/")
+	
+	// Try each search path for package structure
 	for _, basePath := range searchPaths {
 		if basePath == "" {
 			continue
 		}
 		
-		// Try direct file path
-		fullPath := filepath.Join(basePath, importPath+".crl")
-		if _, err := os.Stat(fullPath); err == nil {
-			return fullPath, nil
+		// Try versioned package structure: basePath/package/version/src/file.crl
+		packagePath := filepath.Join(basePath, packageName)
+		if versions, err := getLatestPackageVersion(packagePath); err == nil && len(versions) > 0 {
+			latestVersion := versions[len(versions)-1]
+			versionedPath := filepath.Join(packagePath, latestVersion, "src", subPath+".crl")
+			if _, err := os.Stat(versionedPath); err == nil {
+				return versionedPath, nil
+			}
 		}
 		
-		// For package imports with slashes (e.g., "json-utils/parser")
-		if strings.Contains(importPath, "/") {
-			parts := strings.Split(importPath, "/")
-			if len(parts) >= 2 {
-				packageName := parts[0]
-				subPath := strings.Join(parts[1:], "/")
-				
-				// Look for versioned package directory
-				packagePath := filepath.Join(basePath, packageName)
-				if versions, err := getLatestPackageVersion(packagePath); err == nil && len(versions) > 0 {
-					latestVersion := versions[len(versions)-1]
-					versionedPath := filepath.Join(packagePath, latestVersion, subPath+".crl")
-					if _, err := os.Stat(versionedPath); err == nil {
-						return versionedPath, nil
-					}
-				}
-				
-				// Try without version directory
-				directPackagePath := filepath.Join(packagePath, subPath+".crl")
-				if _, err := os.Stat(directPackagePath); err == nil {
-					return directPackagePath, nil
+		// Try direct path: basePath/package/file.crl
+		directPath := filepath.Join(basePath, importPath+".crl")
+		if _, err := os.Stat(directPath); err == nil {
+			return directPath, nil
+		}
+	}
+	
+	return "", fmt.Errorf("explicit path import not found: %s", importPath)
+}
+
+// resolveSimpleName handles simple imports like "filename" - looks for local files first, then packages
+func resolveSimpleName(importPath string, searchPaths []string, currentDir string) (string, error) {
+	// First, try as a local file in current directory
+	localPath := filepath.Join(currentDir, importPath+".crl")
+	if _, err := os.Stat(localPath); err == nil {
+		return localPath, nil
+	}
+	
+	// Then try as a package name in each search location
+	for i, basePath := range searchPaths {
+		if basePath == "" {
+			continue
+		}
+		
+		// Skip current directory since we already tried it
+		if i == 0 {
+			continue
+		}
+		
+		// Look for package with this name
+		packagePath := filepath.Join(basePath, importPath)
+		if versions, err := getLatestPackageVersion(packagePath); err == nil && len(versions) > 0 {
+			latestVersion := versions[len(versions)-1]
+			
+			// Try common entry points in package
+			possibleEntries := []string{
+				filepath.Join(packagePath, latestVersion, "src", importPath+".crl"),
+				filepath.Join(packagePath, latestVersion, "src", "main.crl"),
+				filepath.Join(packagePath, latestVersion, "src", "index.crl"),
+			}
+			
+			for _, entryPath := range possibleEntries {
+				if _, err := os.Stat(entryPath); err == nil {
+					return entryPath, nil
 				}
 			}
+		}
+		
+		// Try direct file path as fallback
+		directPath := filepath.Join(basePath, importPath+".crl")
+		if _, err := os.Stat(directPath); err == nil {
+			return directPath, nil
 		}
 	}
 	
@@ -3141,6 +3242,7 @@ func evalImportStatement(
 		Node:         program,
 		Parent:       ctx,
 		env:          importEnv,
+		IsDirectExecution: false,  // This is an import, not direct execution
 	}
 
 	evalResult := Eval(program, importEnv, importCtx)
@@ -3151,9 +3253,31 @@ func evalImportStatement(
 
 	namespace := &object.Namespace{Env: importEnv}
 
-	if node.Alias != nil {
+	if node.ClassName != nil {
+		// Selective import: import only the specified grimoire
+		className := node.ClassName.Value
+		val, exists := importEnv.Get(className)
+		if !exists {
+			return newErrorWithTrace("grimoire '%s' not found in module '%s'", 
+				node, ctx, className, importPath)
+		}
+		if val.Type() != object.GRIMOIRE_OBJ {
+			return newErrorWithTrace("'%s' is not a grimoire in module '%s'", 
+				node, ctx, className, importPath)
+		}
+		
+		if node.Alias != nil {
+			// Selective import with alias: bind the specific grimoire to the alias
+			env.Set(node.Alias.Value, val)
+		} else {
+			// Selective import without alias: bind to original name
+			env.Set(className, val)
+		}
+	} else if node.Alias != nil {
+		// Module import with alias: create a namespace
 		env.Set(node.Alias.Value, namespace)
 	} else {
+		// Import all grimoires from the module
 		for _, name := range importEnv.GetNames() {
 			val, _ := importEnv.Get(name)
 			if val.Type() == object.GRIMOIRE_OBJ {

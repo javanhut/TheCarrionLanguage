@@ -2026,9 +2026,38 @@ func (p *Parser) parseImportStatement() ast.Statement {
 		p.errors = append(p.errors, "expected file path string after 'import'")
 		return nil
 	}
-	stmt.FilePath = &ast.StringLiteral{
-		Token: p.currToken,
-		Value: p.currToken.Literal,
+	
+	importPath := p.currToken.Literal
+	
+	// Check if the import path ends with a dot notation for selective imports
+	// We need to check if the LAST dot represents a grimoire selection
+	lastDotIndex := strings.LastIndex(importPath, ".")
+	if lastDotIndex != -1 && lastDotIndex < len(importPath)-1 {
+		// Check if the part after the last dot looks like a grimoire name (starts with uppercase)
+		potentialGrimoire := importPath[lastDotIndex+1:]
+		if len(potentialGrimoire) > 0 && potentialGrimoire[0] >= 'A' && potentialGrimoire[0] <= 'Z' {
+			// This looks like a selective import: "module/path.GrimoireName"
+			modulePath := importPath[:lastDotIndex]
+			stmt.FilePath = &ast.StringLiteral{
+				Token: p.currToken,
+				Value: modulePath, // The module path without the grimoire name
+			}
+			stmt.ClassName = &ast.Identifier{
+				Token: p.currToken,
+				Value: potentialGrimoire, // The specific grimoire name
+			}
+		} else {
+			// Regular import path that happens to have dots
+			stmt.FilePath = &ast.StringLiteral{
+				Token: p.currToken,
+				Value: importPath,
+			}
+		}
+	} else {
+		stmt.FilePath = &ast.StringLiteral{
+			Token: p.currToken,
+			Value: importPath,
+		}
 	}
 
 	if p.peekTokenIs(token.AS) {
