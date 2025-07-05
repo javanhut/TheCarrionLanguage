@@ -4,45 +4,146 @@ Carrion provides a comprehensive module system that allows you to organize code 
 
 ## Import Resolution System
 
-Carrion uses a sophisticated import resolution system that searches for modules in multiple locations, allowing for flexible project organization and package management.
+Carrion uses a smart import resolution system that automatically determines the import type and searches appropriate locations, making imports as simple as possible while maintaining full flexibility.
+
+### Smart Resolution Logic
+
+The import system analyzes your import string and chooses the appropriate resolution strategy:
+
+1. **Relative Imports** (starts with `./` or `../`) → Resolved relative to current directory
+2. **Local Files** (simple names like `"filename"`) → Current directory first, then packages
+3. **Package Imports** (with `/` like `"package/module"`) → Package directories with version resolution
+4. **Explicit Paths** (full paths) → Direct path resolution for backward compatibility
 
 ### Search Path Priority
 
 When you import a module, Carrion searches in this order:
 
 1. **Current Directory** - Local files relative to the current working directory
-2. **Project Modules** - `./carrion_modules/` directory for project-specific packages
-3. **User Packages** - `~/.carrion/packages/` for user-installed packages  
-4. **Global Packages** - `/usr/local/share/carrion/lib/` for system-wide packages (managed by Bifrost)
+2. **Project Modules** - `./carrion_modules/package/[version]/src/` for project packages
+3. **User Packages** - `~/.carrion/packages/package/[version]/src/` for user-installed packages  
+4. **Global Packages** - `/usr/local/share/carrion/lib/package/[version]/src/` for system packages
 5. **Standard Library** - Built-in Munin standard library modules
+
+### Automatic Version Resolution
+
+For package imports, Carrion automatically:
+- Finds the latest version of a package
+- Looks in the `src/` directory within the version folder
+- Supports both versioned (`package/1.0.0/src/`) and unversioned structures
 
 ### Basic Import Syntax
 
-#### Simple Import
+Carrion provides multiple import patterns designed for ease of use and flexibility:
+
+#### Local File Imports
 ```python
-import "filename"
+import "filename"              // Current directory: ./filename.crl
+import "mymodule.ClassName"    // Selective import: ./mymodule.crl -> ClassName
 ```
 
-This imports all public functions and grimoires from the specified file.
-
-#### Import with File Extension
+#### Simplified Package Imports
 ```python
-import "utilities.crl"  // Explicit .crl extension
-import "math_functions"  // Extension optional for .crl files
+import "package/module"              // Auto-resolves to: carrion_modules/package/[version]/src/module.crl
+import "package/module.ClassName"    // Selective import from package module
 ```
 
-#### Package Imports
+#### Relative Path Imports
 ```python
-import "json-utils/parser"     // Import from package with slash notation
-import "http-client/request"   // Package/module structure
-import "math-lib/advanced"     // Nested package imports
+import "./filename"            // Explicit current directory
+import "../parent/module"      // Relative parent directory
+import "../../utils/helper"    // Multi-level relative paths
 ```
 
-#### Local and Relative Imports
+#### Legacy Full Path Imports (Backward Compatible)
 ```python
-import "utils/helpers"         // Local subdirectory
-import "lib/data_structures"   // Local library folder
-import "../shared/common"      // Relative paths supported
+import "carrion_modules/package/1.0.0/src/module"  // Full explicit path
+```
+
+## Smart Import Examples
+
+### Example Project Structure
+```
+my_project/
+├── main.crl
+├── utils.crl
+├── models/
+│   ├── user.crl
+│   └── product.crl
+├── carrion_modules/
+│   └── hello-world/
+│       └── 0.1.0/
+│           └── src/
+│               └── main.crl
+└── ../shared/
+    └── common.crl
+```
+
+### All Import Pattern Examples
+
+```python
+// 1. Local file imports (current directory)
+import "utils"                    // → ./utils.crl
+import "utils.Helper"             // → ./utils.crl (import Helper grimoire)
+
+// 2. Simplified package imports (auto-resolves versions)
+import "hello-world/main"              // → carrion_modules/hello-world/0.1.0/src/main.crl
+import "hello-world/main.HelloWorld"   // → carrion_modules/hello-world/0.1.0/src/main.crl (HelloWorld grimoire)
+
+// 3. Relative path imports
+import "./utils"                  // → ./utils.crl (explicit current)
+import "./models/user"            // → ./models/user.crl
+import "../shared/common"         // → ../shared/common.crl
+import "../shared/common.Logger"  // → ../shared/common.crl (Logger grimoire)
+
+// 4. With aliases for convenience
+import "hello-world/main.HelloWorld" as Hello
+import "../shared/common.Logger" as Log
+import "utils.Helper" as MyHelper
+
+// 5. Legacy full paths (still supported)
+import "carrion_modules/hello-world/0.1.0/src/main.HelloWorld" as Hello
+```
+
+### Usage Examples
+
+**File: `utils.crl`**
+```python
+grim Helper:
+    init():
+        ignore
+    
+    spell format_text(text):
+        return f"Formatted: {text}"
+
+grim StringUtils:
+    init():
+        ignore
+    
+    spell reverse(text):
+        return text[::-1]
+```
+
+**File: `main.crl`**
+```python
+// Smart imports in action
+import "utils.Helper" as MyHelper           // Local selective import
+import "hello-world/main.HelloWorld" as Hello  // Package selective import
+import "../shared/common.Logger" as Log        // Relative selective import
+
+main:
+    // Use imported grimoires directly
+    helper = MyHelper()
+    result = helper.format_text("Hello World")
+    print(result)  // → "Formatted: Hello World"
+    
+    // Use package grimoire
+    greeting = Hello()
+    greeting.print_greeting()
+    
+    // Use relative import
+    logger = Log()
+    logger.info("Application started")
 ```
 
 ## Import Examples
@@ -218,19 +319,24 @@ Packages are organized in versioned directories:
 
 ### Using Installed Packages
 
-Once installed, packages can be imported using their package name and module path:
+Once installed, packages can be imported using simplified syntax:
 
 ```python
-# Import from globally installed packages
-import "json-utils/parser"
-import "http-client/request"
+# Simplified package imports (auto-resolves to latest version)
+import "json-utils/parser"                    // Auto-resolves to src/parser.crl
+import "json-utils/parser.JSONParser" as JSON // Selective import with alias
+import "http-client/request.HTTPClient" as HTTP
 
 # Use imported functionality
-json_parser = JSONParser()
+json_parser = JSON()  // Direct use with alias
 data = json_parser.parse('{"name": "example"}')
 
-http = HTTPClient()
+http = HTTP()  // Direct use with alias
 response = http.get("https://api.example.com/data")
+
+# Or import entire modules
+import "json-utils/parser"
+json_parser = JSONParser()  // Use original class name
 ```
 
 ### Version Resolution
@@ -256,24 +362,32 @@ export CARRION_IMPORT_PATH=/custom/lib:/another/path
 ### Package Import Examples
 
 ```python
-# Import from different package locations
+# Smart import patterns with automatic resolution
 
-# 1. Local file (current directory)
-import "helper"                    # ./helper.crl
+# 1. Local file imports (current directory)
+import "helper"                         # → ./helper.crl
+import "helper.Helper" as H             # → ./helper.crl (Helper grimoire)
 
-# 2. Project package (carrion_modules)
-import "test-utils/mock"          # ./carrion_modules/test-utils/mock.crl
+# 2. Simplified package imports (auto-resolves version and src/ path)
+import "test-utils/mock"                # → carrion_modules/test-utils/[version]/src/mock.crl
+import "test-utils/mock.MockFramework" as Mock  # → selective import with alias
 
-# 3. Global package (system-wide)
-import "json-utils/parser"        # /usr/local/share/carrion/lib/json-utils/1.0.0/parser.crl
+# 3. Global package imports (system-wide, auto-resolves)
+import "json-utils/parser"              # → /usr/local/share/carrion/lib/json-utils/[version]/src/parser.crl
+import "json-utils/parser.JSONParser" as JSON  # → selective import
 
-# 4. User package (~/.carrion/packages)
-import "my-lib/utils"             # ~/.carrion/packages/my-lib/1.0.0/utils.crl
+# 4. User package imports (auto-resolves)
+import "my-lib/utils"                   # → ~/.carrion/packages/my-lib/[version]/src/utils.crl
+import "my-lib/utils.Utility" as Util   # → selective import
 
-# Use imported modules
-mock = MockFramework()
-json_parser = JSONParser()
-local_helper = HelperClass()
+# 5. Relative imports for shared code
+import "../shared/common.Logger" as Log  # → ../shared/common.crl (Logger grimoire)
+
+# Usage examples
+mock = Mock()           # Use aliased import
+json_parser = JSON()    # Use aliased selective import
+helper = Helper()       # Use local import
+logger = Log()          # Use relative import
 ```
 
 ## Module Organization Patterns
