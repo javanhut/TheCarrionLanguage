@@ -16,7 +16,11 @@ fi
 chmod +x install/install.sh
 chmod +x install/uninstall.sh
 
-# 3) Initialize and update Bifrost submodule
-echo "Initializing Bifrost submodule..."
-git submodule update --init --recursive
+# 3) Initialize and update Bifrost submodule (if in git repository)
+if command -v git &>/dev/null && [ -d ".git" ]; then
+    echo "Initializing Bifrost submodule..."
+    git submodule update --init --recursive
+else
+    echo "Skipping git submodule update (not in a git repository or git not installed)"
+fi
 
