@@ -4,9 +4,25 @@
 USER_NAME ?= username
 IMAGE_NAME ?= carrionlanguage
 VERSION ?= latest
-OS ?= linux
 
-.PHONY: build push run clean install uninstall build-source build-linux build-windows
+# Auto-detect OS
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Linux)
+	DETECTED_OS = linux
+endif
+ifeq ($(UNAME_S),Darwin)
+	DETECTED_OS = mac
+endif
+ifeq ($(UNAME_S),MINGW64_NT-10.0)
+	DETECTED_OS = windows
+endif
+ifeq ($(UNAME_S),MINGW32_NT-10.0)
+	DETECTED_OS = windows
+endif
+
+OS ?= $(DETECTED_OS)
+
+.PHONY: build push run clean install uninstall build-source build-linux build-windows bifrost-update
 
 # 1) Build a tarball of the uncompiled source
 build-source:
@@ -49,11 +65,20 @@ clean:
 	docker rmi -f "$(USER_NAME)/$(IMAGE_NAME):latest" || true
 
 install:
-	@echo "Installing Carrion Language...."
+	@echo "Installing Carrion Language and Bifrost Package Manager for $(OS)...."
 	@./setup.sh
 	@./install/install.sh "$(OS)"
+	@echo "Installing Bifrost Package Manager..."
+	@cd bifrost && make install
 
 uninstall:
-	@echo "Uninstalling Carrion from disk..."
+	@echo "Uninstalling Carrion and Bifrost from disk..."
 	@./install/uninstall.sh
+	@echo "Uninstalling Bifrost Package Manager..."
+	@cd bifrost && make uninstall
+
+bifrost-update:
+	@echo "Updating Bifrost submodule..."
+	@git submodule update --init --recursive
+	@git submodule foreach 'git pull origin main'
 

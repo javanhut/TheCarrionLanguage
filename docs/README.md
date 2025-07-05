@@ -60,16 +60,18 @@ Experience the benefits of runtime type checking and an interpreter that support
 
 ## Installation
 
-### Quick Install (Linux/macOS)
+### Quick Install (Linux/macOS/Windows)
 
 ```bash
 # Clone the repository
 git clone https://github.com/javanhut/TheCarrionLanguage.git
 cd TheCarrionLanguage
 
-# Run the installation script
-./install/install.sh
+# Install both Carrion and Bifrost package manager (auto-detects OS)
+make install
 ```
+
+**Note**: Installing Carrion automatically installs the **Bifrost Package Manager** (v1.0.0) as well. Both tools are installed together and can be uninstalled with `make uninstall`.
 
 ### Manual Installation
 
@@ -90,12 +92,9 @@ docker run -it carrion
 
 ## Package Management
 
-Carrion integrates with **Bifrost**, the official package manager, for seamless dependency management:
+Carrion integrates with **Bifrost**, the official package manager, for seamless dependency management. Bifrost is automatically installed when you install Carrion.
 
 ```bash
-# Install Bifrost package manager
-curl -fsSL https://raw.githubusercontent.com/javanhut/bifrost/main/scripts/install.sh | bash
-
 # Initialize a new Carrion package
 bifrost init
 
@@ -107,6 +106,8 @@ bifrost install --global http-client
 import "json-utils/parser"
 import "http-client/request"
 ```
+
+For detailed Bifrost documentation, see the [Bifrost Repository](https://github.com/javanhut/bifrost) and [Bifrost Documentation](https://github.com/javanhut/bifrost/blob/main/README.md).
 
 ### Package Import Resolution
 

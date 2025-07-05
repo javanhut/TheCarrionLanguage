@@ -14,6 +14,7 @@ Carrion is a dynamically typed, interpreted programming language with a Norse my
 - **Interactive REPL**: Built-in read-eval-print loop
 - **Error Handling**: Comprehensive try-catch system with custom syntax
 - **Module System**: Import and organize code across files
+- **Package Management**: Integrated Bifrost package manager for dependency management
 
 ## Basic Syntax
 
@@ -104,6 +105,27 @@ Carrion embraces the mystical and magical, transforming mundane programming conc
 - **Error handling** uses **attempt/ensnare/resolve** instead of try/catch/finally
 
 This creative approach makes programming feel more like crafting magic while maintaining familiar, readable syntax patterns.
+
+## Package Management
+
+Carrion includes **Bifrost**, the official package manager, which is automatically installed when you install Carrion. Bifrost provides seamless dependency management and module distribution.
+
+### Quick Start with Bifrost
+
+```bash
+# Initialize a new Carrion project
+bifrost init
+
+# Install packages
+bifrost install json-utils
+bifrost install --global http-client
+
+# Use packages in your code
+import "json-utils/parser"
+import "http-client/request"
+```
+
+For complete Bifrost documentation, visit the [Bifrost Repository](https://github.com/javanhut/bifrost).
 
 ## Next Steps
 
