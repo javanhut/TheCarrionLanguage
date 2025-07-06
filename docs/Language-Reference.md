@@ -519,8 +519,15 @@ Each `.crl` file is a module that can export functions and grimoires (classes). 
 
 ### Collection Functions
 - `enumerate(array)` - Get indexed pairs
-- `pairs(hash, filter)` - Get key-value pairs
+- `pairs(hash, filter)` - Get key-value pairs (enhanced: supports "key"/"k" and "value"/"v" filters)
 - `is_sametype(obj1, obj2)` - Compare types
+
+### Iteration Support
+All collection types support the `in` operator and iteration with `for` loops:
+- **Strings**: Character-by-character iteration and substring checking
+- **Arrays**: Element iteration and membership testing  
+- **Hashes**: Key iteration by default, key membership testing
+- **Ranges**: Number sequence iteration
 
 ## Standard Library (Munin)
 

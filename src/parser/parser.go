@@ -1619,13 +1619,39 @@ func (p *Parser) parseForStatement() ast.Statement {
 	// Create a new ForStatement.
 	fs := &ast.ForStatement{Token: p.currToken}
 
-	// --- Parse the loop variable ---
+	// --- Parse the loop variable(s) - support both single variables and tuple unpacking ---
 	if !p.expectPeek(token.IDENT) {
 		return nil
 	}
-	// We assume a single identifier (you can extend this to handle tuple destructuring)
-	loopVar := &ast.Identifier{Token: p.currToken, Value: p.currToken.Literal}
-	fs.Variable = loopVar
+	
+	// Start with the first identifier
+	firstVar := &ast.Identifier{Token: p.currToken, Value: p.currToken.Literal}
+	
+	// Check if there are more variables (tuple unpacking)
+	if p.peekTokenIs(token.COMMA) {
+		// Multiple variables - create a tuple literal
+		variables := []ast.Expression{firstVar}
+		
+		// Parse remaining variables
+		for p.peekTokenIs(token.COMMA) {
+			p.nextToken() // consume comma
+			if !p.expectPeek(token.IDENT) {
+				return nil
+			}
+			nextVar := &ast.Identifier{Token: p.currToken, Value: p.currToken.Literal}
+			variables = append(variables, nextVar)
+		}
+		
+		// Create tuple literal for multiple variables
+		tupleLiteral := &ast.TupleLiteral{
+			Token:    firstVar.Token,
+			Elements: variables,
+		}
+		fs.Variable = tupleLiteral
+	} else {
+		// Single variable
+		fs.Variable = firstVar
+	}
 
 	// --- Expect the 'in' keyword ---
 	if !p.expectPeek(token.IN) {

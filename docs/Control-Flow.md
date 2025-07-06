@@ -65,7 +65,7 @@ print(f"It's {status} outside")
 ## Loops
 
 ### For Loops
-For loops iterate over sequences like arrays, strings, ranges, or any iterable.
+For loops iterate over sequences like arrays, strings, hashes, ranges, or any iterable.
 
 #### Basic For Loop
 ```python
@@ -82,17 +82,39 @@ else:
     // executed if loop completes without break
 ```
 
+#### Iterable Types
+Carrion supports iteration over multiple data types:
+
+- **Arrays**: Iterate over elements
+- **Strings**: Iterate over characters (NEW!)
+- **Hashes**: Iterate over keys by default (NEW!)
+- **Ranges**: Iterate over number sequences
+- **pairs() results**: Iterate over key-value pairs from hashes (ENHANCED!)
+
 #### Examples
 ```python
 // Iterate over array
 numbers = [1, 2, 3, 4, 5]
 for num in numbers:
-    print(num)
+    print(num)  // Prints: 1, 2, 3, 4, 5
 
-// Iterate over string
+// Iterate over string (character by character)
 word = "hello"
 for char in word:
-    print(char)
+    print(char)  // Prints: h, e, l, l, o
+
+// Iterate over hash keys
+user_data = {"name": "Alice", "age": 30, "city": "Paris"}
+for key in user_data:
+    print(f"Key: {key}")  // Prints: Key: name, Key: age, Key: city
+
+// Iterate over hash key-value pairs using pairs()
+for key, value in pairs(user_data):
+    print(f"{key}: {value}")  // Prints: name: Alice, age: 30, city: Paris
+
+// Iterate over hash values only
+for value in pairs(user_data, "value"):
+    print(f"Value: {value}")  // Prints: Value: Alice, Value: 30, Value: Paris
 
 // Iterate over range
 for i in range(5):
@@ -116,6 +138,13 @@ else:
 items = ["apple", "banana", "cherry"]
 for index, value in enumerate(items):
     print(f"{index}: {value}")
+
+// Mixed iteration examples
+text = "Carrion"
+vowels = ["a", "e", "i", "o", "u"]
+for char in text:
+    if char.lower() in vowels:
+        print(f"Found vowel: {char}")
 ```
 
 ### While Loops

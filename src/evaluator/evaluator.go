@@ -285,8 +285,8 @@ func wrapPrimitive(obj object.Object, env *object.Environment, ctx *CallContext)
 	
 	// Don't wrap if this is in a function call context that expects primitives
 	if ctx != nil && ctx.FunctionName != "" {
-		// Don't wrap arguments to builtin functions (except for input functions that should return String instances)
-		if isBuiltinFunction(ctx.FunctionName) && !shouldWrapStringResult(ctx.FunctionName) {
+		// Don't wrap arguments to builtin functions (except for input functions that should return String instances and pairs() that should return Array instances)
+		if isBuiltinFunction(ctx.FunctionName) && !shouldWrapStringResult(ctx.FunctionName) && ctx.FunctionName != "pairs" {
 			if debugPrimitiveWrapping {
 				fmt.Fprintf(os.Stderr, "WRAP: Builtin function %s, not wrapping\n", ctx.FunctionName)
 			}
@@ -316,6 +316,8 @@ func wrapPrimitive(obj object.Object, env *object.Environment, ctx *CallContext)
 		grimName = "String"
 	case object.BOOLEAN_OBJ:
 		grimName = "Boolean"
+	case object.ARRAY_OBJ:
+		grimName = "Array"
 	default:
 		return obj // Not a primitive, return as is
 	}
@@ -329,9 +331,19 @@ func wrapPrimitive(obj object.Object, env *object.Environment, ctx *CallContext)
 				Env:      object.NewEnclosedEnvironment(grimoire.Env),
 			}
 
-			// For now, just set the value directly to avoid init method issues
+			// Set self reference
 			instance.Env.Set("self", instance)
-			instance.Env.Set("value", obj)
+			
+			// Handle different types appropriately
+			if grimName == "Array" {
+				// For arrays, set the elements directly
+				if arrayObj, isArray := obj.(*object.Array); isArray {
+					instance.Env.Set("elements", arrayObj)
+				}
+			} else {
+				// For other primitives, set the value
+				instance.Env.Set("value", obj)
+			}
 
 			return instance
 		}
@@ -1604,6 +1616,12 @@ func evalCallExpression(
 				return wrapPrimitive(stringObj, env, ctx)
 			}
 		}
+		// Wrap array results from pairs() function so they have access to methods
+		if ctx.FunctionName == "pairs" {
+			if arrayObj, isArray := res.(*object.Array); isArray {
+				return wrapPrimitive(arrayObj, env, ctx)
+			}
+		}
 		return res
 
 	default:
@@ -2225,6 +2243,18 @@ func evalInfixExpression(
 		}
 	}
 	
+	// Handle "in" and "not in" operators before type-specific switches
+	if operator == "in" || operator == "not in" {
+		result := evalInOperator(unwrappedLeft, unwrappedRight, node, ctx)
+		if operator == "not in" {
+			// Invert the result for "not in"
+			if boolResult, ok := result.(*object.Boolean); ok {
+				return nativeBoolToBooleanObject(!boolResult.Value)
+			}
+		}
+		return result
+	}
+	
 	switch {
 	case unwrappedLeft.Type() == object.INTEGER_OBJ && unwrappedRight.Type() == object.INTEGER_OBJ:
 		return evalIntegerInfixExpression(operator, unwrappedLeft, unwrappedRight, node, ctx)
@@ -2232,6 +2262,30 @@ func evalInfixExpression(
 		return evalBooleanInfixExpression(operator, unwrappedLeft, unwrappedRight, node, ctx)
 	case unwrappedLeft.Type() == object.STRING_OBJ && unwrappedRight.Type() == object.STRING_OBJ:
 		return evalStringInfixExpression(operator, unwrappedLeft, unwrappedRight, node, ctx)
+	case unwrappedLeft.Type() == object.STRING_OBJ && unwrappedRight.Type() == object.INTEGER_OBJ:
+		// String multiplication: "hello" * 3
+		if operator == "*" {
+			strVal := unwrappedLeft.(*object.String).Value
+			count := unwrappedRight.(*object.Integer).Value
+			if count < 0 {
+				return newErrorWithTrace("string multiplication count cannot be negative", node, ctx)
+			}
+			result := strings.Repeat(strVal, int(count))
+			return &object.String{Value: result}
+		}
+		return newErrorWithTrace("unsupported operation: %s %s %s", node, ctx, unwrappedLeft.Type(), operator, unwrappedRight.Type())
+	case unwrappedLeft.Type() == object.INTEGER_OBJ && unwrappedRight.Type() == object.STRING_OBJ:
+		// Integer * string: 3 * "hello"
+		if operator == "*" {
+			count := unwrappedLeft.(*object.Integer).Value
+			strVal := unwrappedRight.(*object.String).Value
+			if count < 0 {
+				return newErrorWithTrace("string multiplication count cannot be negative", node, ctx)
+			}
+			result := strings.Repeat(strVal, int(count))
+			return &object.String{Value: result}
+		}
+		return newErrorWithTrace("unsupported operation: %s %s %s", node, ctx, unwrappedLeft.Type(), operator, unwrappedRight.Type())
 	case unwrappedLeft == object.NONE && unwrappedRight == object.NONE:
 		return nativeBoolToBooleanObject(operator == "==")
 	case unwrappedLeft.Type() == object.ARRAY_OBJ && unwrappedRight.Type() == object.ARRAY_OBJ:
@@ -2244,6 +2298,44 @@ func evalInfixExpression(
 			return &object.Array{Elements: combined}
 		}
 		return newErrorWithTrace("unknown operator for arrays: %s", node, ctx, operator)
+	case unwrappedLeft.Type() == object.ARRAY_OBJ && unwrappedRight.Type() == object.INTEGER_OBJ:
+		// Array multiplication: [1, 2] * 3
+		if operator == "*" {
+			leftArr := unwrappedLeft.(*object.Array)
+			count := unwrappedRight.(*object.Integer).Value
+			if count < 0 {
+				return newErrorWithTrace("array multiplication count cannot be negative", node, ctx)
+			}
+			
+			totalElements := len(leftArr.Elements) * int(count)
+			result := make([]object.Object, totalElements)
+			
+			for i := 0; i < int(count); i++ {
+				copy(result[i*len(leftArr.Elements):], leftArr.Elements)
+			}
+			
+			return &object.Array{Elements: result}
+		}
+		return newErrorWithTrace("unsupported operation: %s %s %s", node, ctx, unwrappedLeft.Type(), operator, unwrappedRight.Type())
+	case unwrappedLeft.Type() == object.INTEGER_OBJ && unwrappedRight.Type() == object.ARRAY_OBJ:
+		// Integer * array: 3 * [1, 2]
+		if operator == "*" {
+			count := unwrappedLeft.(*object.Integer).Value
+			rightArr := unwrappedRight.(*object.Array)
+			if count < 0 {
+				return newErrorWithTrace("array multiplication count cannot be negative", node, ctx)
+			}
+			
+			totalElements := len(rightArr.Elements) * int(count)
+			result := make([]object.Object, totalElements)
+			
+			for i := 0; i < int(count); i++ {
+				copy(result[i*len(rightArr.Elements):], rightArr.Elements)
+			}
+			
+			return &object.Array{Elements: result}
+		}
+		return newErrorWithTrace("unsupported operation: %s %s %s", node, ctx, unwrappedLeft.Type(), operator, unwrappedRight.Type())
 	case unwrappedLeft == object.NONE || unwrappedRight == object.NONE:
 		if operator == "==" {
 			return nativeBoolToBooleanObject(false)
@@ -2932,12 +3024,46 @@ func evalForStatement(
 		if result != NONE {
 			return result
 		}
+	case *object.String:
+		// Convert string to array of character strings for iteration
+		charElements := make([]object.Object, len(iter.Value))
+		for i, char := range iter.Value {
+			charElements[i] = &object.String{Value: string(char)}
+		}
+		result := processArrayIteration(charElements, fs, env, forCtx, ctx)
+		if result != NONE {
+			return result
+		}
+	case *object.Hash:
+		// Iterate over hash keys by default
+		var elements []object.Object
+		for _, pair := range iter.Pairs {
+			elements = append(elements, pair.Key)
+		}
+		result := processArrayIteration(elements, fs, env, forCtx, ctx)
+		if result != NONE {
+			return result
+		}
 	case *object.Instance:
 		// Handle Array instances
 		if iter.Grimoire.Name == "Array" {
 			if elementsObj, ok := iter.Env.Get("elements"); ok {
 				if arr, ok := elementsObj.(*object.Array); ok {
 					result := processArrayIteration(arr.Elements, fs, env, forCtx, ctx)
+					if result != NONE {
+						return result
+					}
+				}
+			}
+		} else if iter.Grimoire.Name == "String" {
+			// Handle String instances by getting the value and converting to characters
+			if valueObj, ok := iter.Env.Get("value"); ok {
+				if str, ok := valueObj.(*object.String); ok {
+					charElements := make([]object.Object, len(str.Value))
+					for i, char := range str.Value {
+						charElements[i] = &object.String{Value: string(char)}
+					}
+					result := processArrayIteration(charElements, fs, env, forCtx, ctx)
 					if result != NONE {
 						return result
 					}
@@ -2950,6 +3076,99 @@ func evalForStatement(
 		return newErrorWithTrace("for loop requires an iterable, got %s", fs, ctx, iterable.Type())
 	}
 	return NONE
+}
+
+// evalInOperator handles "in" operator for membership testing across different container types
+func evalInOperator(
+	left, right object.Object,
+	node ast.Node,
+	ctx *CallContext,
+) object.Object {
+	switch container := right.(type) {
+	case *object.String:
+		// Check if left is a substring or character in the string
+		if leftStr, ok := left.(*object.String); ok {
+			contains := strings.Contains(container.Value, leftStr.Value)
+			return nativeBoolToBooleanObject(contains)
+		}
+		return newErrorWithTrace("'in' operator with string requires string on left side, got %s", node, ctx, left.Type())
+		
+	case *object.Array:
+		// Check if element exists in array
+		for _, elem := range container.Elements {
+			if isObjectEqual(left, elem) {
+				return nativeBoolToBooleanObject(true)
+			}
+		}
+		return nativeBoolToBooleanObject(false)
+		
+	case *object.Hash:
+		// Check if key exists in hash
+		hashKey, ok := left.(object.Hashable)
+		if !ok {
+			return newErrorWithTrace("unusable as hash key: %T", node, ctx, left)
+		}
+		_, exists := container.Pairs[hashKey.HashKey()]
+		return nativeBoolToBooleanObject(exists)
+		
+	case *object.Instance:
+		// Handle wrapped containers
+		if container.Grimoire.Name == "String" {
+			if valueObj, ok := container.Env.Get("value"); ok {
+				if str, ok := valueObj.(*object.String); ok {
+					if leftStr, ok := left.(*object.String); ok {
+						contains := strings.Contains(str.Value, leftStr.Value)
+						return nativeBoolToBooleanObject(contains)
+					}
+					return newErrorWithTrace("'in' operator with string requires string on left side, got %s", node, ctx, left.Type())
+				}
+			}
+		} else if container.Grimoire.Name == "Array" {
+			if elementsObj, ok := container.Env.Get("elements"); ok {
+				if arr, ok := elementsObj.(*object.Array); ok {
+					for _, elem := range arr.Elements {
+						if isObjectEqual(left, elem) {
+							return nativeBoolToBooleanObject(true)
+						}
+					}
+					return nativeBoolToBooleanObject(false)
+				}
+			}
+		}
+		return newErrorWithTrace("'in' operator not supported for %s instance", node, ctx, container.Grimoire.Name)
+		
+	default:
+		return newErrorWithTrace("'in' operator not supported for %s", node, ctx, right.Type())
+	}
+}
+
+// Helper function to check if two objects are equal
+func isObjectEqual(left, right object.Object) bool {
+	// Unwrap primitives to handle instances
+	unwrappedLeft := unwrapPrimitive(left)
+	unwrappedRight := unwrapPrimitive(right)
+	
+	if unwrappedLeft.Type() != unwrappedRight.Type() {
+		return false
+	}
+	
+	switch leftObj := unwrappedLeft.(type) {
+	case *object.Integer:
+		rightObj := unwrappedRight.(*object.Integer)
+		return leftObj.Value == rightObj.Value
+	case *object.Float:
+		rightObj := unwrappedRight.(*object.Float)
+		return leftObj.Value == rightObj.Value
+	case *object.String:
+		rightObj := unwrappedRight.(*object.String)
+		return leftObj.Value == rightObj.Value
+	case *object.Boolean:
+		rightObj := unwrappedRight.(*object.Boolean)
+		return leftObj.Value == rightObj.Value
+	default:
+		// For other types, use pointer comparison as fallback
+		return unwrappedLeft == unwrappedRight
+	}
 }
 
 // Helper function to process array iteration with variable unpacking and loop body execution

@@ -787,14 +787,30 @@ var builtins = map[string]*object.Builtin{
 			// Determine the filter string if provided.
 			filter := ""
 			if len(args) == 2 {
-				filterArg, ok := args[1].(*object.String)
-				if !ok {
+				// Handle both raw strings and String instances
+				switch arg := args[1].(type) {
+				case *object.String:
+					filter = arg.Value
+				case *object.Instance:
+					// Check if it's a String instance
+					if arg.Grimoire.Name == "String" {
+						if value, exists := arg.Env.Get("value"); exists {
+							if str, isString := value.(*object.String); isString {
+								filter = str.Value
+							}
+						}
+					} else {
+						return newError(
+							"pairs second argument must be a STRING filter, got %s instance",
+							arg.Grimoire.Name,
+						)
+					}
+				default:
 					return newError(
 						"pairs second argument must be a STRING filter, got %s",
 						args[1].Type(),
 					)
 				}
-				filter = filterArg.Value
 			}
 
 			// Iterate over the hash's pairs.
@@ -817,7 +833,30 @@ var builtins = map[string]*object.Builtin{
 					)
 				}
 			}
-			return &object.Array{Elements: result}
+			// Return as Array instance so it has access to keys() and values() methods
+			arrayResult := &object.Array{Elements: result}
+			
+			// Wrap the array as an Array instance if the stdlib is available
+			if stdlibEnv != nil {
+				if grimObj, ok := stdlibEnv.Get("Array"); ok {
+					if grimoire, isGrim := grimObj.(*object.Grimoire); isGrim {
+						// Create instance exactly like the normal grimoire constructor
+						instance := &object.Instance{
+							Grimoire: grimoire,
+							Env:      object.NewEnclosedEnvironment(grimoire.Env),
+						}
+						
+						// Set self reference and elements
+						instance.Env.Set("self", instance)
+						instance.Env.Set("elements", arrayResult)
+						
+						return instance
+					}
+				}
+			}
+			
+			// Fallback to raw array if wrapping fails
+			return arrayResult
 		},
 	},
 	"is_sametype": {

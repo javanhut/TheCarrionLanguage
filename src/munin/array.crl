@@ -6,7 +6,7 @@ grim Array:
             self.elements = elements
     
     spell length():
-        return Integer(len(self.elements))
+        return len(self.elements)
 
     spell append(val):
         self.elements = self.elements + [val]
@@ -19,7 +19,7 @@ grim Array:
                 result = result + ", "
             result = result + str(self.elements[i])
         result = result + "]"
-        return String(result)
+        return result
 
     spell get(index):
         idx = index
@@ -53,13 +53,13 @@ grim Array:
         return None
 
     spell is_empty():
-        return Boolean(len(self.elements) == 0)
+        return len(self.elements) == 0
     
     spell contains(value):
         for element in self.elements:
             if element == value:
-                return Boolean(True)
-        return Boolean(False)
+                return True
+        return False
     
     ```
     Finds the index position of the first occurrence of a value.
@@ -77,8 +77,8 @@ grim Array:
     spell index_of(value):
         for i in range(0, len(self.elements)):
             if self.elements[i] == value:
-                return Integer(i)
-        return Integer(-1)
+                return i
+        return -1
     
     ```
     Removes the first occurrence of the specified value from the array.
@@ -103,7 +103,7 @@ grim Array:
             else:
                 found = True
         self.elements = new_elements
-        return Boolean(found)
+        return found
     
     ```
     Removes all elements from the array, making it empty.
@@ -185,7 +185,7 @@ grim Array:
             if i >= 0 and i < len(self.elements):
                 new_elements = new_elements + [self.elements[i]]
         
-        return Array(new_elements)
+        return new_elements
     
     ```
     Creates a new array with elements in reverse order.
@@ -203,7 +203,7 @@ grim Array:
         # Iterate from last element to first to reverse order
         for i in range(len(self.elements) - 1, -1, -1):
             new_elements = new_elements + [self.elements[i]]
-        return Array(new_elements)
+        return new_elements
     
     ```
     Creates a new sorted array using bubble sort algorithm.
@@ -230,4 +230,22 @@ grim Array:
                     new_elements[j] = new_elements[j + 1]
                     new_elements[j + 1] = temp
         
-        return Array(new_elements)
+        return new_elements
+    
+    spell keys():
+        result = []
+        for element in self.elements:
+            if type(element) == "TUPLE":
+                result = result + [element[0]]
+            else:
+                result = result + [element]
+        return result
+    
+    spell values():
+        result = []
+        for element in self.elements:
+            if type(element) == "TUPLE":
+                result = result + [element[1]]
+            else:
+                result = result + [element]
+        return result

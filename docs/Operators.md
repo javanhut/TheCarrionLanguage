@@ -15,6 +15,12 @@ Carrion provides a comprehensive set of operators for mathematical calculations,
 | `%` | Modulo | `17 % 3` | `2` |
 | `**` | Exponentiation | `2 ** 3` | `8` |
 
+### String and Array Multiplication
+| Operator | Description | Example | Result |
+|----------|-------------|---------|--------|
+| `*` | String repetition | `"hello" * 3` | `"hellohellohello"` |
+| `*` | Array repetition | `[1, 2] * 3` | `[1, 2, 1, 2, 1, 2]` |
+
 ### Unary Operators
 | Operator | Description | Example | Result |
 |----------|-------------|---------|--------|
@@ -26,6 +32,15 @@ Carrion provides a comprehensive set of operators for mathematical calculations,
 result = 10 + 5 * 2    // → 20 (follows order of operations)
 power = 2 ** 3         // → 8
 remainder = 17 % 5     // → 2
+
+// String and array multiplication
+border = "=" * 50      // → "=================================================="
+repeated = [0] * 5     // → [0, 0, 0, 0, 0]
+pattern = ["a", "b"] * 3  // → ["a", "b", "a", "b", "a", "b"]
+
+// Multiplication works both ways
+hello3 = "hello" * 3   // → "hellohellohello"
+hello3_alt = 3 * "hello"  // → "hellohellohello"
 
 // Unary operators
 positive = +42         // → 42
@@ -142,22 +157,38 @@ if age >= 18 and has_id:
 | `in` | Membership test | `"a" in "apple"` | `True` |
 | `not in` | Negative membership | `"z" not in "apple"` | `True` |
 
+The `in` operator works with all iterable types and checks for membership:
+
 ```python
-// String membership
+// String membership (substring and character checking)
 letter = "a"
 word = "banana"
 print(letter in word)      // → True
+print("ana" in word)       // → True (substring)
 print("z" not in word)     // → True
 
-// Array membership
+// Array membership (element checking)
 numbers = [1, 2, 3, 4, 5]
+mixed = [1, "hello", 3.14, True]
+
 print(3 in numbers)        // → True
 print(6 not in numbers)    // → True
+print("hello" in mixed)    // → True
+print(3.14 in mixed)       // → True
 
-// Hash membership (keys)
-data = {"name": "John", "age": 30}
+// Hash membership (key checking)
+data = {"name": "John", "age": 30, "active": True}
 print("name" in data)      // → True
 print("email" not in data) // → True
+print("John" in data)      // → False (values are not checked)
+
+// Nested structure membership
+matrix = [[1, 2], [3, 4], [5, 6]]
+print([3, 4] in matrix)    // → True
+
+// Works with all data types
+booleans = [True, False, True]
+print(False in booleans)   // → True
 ```
 
 ## Bitwise Operators

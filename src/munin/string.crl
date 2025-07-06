@@ -195,3 +195,127 @@ grim String:
     ```
     spell to_string():
         return self.value
+    
+    ```
+    Joins a list of strings using this string as the separator.
+    
+    This spell takes a list of strings and concatenates them together,
+    inserting the current string value between each element. This is
+    the inverse operation of split() and is commonly used for converting
+    lists back to formatted strings.
+    
+    Parameters:
+        string_list: A list of strings to join together
+    
+    Returns:
+        A single string with all elements joined by this string as separator
+    ```
+    spell join(string_list):
+        if len(string_list) == 0:
+            return ""
+        
+        if len(string_list) == 1:
+            return string_list[0]
+        
+        result = string_list[0]
+        for i in range(1, len(string_list)):
+            result = result + self.value + string_list[i]
+        return result
+
+    ```
+    Splits the string into a list of substrings using the specified separator.
+    
+    This spell divides the string at each occurrence of the separator character,
+    returning a list of the resulting substrings. Empty strings are included
+    when consecutive separators are found. If the separator is not found,
+    the entire string is returned as a single-element list.
+    
+    Parameters:
+        separator: The character to use as the split delimiter
+    
+    Returns:
+        A list of strings split at each occurrence of the separator
+    ```
+    spell split(separator):
+        if len(self.value) == 0:
+            return [""]
+        
+        split_string = []
+        current_part = ""
+        
+        for i in range(0, len(self.value)):
+            char = self.value[i]
+            if char == separator:
+                split_string.append(current_part)
+                current_part = ""
+            else:
+                current_part = current_part + char
+        
+        # Add the last part
+        split_string.append(current_part)
+        return split_string
+        
+
+    ```
+    Removes specified characters from the beginning and end of the string.
+    
+    This spell strips unwanted characters from both ends of the string.
+    If no characters are specified, it removes whitespace (spaces, tabs, newlines).
+    If characters are specified, it removes any of those characters from both ends.
+    
+    Parameters:
+        characters: String containing characters to remove, or empty string for whitespace
+    
+    Returns:
+        A new string with specified characters removed from both ends
+    ```
+    spell strip(characters):
+        if len(self.value) == 0:
+            return ""
+        
+        # Default whitespace characters if none specified
+        chars_to_strip = characters
+        if len(characters) == 0:
+            chars_to_strip = " "
+        
+        # Find start position (skip leading chars to strip)
+        start = 0
+        start_found = False
+        while start < len(self.value) and not start_found:
+            # Check if current character should be stripped
+            char_found = False
+            for i in range(0, len(chars_to_strip)):
+                if self.value[start] == chars_to_strip[i]:
+                    char_found = True
+                    stop
+            # If character should not be stripped, we found our start
+            if char_found == False:
+                start_found = True
+            else:
+                start = start + 1
+        
+        # If we went through entire string, all characters should be stripped
+        if start >= len(self.value):
+            return ""
+        
+        # Find end position (skip trailing chars to strip)
+        end = len(self.value) - 1
+        end_found = False
+        while end >= start and not end_found:
+            # Check if current character should be stripped
+            char_found = False
+            for i in range(0, len(chars_to_strip)):
+                if self.value[end] == chars_to_strip[i]:
+                    char_found = True
+                    stop
+            # If character should not be stripped, we found our end
+            if char_found == False:
+                end_found = True
+            else:
+                end = end - 1
+        
+        # Extract the stripped substring
+        result = ""
+        for i in range(start, end + 1):
+            result = result + self.value[i]
+        return result

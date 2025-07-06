@@ -1,0 +1,104 @@
+print("=== Carrion Enhanced Iteration and Operators Demo ===")
+print("")
+
+print("1. String Iteration:")
+message = "Hello"
+print(f"Iterating over '{message}':")
+for char in message:
+    print(f"  '{char}'")
+print("")
+
+print("2. String Membership Testing:")
+text = "Hello, Carrion Language!"
+print(f"Text: '{text}'")
+print(f"'Carrion' in text: {'Carrion' in text}")
+print(f"'Python' in text: {'Python' in text}")
+print(f"'H' in text: {'H' in text}")
+print(f"'xyz' not in text: {'xyz' not in text}")
+print("")
+
+print("3. String Multiplication:")
+separator = "=" * 40
+print(f"Border: {separator}")
+greeting = "Hi! " * 3
+print(f"Repeated greeting: {greeting}")
+both_ways1 = "*" * 10
+both_ways2 = 10 * "*"
+print(f"Both directions work: {both_ways1} vs {both_ways2}")
+print("")
+
+print("4. Array Operations:")
+numbers = [1, 2, 3, 4, 5]
+mixed = ["apple", 42, 3.14, True]
+
+print(f"Numbers: {numbers}")
+print("Iterating over numbers:")
+for num in numbers:
+    print(f"  {num}")
+
+print(f"Mixed array: {mixed}")
+print(f"42 in mixed: {42 in mixed}")
+print(f"'apple' in mixed: {'apple' in mixed}")
+print(f"'banana' not in mixed: {'banana' not in mixed}")
+print("")
+
+print("5. Array Multiplication:")
+zeros = [0] * 5
+print(f"Five zeros: {zeros}")
+pattern = ["red", "blue"] * 3
+print(f"Color pattern: {pattern}")
+empty = ["test"] * 0
+print(f"Multiplied by zero: {empty}")
+print("")
+
+print("6. Hash Iteration:")
+user = {"name": "Alice", "age": 25, "city": "Paris"}
+print(f"User data: {user}")
+
+print("Iterating over keys:")
+for key in user:
+    print(f"  key: '{key}'")
+
+print("Hash membership (keys only):")
+print(f"'name' in user: {'name' in user}")
+print(f"'email' in user: {'email' in user}")
+print(f"'Alice' in user: {'Alice' in user}")
+print("")
+
+print("7. Enhanced pairs() Function:")
+print("All key-value pairs:")
+all_pairs = pairs(user)
+for pair in all_pairs:
+    print(f"  {pair}")
+
+print("Keys only:")
+keys_only = pairs(user, "key")
+for key in keys_only:
+    print(f"  {key}")
+
+print("Values only:")
+values_only = pairs(user, "value")
+for value in values_only:
+    print(f"  {value}")
+
+print(f"Total keys: {len(keys_only)}")
+print("")
+
+print("8. Practical Example - Count vowels:")
+text_to_check = "Carrion Programming Language"
+vowels = "aeiouAEIOU"
+vowel_count = 0
+found_vowels = []
+
+for char in text_to_check:
+    if char in vowels:
+        vowel_count = vowel_count + 1
+        found_vowels.append(char)
+
+print(f"Text: '{text_to_check}'")
+print(f"Vowels found: {found_vowels}")
+print(f"Total vowels: {vowel_count}")
+print("")
+
+print("=== Demo Complete ===")
+print("All new iteration and operator features demonstrated!")

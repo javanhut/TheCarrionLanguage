@@ -160,17 +160,51 @@ for index, value in enumerate(items):
 ```
 
 ### `pairs(hash, filter="")`
-Returns key-value pairs from a hash, optionally filtered by a prefix.
+Returns key-value pairs from a hash as an iterable array. The second parameter filters the output.
+
+**Parameters:**
+- `hash`: The hash to extract pairs from
+- `filter`: Optional filter string:
+  - `""` (default): Returns `(key, value)` tuples
+  - `"key"` or `"k"`: Returns only keys
+  - `"value"` or `"v"`: Returns only values
+
+**Returns:** Array of tuples, keys, or values that can be iterated over.
+
 ```python
 data = {"name": "John", "age": 30, "city": "NYC"}
 
-// Get all pairs
+// Get all key-value pairs as tuples (default)
 for key, value in pairs(data):
-    print(key, ":", value)
+    print(f"{key}: {value}")
+// Prints: name: John, age: 30, city: NYC
 
-// Filter by prefix (if implemented)
-for key, value in pairs(data, "na"):
-    print(key, ":", value)  // Only "name" : "John"
+// Get only keys
+for key in pairs(data, "key"):
+    print(f"Key: {key}")
+// Prints: Key: name, Key: age, Key: city
+
+// Alternative key syntax
+for key in pairs(data, "k"):
+    print(key)
+
+// Get only values  
+for value in pairs(data, "value"):
+    print(f"Value: {value}")
+// Prints: Value: John, Value: 30, Value: NYC
+
+// Alternative value syntax
+for value in pairs(data, "v"):
+    print(value)
+
+// pairs() returns an array, so you can use it anywhere arrays work
+all_pairs = pairs(data)
+print(f"Total pairs: {len(all_pairs)}")
+
+// Use with array methods
+keys_only = pairs(data, "key")
+if "name" in keys_only:
+    print("Has name key")
 ```
 
 ### `is_sametype(obj1, obj2)`
