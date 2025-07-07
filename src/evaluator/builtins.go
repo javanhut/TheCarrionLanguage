@@ -2,6 +2,7 @@ package evaluator
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strconv"
@@ -691,6 +692,36 @@ var builtins = map[string]*object.Builtin{
 			return instance
 		},
 	},
+	"parseHash": {
+		Fn: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newError("parseHash requires exactly 1 argument, got=%d", len(args))
+			}
+
+			// Extract string from argument
+			hashStr, ok := extractStringBuiltin(args[0])
+			if !ok {
+				return newError("parseHash argument must be STRING, got=%s", args[0].Type())
+			}
+
+			// Parse as JSON (similar to httpParseJSON)
+			var data interface{}
+			if err := json.Unmarshal([]byte(hashStr), &data); err != nil {
+				// Return a more helpful error message
+				return newError("parseHash: failed to parse string as JSON object: %s", err)
+			}
+
+			// Convert JSON data to Carrion object
+			result := jsonToCarrionObject(data)
+			
+			// Ensure result is a hash
+			if hash, ok := result.(*object.Hash); ok {
+				return hash
+			}
+			
+			return newError("parseHash: input must be a JSON object (dictionary/hashmap), got %s", result.Type())
+		},
+	},
 }
 
 // Add OS module functions to builtins when module is loaded
@@ -777,5 +808,46 @@ func extractIntegerValue(obj object.Object) (int64, error) {
 		return int64(v.Value), nil
 	default:
 		return 0, fmt.Errorf("cannot convert %s to integer", obj.Type())
+	}
+}
+
+// jsonToCarrionObject converts JSON data to Carrion objects
+func jsonToCarrionObject(data interface{}) object.Object {
+	switch v := data.(type) {
+	case nil:
+		return &object.None{}
+	case bool:
+		if v {
+			return &object.Boolean{Value: true}
+		}
+		return &object.Boolean{Value: false}
+	case float64:
+		// Check if it's an integer
+		if v == float64(int64(v)) {
+			return &object.Integer{Value: int64(v)}
+		}
+		return &object.Float{Value: v}
+	case string:
+		return &object.String{Value: v}
+	case []interface{}:
+		elements := make([]object.Object, len(v))
+		for i, elem := range v {
+			elements[i] = jsonToCarrionObject(elem)
+		}
+		return &object.Array{Elements: elements}
+	case map[string]interface{}:
+		result := &object.Hash{
+			Pairs: make(map[object.HashKey]object.HashPair),
+		}
+		for key, value := range v {
+			keyObj := &object.String{Value: key}
+			result.Pairs[keyObj.HashKey()] = object.HashPair{
+				Key:   keyObj,
+				Value: jsonToCarrionObject(value),
+			}
+		}
+		return result
+	default:
+		return &object.Error{Message: fmt.Sprintf("Unsupported JSON type: %T", v)}
 	}
 }

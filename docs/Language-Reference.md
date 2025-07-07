@@ -527,6 +527,12 @@ Each `.crl` file is a module that can export functions and grimoires (classes). 
 - `pairs(hash, filter)` - Get key-value pairs (enhanced: supports "key"/"k" and "value"/"v" filters)
 - `is_sametype(obj1, obj2)` - Compare types
 
+### JSON Parsing Functions
+- `parseHash(jsonString)` - Parse JSON object string into a Carrion hash (dictionaries only)
+  - Only accepts valid JSON objects `{...}`
+  - Returns an error for arrays, primitives, or invalid JSON
+  - Example: `parseHash('{"name": "Alice", "age": 30}')`
+
 ### Iteration Support
 All collection types support the `in` operator and iteration with `for` loops:
 - **Strings**: Character-by-character iteration and substring checking
@@ -544,6 +550,11 @@ All collection types support the `in` operator and iteration with `for` loops:
 - **Boolean** - Boolean logic operations with methods like `to_int()`, `negate()`
 - **File** - File I/O operations using static methods like `File.read()`, `File.write()`, `File.open()`
 - **OS** - Operating system interface using static methods like `OS.cwd()`, `OS.listdir()`, `OS.run()`
+- **HTTP** - HTTP client operations with JSON support:
+  - `httpGet(url, headers)` - Make GET request
+  - `httpPost(url, body, headers)` - Make POST request
+  - `httpParseJSON(jsonString)` - Parse any JSON string into Carrion objects
+  - `httpStringifyJSON(object)` - Convert Carrion objects to JSON strings
 
 ### Standard Functions
 - `help()` - Get help information
@@ -567,6 +578,88 @@ files = OS.listdir(".")
 OS.mkdir("new_folder")
 home = OS.getenv("HOME")
 OS.run("ls", ["-la"], False)
+```
+
+### JSON Handling
+
+Carrion provides comprehensive JSON support for parsing and stringifying data:
+
+#### JSON to Carrion Type Conversion
+- `null` → `None`
+- `true/false` → `Boolean`
+- Numbers → `Integer` (whole) or `Float` (decimal)
+- Strings → `String`
+- Arrays → `Array`
+- Objects → `Hash` (with string keys)
+
+#### Parsing JSON
+```python
+// Parse JSON objects with parseHash (built-in)
+data = parseHash('{"name": "Alice", "age": 30, "active": true}')
+print(data["name"])   // → "Alice"
+print(data["age"])    // → 30
+print(data["active"]) // → True
+
+// Parse any JSON with httpParseJSON (more flexible)
+// Arrays
+array_data = httpParseJSON('[1, 2, 3, "hello", true, null]')
+print(array_data[3])  // → "hello"
+print(array_data[5])  // → None
+
+// Nested structures
+complex_data = httpParseJSON('{"users": [{"id": 1, "name": "Bob"}, {"id": 2, "name": "Carol"}]}')
+print(complex_data["users"][0]["name"])  // → "Bob"
+
+// Error handling
+attempt:
+    invalid = parseHash('[1, 2, 3]')  // Error: parseHash only accepts objects
+ensnare:
+    print("parseHash requires a JSON object, not an array")
+```
+
+#### Converting to JSON
+```python
+// Convert Carrion objects to JSON strings
+user = {
+    "name": "Alice",
+    "age": 30,
+    "skills": ["Python", "Carrion", "Go"],
+    "active": True,
+    "metadata": None
+}
+
+json_string = httpStringifyJSON(user)
+print(json_string)
+// → '{"name":"Alice","age":30,"skills":["Python","Carrion","Go"],"active":true,"metadata":null}'
+
+// Works with arrays too
+numbers = [1, 2.5, 3]
+json_array = httpStringifyJSON(numbers)
+print(json_array)  // → '[1,2.5,3]'
+```
+
+#### Practical JSON Examples
+```python
+// API Integration
+response = httpGet("https://api.example.com/users/123")
+user_data = httpParseJSON(response)
+print(f"User: {user_data['name']}, Email: {user_data['email']}")
+
+// Configuration files
+config_json = File.read("config.json")
+config = httpParseJSON(config_json)
+debug_mode = config.get("debug", False)
+
+// Creating API requests
+request_data = {
+    "action": "create_user",
+    "params": {
+        "username": "newuser",
+        "email": "user@example.com"
+    }
+}
+json_body = httpStringifyJSON(request_data)
+response = httpPost("https://api.example.com/users", json_body)
 ```
 
 ## Language Grammar (Simplified)
