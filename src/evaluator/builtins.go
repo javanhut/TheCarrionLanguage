@@ -4,19 +4,33 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"os/exec"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/peterh/liner"
 
+	"github.com/javanhut/TheCarrionLanguage/src/modules"
 	"github.com/javanhut/TheCarrionLanguage/src/object"
 )
 
-
 var LineReader *liner.State
 
+// Helper function to extract string value from object (handles both direct strings and instance-wrapped strings)
+func extractStringBuiltin(obj object.Object) (string, bool) {
+	switch v := obj.(type) {
+	case *object.String:
+		return v.Value, true
+	case *object.Instance:
+		if value, exists := v.Env.Get("value"); exists {
+			if strVal, ok := value.(*object.String); ok {
+				return strVal.Value, true
+			}
+		}
+		return "", false
+	default:
+		return "", false
+	}
+}
 
 var builtins = map[string]*object.Builtin{
 	"len": {
@@ -209,7 +223,7 @@ var builtins = map[string]*object.Builtin{
 			if len(args) != 1 {
 				return newError("wrong number of arguments. got=%d, want=1", len(args))
 			}
-			
+
 			// Convert input to string value
 			var strValue string
 			switch arg := args[0].(type) {
@@ -218,7 +232,7 @@ var builtins = map[string]*object.Builtin{
 			default:
 				strValue = arg.Inspect()
 			}
-			
+
 			// Return regular string object for now
 			// String grimoire instances are created through the grimoire system
 			return &object.String{Value: strValue}
@@ -410,315 +424,6 @@ var builtins = map[string]*object.Builtin{
 		},
 	},
 
-	"osRunCommand": {
-		Fn: func(args ...object.Object) object.Object {
-			var command string
-			var cmdArgs []string
-			var capture bool
-
-			if len(args) < 1 {
-				return newError("osRunCommand requires at least 1 argument (command)")
-			}
-
-			strArg, ok := args[0].(*object.String)
-			if !ok {
-				return newError("osRunCommand command must be a STRING, got=%s", args[0].Type())
-			}
-			command = strArg.Value
-
-			if len(args) > 1 {
-				arrArg, isArr := args[1].(*object.Array)
-				if isArr {
-					for _, elem := range arrArg.Elements {
-						strElem, ok := elem.(*object.String)
-						if !ok {
-							return newError("osRunCommand arg array must contain only STRINGs")
-						}
-						cmdArgs = append(cmdArgs, strElem.Value)
-					}
-				}
-			}
-
-			if len(args) > 2 {
-				boolArg, isBool := args[2].(*object.Boolean)
-				if !isBool {
-					return newError("osRunCommand third arg must be BOOLEAN for captureOutput")
-				}
-				capture = boolArg.Value
-			}
-
-			cmd := exec.Command(command, cmdArgs...)
-			var outputBytes []byte
-			var err error
-			if capture {
-				outputBytes, err = cmd.CombinedOutput()
-			} else {
-				cmd.Stdout = os.Stdout
-				cmd.Stderr = os.Stderr
-				err = cmd.Run()
-			}
-
-			if err != nil {
-				return newError("error running command '%s': %s", command, err)
-			}
-
-			if capture {
-				return &object.String{Value: string(outputBytes)}
-			}
-			return &object.None{}
-		},
-	},
-
-	"osGetEnv": {
-		Fn: func(args ...object.Object) object.Object {
-			if len(args) != 1 {
-				return newError("osGetEnv requires 1 argument: key")
-			}
-			keyArg, ok := args[0].(*object.String)
-			if !ok {
-				return newError("osGetEnv argument must be STRING, got=%s", args[0].Type())
-			}
-			val := os.Getenv(keyArg.Value)
-			return &object.String{Value: val}
-		},
-	},
-
-	"osSetEnv": {
-		Fn: func(args ...object.Object) object.Object {
-			if len(args) != 2 {
-				return newError("osSetEnv requires 2 arguments: key, value")
-			}
-			key, okKey := args[0].(*object.String)
-			val, okVal := args[1].(*object.String)
-			if !okKey || !okVal {
-				return newError("osSetEnv arguments must be STRINGS")
-			}
-			err := os.Setenv(key.Value, val.Value)
-			if err != nil {
-				return newError("failed to set env var: %s", err)
-			}
-			return &object.None{}
-		},
-	},
-
-	"osGetCwd": {
-		Fn: func(args ...object.Object) object.Object {
-			if len(args) != 0 {
-				return newError("osGetCwd takes no arguments")
-			}
-			dir, err := os.Getwd()
-			if err != nil {
-				return newError("failed to get current directory: %s", err)
-			}
-			return &object.String{Value: dir}
-		},
-	},
-
-	"osChdir": {
-		Fn: func(args ...object.Object) object.Object {
-			if len(args) != 1 {
-				return newError("osChdir requires 1 argument: directory path")
-			}
-			dirArg, ok := args[0].(*object.String)
-			if !ok {
-				return newError("osChdir argument must be STRING")
-			}
-			err := os.Chdir(dirArg.Value)
-			if err != nil {
-				return newError("failed to chdir to '%s': %s", dirArg.Value, err)
-			}
-			return &object.None{}
-		},
-	},
-
-	"osSleep": {
-		Fn: func(args ...object.Object) object.Object {
-			if len(args) != 1 {
-				return newError("osSleep requires 1 argument: seconds (INT or FLOAT)")
-			}
-
-			switch val := args[0].(type) {
-			case *object.Integer:
-				time.Sleep(time.Duration(val.Value) * time.Second)
-			case *object.Float:
-
-				nanos := int64(val.Value * 1_000_000_000)
-				time.Sleep(time.Duration(nanos))
-			default:
-				return newError("osSleep argument must be INTEGER or FLOAT, got %s", args[0].Type())
-			}
-
-			return &object.None{}
-		},
-	},
-
-	"osListDir": {
-		Fn: func(args ...object.Object) object.Object {
-			var dir string
-			if len(args) == 0 {
-				dir = "."
-			} else if len(args) == 1 {
-				strArg, ok := args[0].(*object.String)
-				if !ok {
-					return newError("osListDir argument must be STRING, got=%s", args[0].Type())
-				}
-				dir = strArg.Value
-			} else {
-				return newError("osListDir requires 0 or 1 arguments, got=%d", len(args))
-			}
-
-			entries, err := os.ReadDir(dir)
-			if err != nil {
-				return newError("failed to read directory '%s': %s", dir, err)
-			}
-
-			var results []object.Object
-			for _, e := range entries {
-				results = append(results, &object.String{Value: e.Name()})
-			}
-			return &object.Array{Elements: results}
-		},
-	},
-
-	"osRemove": {
-		Fn: func(args ...object.Object) object.Object {
-			if len(args) != 1 {
-				return newError("osRemove requires 1 argument: path")
-			}
-			pathArg, ok := args[0].(*object.String)
-			if !ok {
-				return newError("osRemove argument must be STRING")
-			}
-			err := os.Remove(pathArg.Value)
-			if err != nil {
-				return newError("failed to remove '%s': %s", pathArg.Value, err)
-			}
-			return &object.None{}
-		},
-	},
-
-	"osMkdir": {
-		Fn: func(args ...object.Object) object.Object {
-			if len(args) < 1 || len(args) > 2 {
-				return newError("osMkdir requires 1 or 2 arguments: path, [perm int]")
-			}
-			pathArg, ok := args[0].(*object.String)
-			if !ok {
-				return newError("osMkdir path must be STRING, got=%s", args[0].Type())
-			}
-			perm := os.FileMode(0755)
-			if len(args) == 2 {
-				intArg, ok := args[1].(*object.Integer)
-				if !ok {
-					return newError("osMkdir second arg must be an INTEGER for permissions")
-				}
-				perm = os.FileMode(intArg.Value)
-			}
-			err := os.Mkdir(pathArg.Value, perm)
-			if err != nil {
-				return newError("failed to create directory '%s': %s", pathArg.Value, err)
-			}
-			return &object.None{}
-		},
-	},
-
-	"osExpandEnv": {
-		Fn: func(args ...object.Object) object.Object {
-			if len(args) != 1 {
-				return newError("osExpandEnv requires 1 argument: string")
-			}
-			strArg, ok := args[0].(*object.String)
-			if !ok {
-				return newError("osExpandEnv argument must be STRING")
-			}
-			expanded := os.ExpandEnv(strArg.Value)
-			return &object.String{Value: expanded}
-		},
-	},
-
-	"fileRead": {
-		Fn: func(args ...object.Object) object.Object {
-			if len(args) != 1 {
-				return newError("fileRead requires 1 argument: path")
-			}
-			pathArg, ok := args[0].(*object.String)
-			if !ok {
-				return newError("fileRead: path must be a string")
-			}
-			data, err := os.ReadFile(pathArg.Value)
-			if err != nil {
-				return newError("failed to read file '%s': %s", pathArg.Value, err)
-			}
-			return &object.String{Value: string(data)}
-		},
-	},
-
-	"fileWrite": {
-		Fn: func(args ...object.Object) object.Object {
-			if len(args) != 2 {
-				return newError("fileWrite requires 2 arguments: path, content")
-			}
-			pathArg, ok1 := args[0].(*object.String)
-			contentArg, ok2 := args[1].(*object.String)
-			if !ok1 || !ok2 {
-				return newError("fileWrite: path/content must be STRINGs")
-			}
-
-			err := os.WriteFile(pathArg.Value, []byte(contentArg.Value), 0644)
-			if err != nil {
-				return newError("failed to write file '%s': %s", pathArg.Value, err)
-			}
-			return &object.None{}
-		},
-	},
-
-	"fileAppend": {
-		Fn: func(args ...object.Object) object.Object {
-			if len(args) != 2 {
-				return newError("fileAppend requires 2 arguments: path, content")
-			}
-			pathArg, ok1 := args[0].(*object.String)
-			contentArg, ok2 := args[1].(*object.String)
-			if !ok1 || !ok2 {
-				return newError("fileAppend: path/content must be STRINGs")
-			}
-
-			f, err := os.OpenFile(pathArg.Value, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
-			if err != nil {
-				return newError("failed to open file '%s' for append: %s", pathArg.Value, err)
-			}
-			defer f.Close()
-
-			_, err = f.WriteString(contentArg.Value)
-			if err != nil {
-				return newError("failed to append to file '%s': %s", pathArg.Value, err)
-			}
-			return &object.None{}
-		},
-	},
-
-	"fileExists": {
-		Fn: func(args ...object.Object) object.Object {
-			if len(args) != 1 {
-				return newError("fileExists requires 1 argument: path")
-			}
-			pathArg, ok := args[0].(*object.String)
-			if !ok {
-				return newError("fileExists: path must be a string")
-			}
-
-			_, err := os.Stat(pathArg.Value)
-			if err != nil {
-				if os.IsNotExist(err) {
-					return &object.Boolean{Value: false}
-				}
-
-				return newError("error checking fileExists for '%s': %s", pathArg.Value, err)
-			}
-			return &object.Boolean{Value: true}
-		},
-	},
-
 	"Error": {
 		Fn: func(args ...object.Object) object.Object {
 			if len(args) < 1 || len(args) > 2 {
@@ -835,7 +540,7 @@ var builtins = map[string]*object.Builtin{
 			}
 			// Return as Array instance so it has access to keys() and values() methods
 			arrayResult := &object.Array{Elements: result}
-			
+
 			// Wrap the array as an Array instance if the stdlib is available
 			if stdlibEnv != nil {
 				if grimObj, ok := stdlibEnv.Get("Array"); ok {
@@ -845,16 +550,16 @@ var builtins = map[string]*object.Builtin{
 							Grimoire: grimoire,
 							Env:      object.NewEnclosedEnvironment(grimoire.Env),
 						}
-						
+
 						// Set self reference and elements
 						instance.Env.Set("self", instance)
 						instance.Env.Set("elements", arrayResult)
-						
+
 						return instance
 					}
 				}
 			}
-			
+
 			// Fallback to raw array if wrapping fails
 			return arrayResult
 		},
@@ -905,7 +610,7 @@ var builtins = map[string]*object.Builtin{
 			}
 
 			// Get path argument
-			pathArg, ok := args[0].(*object.String)
+			pathStr, ok := extractStringBuiltin(args[0])
 			if !ok {
 				return newError("open path must be STRING, got=%s", args[0].Type())
 			}
@@ -913,11 +618,11 @@ var builtins = map[string]*object.Builtin{
 			// Get mode argument (default to "r")
 			mode := "r"
 			if len(args) == 2 {
-				modeArg, ok := args[1].(*object.String)
+				modeStr, ok := extractStringBuiltin(args[1])
 				if !ok {
 					return newError("open mode must be STRING, got=%s", args[1].Type())
 				}
-				mode = modeArg.Value
+				mode = modeStr
 			}
 
 			// Validate mode
@@ -950,7 +655,7 @@ var builtins = map[string]*object.Builtin{
 			instance.Env.Set("self", instance)
 
 			// Initialize the File instance state according to the File grimoire's init spell
-			instance.Env.Set("path", &object.String{Value: pathArg.Value})
+			instance.Env.Set("path", &object.String{Value: pathStr})
 			instance.Env.Set("mode", &object.String{Value: mode})
 			instance.Env.Set("_handle", &object.None{})
 			instance.Env.Set("_closed", &object.Boolean{Value: false})
@@ -958,24 +663,24 @@ var builtins = map[string]*object.Builtin{
 			// Handle file operations based on mode
 			if mode == "r" {
 				// Read mode - read the file content
-				content, err := os.ReadFile(pathArg.Value)
+				content, err := os.ReadFile(pathStr)
 				if err != nil {
-					return newError("failed to open file '%s' for reading: %s", pathArg.Value, err)
+					return newError("failed to open file '%s' for reading: %s", pathStr, err)
 				}
 				instance.Env.Set("_content", &object.String{Value: string(content)})
 				instance.Env.Set("_position", &object.Integer{Value: 0})
 			} else if mode == "w" {
 				// Write mode - clear the file
-				err := os.WriteFile(pathArg.Value, []byte(""), 0644)
+				err := os.WriteFile(pathStr, []byte(""), 0644)
 				if err != nil {
-					return newError("failed to open file '%s' for writing: %s", pathArg.Value, err)
+					return newError("failed to open file '%s' for writing: %s", pathStr, err)
 				}
 			} else if mode == "a" {
 				// Append mode - check if file exists and get content
-				if _, err := os.Stat(pathArg.Value); err == nil {
-					content, err := os.ReadFile(pathArg.Value)
+				if _, err := os.Stat(pathStr); err == nil {
+					content, err := os.ReadFile(pathStr)
 					if err != nil {
-						return newError("failed to read file '%s' for append: %s", pathArg.Value, err)
+						return newError("failed to read file '%s' for append: %s", pathStr, err)
 					}
 					instance.Env.Set("_content", &object.String{Value: string(content)})
 				} else {
@@ -986,6 +691,18 @@ var builtins = map[string]*object.Builtin{
 			return instance
 		},
 	},
+}
+
+// Add OS module functions to builtins when module is loaded
+func init() {
+	// Merge OS module functions into builtins
+	for name, builtin := range modules.OSBuiltins {
+		builtins[name] = builtin
+	}
+	// Merge File module functions into builtins
+	for name, builtin := range modules.FileBuiltins {
+		builtins[name] = builtin
+	}
 }
 
 // Global reference to the stdlib environment

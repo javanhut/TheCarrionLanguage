@@ -1,5 +1,93 @@
 # Carrion Language Changelog
 
+## Version 0.1.8 - File & OS Grimoire Refactoring & Static Method Support
+
+### 🎉 Major Features
+
+#### Static Method Support for Grimoires
+- **Implemented static method calls on grimoire classes**
+  - Added support for `Grimoire.method()` syntax
+  - Created `StaticMethod` object type for handling static calls
+  - Enhanced evaluator to support grimoire static methods
+  - **Location**: `src/evaluator/evaluator.go`, `src/object/static_method.go`
+
+#### File & OS API Unification
+- **Refactored file and OS operations to use consistent grimoire API**
+  - All file operations now use `File.method()` syntax
+  - All OS operations now use `OS.method()` syntax
+  - Moved builtin functions to dedicated modules
+  - **Locations**: `src/modules/file.go`, `src/modules/os.go`
+
+### 🔧 API Changes
+
+#### File Operations (Breaking Change)
+- **New File grimoire static methods**:
+  - `File.read(path)` - Read entire file content
+  - `File.write(path, content)` - Write content to file (overwrites)
+  - `File.append(path, content)` - Append content to file
+  - `File.exists(path)` - Check if file exists
+  - `File.open(path, mode)` - Create File object for complex operations
+
+#### OS Operations (Breaking Change)
+- **New OS grimoire static methods**:
+  - `OS.cwd()` - Get current working directory
+  - `OS.chdir(path)` - Change directory
+  - `OS.listdir(path)` - List directory contents
+  - `OS.getenv(key)` - Get environment variable
+  - `OS.setenv(key, value)` - Set environment variable
+  - `OS.remove(path)` - Remove file/directory
+  - `OS.mkdir(path, perm)` - Create directory
+  - `OS.run(cmd, args, capture)` - Execute system commands
+  - `OS.sleep(seconds)` - Sleep for specified time
+  - `OS.expandEnv(string)` - Expand environment variables
+
+### 🏗️ Architecture Improvements
+
+#### Module System
+- **Created dedicated modules for system operations**
+  - `src/modules/file.go` - File operation implementations
+  - `src/modules/os.go` - OS operation implementations
+  - Enhanced module loading in `src/evaluator/stdlib.go`
+
+#### Builtin Function Cleanup
+- **Removed system-level functions from core builtins**
+  - Removed 14 file and OS functions from `src/evaluator/builtins.go`
+  - Kept only core language functions as builtins
+  - Improved separation of concerns
+
+#### Argument Handling
+- **Enhanced argument processing for wrapped primitives**
+  - Added helper functions to handle both direct and instance-wrapped arguments
+  - Improved compatibility with automatic primitive wrapping
+  - **Location**: `src/modules/file.go`, `src/modules/os.go`
+
+### 📚 Documentation Updates
+
+#### Updated Documentation
+- **Standard Library documentation** - Reflect new File and OS APIs
+- **Builtin Functions documentation** - Remove deprecated functions, add grimoire methods
+- **Version numbers** - Updated to 0.1.8 throughout documentation
+
+### 🔄 Migration Guide
+
+#### Updating Existing Code
+```python
+# Old API (deprecated)
+content = fileRead("data.txt")
+fileWrite("output.txt", "hello")
+current_dir = osGetCwd()
+
+# New API (recommended)
+content = File.read("data.txt")
+File.write("output.txt", "hello")
+current_dir = OS.cwd()
+```
+
+### ✅ Backward Compatibility
+- **File object operations** remain unchanged (`file.read_content()`, `file.write_content()`)
+- **Autoclose statement** works with both `open()` and `File.open()`
+- **Munin standard library** maintains existing grimoire APIs
+
 ## Version 0.1.6 - String Indexing & Standard Library Enhancement
 
 ### 🎉 Major Features

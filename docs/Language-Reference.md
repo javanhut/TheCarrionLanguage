@@ -361,18 +361,23 @@ The `autoclose` statement ensures that resources are properly cleaned up when th
 
 Examples:
 ```python
-// File operations
-autoclose open("data.txt", "r") as file:
-    content = file.read()
+// File operations with File grimoire (recommended)
+autoclose File.open("data.txt", "r") as file:
+    content = file.read_content()
     print(content)
 
-// Writing files
-autoclose open("output.txt", "w") as file:
-    file.write("Hello, World!")
+// Writing files with File grimoire
+autoclose File.open("output.txt", "w") as file:
+    file.write_content("Hello, World!")
 
-// Appending to files
-autoclose open("log.txt", "a") as file:
-    file.write("New entry\n")
+// Appending to files with File grimoire
+autoclose File.open("log.txt", "a") as file:
+    file.write_content("New entry\n")
+
+// Alternative: using open() builtin (less preferred)
+autoclose open("data.txt", "r") as file:
+    content = file.read_content()
+    print(content)
 ```
 
 ## Functions (Spells)
@@ -532,19 +537,37 @@ All collection types support the `in` operator and iteration with `for` loops:
 ## Standard Library (Munin)
 
 ### Core Modules
-- **Array** - Enhanced array operations
-- **String** - String manipulation
-- **Integer** - Integer utilities and conversions
-- **Float** - Floating-point operations
-- **Boolean** - Boolean logic operations
-- **File** - File I/O operations
-- **OS** - Operating system interface
-- **Math** - Mathematical functions
+- **Array** - Enhanced array operations with methods like `append()`, `sort()`, `reverse()`
+- **String** - String manipulation with methods like `upper()`, `lower()`, `find()`
+- **Integer** - Integer utilities and conversions with methods like `to_bin()`, `is_prime()`, `gcd()`
+- **Float** - Floating-point operations with methods like `round()`, `sqrt()`, `sin()`, `cos()`
+- **Boolean** - Boolean logic operations with methods like `to_int()`, `negate()`
+- **File** - File I/O operations using static methods like `File.read()`, `File.write()`, `File.open()`
+- **OS** - Operating system interface using static methods like `OS.cwd()`, `OS.listdir()`, `OS.run()`
 
 ### Standard Functions
 - `help()` - Get help information
 - `version()` - Version information
 - `modules()` - List available modules
+
+### File and OS Operations
+The File and OS grimoires provide comprehensive system operations:
+
+```python
+// File operations with static methods (recommended)
+content = File.read("config.txt")
+File.write("output.txt", "Hello")
+File.append("log.txt", "New entry\n")
+exists = File.exists("data.txt")
+
+// OS operations with static methods
+current_dir = OS.cwd()
+OS.chdir("/home/user")
+files = OS.listdir(".")
+OS.mkdir("new_folder")
+home = OS.getenv("HOME")
+OS.run("ls", ["-la"], False)
+```
 
 ## Language Grammar (Simplified)
 

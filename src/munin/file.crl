@@ -1,50 +1,78 @@
 grim File:
-    init(path, mode):
+    init(path="", mode=""):
+        if path != "":
+            self.handle = fileOpen(path, mode)
+            self.path = path
+            self.mode = mode
+            self._closed = False
+        else:
+            self.handle = None
+            self.path = ""
+            self.mode = ""
+            self._closed = True
+        
+    spell file_open(path, mode="r"):
+        if self.handle != None and not self._closed:
+            self.close()
+        self.handle = fileOpen(path, mode)
         self.path = path
         self.mode = mode
-        self._handle = None
         self._closed = False
+        return self
         
-        # Open the file handle based on mode
-        if mode == "r":
-            self._content = fileRead(path)
-            self._position = 0
+    spell file_read(size=-1):
+        if self._closed or self.handle == None:
+            return None
+        if size == -1:
+            return fileReadHandle(self.handle)
         else:
-            if mode == "w":
-                # Clear file for writing
-                fileWrite(path, "")
-            else:
-                if mode == "a":
-                    # Append mode - get existing content
-                    if fileExists(path):
-                        self._content = fileRead(path)
-                    else:
-                        self._content = ""
-    
-    spell read():
-        if self._closed:
-            return None
-        if self.mode != "r":
-            return None
-        return self._content
-    
-    spell write(content):
-        if self._closed:
-            return None
-        if self.mode == "r":
-            return None
+            return fileReadHandle(self.handle, size)
         
-        # Extract string value if content is an instance
-        content_str = content
-        if type(content) == "INSTANCE":
-            content_str = content.value
+    spell file_write(content):
+        if self._closed or self.handle == None:
+            return None
+        return fileWriteHandle(self.handle, content)
         
-        if self.mode == "w":
-            fileWrite(self.path, content_str)
-        else:
-            if self.mode == "a":
-                fileAppend(self.path, content_str)
-    
+    spell seek(offset, whence=0):
+        if self._closed or self.handle == None:
+            return None
+        return fileSeek(self.handle, offset, whence)
+        
+    spell tell():
+        if self._closed or self.handle == None:
+            return None
+        return fileTell(self.handle)
+        
+    spell flush():
+        if self._closed or self.handle == None:
+            return None
+        return fileFlush(self.handle)
+        
     spell close():
-        self._closed = True
+        if not self._closed and self.handle != None:
+            fileClose(self.handle)
+            self._closed = True
+            self.handle = None
         return None
+        
+    # Backwards compatibility methods
+    spell read_content():
+        return self.file_read()
+        
+    spell write_content(content):
+        return self.file_write(content)
+    # Static convenience methods using path-based operations
+    spell read(path):
+        return fileRead(path)
+    
+    spell write(path, content):
+        return fileWrite(path, content)
+    
+    spell append(path, content):
+        return fileAppend(path, content)
+    
+    spell exists(path):
+        return fileExists(path)
+    
+    spell open(path, mode="r"):
+        return File(path, mode)

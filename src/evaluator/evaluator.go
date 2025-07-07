@@ -1398,6 +1398,75 @@ func evalGrimoireDefinition(
 	return grimoire
 }
 
+func evalStaticMethodCall(
+	grimoire *object.Grimoire,
+	methodName string,
+	args []object.Object,
+	env *object.Environment,
+	ctx *CallContext,
+) object.Object {
+	method, ok := grimoire.Methods[methodName]
+	if !ok {
+		return newErrorWithTrace("static method '%s' not found on %s",
+			ctx.Node, ctx, methodName, grimoire.Name)
+	}
+
+	if method.IsPrivate && !sameClass(env, grimoire) {
+		return newErrorWithTrace("private static method '%s' not accessible outside its defining class",
+			ctx.Node, ctx, methodName)
+	}
+
+	if method.IsProtected && !sameOrSubclass(env, grimoire) {
+		return newErrorWithTrace("protected static method '%s' not accessible here",
+			ctx.Node, ctx, methodName)
+	}
+
+	// Create isolated method environment (no instance, no self)
+	methodEnv := object.NewEnclosedEnvironment(grimoire.Env)
+	
+	// Add the grimoire constructor to the environment for self-instantiation
+	methodEnv.Set(grimoire.Name, grimoire)
+
+	// Create method context
+	methodCtx := &CallContext{
+		FunctionName: grimoire.Name + "." + methodName,
+		Node:         ctx.Node,
+		Parent:       ctx,
+		env:          methodEnv,
+	}
+
+	// Bind arguments: support simple identifiers or full Parameter nodes
+	// For static methods, we don't skip 'self' parameter
+	argIndex := 0
+	for _, pExpr := range method.Parameters {
+		switch param := pExpr.(type) {
+		case *ast.Identifier:
+			name := param.Value
+			if argIndex < len(args) {
+				methodEnv.Set(name, args[argIndex])
+				argIndex++
+			} else {
+				methodEnv.Set(name, NONE)
+			}
+		case *ast.Parameter:
+			name := param.Name.Value
+			if argIndex < len(args) {
+				methodEnv.Set(name, args[argIndex])
+				argIndex++
+			} else if param.DefaultValue != nil {
+				methodEnv.Set(name, Eval(param.DefaultValue, method.Env, methodCtx))
+			} else {
+				methodEnv.Set(name, NONE)
+			}
+		default:
+			// unsupported parameter type
+		}
+	}
+
+	// Execute with bounds checking for recursive calls
+	return evalWithRecursionLimit(method.Body, methodEnv, method, methodCtx, 0)
+}
+
 func evalGrimoireMethodCall(
 	instance *object.Instance,
 	methodName string,
@@ -1576,6 +1645,9 @@ func evalCallExpression(
 	case *object.BoundMethod:
 		return evalGrimoireMethodCall(fnTyped.Instance, fnTyped.Name, args, env, ctx)
 
+	case *object.StaticMethod:
+		return evalStaticMethodCall(fnTyped.Grimoire, fnTyped.Name, args, env, ctx)
+
 	case *object.Grimoire:
 		if fnTyped.IsArcane {
 			return newErrorWithTrace(
@@ -1685,6 +1757,22 @@ func evalDotExpression(
 			return val
 		}
 		return newErrorWithTrace("undefined member in namespace: %s", node, ctx, fieldOrMethodName)
+	}
+
+	// Handle static method calls on grimoire classes
+	if grimoire, ok := leftObj.(*object.Grimoire); ok {
+		methodName := node.Right.Value
+		method, exists := grimoire.Methods[methodName]
+		if !exists {
+			return newErrorWithTrace("undefined static method: %s", node, ctx, methodName)
+		}
+
+		// Return a static method wrapper that doesn't require self
+		return &object.StaticMethod{
+			Grimoire: grimoire,
+			Method:   method,
+			Name:     methodName,
+		}
 	}
 
 	instance, ok := leftObj.(*object.Instance)

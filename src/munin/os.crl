@@ -17,6 +17,6 @@ grim OS:
     return osRemove(path)
   spell mkdir(path, perm=0755):
     return osMkdir(path, perm)
-  spell expandEnv(str):
-    return osExpandEnv(str)
+  spell expandEnv(path_str):
+    return osExpandEnv(path_str)
 

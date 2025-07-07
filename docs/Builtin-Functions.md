@@ -215,29 +215,71 @@ is_sametype(42, 3.14)      // → False (int vs float)
 is_sametype("a", "hello")  // → True (both strings)
 ```
 
-## System Functions
+## File and OS Operations
 
-### OS Functions
-- `osRunCommand(cmd, args[], capture)` - Execute system commands
-- `osGetEnv(key)` - Get environment variable
-- `osSetEnv(key, value)` - Set environment variable
-- `osGetCwd()` - Get current working directory
-- `osChdir(path)` - Change directory
-- `osSleep(seconds)` - Sleep for specified time
-- `osListDir(path=".")` - List directory contents
-- `osRemove(path)` - Remove file/directory
-- `osMkdir(path, perm=0755)` - Create directory
-- `osExpandEnv(string)` - Expand environment variables
+Carrion provides comprehensive file and operating system operations through the File and OS grimoires, which use static methods for clean, consistent access to system resources.
 
-### File Functions
-- `fileRead(path)` - Read entire file as string
-- `fileWrite(path, content)` - Write content to file (overwrite)
-- `fileAppend(path, content)` - Append content to file
-- `fileExists(path)` - Check if file exists
-- `open(path, mode="r")` - Open file and return File object
+### File Operations
+
+The File grimoire provides static methods for all file operations:
+
+```python
+// Basic file operations
+content = File.read("data.txt")                // Read entire file
+File.write("output.txt", "Hello World")        // Write to file (overwrites)
+File.append("log.txt", "New entry\n")          // Append to file
+exists = File.exists("config.txt")             // Check if file exists
+
+// File object operations for complex scenarios
+autoclose File.open("data.txt", "r") as file:
+    content = file.read_content()
+    print(content)
+```
+
+**Available File Methods:**
+- `File.read(path)` - Read entire file content as string
+- `File.write(path, content)` - Write content to file (overwrites existing)
+- `File.append(path, content)` - Append content to existing file
+- `File.exists(path)` - Check if file exists (returns boolean)
+- `File.open(path, mode="r")` - Open file for complex operations
+
+### OS Operations
+
+The OS grimoire provides static methods for operating system operations:
+
+```python
+// Directory operations
+current_dir = OS.cwd()                         // Get current directory
+OS.chdir("/home/user")                         // Change directory
+files = OS.listdir(".")                        // List directory contents
+OS.mkdir("new_folder")                         // Create directory
+OS.remove("old_file.txt")                     // Remove file/directory
+
+// Environment variables
+home = OS.getenv("HOME")                       // Get environment variable
+OS.setenv("DEBUG", "true")                     // Set environment variable
+path = OS.expandEnv("$HOME/.config")           // Expand variables in string
+
+// Process operations
+OS.run("ls", ["-la"], False)                  // Run command, show output
+output = OS.run("pwd", [], True)              // Run command, capture output
+OS.sleep(2)                                   // Sleep for 2 seconds
+```
+
+**Available OS Methods:**
+- `OS.cwd()` - Get current working directory
+- `OS.chdir(path)` - Change to specified directory
+- `OS.listdir(path=".")` - List directory contents
+- `OS.mkdir(path, perm=0755)` - Create directory
+- `OS.remove(path)` - Remove file or empty directory
+- `OS.getenv(key)` - Get environment variable value
+- `OS.setenv(key, value)` - Set environment variable (both arguments must be strings)
+- `OS.expandEnv(string)` - Expand environment variables in string
+- `OS.run(command, args=[], capture=False)` - Execute system command
+- `OS.sleep(seconds)` - Sleep for specified time
 
 ### `open(path, mode="r")`
-Opens a file and returns a File object that can be used for reading, writing, or appending. The file is automatically closed when used with `autoclose`.
+Opens a file and returns a File object for low-level file operations. **Note:** This function is primarily used internally by `File.open()` - for all file operations, use the File grimoire methods instead.
 
 **Parameters:**
 - `path` (string): The path to the file
@@ -245,31 +287,41 @@ Opens a file and returns a File object that can be used for reading, writing, or
 
 **Returns:** A File object with methods for file operations.
 
-**Examples:**
+**Recommended Usage:**
 ```python
-// Open file for reading
-file = open("data.txt", "r")
-content = file.read()
-file.close()
+// Recommended: Use File grimoire static methods for simple operations
+content = File.read("data.txt")
+File.write("output.txt", "hello")
+File.append("log.txt", "entry\n")
 
-// Open file for writing
-file = open("output.txt", "w")
-file.write("Hello, World!")
-file.close()
-
-// Best practice: Use with autoclose
-autoclose open("data.txt", "r") as file:
-    content = file.read()
+// Recommended: Use File.open() for complex file operations
+autoclose File.open("data.txt", "r") as file:
+    content = file.read_content()
     print(content)
 ```
 
-**File Object Methods:**
-- `read()` - Read entire file content
-- `write(content)` - Write content to file
+**File Object Methods (when using File.open() or open()):**
+- `read_content()` - Read entire file content from opened file
+- `write_content(content)` - Write content to opened file  
 - `close()` - Close the file (automatically called with autoclose)
+
+**File Modes:**
+- `"r"` - Read mode (file must exist)
+- `"w"` - Write mode (creates new file or overwrites existing)
+- `"a"` - Append mode (creates file if it doesn't exist)
 
 ### Error Functions
 - `Error(name, message="")` - Create custom error object
+
+## Module Function Registration
+
+**Technical Note:** File and OS module functions are now properly registered with the evaluator during initialization. This ensures that all module functions (like `osSetEnv`, `fileRead`, etc.) are available as built-in functions and can be called from Carrion standard library grimoires.
+
+The module registration system automatically:
+- Loads File module functions (`fileOpen`, `fileRead`, `fileWrite`, etc.) into the global environment
+- Loads OS module functions (`osGetEnv`, `osSetEnv`, `osRunCommand`, etc.) into the global environment
+- Provides proper error handling with descriptive error messages
+- Ensures type validation for function arguments (e.g., `OS.setenv` requires string arguments)
 
 ## Examples
 
@@ -309,4 +361,35 @@ result = ""
 for code in codes:
     result += chr(code)
 print(result)  // → Hello
+```
+
+### File and System Operations Examples
+```python
+// Simple file operations using File grimoire
+if File.exists("data.txt"):
+    content = File.read("data.txt")
+    processed = content.upper()
+    File.write("output.txt", processed)
+    File.append("log.txt", f"Processed file at {OS.cwd()}\n")
+
+// Directory operations using OS grimoire
+print("Current directory:", OS.cwd())
+files = OS.listdir(".")
+for filename in files:
+    print(f"Found: {filename}")
+
+// Environment operations
+home = OS.getenv("HOME")
+config_path = OS.expandEnv("$HOME/.config")
+print(f"Config directory: {config_path}")
+
+// Complex file operations with autoclose
+autoclose File.open("data.txt", "r") as infile:
+    content = infile.read_content()
+    lines = content.split("\n")
+    
+    autoclose File.open("processed.txt", "w") as outfile:
+        for line in lines:
+            if line.strip():  // Skip empty lines
+                outfile.write_content(line.upper() + "\n")
 ```

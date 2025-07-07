@@ -1,7 +1,7 @@
 <meta name="google-site-verification" content="7L-IkFjwJUUVamMg0bj1PwYOVcpowQyomYVhYM4e6lk" />
 <meta name="description" content="Carrion Programming Language is a modern, dynamically typed, interpreted language inspired by Python and built in Go. Discover its fun crow theme, unique syntax, and powerful features for fast development and learning." />The Carrion Programming Language
 
-Latest Version: `0.1.7` [![Release](https://img.shields.io/badge/version-0.1.7-blue.svg)]()
+Latest Version: `0.1.8` [![Release](https://img.shields.io/badge/version-0.1.8-blue.svg)]()
 
 ```bash
 
@@ -195,7 +195,7 @@ Carrion is an evolving language with exciting future updates planned:
 
 ## Build and Release Status
 
-- Current Version: `0.1.7`
+- Current Version: `0.1.8`
 - Standard Library (Munin): 0.1.0
 - Status: Active Development
 

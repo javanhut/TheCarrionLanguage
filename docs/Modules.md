@@ -475,17 +475,15 @@ grim Config:
     
     spell load_from_file(filename):
         // Load configuration from file
-        file = File()
-        if file.exists(filename):
-            content = file.read(filename)
+        if File.exists(filename):
+            content = File.read(filename)
             // Parse and update settings
             print(f"Loaded config from {filename}")
     
     spell save_to_file(filename):
         // Save configuration to file
-        file = File()
         content = str(self.settings)  // Simplified serialization
-        file.write(filename, content)
+        File.write(filename, content)
         print(f"Saved config to {filename}")
 
 // Global configuration instance

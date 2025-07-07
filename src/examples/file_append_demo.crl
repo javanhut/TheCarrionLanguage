@@ -1,0 +1,32 @@
+# Carrion File Append Demo
+# This demonstrates proper file appending
+
+print("=== Carrion File Append Demo ===")
+
+# Working with a data file
+output_file = "data.txt"
+print(f"Working with file: {output_file}")
+time  = Time()
+# Check if file exists and show current content
+if File.exists(output_file):
+    print("\nFile exists. Current content:")
+    content = File.read(output_file)
+    print(content)
+    print("\n--- Appending new content ---")
+    # Append to existing file
+    File.append(output_file, "\n--- New data appended by Carrion ---\n")
+    File.append(output_file, f"Timestamp: {time.now()}" + "\n")
+    File.append(output_file, "Process completed successfully\n")
+else:
+    print("\nFile doesn't exist. Creating new file.")
+    # Create new file
+    File.write(output_file, "--- Initial content ---\n")
+    File.append(output_file, "Created by Carrion File API\n")
+    File.append(output_file, f"Timestamp: {time.now()}" + "\n")
+
+# Show final content
+print("\nFinal file content:")
+final_content = File.read(output_file)
+print(final_content)
+
+print("\n=== Demo Complete ===")

@@ -1,0 +1,100 @@
+# File and OS Grimoire API Demo
+# 
+# This example demonstrates the new unified API for file and OS operations
+# introduced in Carrion 0.1.8. All operations now use consistent grimoire
+# syntax for better code organization and readability.
+
+print("=== Carrion 0.1.8 File and OS Grimoire Demo ===")
+
+print("\n1. File Operations with Static Methods")
+
+# Write data to a file
+File.write("demo.txt", "Hello from Carrion 0.1.8!")
+print("✓ File written using File.write()")
+
+# Read file content
+content = File.read("demo.txt")
+print(f"✓ File content: {content}")
+
+# Check if file exists
+exists = File.exists("demo.txt")
+print(f"✓ File exists: {exists}")
+
+# Append to file
+File.append("demo.txt", "\nThis line was appended!")
+updated_content = File.read("demo.txt")
+print(f"✓ After append: {updated_content}")
+
+print("\n2. OS Operations with Static Methods")
+
+# Get current directory
+current_dir = OS.cwd()
+print(f"✓ Current directory: {current_dir}")
+
+# List directory contents
+files = OS.listdir(".")
+print(f"✓ Found {len(files)} items in current directory")
+
+# Environment variables
+home = OS.getenv("HOME")
+print(f"✓ HOME environment: {home}")
+
+# Create and remove directory
+OS.mkdir("temp_demo_dir")
+print("✓ Created temporary directory")
+
+dir_exists = File.exists("temp_demo_dir")
+print(f"✓ Directory exists: {dir_exists}")
+
+OS.remove("temp_demo_dir")
+print("✓ Removed temporary directory")
+
+print("\n3. Advanced File Operations with Objects")
+
+# Using File objects for complex operations
+autoclose File.open("complex_demo.txt", "w") as file:
+    file.write_content("Line 1: Created with File object\n")
+    file.write_content("Line 2: Multiple writes in one session\n")
+    file.write_content("Line 3: Automatically closed with autoclose\n")
+
+print("✓ Complex file written using File object")
+
+# Read back the complex file
+complex_content = File.read("complex_demo.txt")
+print(f"✓ Complex file content:\n{complex_content}")
+
+print("\n4. Error Handling")
+
+# Demonstrate error handling with grimoire methods
+attempt:
+    content = File.read("nonexistent_file.txt")
+    print(f"Content: {content}")
+ensnare:
+    print("✓ Gracefully handled file not found error")
+
+print("\n5. Migration Examples")
+
+print("# Old API (0.1.7 and earlier - deprecated):")
+print('# content = fileRead("data.txt")')
+print('# fileWrite("output.txt", "hello")')
+print('# current_dir = osGetCwd()')
+
+print("\n# New API (0.1.8+ - recommended):")
+print('content = File.read("data.txt")')
+print('File.write("output.txt", "hello")')  
+print('current_dir = OS.cwd()')
+
+print("\n=== Cleanup ===")
+
+# Clean up demo files
+OS.remove("demo.txt")
+OS.remove("complex_demo.txt")
+print("✓ Demo files cleaned up")
+
+print("\n🎉 File and OS Grimoire API Demo Complete!")
+print("The new API provides:")
+print("  • Consistent method syntax across all operations")
+print("  • Better code organization and readability")  
+print("  • Static methods for simple operations")
+print("  • File objects for complex scenarios")
+print("  • Full compatibility with autoclose statement")
