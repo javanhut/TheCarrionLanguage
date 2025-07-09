@@ -176,7 +176,7 @@ print(6 not in numbers)    // → True
 print("hello" in mixed)    // → True
 print(3.14 in mixed)       // → True
 
-// Hash membership (key checking)
+// Map membership (key checking)
 data = {"name": "John", "age": 30, "active": True}
 print("name" in data)      // → True
 print("email" not in data) // → True
@@ -266,7 +266,7 @@ result = "  hello  ".strip().upper()  // → "HELLO"
 ### Hash Operator
 | Operator | Description | Usage |
 |----------|-------------|-------|
-| `#` | Hash operator | Special operations |
+| `#` | Hash operator | Special operations (for hashing functions) |
 
 ### At Symbol (Decorators)
 | Operator | Description | Usage |

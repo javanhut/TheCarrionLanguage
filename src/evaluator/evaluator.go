@@ -1909,7 +1909,7 @@ func evalIndexExpression(left, index object.Object, node ast.Node, ctx *CallCont
 		return evalTupleIndexExpression(unwrappedLeft, unwrappedIndex, node, ctx)
 	case unwrappedLeft.Type() == object.ARRAY_OBJ && unwrappedIndex.Type() == object.INTEGER_OBJ:
 		return evalArrayIndexExpression(unwrappedLeft, unwrappedIndex, node, ctx)
-	case unwrappedLeft.Type() == object.HASH_OBJ:
+	case unwrappedLeft.Type() == object.MAP_OBJ:
 		return evalHashIndexExpression(unwrappedLeft, unwrappedIndex, node, ctx)
 	case unwrappedLeft.Type() == object.STRING_OBJ && unwrappedIndex.Type() == object.INTEGER_OBJ:
 		result := evalStringIndexExpression(unwrappedLeft, unwrappedIndex, node, ctx)

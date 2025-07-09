@@ -902,9 +902,34 @@ func (p *Parser) parseHashLiteral() ast.Expression {
 	hash := &ast.HashLiteral{Token: p.currToken}
 	hash.Pairs = make(map[ast.Expression]ast.Expression)
 
+	// Skip newlines and indentation after opening brace
+	p.skipNewlines()
+	if p.peekTokenIs(token.INDENT) {
+		p.nextToken()
+	}
+
 	for !p.peekTokenIs(token.RBRACE) {
+		// Skip any newlines before key
+		p.skipNewlines()
+		
+		// Check for DEDENT which might precede closing brace
+		if p.peekTokenIs(token.DEDENT) {
+			p.nextToken()
+			p.skipNewlines()
+			// After dedent, we should find the closing brace
+			if p.peekTokenIs(token.RBRACE) {
+				break
+			}
+		}
+		
+		// Check again for closing brace after handling dedent/newlines
+		if p.peekTokenIs(token.RBRACE) {
+			break
+		}
+
 		p.nextToken()
 
+		// Parse the key without comma being an infix operator
 		commaFn := p.infixParseFns[token.COMMA]
 		delete(p.infixParseFns, token.COMMA)
 		key := p.parseExpression(LOWEST)
@@ -917,6 +942,7 @@ func (p *Parser) parseHashLiteral() ast.Expression {
 		}
 		p.nextToken()
 
+		// Parse the value without comma being an infix operator
 		commaFn = p.infixParseFns[token.COMMA]
 		delete(p.infixParseFns, token.COMMA)
 		value := p.parseExpression(LOWEST)
@@ -926,7 +952,16 @@ func (p *Parser) parseHashLiteral() ast.Expression {
 
 		hash.Pairs[key] = value
 
-		if !p.peekTokenIs(token.RBRACE) && !p.expectPeek(token.COMMA) {
+		// Check what comes after the value
+		if p.peekTokenIs(token.COMMA) {
+			p.nextToken() // consume comma
+			p.skipNewlines() // skip any newlines after comma
+		} else if p.peekTokenIs(token.NEWLINE) || p.peekTokenIs(token.DEDENT) || p.peekTokenIs(token.RBRACE) {
+			// These are all valid separators/terminators
+			// Don't consume them here, let the loop handle them
+		} else {
+			// If it's not a valid separator/terminator, it's an error
+			p.errors = append(p.errors, "expected comma, newline, or closing brace after value in hash literal")
 			return nil
 		}
 	}

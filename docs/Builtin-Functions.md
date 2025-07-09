@@ -65,7 +65,7 @@ tuple("hello")    // → ("h", "e", "l", "l", "o")
 ## Utility Functions
 
 ### `len(object)`
-Returns the length of strings, arrays, hashes, or tuples.
+Returns the length of strings, arrays, maps, or tuples.
 ```python
 len("hello")           // → 5
 len([1, 2, 3, 4])      // → 4
@@ -159,11 +159,11 @@ for index, value in enumerate(items):
 // 2 c
 ```
 
-### `pairs(hash, filter="")`
-Returns key-value pairs from a hash as an iterable array. The second parameter filters the output.
+### `pairs(map, filter="")`
+Returns key-value pairs from a map as an iterable array. The second parameter filters the output.
 
 **Parameters:**
-- `hash`: The hash to extract pairs from
+- `map`: The map to extract pairs from
 - `filter`: Optional filter string:
   - `""` (default): Returns `(key, value)` tuples
   - `"key"` or `"k"`: Returns only keys

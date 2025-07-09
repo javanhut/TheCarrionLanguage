@@ -87,4 +87,9 @@ grim Queue:
             print(temp.data)
             temp = temp.next
         print("")
-            
+        
+
+grim Heap:
+    init():
+        ignore
+        

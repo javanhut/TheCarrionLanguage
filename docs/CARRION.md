@@ -190,7 +190,7 @@ Carrion supports the following data types:
 
 ## Collection Types
 - **Array**: Ordered, mutable list of elements `[1, 2, 3]`
-- **Hash**: Key-value pairs (dictionary) `{"key": "value"}`
+- **Map**: Key-value pairs (dictionary) `{"key": "value"}` with support for string, integer, float, and boolean keys
 - **Tuple**: Immutable ordered collection `(1, 2, 3)`
 
 # Built-in Functions
@@ -212,7 +212,7 @@ Carrion supports the following data types:
 - `max(*args)` - Return maximum value from arguments
 - `abs(value)` - Return absolute value of a number
 - `enumerate(array)` - Return array of (index, value) tuples
-- `pairs(hash)` - Return key-value pairs from hash
+- `pairs(map)` - Return key-value pairs from map
 - `is_sametype(obj1, obj2)` - Check if objects have same type
 
 ## Error Handling
