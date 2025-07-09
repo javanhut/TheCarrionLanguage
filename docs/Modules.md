@@ -21,9 +21,10 @@ When you import a module, Carrion searches in this order:
 
 1. **Current Directory** - Local files relative to the current working directory
 2. **Project Modules** - `./carrion_modules/package/[version]/src/` for project packages
-3. **User Packages** - `~/.carrion/packages/package/[version]/src/` for user-installed packages  
-4. **Global Packages** - `/usr/local/share/carrion/lib/package/[version]/src/` for system packages
-5. **Standard Library** - Built-in Munin standard library modules
+3. **Global Bifrost Modules** - `/usr/bin/carrion_modules/package/[version]/src/` for system Bifrost packages
+4. **User Packages** - `~/.carrion/packages/package/[version]/src/` for user-installed packages  
+5. **Global Packages** - `/usr/local/share/carrion/lib/package/[version]/src/` for system packages
+6. **Standard Library** - Built-in Munin standard library modules
 
 ### Automatic Version Resolution
 
@@ -35,6 +36,12 @@ For package imports, Carrion automatically:
 ### Basic Import Syntax
 
 Carrion provides multiple import patterns designed for ease of use and flexibility:
+
+#### Grimoire-Based Imports (New)
+```python
+import "GrimoireName"                // Search for grimoire by name in available modules
+import "GrimoireName" as MyGrimoire  // Import grimoire with alias
+```
 
 #### Local File Imports
 ```python
@@ -60,6 +67,184 @@ import "../../utils/helper"    // Multi-level relative paths
 import "carrion_modules/package/1.0.0/src/module"  // Full explicit path
 ```
 
+## Grimoire-Based Import System
+
+Carrion's enhanced import system allows you to import grimoires (classes) directly by name without specifying the file path. This provides a more intuitive way to work with classes across your project and installed packages.
+
+### How Grimoire Imports Work
+
+When you use `import "GrimoireName"`, Carrion:
+
+1. **Searches Multiple Locations**: Looks through all available .crl files in the search path
+2. **Finds the Grimoire**: Locates the grimoire definition in any available module
+3. **Imports Directly**: Makes the grimoire available without importing the entire module
+4. **Supports Aliases**: Allows you to rename the grimoire for convenience
+
+### Grimoire Import Examples
+
+#### Basic Grimoire Import
+
+**File: `lib.crl`**
+```python
+grim Calculator:
+    init():
+        self.result = 0
+    
+    spell add(a, b):
+        return a + b
+    
+    spell multiply(a, b):
+        return a * b
+
+grim Logger:
+    init(name):
+        self.name = name
+    
+    spell log(message):
+        print(f"[{self.name}] {message}")
+```
+
+**File: `main.crl`**
+```python
+// Import grimoires directly by name
+import "Calculator"
+import "Logger" as Log
+
+// Use imported grimoires
+calc = Calculator()
+result = calc.add(5, 3)
+print(f"Result: {result}")
+
+logger = Log("MyApp")
+logger.log("Application started")
+```
+
+#### Grimoire Imports from Bifrost Packages
+
+**Package Structure:**
+```
+carrion_modules/
+└── hello-world/
+    └── 0.1.0/
+        └── src/
+            └── main.crl
+```
+
+**File: `carrion_modules/hello-world/0.1.0/src/main.crl`**
+```python
+grim HelloWorld:
+    init(name):
+        self.name = name
+    
+    spell greet():
+        return f"Hello, {self.name}!"
+```
+
+**File: `main.crl`**
+```python
+// Import grimoire from bifrost package
+import "HelloWorld" as Hello
+
+// Use the imported grimoire
+greeter = Hello("World")
+print(greeter.greet())  // Output: Hello, World!
+```
+
+#### Global Grimoire Imports
+
+**Global Package Structure:**
+```
+/usr/bin/carrion_modules/
+└── json-parser/
+    └── 1.0.0/
+        └── src/
+            └── main.crl
+```
+
+**File: `/usr/bin/carrion_modules/json-parser/1.0.0/src/main.crl`**
+```python
+grim JSONParser:
+    init():
+        self.data = {}
+    
+    spell parse(json_string):
+        // JSON parsing logic
+        return {"parsed": True}
+```
+
+**File: `main.crl`**
+```python
+// Import from global bifrost modules
+import "JSONParser" as JSON
+
+parser = JSON()
+result = parser.parse('{"name": "example"}')
+print(result)
+```
+
+### Search Order for Grimoire Imports
+
+When importing a grimoire by name, Carrion searches in this order:
+
+1. **Current Directory** - Local .crl files
+2. **Project Modules** - `./carrion_modules/*/version/src/main.crl`
+3. **Global Bifrost Modules** - `/usr/bin/carrion_modules/*/version/src/main.crl`
+4. **User Packages** - `~/.carrion/packages/*/version/src/main.crl`
+5. **Global Packages** - `/usr/local/share/carrion/lib/*/version/src/main.crl`
+
+### Practical Usage Patterns
+
+#### Mixed Import Strategies
+
+```python
+// Mix grimoire imports with traditional imports
+import "Calculator"              // Grimoire import
+import "utils/helper"            // Package import  
+import "./config"                // Relative import
+import "Logger" as AppLogger     // Grimoire import with alias
+
+// Use all imported functionality
+calc = Calculator()
+helper = HelperClass()
+config = load_config()
+logger = AppLogger("Main")
+
+result = calc.add(10, 20)
+helper.process_data(result)
+logger.log(f"Calculated: {result}")
+```
+
+#### Conditional Grimoire Imports
+
+```python
+// Import different grimoires based on conditions
+debug_mode = True
+
+if debug_mode:
+    import "DebugLogger" as Logger
+else:
+    import "ProductionLogger" as Logger
+
+// Same interface, different implementations
+logger = Logger("App")
+logger.log("Starting application")
+```
+
+#### Fallback Grimoire Imports
+
+```python
+// Try to import preferred grimoire, fallback to basic one
+spell get_database():
+    attempt:
+        import "AdvancedDatabase" as DB
+        return DB()
+    ensnare:
+        import "BasicDatabase" as DB
+        return DB()
+
+database = get_database()
+```
+
 ## Smart Import Examples
 
 ### Example Project Structure
@@ -82,26 +267,31 @@ my_project/
 ### All Import Pattern Examples
 
 ```python
-// 1. Local file imports (current directory)
+// 1. Grimoire-based imports (NEW - search by class name)
+import "Helper"                   // → Search for Helper grimoire in all locations
+import "HelloWorld" as Hello      // → Search for HelloWorld grimoire with alias
+import "Logger" as Log            // → Search for Logger grimoire with alias
+
+// 2. Local file imports (current directory)
 import "utils"                    // → ./utils.crl
 import "utils.Helper"             // → ./utils.crl (import Helper grimoire)
 
-// 2. Simplified package imports (auto-resolves versions)
+// 3. Simplified package imports (auto-resolves versions)
 import "hello-world/main"              // → carrion_modules/hello-world/0.1.0/src/main.crl
 import "hello-world/main.HelloWorld"   // → carrion_modules/hello-world/0.1.0/src/main.crl (HelloWorld grimoire)
 
-// 3. Relative path imports
+// 4. Relative path imports
 import "./utils"                  // → ./utils.crl (explicit current)
 import "./models/user"            // → ./models/user.crl
 import "../shared/common"         // → ../shared/common.crl
 import "../shared/common.Logger"  // → ../shared/common.crl (Logger grimoire)
 
-// 4. With aliases for convenience
+// 5. With aliases for convenience
 import "hello-world/main.HelloWorld" as Hello
 import "../shared/common.Logger" as Log
 import "utils.Helper" as MyHelper
 
-// 5. Legacy full paths (still supported)
+// 6. Legacy full paths (still supported)
 import "carrion_modules/hello-world/0.1.0/src/main.HelloWorld" as Hello
 ```
 
@@ -126,10 +316,10 @@ grim StringUtils:
 
 **File: `main.crl`**
 ```python
-// Smart imports in action
-import "utils.Helper" as MyHelper           // Local selective import
-import "hello-world/main.HelloWorld" as Hello  // Package selective import
-import "../shared/common.Logger" as Log        // Relative selective import
+// Smart imports in action - mixing grimoire and path imports
+import "Helper" as MyHelper                     // NEW: Grimoire-based import
+import "HelloWorld" as Hello                    // NEW: Grimoire-based import
+import "../shared/common.Logger" as Log         // Relative selective import
 
 main:
     // Use imported grimoires directly
@@ -137,7 +327,7 @@ main:
     result = helper.format_text("Hello World")
     print(result)  // → "Formatted: Hello World"
     
-    // Use package grimoire
+    // Use package grimoire (found automatically)
     greeting = Hello()
     greeting.print_greeting()
     

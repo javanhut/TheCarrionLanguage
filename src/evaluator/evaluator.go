@@ -3365,9 +3365,11 @@ func resolvePackageOrFileImport(importPath, currentDir string) (string, error) {
 		currentDir,
 		// 2. Local project modules 
 		filepath.Join(currentDir, "carrion_modules"),
-		// 3. User-specific packages (~/.carrion/packages)
+		// 3. Global bifrost modules
+		"/usr/bin/carrion_modules",
+		// 4. User-specific packages (~/.carrion/packages)
 		getUserCarrionPackages(),
-		// 4. Shared global packages (/usr/local/share/carrion/lib)
+		// 5. Shared global packages (/usr/local/share/carrion/lib)
 		getSharedGlobalPackages(),
 	}
 	
@@ -3512,6 +3514,11 @@ func evalImportStatement(
 	env *object.Environment,
 	ctx *CallContext,
 ) object.Object {
+	// Handle grimoire-only imports (import "GrimoireName")
+	if node.FilePath.Value == "" && node.ClassName != nil {
+		return evalGrimoireImport(node, env, ctx)
+	}
+	
 	importPath := node.FilePath.Value
 	
 	// Check if already imported using the import path as key
@@ -3594,6 +3601,247 @@ func evalImportStatement(
 	}
 
 	return object.NONE
+}
+
+// evalGrimoireImport handles grimoire-only imports like import "HelloWorld" as hw
+func evalGrimoireImport(
+	node *ast.ImportStatement,
+	env *object.Environment,
+	ctx *CallContext,
+) object.Object {
+	grimoireName := node.ClassName.Value
+	
+	// Get current working directory
+	currentDir, err := os.Getwd()
+	if err != nil {
+		currentDir = "."
+	}
+	
+	// Define search paths for grimoire files
+	searchPaths := []string{
+		// 1. Current directory
+		currentDir,
+		// 2. Local project modules 
+		filepath.Join(currentDir, "carrion_modules"),
+		// 3. Global carrion modules
+		"/usr/bin/carrion_modules",
+		// 4. User-specific packages
+		getUserCarrionPackages(),
+		// 5. Shared global packages
+		getSharedGlobalPackages(),
+	}
+	
+	// Search for files containing the grimoire
+	var foundGrimoire object.Object
+	var foundInFile string
+	
+	for _, searchPath := range searchPaths {
+		if searchPath == "" {
+			continue
+		}
+		
+		// Look for .crl files in the search path
+		files, err := findCarrionFiles(searchPath)
+		if err != nil {
+			continue
+		}
+		
+		// Check each file for the grimoire
+		for _, filePath := range files {
+			// Skip if already imported
+			if importedFiles[filePath] {
+				continue
+			}
+			
+			// Read and parse the file
+			fileContent, err := os.ReadFile(filePath)
+			if err != nil {
+				continue
+			}
+			
+			l := lexer.NewWithFilename(string(fileContent), filePath)
+			p := parser.New(l)
+			program := p.ParseProgram()
+			
+			if len(p.Errors()) > 0 {
+				continue
+			}
+			
+			// Evaluate the file in a temporary environment
+			tempEnv := object.NewEnclosedEnvironment(env)
+			tempCtx := &CallContext{
+				FunctionName: "import_search",
+				Node:         program,
+				Parent:       ctx,
+				env:          tempEnv,
+				IsDirectExecution: false,
+			}
+			
+			evalResult := Eval(program, tempEnv, tempCtx)
+			if isError(evalResult) {
+				continue
+			}
+			
+			// Check if the grimoire exists in this file
+			if val, exists := tempEnv.Get(grimoireName); exists && val.Type() == object.GRIMOIRE_OBJ {
+				foundGrimoire = val
+				foundInFile = filePath
+				break
+			}
+		}
+		
+		if foundGrimoire != nil {
+			break
+		}
+		
+		// Also check in bifrost package structure
+		packagePaths, _ := findBifrostPackages(searchPath)
+		for _, pkgPath := range packagePaths {
+			mainFile := filepath.Join(pkgPath, "src", "main.crl")
+			if _, err := os.Stat(mainFile); err != nil {
+				continue
+			}
+			
+			// Skip if already imported
+			if importedFiles[mainFile] {
+				continue
+			}
+			
+			fileContent, err := os.ReadFile(mainFile)
+			if err != nil {
+				continue
+			}
+			
+			l := lexer.NewWithFilename(string(fileContent), mainFile)
+			p := parser.New(l)
+			program := p.ParseProgram()
+			
+			if len(p.Errors()) > 0 {
+				continue
+			}
+			
+			tempEnv := object.NewEnclosedEnvironment(env)
+			tempCtx := &CallContext{
+				FunctionName: "import_search",
+				Node:         program,
+				Parent:       ctx,
+				env:          tempEnv,
+				IsDirectExecution: false,
+			}
+			
+			evalResult := Eval(program, tempEnv, tempCtx)
+			if isError(evalResult) {
+				continue
+			}
+			
+			if val, exists := tempEnv.Get(grimoireName); exists && val.Type() == object.GRIMOIRE_OBJ {
+				foundGrimoire = val
+				foundInFile = mainFile
+				break
+			}
+		}
+		
+		if foundGrimoire != nil {
+			break
+		}
+	}
+	
+	if foundGrimoire == nil {
+		return newErrorWithTrace("grimoire '%s' not found in any available module", 
+			node, ctx, grimoireName)
+	}
+	
+	// Mark the file as imported
+	importedFiles[foundInFile] = true
+	
+	// Bind the grimoire to the environment
+	if node.Alias != nil {
+		env.Set(node.Alias.Value, foundGrimoire)
+	} else {
+		env.Set(grimoireName, foundGrimoire)
+	}
+	
+	return object.NONE
+}
+
+// findCarrionFiles finds all .crl files in a directory (non-recursive for current dir, limited recursion for modules)
+func findCarrionFiles(dir string) ([]string, error) {
+	var files []string
+	
+	// For current directory, only check top level
+	currentDir, _ := os.Getwd()
+	if dir == currentDir {
+		entries, err := os.ReadDir(dir)
+		if err != nil {
+			return nil, err
+		}
+		
+		for _, entry := range entries {
+			if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".crl") {
+				files = append(files, filepath.Join(dir, entry.Name()))
+			}
+		}
+		return files, nil
+	}
+	
+	// For other directories, do limited recursive search
+	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return nil // Skip errors
+		}
+		
+		// Skip hidden directories
+		if info.IsDir() && strings.HasPrefix(filepath.Base(path), ".") && path != dir {
+			return filepath.SkipDir
+		}
+		
+		if !info.IsDir() && strings.HasSuffix(path, ".crl") {
+			files = append(files, path)
+		}
+		
+		// Don't recurse too deep
+		if info.IsDir() && strings.Count(path, string(os.PathSeparator)) - strings.Count(dir, string(os.PathSeparator)) > 2 {
+			return filepath.SkipDir
+		}
+		
+		return nil
+	})
+	
+	return files, err
+}
+
+// findBifrostPackages finds all bifrost package directories (pattern: package/version)
+func findBifrostPackages(basePath string) ([]string, error) {
+	var packages []string
+	
+	entries, err := os.ReadDir(basePath)
+	if err != nil {
+		return nil, err
+	}
+	
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+		
+		packagePath := filepath.Join(basePath, entry.Name())
+		versions, err := os.ReadDir(packagePath)
+		if err != nil {
+			continue
+		}
+		
+		for _, version := range versions {
+			if version.IsDir() {
+				versionPath := filepath.Join(packagePath, version.Name())
+				// Check if it has src directory
+				if _, err := os.Stat(filepath.Join(versionPath, "src")); err == nil {
+					packages = append(packages, versionPath)
+				}
+			}
+		}
+	}
+	
+	return packages, nil
 }
 
 func evalGlobalStatement(

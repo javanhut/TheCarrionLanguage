@@ -1,0 +1,90 @@
+grim Node:
+    init(data):
+        self.data = data
+        self.next = None
+
+grim Stack:
+    init():
+        self.head = None
+        self.size = 0
+
+    spell push(value):
+        new_node = Node(value)
+        if self.head:
+            new_node.next = self.head
+        self.head = new_node
+        self.size = self.size + 1
+        
+    spell pop():
+        if self.size == 0:
+            return "Cannot perform pop as Stack is empty"
+        popped_node = self.head
+        self.head = self.head.next
+        self.size = self.size - 1
+        return popped_node.data
+
+    spell peek():
+        if self.size == 0:
+            return "Cannot peek Stack is Empty"
+        return self.head.data
+    
+    spell is_empty():
+        return self.size == 0
+
+    spell get_size():
+        return self.size
+
+    spell print():
+        temp = self.head
+        while temp:
+            print(temp.data)
+            temp = temp.next
+        print("")
+            
+
+
+grim Queue:
+    init():
+        self.front = None
+        self.rear = None
+        self.length = 0
+    
+    spell enqueue(element):
+        new_node = Node(element)
+        if self.rear == None:
+            self.front = new_node
+            self.rear = new_node
+            self.length = self.length + 1
+        else:
+            self.rear.next = new_node
+            self.rear = new_node
+            self.length = self.length + 1
+
+    spell dequeue():
+        if self.length == 0:
+            return "Cannot Dequeue as Queue is Empty"
+        temp = self.front
+        self.front = temp.next
+        self.length = self.length - 1
+        if self.front == None:
+            self.rear = None
+        return temp.data
+
+    spell peek():
+        if self.length == 0:
+            return "Cannot peek as Queue is empty"
+        return self.front.data
+
+    spell is_empty():
+        return self.length == 0
+
+    spell get_size():
+        return self.length
+    
+    spell print():
+        temp = self.front
+        while temp:
+            print(temp.data)
+            temp = temp.next
+        print("")
+            

@@ -950,11 +950,16 @@ print("Process complete!")
 
 ### Basic Imports
 ```python
+// NEW: Grimoire-based imports (search by class name)
+import "Stack"
+import "FileHelper" as FH
+helper = FH()
+
 // Import entire module
 import "math_utils"
 result = add(5, 3)  // Function from math_utils.crl
 
-// Import specific grimoire
+// Import specific grimoire from specific module
 import "data_structures.Stack"
 stack = Stack()
 stack.push(1)

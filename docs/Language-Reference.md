@@ -35,9 +35,9 @@ Carrion source files use the `.crl` extension.
 
 ### Comments
 ```python
-// Single-line comment
-/* Multi-line
-   comment */
+"/#" Single-line comment
+``` Multi-line
+   comment```
 ```
 
 ### Identifiers
@@ -488,6 +488,8 @@ check(condition, "Error message")
 ### Import Syntax
 ```python
 # Smart import patterns
+import "GrimoireName"                # NEW: Grimoire-based import (searches all locations)
+import "GrimoireName" as alias       # NEW: Grimoire import with alias
 import "filename"                    # Local file
 import "filename.ClassName"          # Selective import
 import "package/module"              # Simplified package import
@@ -500,6 +502,13 @@ import "module.ClassName" as alias   # Selective import with alias
 
 ### Module Structure
 Each `.crl` file is a module that can export functions and grimoires (classes). The import system automatically resolves packages with version management and searches appropriate directories.
+
+### Grimoire-Based Imports
+The enhanced import system allows importing grimoires (classes) directly by name:
+- Searches current directory, project modules, global bifrost modules, and system packages
+- Automatically locates grimoire definitions without requiring file paths
+- Supports aliasing for convenient naming
+- Works with both local files and installed packages
 
 ## Built-in Functions
 

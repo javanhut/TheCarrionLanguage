@@ -456,13 +456,46 @@ var builtins = map[string]*object.Builtin{
 				return newError("enumerate expects 1 argument, got %d", len(args))
 			}
 
-			arr, ok := args[0].(*object.Array)
-			if !ok {
+			var elements []object.Object
+			
+			switch arg := args[0].(type) {
+			case *object.Array:
+				elements = arg.Elements
+			case *object.Instance:
+				// Handle Array instances
+				if arg.Grimoire.Name == "Array" {
+					if elementsObj, exists := arg.Env.Get("elements"); exists {
+						// Check if elements is a direct Array
+						if arr, isArray := elementsObj.(*object.Array); isArray {
+							elements = arr.Elements
+						} else if elemInstance, isInstance := elementsObj.(*object.Instance); isInstance {
+							// Check if it's an Array instance containing value
+							if value, valueExists := elemInstance.Env.Get("value"); valueExists {
+								if arr, isArray := value.(*object.Array); isArray {
+									elements = arr.Elements
+								}
+							} else if elemInstance.Grimoire.Name == "Array" {
+								// Try to see if it's a direct wrapped array
+								if innerElements, innerExists := elemInstance.Env.Get("elements"); innerExists {
+									if arr, isArray := innerElements.(*object.Array); isArray {
+										elements = arr.Elements
+									}
+								}
+							}
+						}
+					}
+					if elements == nil {
+						return newError("invalid Array instance: missing or invalid elements")
+					}
+				} else {
+					return newError("enumerate expects an array, got instance of %s", arg.Grimoire.Name)
+				}
+			default:
 				return newError("enumerate expects an array, got %s", args[0].Type())
 			}
+			
 			var enumerated []object.Object
-			for i, elem := range arr.Elements {
-
+			for i, elem := range elements {
 				tuple := &object.Tuple{
 					Elements: []object.Object{
 						&object.Integer{Value: int64(i)},
