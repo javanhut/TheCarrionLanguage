@@ -33,6 +33,8 @@ func searchSpecificFunction(name string, out io.Writer) bool {
 		"help": "help() - Show basic help information",
 		"version": "version() - Show Carrion and Munin version information",
 		"modules": "modules() - List all available standard library modules",
+		"open": "open(path, mode='r') - Open a file for reading, writing, or appending\n   Example: file = open(\"data.txt\", \"r\")",
+		"parsehash": "parseHash(json_string) - Parse JSON string into hash object\n   Example: data = parseHash('{\"name\": \"Alice\", \"age\": 30}')",
 	}
 	
 	// Standard library modules
@@ -44,17 +46,20 @@ func searchSpecificFunction(name string, out io.Writer) bool {
 		"boolean": "Boolean(value=False) - Boolean logic operations\n   Methods: .to_int(), .negate(), .and_with(), .or_with()\n   Example: b = Boolean(True); b.to_int() → 1",
 		"file": "File() - File I/O operations\n   Methods: .read(), .write(), .append(), .exists()\n   Example: f = File(); content = f.read(\"data.txt\")",
 		"os": "OS() - Operating system interface\n   Methods: .cwd(), .listdir(), .getenv(), .run(), .sleep()\n   Example: os = OS(); files = os.listdir(\".\")",
+		"http": "HTTP module - Web requests and JSON processing\n   Functions: httpGet(), httpPost(), httpPut(), httpDelete(), httpParseJSON()\n   Example: response = httpGet(\"https://api.example.com/data\")",
+		"time": "Time module - Date and time utilities\n   Functions: timeNow(), timeSleep(), timeFormat(), timeParse()\n   Example: timestamp = timeNow(); timeSleep(2)",
+		"comments": "Comment syntax - Single-line (#) and multi-line (```)\n   Single: # comment\n   Multi: ``` comment block ```",
 	}
 	
 	if desc, found := builtinFuncs[name]; found {
-		fmt.Fprintf(out, "\n🔧 BUILT-IN FUNCTION: %s\n", strings.ToUpper(name))
+		fmt.Fprintf(out, "\nBUILT-IN FUNCTION: %s\n", strings.ToUpper(name))
 		fmt.Fprintf(out, "═════════════════════════════\n")
 		fmt.Fprintf(out, "%s\n\n", desc)
 		return true
 	}
 	
 	if desc, found := stdlibModules[name]; found {
-		fmt.Fprintf(out, "\n🏛️  STANDARD LIBRARY: %s\n", strings.ToUpper(name))
+		fmt.Fprintf(out, "\nSTANDARD LIBRARY: %s\n", strings.ToUpper(name))
 		fmt.Fprintf(out, "══════════════════════════════\n")
 		fmt.Fprintf(out, "%s\n\n", desc)
 		return true
@@ -85,6 +90,14 @@ func performFunctionSearch(query string) []string {
 		"OS() - System operations": {"os", "system", "directory", "environment", "command"},
 		"range() - Number sequences": {"range", "sequence", "numbers", "iterate"},
 		"enumerate() - Index-value pairs": {"enumerate", "index", "iterate", "loop"},
+		"open() - File opening": {"open", "file", "read", "write", "append"},
+		"parseHash() - JSON parsing": {"parsehash", "json", "parse", "hash", "object"},
+		"httpGet() - HTTP requests": {"httpget", "http", "get", "request", "web", "api"},
+		"httpPost() - HTTP POST": {"httppost", "http", "post", "request", "web", "api"},
+		"httpParseJSON() - JSON parsing": {"httpparsejson", "json", "parse", "http"},
+		"timeNow() - Current time": {"timenow", "time", "now", "current", "timestamp"},
+		"timeSleep() - Sleep/delay": {"timesleep", "sleep", "delay", "wait", "pause"},
+		"Comments - Comment syntax": {"comments", "syntax", "comment", "single-line", "multi-line"},
 	}
 	
 	for funcDesc, keywords := range functions {
@@ -102,7 +115,7 @@ func performFunctionSearch(query string) []string {
 // showSearchCategories displays function categories for browsing
 func showSearchCategories(out io.Writer) {
 	fmt.Fprintln(out, "")
-	fmt.Fprintln(out, "🗂️  FUNCTION CATEGORIES:")
+	fmt.Fprintln(out, "FUNCTION CATEGORIES:")
 	fmt.Fprintln(out, "")
 	fmt.Fprintln(out, "Type Conversion:")
 	fmt.Fprintln(out, "  int, float, str, bool, list, tuple")
@@ -117,17 +130,26 @@ func showSearchCategories(out io.Writer) {
 	fmt.Fprintln(out, "  Integer, Float, max, abs, round, sqrt")
 	fmt.Fprintln(out, "")
 	fmt.Fprintln(out, "File & System:")
-	fmt.Fprintln(out, "  File, OS, read, write, directory")
+	fmt.Fprintln(out, "  File, OS, read, write, directory, open")
+	fmt.Fprintln(out, "")
+	fmt.Fprintln(out, "Network & HTTP:")
+	fmt.Fprintln(out, "  httpGet, httpPost, httpPut, httpDelete, httpParseJSON")
+	fmt.Fprintln(out, "")
+	fmt.Fprintln(out, "Time & Date:")
+	fmt.Fprintln(out, "  timeNow, timeSleep, timeFormat, timeParse")
+	fmt.Fprintln(out, "")
+	fmt.Fprintln(out, "Comments & Syntax:")
+	fmt.Fprintln(out, "  comments, syntax, single-line, multi-line")
 	fmt.Fprintln(out, "")
 	fmt.Fprintln(out, "Utility:")
-	fmt.Fprintln(out, "  print, len, type, range, enumerate")
+	fmt.Fprintln(out, "  print, len, type, range, enumerate, parseHash")
 	fmt.Fprintln(out, "")
 }
 
 // Built-in function category displays
 func showTypeConversionFunctions(out io.Writer) {
 	fmt.Fprintln(out, "")
-	fmt.Fprintln(out, "🔄 TYPE CONVERSION FUNCTIONS")
+	fmt.Fprintln(out, "TYPE CONVERSION FUNCTIONS")
 	fmt.Fprintln(out, "═══════════════════════════")
 	fmt.Fprintln(out, "")
 	fmt.Fprintln(out, "int(value)          Convert to integer")
@@ -157,7 +179,7 @@ func showTypeConversionFunctions(out io.Writer) {
 
 func showUtilityFunctions(out io.Writer) {
 	fmt.Fprintln(out, "")
-	fmt.Fprintln(out, "🛠️  UTILITY FUNCTIONS")
+	fmt.Fprintln(out, "UTILITY FUNCTIONS")
 	fmt.Fprintln(out, "═══════════════════")
 	fmt.Fprintln(out, "")
 	fmt.Fprintln(out, "len(object)         Get length of collections")
@@ -184,7 +206,7 @@ func showUtilityFunctions(out io.Writer) {
 
 func showMathFunctions(out io.Writer) {
 	fmt.Fprintln(out, "")
-	fmt.Fprintln(out, "🔢 MATHEMATICAL FUNCTIONS")
+	fmt.Fprintln(out, "MATHEMATICAL FUNCTIONS")
 	fmt.Fprintln(out, "══════════════════════════")
 	fmt.Fprintln(out, "")
 	fmt.Fprintln(out, "max(*args)          Find maximum value")
@@ -207,7 +229,7 @@ func showMathFunctions(out io.Writer) {
 
 func showCollectionFunctions(out io.Writer) {
 	fmt.Fprintln(out, "")
-	fmt.Fprintln(out, "📦 COLLECTION FUNCTIONS")
+	fmt.Fprintln(out, "COLLECTION FUNCTIONS")
 	fmt.Fprintln(out, "═══════════════════════")
 	fmt.Fprintln(out, "")
 	fmt.Fprintln(out, "enumerate(array)    Get index-value pairs")
@@ -226,12 +248,72 @@ func showCollectionFunctions(out io.Writer) {
 
 func showSystemFunctions(out io.Writer) {
 	fmt.Fprintln(out, "")
-	fmt.Fprintln(out, "⚙️  SYSTEM FUNCTIONS")
+	fmt.Fprintln(out, "SYSTEM FUNCTIONS")
 	fmt.Fprintln(out, "══════════════════")
 	fmt.Fprintln(out, "")
 	fmt.Fprintln(out, "help()              Show basic help information")
 	fmt.Fprintln(out, "version()           Show version information")
 	fmt.Fprintln(out, "modules()           List standard library modules")
+	fmt.Fprintln(out, "")
+	fmt.Fprintln(out, "open(path, mode)    Open file for reading/writing")
+	fmt.Fprintln(out, "  open(\"data.txt\", \"r\")  # Read mode")
+	fmt.Fprintln(out, "  open(\"out.txt\", \"w\")   # Write mode")
+	fmt.Fprintln(out, "  open(\"log.txt\", \"a\")   # Append mode")
+	fmt.Fprintln(out, "")
+	fmt.Fprintln(out, "parseHash(json_str) Parse JSON string to hash")
+	fmt.Fprintln(out, "  parseHash('{\"name\": \"Alice\"}')  # → {\"name\": \"Alice\"}")
+	fmt.Fprintln(out, "")
+}
+
+func showNetworkFunctions(out io.Writer) {
+	fmt.Fprintln(out, "")
+	fmt.Fprintln(out, "NETWORK & HTTP FUNCTIONS")
+	fmt.Fprintln(out, "═══════════════════════════")
+	fmt.Fprintln(out, "")
+	fmt.Fprintln(out, "httpGet(url, headers) Make HTTP GET request")
+	fmt.Fprintln(out, "  response = httpGet(\"https://api.example.com/data\")")
+	fmt.Fprintln(out, "  response = httpGet(url, {\"Authorization\": \"Bearer token\"})")
+	fmt.Fprintln(out, "")
+	fmt.Fprintln(out, "httpPost(url, data, headers) Make HTTP POST request")
+	fmt.Fprintln(out, "  response = httpPost(\"https://api.example.com/users\", data)")
+	fmt.Fprintln(out, "")
+	fmt.Fprintln(out, "httpPut(url, data, headers) Make HTTP PUT request")
+	fmt.Fprintln(out, "  response = httpPut(\"https://api.example.com/users/1\", data)")
+	fmt.Fprintln(out, "")
+	fmt.Fprintln(out, "httpDelete(url, headers) Make HTTP DELETE request")
+	fmt.Fprintln(out, "  response = httpDelete(\"https://api.example.com/users/1\")")
+	fmt.Fprintln(out, "")
+	fmt.Fprintln(out, "httpParseJSON(json_str) Parse JSON string to object")
+	fmt.Fprintln(out, "  data = httpParseJSON(response.body)")
+	fmt.Fprintln(out, "")
+	fmt.Fprintln(out, "httpStringifyJSON(obj) Convert object to JSON string")
+	fmt.Fprintln(out, "  json_str = httpStringifyJSON(data)")
+	fmt.Fprintln(out, "")
+}
+
+func showTimeFunctions(out io.Writer) {
+	fmt.Fprintln(out, "")
+	fmt.Fprintln(out, "TIME & DATE FUNCTIONS")
+	fmt.Fprintln(out, "═══════════════════════")
+	fmt.Fprintln(out, "")
+	fmt.Fprintln(out, "timeNow()           Get current timestamp (Unix seconds)")
+	fmt.Fprintln(out, "  timestamp = timeNow()  # → 1672531200")
+	fmt.Fprintln(out, "")
+	fmt.Fprintln(out, "timeNowNano()       Get current timestamp (nanoseconds)")
+	fmt.Fprintln(out, "  nano_time = timeNowNano()")
+	fmt.Fprintln(out, "")
+	fmt.Fprintln(out, "timeSleep(seconds)  Sleep for specified duration")
+	fmt.Fprintln(out, "  timeSleep(2)       # Sleep for 2 seconds")
+	fmt.Fprintln(out, "  timeSleep(0.5)     # Sleep for 500 milliseconds")
+	fmt.Fprintln(out, "")
+	fmt.Fprintln(out, "timeFormat(timestamp, format) Format timestamp")
+	fmt.Fprintln(out, "  formatted = timeFormat(timestamp, \"2006-01-02 15:04:05\")")
+	fmt.Fprintln(out, "")
+	fmt.Fprintln(out, "timeParse(time_str, format) Parse time string")
+	fmt.Fprintln(out, "  timestamp = timeParse(\"2023-01-01 12:00:00\", \"2006-01-02 15:04:05\")")
+	fmt.Fprintln(out, "")
+	fmt.Fprintln(out, "timeDate(year, month, day, hour, min, sec) Create timestamp")
+	fmt.Fprintln(out, "  timestamp = timeDate(2023, 1, 1, 12, 0, 0)")
 	fmt.Fprintln(out, "")
 }
 
@@ -241,12 +323,14 @@ func showAllBuiltinFunctions(out io.Writer) {
 	showMathFunctions(out)
 	showCollectionFunctions(out)
 	showSystemFunctions(out)
+	showNetworkFunctions(out)
+	showTimeFunctions(out)
 }
 
 // Standard library module displays
 func showArrayModule(out io.Writer) {
 	fmt.Fprintln(out, "")
-	fmt.Fprintln(out, "📋 ARRAY MODULE")
+	fmt.Fprintln(out, "ARRAY MODULE")
 	fmt.Fprintln(out, "═══════════════")
 	fmt.Fprintln(out, "")
 	fmt.Fprintln(out, "Constructor:")
@@ -277,7 +361,7 @@ func showArrayModule(out io.Writer) {
 
 func showStringModule(out io.Writer) {
 	fmt.Fprintln(out, "")
-	fmt.Fprintln(out, "📝 STRING MODULE")
+	fmt.Fprintln(out, "STRING MODULE")
 	fmt.Fprintln(out, "════════════════")
 	fmt.Fprintln(out, "")
 	fmt.Fprintln(out, "Constructor:")
@@ -304,7 +388,7 @@ func showStringModule(out io.Writer) {
 
 func showIntegerModule(out io.Writer) {
 	fmt.Fprintln(out, "")
-	fmt.Fprintln(out, "🔢 INTEGER MODULE")
+	fmt.Fprintln(out, "INTEGER MODULE")
 	fmt.Fprintln(out, "═════════════════")
 	fmt.Fprintln(out, "")
 	fmt.Fprintln(out, "Constructor:")
@@ -334,7 +418,7 @@ func showIntegerModule(out io.Writer) {
 
 func showFloatModule(out io.Writer) {
 	fmt.Fprintln(out, "")
-	fmt.Fprintln(out, "🔢 FLOAT MODULE")
+	fmt.Fprintln(out, "FLOAT MODULE")
 	fmt.Fprintln(out, "═══════════════")
 	fmt.Fprintln(out, "")
 	fmt.Fprintln(out, "Constructor:")
@@ -366,7 +450,7 @@ func showFloatModule(out io.Writer) {
 
 func showBooleanModule(out io.Writer) {
 	fmt.Fprintln(out, "")
-	fmt.Fprintln(out, "✅ BOOLEAN MODULE")
+	fmt.Fprintln(out, "BOOLEAN MODULE")
 	fmt.Fprintln(out, "═════════════════")
 	fmt.Fprintln(out, "")
 	fmt.Fprintln(out, "Constructor:")
@@ -391,7 +475,7 @@ func showBooleanModule(out io.Writer) {
 
 func showFileModule(out io.Writer) {
 	fmt.Fprintln(out, "")
-	fmt.Fprintln(out, "📁 FILE MODULE")
+	fmt.Fprintln(out, "FILE MODULE")
 	fmt.Fprintln(out, "══════════════")
 	fmt.Fprintln(out, "")
 	fmt.Fprintln(out, "Constructor:")
@@ -414,7 +498,7 @@ func showFileModule(out io.Writer) {
 
 func showOSModule(out io.Writer) {
 	fmt.Fprintln(out, "")
-	fmt.Fprintln(out, "💻 OS MODULE")
+	fmt.Fprintln(out, "OS MODULE")
 	fmt.Fprintln(out, "════════════")
 	fmt.Fprintln(out, "")
 	fmt.Fprintln(out, "Constructor:")
@@ -440,7 +524,7 @@ func showOSModule(out io.Writer) {
 
 func showMathModule(out io.Writer) {
 	fmt.Fprintln(out, "")
-	fmt.Fprintln(out, "🧮 MATH MODULE")
+	fmt.Fprintln(out, "MATH MODULE")
 	fmt.Fprintln(out, "══════════════")
 	fmt.Fprintln(out, "")
 	fmt.Fprintln(out, "Currently minimal - placeholder for future expansion")
@@ -469,7 +553,7 @@ func showAllStandardLibrary(out io.Writer) {
 // Language feature displays (add these and other required functions)
 func showVariablesAndAssignment(out io.Writer) {
 	fmt.Fprintln(out, "")
-	fmt.Fprintln(out, "📦 VARIABLES & ASSIGNMENT")
+	fmt.Fprintln(out, "VARIABLES & ASSIGNMENT")
 	fmt.Fprintln(out, "═════════════════════════")
 	fmt.Fprintln(out, "")
 	fmt.Fprintln(out, "Basic Assignment:")
@@ -498,16 +582,16 @@ func showVariablesAndAssignment(out io.Writer) {
 
 func showControlFlow(out io.Writer) {
 	fmt.Fprintln(out, "")
-	fmt.Fprintln(out, "🔀 CONTROL FLOW")
+	fmt.Fprintln(out, "CONTROL FLOW")
 	fmt.Fprintln(out, "═══════════════")
 	fmt.Fprintln(out, "")
 	fmt.Fprintln(out, "If Statements:")
 	fmt.Fprintln(out, "  if condition:")
-	fmt.Fprintln(out, "      // code")
+	fmt.Fprintln(out, "      # code")
 	fmt.Fprintln(out, "  otherwise another_condition:")
-	fmt.Fprintln(out, "      // code")
+	fmt.Fprintln(out, "      # code")
 	fmt.Fprintln(out, "  else:")
-	fmt.Fprintln(out, "      // code")
+	fmt.Fprintln(out, "      # code")
 	fmt.Fprintln(out, "")
 	fmt.Fprintln(out, "For Loops:")
 	fmt.Fprintln(out, "  for item in array:")
@@ -518,16 +602,16 @@ func showControlFlow(out io.Writer) {
 	fmt.Fprintln(out, "")
 	fmt.Fprintln(out, "While Loops:")
 	fmt.Fprintln(out, "  while condition:")
-	fmt.Fprintln(out, "      // code")
+	fmt.Fprintln(out, "      # code")
 	fmt.Fprintln(out, "")
 	fmt.Fprintln(out, "Match Statements:")
 	fmt.Fprintln(out, "  match value:")
 	fmt.Fprintln(out, "      case \"option1\":")
-	fmt.Fprintln(out, "          // code")
+	fmt.Fprintln(out, "          # code")
 	fmt.Fprintln(out, "      case \"option2\":")
-	fmt.Fprintln(out, "          // code")
+	fmt.Fprintln(out, "          # code")
 	fmt.Fprintln(out, "      _:")
-	fmt.Fprintln(out, "          // default")
+	fmt.Fprintln(out, "          # default")
 	fmt.Fprintln(out, "")
 	fmt.Fprintln(out, "Loop Control:")
 	fmt.Fprintln(out, "  skip      # Continue to next iteration")
@@ -537,7 +621,7 @@ func showControlFlow(out io.Writer) {
 
 func showFunctions(out io.Writer) {
 	fmt.Fprintln(out, "")
-	fmt.Fprintln(out, "🪄 FUNCTIONS (SPELLS)")
+	fmt.Fprintln(out, "FUNCTIONS (SPELLS)")
 	fmt.Fprintln(out, "═══════════════════")
 	fmt.Fprintln(out, "")
 	fmt.Fprintln(out, "Basic Function:")
@@ -567,7 +651,7 @@ func showFunctions(out io.Writer) {
 
 func showClasses(out io.Writer) {
 	fmt.Fprintln(out, "")
-	fmt.Fprintln(out, "🏛️  CLASSES (GRIMOIRES)")
+	fmt.Fprintln(out, "CLASSES (GRIMOIRES)")
 	fmt.Fprintln(out, "════════════════════════")
 	fmt.Fprintln(out, "")
 	fmt.Fprintln(out, "Basic Class:")
@@ -602,7 +686,7 @@ func showClasses(out io.Writer) {
 
 func showErrorHandling(out io.Writer) {
 	fmt.Fprintln(out, "")
-	fmt.Fprintln(out, "🛡️  ERROR HANDLING")
+	fmt.Fprintln(out, "ERROR HANDLING")
 	fmt.Fprintln(out, "═════════════════")
 	fmt.Fprintln(out, "")
 	fmt.Fprintln(out, "Basic Error Handling:")
@@ -639,7 +723,7 @@ func showErrorHandling(out io.Writer) {
 
 func showModules(out io.Writer) {
 	fmt.Fprintln(out, "")
-	fmt.Fprintln(out, "📦 MODULES & IMPORTS")
+	fmt.Fprintln(out, "MODULES & IMPORTS")
 	fmt.Fprintln(out, "═══════════════════")
 	fmt.Fprintln(out, "")
 	fmt.Fprintln(out, "Basic Import:")
@@ -667,7 +751,7 @@ func showModules(out io.Writer) {
 
 func showDataTypes(out io.Writer) {
 	fmt.Fprintln(out, "")
-	fmt.Fprintln(out, "📊 DATA TYPES")
+	fmt.Fprintln(out, "DATA TYPES")
 	fmt.Fprintln(out, "═════════════")
 	fmt.Fprintln(out, "")
 	fmt.Fprintln(out, "Primitive Types:")
@@ -695,9 +779,35 @@ func showDataTypes(out io.Writer) {
 	fmt.Fprintln(out, "")
 }
 
+func showCommentSyntax(out io.Writer) {
+	fmt.Fprintln(out, "")
+	fmt.Fprintln(out, "COMMENT SYNTAX")
+	fmt.Fprintln(out, "═════════════")
+	fmt.Fprintln(out, "")
+	fmt.Fprintln(out, "Single-line Comments:")
+	fmt.Fprintln(out, "  # This is a single-line comment")
+	fmt.Fprintln(out, "  x = 42  # Comment after code")
+	fmt.Fprintln(out, "")
+	fmt.Fprintln(out, "Multi-line Comments:")
+	fmt.Fprintln(out, "  ```")
+	fmt.Fprintln(out, "  This is a multi-line comment")
+	fmt.Fprintln(out, "  that spans multiple lines")
+	fmt.Fprintln(out, "  ```")
+	fmt.Fprintln(out, "")
+	fmt.Fprintln(out, "Documentation Comments:")
+	fmt.Fprintln(out, "  ```")
+	fmt.Fprintln(out, "  Function documentation")
+	fmt.Fprintln(out, "  Parameters: name (string)")
+	fmt.Fprintln(out, "  Returns: greeting string")
+	fmt.Fprintln(out, "  ```")
+	fmt.Fprintln(out, "  spell greet(name):")
+	fmt.Fprintln(out, "      return f\"Hello, {name}!\"")
+	fmt.Fprintln(out, "")
+}
+
 func showOperators(out io.Writer) {
 	fmt.Fprintln(out, "")
-	fmt.Fprintln(out, "⚡ OPERATORS")
+	fmt.Fprintln(out, "OPERATORS")
 	fmt.Fprintln(out, "═══════════")
 	fmt.Fprintln(out, "")
 	fmt.Fprintln(out, "Arithmetic:")
@@ -733,13 +843,14 @@ func showAllLanguageFeatures(out io.Writer) {
 	showErrorHandling(out)
 	showModules(out)
 	showDataTypes(out)
+	showCommentSyntax(out)
 	showOperators(out)
 }
 
 // Example displays
 func showBasicExamples(out io.Writer) {
 	fmt.Fprintln(out, "")
-	fmt.Fprintln(out, "👋 HELLO WORLD & BASICS")
+	fmt.Fprintln(out, "HELLO WORLD & BASICS")
 	fmt.Fprintln(out, "═══════════════════════")
 	fmt.Fprintln(out, "")
 	fmt.Fprintln(out, "Hello World:")
@@ -765,7 +876,7 @@ func showBasicExamples(out io.Writer) {
 
 func showArrayExamples(out io.Writer) {
 	fmt.Fprintln(out, "")
-	fmt.Fprintln(out, "📋 ARRAY EXAMPLES")
+	fmt.Fprintln(out, "ARRAY EXAMPLES")
 	fmt.Fprintln(out, "═════════════════")
 	fmt.Fprintln(out, "")
 	fmt.Fprintln(out, "Creating and Using Arrays:")
@@ -792,7 +903,7 @@ func showArrayExamples(out io.Writer) {
 
 func showStringExamples(out io.Writer) {
 	fmt.Fprintln(out, "")
-	fmt.Fprintln(out, "📝 STRING EXAMPLES")
+	fmt.Fprintln(out, "STRING EXAMPLES")
 	fmt.Fprintln(out, "══════════════════")
 	fmt.Fprintln(out, "")
 	fmt.Fprintln(out, "String Processing:")
@@ -823,17 +934,17 @@ func showStringExamples(out io.Writer) {
 
 func showFileExamples(out io.Writer) {
 	fmt.Fprintln(out, "")
-	fmt.Fprintln(out, "📁 FILE EXAMPLES")
+	fmt.Fprintln(out, "FILE EXAMPLES")
 	fmt.Fprintln(out, "════════════════")
 	fmt.Fprintln(out, "")
 	fmt.Fprintln(out, "Reading and Writing Files:")
 	fmt.Fprintln(out, "  file = File()")
 	fmt.Fprintln(out, "  ")
-	fmt.Fprintln(out, "  // Write data to file")
+	fmt.Fprintln(out, "  # Write data to file")
 	fmt.Fprintln(out, "  data = \"Hello, Carrion!\"")
 	fmt.Fprintln(out, "  file.write(\"greeting.txt\", data)")
 	fmt.Fprintln(out, "")
-	fmt.Fprintln(out, "  // Read data from file")
+	fmt.Fprintln(out, "  # Read data from file")
 	fmt.Fprintln(out, "  if file.exists(\"greeting.txt\"):")
 	fmt.Fprintln(out, "      content = file.read(\"greeting.txt\")")
 	fmt.Fprintln(out, "      print(f\"File content: {content}\")")
@@ -842,7 +953,7 @@ func showFileExamples(out io.Writer) {
 	fmt.Fprintln(out, "  file = File()")
 	fmt.Fprintln(out, "  ")
 	fmt.Fprintln(out, "  spell log_message(message):")
-	fmt.Fprintln(out, "      timestamp = get_current_time()  // Assuming this exists")
+	fmt.Fprintln(out, "      timestamp = get_current_time()  # Assuming this exists")
 	fmt.Fprintln(out, "      log_entry = f\"[{timestamp}] {message}\\n\"")
 	fmt.Fprintln(out, "      file.append(\"app.log\", log_entry)")
 	fmt.Fprintln(out, "  ")
@@ -853,7 +964,7 @@ func showFileExamples(out io.Writer) {
 
 func showMathExamples(out io.Writer) {
 	fmt.Fprintln(out, "")
-	fmt.Fprintln(out, "🧮 MATHEMATICAL EXAMPLES")
+	fmt.Fprintln(out, "MATHEMATICAL EXAMPLES")
 	fmt.Fprintln(out, "════════════════════════")
 	fmt.Fprintln(out, "")
 	fmt.Fprintln(out, "Number Base Conversions:")
@@ -888,7 +999,7 @@ func showMathExamples(out io.Writer) {
 
 func showOOPExamples(out io.Writer) {
 	fmt.Fprintln(out, "")
-	fmt.Fprintln(out, "🏛️  OOP EXAMPLES")
+	fmt.Fprintln(out, "OOP EXAMPLES")
 	fmt.Fprintln(out, "══════════════")
 	fmt.Fprintln(out, "")
 	fmt.Fprintln(out, "Bank Account Class:")
@@ -922,7 +1033,7 @@ func showOOPExamples(out io.Writer) {
 
 func showErrorExamples(out io.Writer) {
 	fmt.Fprintln(out, "")
-	fmt.Fprintln(out, "🛡️  ERROR HANDLING EXAMPLES")
+	fmt.Fprintln(out, "ERROR HANDLING EXAMPLES")
 	fmt.Fprintln(out, "═══════════════════════════")
 	fmt.Fprintln(out, "")
 	fmt.Fprintln(out, "Safe Division:")
@@ -954,7 +1065,7 @@ func showErrorExamples(out io.Writer) {
 
 func showMiniPrograms(out io.Writer) {
 	fmt.Fprintln(out, "")
-	fmt.Fprintln(out, "🎯 COMPLETE MINI PROGRAMS")
+	fmt.Fprintln(out, "COMPLETE MINI PROGRAMS")
 	fmt.Fprintln(out, "═════════════════════════")
 	fmt.Fprintln(out, "")
 	fmt.Fprintln(out, "Factorial Calculator:")
@@ -968,7 +1079,7 @@ func showMiniPrograms(out io.Writer) {
 	fmt.Fprintln(out, "  print(f\"{number}! = {result}\")")
 	fmt.Fprintln(out, "")
 	fmt.Fprintln(out, "Number Guessing Game:")
-	fmt.Fprintln(out, "  import \"random\"  // Assuming random module exists")
+	fmt.Fprintln(out, "  import \"random\"  # Assuming random module exists")
 	fmt.Fprintln(out, "  ")
 	fmt.Fprintln(out, "  target = random.randint(1, 100)")
 	fmt.Fprintln(out, "  attempts = 0")
@@ -989,6 +1100,64 @@ func showMiniPrograms(out io.Writer) {
 	fmt.Fprintln(out, "")
 }
 
+func showHTTPExamples(out io.Writer) {
+	fmt.Fprintln(out, "")
+	fmt.Fprintln(out, "HTTP & WEB EXAMPLES")
+	fmt.Fprintln(out, "═══════════════════════")
+	fmt.Fprintln(out, "")
+	fmt.Fprintln(out, "Simple GET Request:")
+	fmt.Fprintln(out, "  response = httpGet(\"https://api.github.com/users/octocat\")")
+	fmt.Fprintln(out, "  data = httpParseJSON(response[\"body\"])")
+	fmt.Fprintln(out, "  print(f\"User: {data[\"name\"]}\")")
+	fmt.Fprintln(out, "")
+	fmt.Fprintln(out, "POST Request with Data:")
+	fmt.Fprintln(out, "  user_data = {\"name\": \"Alice\", \"email\": \"alice@example.com\"}")
+	fmt.Fprintln(out, "  json_data = httpStringifyJSON(user_data)")
+	fmt.Fprintln(out, "  headers = {\"Content-Type\": \"application/json\"}")
+	fmt.Fprintln(out, "  response = httpPost(\"https://api.example.com/users\", json_data, headers)")
+	fmt.Fprintln(out, "")
+	fmt.Fprintln(out, "Error Handling for HTTP:")
+	fmt.Fprintln(out, "  attempt:")
+	fmt.Fprintln(out, "      response = httpGet(\"https://api.example.com/data\")")
+	fmt.Fprintln(out, "      if response[\"status\"] == 200:")
+	fmt.Fprintln(out, "          data = httpParseJSON(response[\"body\"])")
+	fmt.Fprintln(out, "          print(\"Success:\", data)")
+	fmt.Fprintln(out, "      else:")
+	fmt.Fprintln(out, "          print(f\"HTTP Error: {response[\"status\"]}\")")
+	fmt.Fprintln(out, "  ensnare:")
+	fmt.Fprintln(out, "      print(\"Network error occurred\")")
+	fmt.Fprintln(out, "")
+}
+
+func showTimeExamples(out io.Writer) {
+	fmt.Fprintln(out, "")
+	fmt.Fprintln(out, "TIME & DATE EXAMPLES")
+	fmt.Fprintln(out, "═══════════════════════")
+	fmt.Fprintln(out, "")
+	fmt.Fprintln(out, "Current Time and Delays:")
+	fmt.Fprintln(out, "  print(\"Starting task...\")")
+	fmt.Fprintln(out, "  start_time = timeNow()")
+	fmt.Fprintln(out, "  ")
+	fmt.Fprintln(out, "  timeSleep(2)  # Wait 2 seconds")
+	fmt.Fprintln(out, "  ")
+	fmt.Fprintln(out, "  end_time = timeNow()")
+	fmt.Fprintln(out, "  elapsed = timeDiff(end_time, start_time)")
+	fmt.Fprintln(out, "  print(f\"Task completed in {elapsed} seconds\")")
+	fmt.Fprintln(out, "")
+	fmt.Fprintln(out, "Date Formatting:")
+	fmt.Fprintln(out, "  timestamp = timeNow()")
+	fmt.Fprintln(out, "  formatted = timeFormat(timestamp, \"2006-01-02 15:04:05\")")
+	fmt.Fprintln(out, "  print(f\"Current time: {formatted}\")")
+	fmt.Fprintln(out, "")
+	fmt.Fprintln(out, "Working with Specific Dates:")
+	fmt.Fprintln(out, "  birthday = timeDate(1990, 6, 15, 0, 0, 0)")
+	fmt.Fprintln(out, "  now = timeNow()")
+	fmt.Fprintln(out, "  age_seconds = timeDiff(now, birthday)")
+	fmt.Fprintln(out, "  age_years = age_seconds / (365 * 24 * 3600)")
+	fmt.Fprintln(out, "  print(f\"Age: {age_years} years\")")
+	fmt.Fprintln(out, "")
+}
+
 func showAllExamples(out io.Writer) {
 	showBasicExamples(out)
 	showArrayExamples(out)
@@ -997,5 +1166,7 @@ func showAllExamples(out io.Writer) {
 	showMathExamples(out)
 	showOOPExamples(out)
 	showErrorExamples(out)
+	showHTTPExamples(out)
+	showTimeExamples(out)
 	showMiniPrograms(out)
 }

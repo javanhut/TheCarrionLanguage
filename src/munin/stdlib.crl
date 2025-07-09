@@ -31,7 +31,7 @@ Returns:
     module discovery, and accessing the interactive help system.
 ```
 spell help():
-  return "To check current version use: version() function\nTo check Available modules use: modules() function.\nTo run interactive helper functions type: help in interactive repl"
+  return "CARRION LANGUAGE HELP\n\nQUICK START:\n• version() - Show language version\n• modules() - List available modules\n• help in REPL - Interactive help system\n\nBUILT-IN FUNCTIONS:\n• print(value) - Display output\n• input(prompt) - Read user input\n• len(obj) - Get length of strings/arrays/hashes\n• type(obj) - Get object type\n• range(start, stop, step) - Generate sequences\n• max(values) - Find maximum value\n• abs(number) - Absolute value\n\nNETWORK FUNCTIONS:\n• httpGet(url) - HTTP GET request\n• httpPost(url, data) - HTTP POST request\n• httpParseJSON(json_str) - Parse JSON\n\nTIME FUNCTIONS:\n• timeNow() - Current timestamp\n• timeSleep(seconds) - Sleep/delay\n• timeFormat(timestamp, format) - Format time\n\nFILE FUNCTIONS:\n• open(path, mode) - Open file\n• File() - File operations class\n\nSYSTEM FUNCTIONS:\n• OS() - Operating system interface\n• osGetEnv(var) - Get environment variable\n• osRunCommand(cmd) - Execute system command\n\nINTERACTIVE HELP:\nType 'help' in the REPL for detailed interactive help\nwith examples, tutorials, and function search."
 
 ```
 Returns version information for the Carrion language and Munin standard library.
