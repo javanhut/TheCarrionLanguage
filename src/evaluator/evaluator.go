@@ -674,6 +674,25 @@ func Eval(node ast.Node, env *object.Environment, ctx *CallContext) object.Objec
 			return index
 		}
 		return evalIndexExpression(left, index, node, ctx)
+	case *ast.SliceExpression:
+		left := Eval(node.Left, env, ctx)
+		if isError(left) {
+			return left
+		}
+		var start, end object.Object
+		if node.Start != nil {
+			start = Eval(node.Start, env, ctx)
+			if isError(start) {
+				return start
+			}
+		}
+		if node.End != nil {
+			end = Eval(node.End, env, ctx)
+			if isError(end) {
+				return end
+			}
+		}
+		return evalSliceExpression(left, start, end, node, ctx)
 	case *ast.GrimoireDefinition:
 		return evalGrimoireDefinition(node, env, ctx)
 	case *ast.AttemptStatement:
@@ -2072,6 +2091,137 @@ func evalStringIndexExpression(
 
 	// Return a single-character string
 	return &object.String{Value: string(stringObj.Value[idx])}
+}
+
+func evalSliceExpression(left, start, end object.Object, node ast.Node, ctx *CallContext) object.Object {
+	// Unwrap instances to get the underlying primitive values
+	unwrappedLeft := unwrapPrimitive(left)
+	
+	switch {
+	case unwrappedLeft.Type() == object.STRING_OBJ:
+		result := evalStringSliceExpression(unwrappedLeft, start, end, node, ctx)
+		// If the original left was an instance, wrap the result back to maintain consistency
+		if left.Type() == object.INSTANCE_OBJ {
+			var currentEnv *object.Environment
+			if ctx != nil && ctx.env != nil {
+				currentEnv = ctx.env
+			} else {
+				currentEnv = object.NewEnvironment()
+			}
+			return wrapPrimitive(result, currentEnv, ctx)
+		}
+		return result
+	case unwrappedLeft.Type() == object.ARRAY_OBJ:
+		return evalArraySliceExpression(unwrappedLeft, start, end, node, ctx)
+	default:
+		return newErrorWithTrace("slice operator not supported: %s", node, ctx, left.Type())
+	}
+}
+
+func evalStringSliceExpression(str, start, end object.Object, node ast.Node, ctx *CallContext) object.Object {
+	stringObj, ok := str.(*object.String)
+	if !ok {
+		return newErrorWithTrace("slice operation not supported on %s", node, ctx, str.Type())
+	}
+	
+	strLen := int64(len(stringObj.Value))
+	var startIdx, endIdx int64
+	
+	// Handle start index
+	if start != nil {
+		startInt, ok := start.(*object.Integer)
+		if !ok {
+			return newErrorWithTrace("slice start index must be INTEGER, got %s", node, ctx, start.Type())
+		}
+		startIdx = startInt.Value
+		if startIdx < 0 {
+			startIdx = strLen + startIdx
+		}
+	} else {
+		startIdx = 0
+	}
+	
+	// Handle end index
+	if end != nil {
+		endInt, ok := end.(*object.Integer)
+		if !ok {
+			return newErrorWithTrace("slice end index must be INTEGER, got %s", node, ctx, end.Type())
+		}
+		endIdx = endInt.Value
+		if endIdx < 0 {
+			endIdx = strLen + endIdx
+		}
+	} else {
+		endIdx = strLen
+	}
+	
+	// Bounds checking
+	if startIdx < 0 {
+		startIdx = 0
+	}
+	if endIdx > strLen {
+		endIdx = strLen
+	}
+	if startIdx > endIdx {
+		startIdx = endIdx
+	}
+	
+	// Extract substring
+	return &object.String{Value: stringObj.Value[startIdx:endIdx]}
+}
+
+func evalArraySliceExpression(arr, start, end object.Object, node ast.Node, ctx *CallContext) object.Object {
+	arrayObj, ok := arr.(*object.Array)
+	if !ok {
+		return newErrorWithTrace("slice operation not supported on %s", node, ctx, arr.Type())
+	}
+	
+	arrLen := int64(len(arrayObj.Elements))
+	var startIdx, endIdx int64
+	
+	// Handle start index
+	if start != nil {
+		startInt, ok := start.(*object.Integer)
+		if !ok {
+			return newErrorWithTrace("slice start index must be INTEGER, got %s", node, ctx, start.Type())
+		}
+		startIdx = startInt.Value
+		if startIdx < 0 {
+			startIdx = arrLen + startIdx
+		}
+	} else {
+		startIdx = 0
+	}
+	
+	// Handle end index
+	if end != nil {
+		endInt, ok := end.(*object.Integer)
+		if !ok {
+			return newErrorWithTrace("slice end index must be INTEGER, got %s", node, ctx, end.Type())
+		}
+		endIdx = endInt.Value
+		if endIdx < 0 {
+			endIdx = arrLen + endIdx
+		}
+	} else {
+		endIdx = arrLen
+	}
+	
+	// Bounds checking
+	if startIdx < 0 {
+		startIdx = 0
+	}
+	if endIdx > arrLen {
+		endIdx = arrLen
+	}
+	if startIdx > endIdx {
+		startIdx = endIdx
+	}
+	
+	// Extract subarray
+	newElements := make([]object.Object, endIdx-startIdx)
+	copy(newElements, arrayObj.Elements[startIdx:endIdx])
+	return &object.Array{Elements: newElements}
 }
 
 func extendFunctionEnv(

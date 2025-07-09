@@ -90,6 +90,136 @@ grim Queue:
         
 
 grim Heap:
-    init():
-        ignore
+    init(is_min_heap = True):
+        self.heap = Array([])
+        self.is_min_heap = is_min_heap
+        self.size = 0
+    
+    spell _parent(index):
+        return (index - 1) // 2
+    
+    spell _left_child(index):
+        return 2 * index + 1
+    
+    spell _right_child(index):
+        return 2 * index + 2
+    
+    spell _has_left_child(index):
+        return self._left_child(index) < self.size
+    
+    spell _has_right_child(index):
+        return self._right_child(index) < self.size
+    
+    spell _has_parent(index):
+        return self._parent(index) >= 0
+    
+    spell _left_child_value(index):
+        return self.heap[self._left_child(index)]
+    
+    spell _right_child_value(index):
+        return self.heap[self._right_child(index)]
+    
+    spell _parent_value(index):
+        return self.heap[self._parent(index)]
+    
+    spell _swap(index1, index2):
+        temp = self.heap[index1]
+        val2 = self.heap[index2]
+        self.heap.set(index1, val2)
+        self.heap.set(index2, temp)
+    
+    spell _compare(val1, val2):
+        if self.is_min_heap:
+            return val1 < val2
+        else:
+            return val1 > val2
+    
+    spell _heapify_up():
+        index = self.size - 1
+        while self._has_parent(index) and self._compare(self.heap[index], self._parent_value(index)):
+            self._swap(index, self._parent(index))
+            index = self._parent(index)
+    
+    spell _heapify_down():
+        index = 0
+        while self._has_left_child(index):
+            smaller_child_index = self._left_child(index)
+            if self._has_right_child(index) and self._compare(self._right_child_value(index), self._left_child_value(index)):
+                smaller_child_index = self._right_child(index)
+            
+            if self._compare(self.heap[index], self.heap[smaller_child_index]):
+                stop
+            else:
+                self._swap(index, smaller_child_index)
+            
+            index = smaller_child_index
+    
+    spell insert(value):
+        self.heap.append(value)
+        self.size = self.size + 1
+        self._heapify_up()
+    
+    spell extract():
+        if self.size == 0:
+            return "Cannot extract from empty heap"
+        
+        root = self.heap[0]
+        last_element = self.heap[self.size - 1]
+        self.heap.set(0, last_element)
+        sliced_elements = self.heap.slice(0, self.size - 1)
+        self.heap = Array(sliced_elements)
+        self.size = self.size - 1
+        
+        if self.size > 0:
+            self._heapify_down()
+        
+        return root
+    
+    spell peek():
+        if self.size == 0:
+            return "Cannot peek empty heap"
+        return self.heap[0]
+    
+    spell is_empty():
+        return self.size == 0
+    
+    spell get_size():
+        return self.size
+    
+    spell clear():
+        self.heap = Array([])
+        self.size = 0
+    
+    spell to_array():
+        return self.heap.slice(0, self.size)
+    
+    spell print():
+        if self.size == 0:
+            print("Empty heap")
+        else:
+            if self.is_min_heap:
+                heap_type = "Min"
+            else:
+                heap_type = "Max"
+            print(f"{heap_type} Heap: {self.heap}")
+    
+    spell build_heap(array):
+        self.heap = Array(array[:])
+        self.size = len(array)
+        
+        for i in range(self.size // 2 - 1, -1, -1):
+            self._heapify_down_from(i)
+    
+    spell _heapify_down_from(index):
+        while self._has_left_child(index):
+            smaller_child_index = self._left_child(index)
+            if self._has_right_child(index) and self._compare(self._right_child_value(index), self._left_child_value(index)):
+                smaller_child_index = self._right_child(index)
+            
+            if self._compare(self.heap[index], self.heap[smaller_child_index]):
+                stop
+            else:
+                self._swap(index, smaller_child_index)
+            
+            index = smaller_child_index
         

@@ -991,9 +991,46 @@ func (p *Parser) parseFloatLiteral() ast.Expression {
 }
 
 func (p *Parser) parseIndexExpression(left ast.Expression) ast.Expression {
-	exp := &ast.IndexExpression{Token: p.currToken, Left: left}
+	tok := p.currToken
 	p.nextToken()
-	exp.Index = p.parseExpression(LOWEST)
+	
+	// Check if this is a slice expression by looking for colon
+	if p.currTokenIs(token.COLON) {
+		// This is a slice starting with :
+		sliceExp := &ast.SliceExpression{Token: tok, Left: left, Start: nil}
+		p.nextToken()
+		if !p.currTokenIs(token.RBRACK) {
+			sliceExp.End = p.parseExpression(LOWEST)
+		}
+		if !p.currTokenIs(token.RBRACK) {
+			if !p.expectPeek(token.RBRACK) {
+				return nil
+			}
+		}
+		return sliceExp
+	}
+	
+	// Parse the first expression
+	firstExp := p.parseExpression(LOWEST)
+	
+	// Check if there's a colon after the first expression (slice)
+	if p.peekTokenIs(token.COLON) {
+		sliceExp := &ast.SliceExpression{Token: tok, Left: left, Start: firstExp}
+		p.nextToken() // consume the colon
+		p.nextToken() // move to next token after colon
+		if !p.currTokenIs(token.RBRACK) {
+			sliceExp.End = p.parseExpression(LOWEST)
+		}
+		if !p.currTokenIs(token.RBRACK) {
+			if !p.expectPeek(token.RBRACK) {
+				return nil
+			}
+		}
+		return sliceExp
+	}
+	
+	// Regular index expression
+	exp := &ast.IndexExpression{Token: tok, Left: left, Index: firstExp}
 	if !p.expectPeek(token.RBRACK) {
 		return nil
 	}

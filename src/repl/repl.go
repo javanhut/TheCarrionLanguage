@@ -55,7 +55,7 @@ const ODINS_EYE = `
 func Start(in io.Reader, out io.Writer, env *object.Environment) {
 	line := liner.NewLiner()
 	evaluator.LineReader = line
-
+	print := fmt.Fprintln
 	defer func() {
 		ok := line.Close()
 		if ok != nil {
@@ -183,7 +183,7 @@ func Start(in io.Reader, out io.Writer, env *object.Environment) {
 			}
 			return
 		} else {
-			fmt.Fprintln(out, "Unsupported file type. Only .crl files are allowed.")
+			print(out, "Unsupported file type. Only .crl files are allowed.")
 			return
 		}
 	}
@@ -195,27 +195,27 @@ func Start(in io.Reader, out io.Writer, env *object.Environment) {
 	inIfBlock := false
 	lineNumber := 1 // Track line numbers for error context
 	consecutiveEmptyLines := 0 // Track consecutive empty lines for double-enter detection
-
-	fmt.Fprintln(out, "🦅 Welcome to the Carrion Programming Language REPL! 🦅")
-	fmt.Fprintln(out, "")
-	fmt.Fprintln(out, "📖 Quick Help:")
-	fmt.Fprintln(out, "   • Type 'mimir' for comprehensive function help")
-	fmt.Fprintln(out, "   • Type 'help()' for basic information")
-	fmt.Fprintln(out, "   • Type 'version()' to see current version")
-	fmt.Fprintln(out, "   • Type 'modules()' to list standard library modules")
-	fmt.Fprintln(out, "")
-	fmt.Fprintln(out, "⚡ REPL Commands:")
-	fmt.Fprintln(out, "   • 'clear' - Clear screen")
-	fmt.Fprintln(out, "   • 'quit', 'exit', 'q', 'qa' - Exit REPL")
-	fmt.Fprintln(out, "   • Use Tab for auto-completion")
-	fmt.Fprintln(out, "")
-	fmt.Fprintln(out, "✨ Quick Examples:")
-	fmt.Fprintln(out, "   print(\"Hello, World!\")     // Basic output")
-	fmt.Fprintln(out, "   x, y = (10, 20)            // Tuple unpacking")
-	fmt.Fprintln(out, "   42.to_bin()                // \"0b101010\"")
-	fmt.Fprintln(out, "   \"hello\".upper()            // \"HELLO\"")
-	fmt.Fprintln(out, "")
-	fmt.Fprintln(out, "May Mimir guide your coding journey! Type commands below:")
+	
+	print(out, "Welcome to the Carrion Programming Language REPL!")
+	print(out, "")
+	print(out, "Quick Help:")
+	print(out, "   • Type 'mimir' for comprehensive function help")
+	print(out, "   • Type 'help()' for basic information")
+	print(out, "   • Type 'version()' to see current version")
+	print(out, "   • Type 'modules()' to list standard library modules")
+	print(out, "")
+	print(out, "REPL Commands:")
+	print(out, "   • 'clear' - Clear screen")
+	print(out, "   • 'quit', 'exit', 'q', 'qa' - Exit REPL")
+	print(out, "   • Use Tab for auto-completion")
+	print(out, "")
+	print(out, "Quick Examples:")
+	print(out, "   print(\"Hello, World!\")     // Basic output")
+	print(out, "   x, y = (10, 20)            // Tuple unpacking")
+	print(out, "   x = 42\n\tx.to_bin()                // \"0b101010\"")
+	print(out, "   \"hello\".upper()            // \"HELLO\"")
+	print(out, "")
+	print(out, "May Mimir guide your coding journey! Type commands below:")
 
 	for {
 		var prompt string
@@ -229,7 +229,7 @@ func Start(in io.Reader, out io.Writer, env *object.Environment) {
 		input, err := line.Prompt(prompt)
 		if err != nil {
 			if err == io.EOF {
-				fmt.Fprintln(out, "\nFarewell, May the All Father bless your travels!")
+				print(out, "\nFarewell, May the All Father bless your travels!")
 				return
 			}
 			fmt.Fprintf(out, "Error reading line: %v\n", err)
@@ -245,8 +245,8 @@ func Start(in io.Reader, out io.Writer, env *object.Environment) {
 		// Handle special commands only at the primary prompt
 		if !isMultiline {
 			switch trimmedLine {
-			case "exit", "quit", "q", "qa":
-				fmt.Fprintln(out, "Farewell, May the All Father bless your travels!")
+			case "exit", "quit", "q", "qa", "qa!":
+				print(out, "Farewell, May the All Father bless your travels!")
 				return
 			case "clear":
 				clearScreen(out)
@@ -480,11 +480,11 @@ func isIncompleteParse(errs []string) bool {
 
 // startInteractiveHelp launches the interactive help system
 func startInteractiveHelp(line *liner.State, out io.Writer) {
-	fmt.Fprintln(out, "")
-	fmt.Fprintln(out, "═══════════════════════════════════════════════════════════════════")
-	fmt.Fprintln(out, "🧙‍♂️ Welcome to Mimir's Interactive Help System 🧙‍♂️")
-	fmt.Fprintln(out, "═══════════════════════════════════════════════════════════════════")
-	fmt.Fprintln(out, "")
+	print(out, "")
+	print(out, "═══════════════════════════════════════════════════════════════════")
+	print(out, "Welcome to Mimir's Interactive Help System")
+	print(out, "═══════════════════════════════════════════════════════════════════")
+	print(out, "")
 
 	for {
 		showHelpMenu(out)
@@ -492,7 +492,7 @@ func startInteractiveHelp(line *liner.State, out io.Writer) {
 		input, err := line.Prompt("help> ")
 		if err != nil {
 			if err == io.EOF {
-				fmt.Fprintln(out, "\nReturning to main REPL...")
+				print(out, "\nReturning to main REPL...")
 				return
 			}
 			fmt.Fprintf(out, "Error reading input: %v\n", err)
@@ -518,7 +518,7 @@ func startInteractiveHelp(line *liner.State, out io.Writer) {
 			// Will show menu again on next iteration
 			continue
 		case "q", "quit", "exit", "back":
-			fmt.Fprintln(out, "\n🦅 Returning to main REPL...")
+			print(out, "\nReturning to main REPL...")
 			return
 		case "clear":
 			clearScreen(out)
@@ -526,7 +526,7 @@ func startInteractiveHelp(line *liner.State, out io.Writer) {
 			if choice != "" {
 				// Try to find function by name
 				if found := searchSpecificFunction(choice, out); !found {
-					fmt.Fprintf(out, "❌ Unknown command '%s'. Type 'h' for menu or 'q' to quit.\n\n", input)
+					fmt.Fprintf(out, "Unknown command '%s'. Type 'h' for menu or 'q' to quit.\n\n", input)
 				}
 			}
 		}
@@ -535,25 +535,25 @@ func startInteractiveHelp(line *liner.State, out io.Writer) {
 
 // showHelpMenu displays the main help menu
 func showHelpMenu(out io.Writer) {
-	fmt.Fprintln(out, "📚 What would you like help with?")
-	fmt.Fprintln(out, "")
-	fmt.Fprintln(out, "  1️⃣  Built-in Functions    - Core language functions (print, len, type, etc.)")
-	fmt.Fprintln(out, "  2️⃣  Standard Library      - Munin modules (Array, String, File, OS, etc.)")
-	fmt.Fprintln(out, "  3️⃣  Language Features     - Syntax, control flow, OOP, error handling")
-	fmt.Fprintln(out, "  4️⃣  Examples & Demos      - Working code examples and tutorials")
-	fmt.Fprintln(out, "  5️⃣  Search Functions      - Find specific functions by name or purpose")
-	fmt.Fprintln(out, "  6️⃣  Tips & Tricks         - REPL shortcuts and advanced features")
-	fmt.Fprintln(out, "")
-	fmt.Fprintln(out, "💡 Commands: Type number/name (e.g., '1' or 'builtins'), 'h' for menu, 'q' to quit")
-	fmt.Fprintln(out, "🔍 Quick search: Type any function name directly (e.g., 'print', 'Array')")
-	fmt.Fprintln(out, "")
+	print(out, "What would you like help with?")
+	print(out, "")
+	print(out, "  1.  Built-in Functions    - Core language functions (print, len, type, etc.)")
+	print(out, "  2.  Standard Library      - Munin modules (Array, String, File, OS, etc.)")
+	print(out, "  3.  Language Features     - Syntax, control flow, OOP, error handling")
+	print(out, "  4.  Examples & Demos      - Working code examples and tutorials")
+	print(out, "  5.  Search Functions      - Find specific functions by name or purpose")
+	print(out, "  6.  Tips & Tricks         - REPL shortcuts and advanced features")
+	print(out, "")
+	print(out, "Commands: Type number/name (e.g., '1' or 'builtins'), 'h' for menu, 'q' to quit")
+	print(out, "Quick search: Type any function name directly (e.g., 'print', 'Array')")
+	print(out, "")
 }
 
 // showBuiltinFunctions shows the built-in functions menu
 func showBuiltinFunctions(line *liner.State, out io.Writer) {
-	fmt.Fprintln(out, "")
-	fmt.Fprintln(out, "🔧 BUILT-IN FUNCTIONS")
-	fmt.Fprintln(out, "═══════════════════════")
+	print(out, "")
+	print(out, "BUILT-IN FUNCTIONS")
+	print(out, "═══════════════════════")
 	
 	categories := map[string][]string{
 		"1": {"Type Conversion", "int, float, str, bool, list, tuple"},
@@ -564,13 +564,13 @@ func showBuiltinFunctions(line *liner.State, out io.Writer) {
 	}
 	
 	for {
-		fmt.Fprintln(out, "")
-		fmt.Fprintln(out, "Select a category:")
+		print(out, "")
+		print(out, "Select a category:")
 		for k, v := range categories {
 			fmt.Fprintf(out, "  %s. %s - %s\n", k, v[0], v[1])
 		}
-		fmt.Fprintln(out, "")
-		fmt.Fprintln(out, "Commands: Enter number, function name, 'all' for everything, or 'b' to go back")
+		print(out, "")
+		print(out, "Commands: Enter number, function name, 'all' for everything, or 'b' to go back")
 		
 		input, err := line.Prompt("builtins> ")
 		if err != nil || strings.ToLower(strings.TrimSpace(input)) == "b" {
@@ -595,20 +595,20 @@ func showBuiltinFunctions(line *liner.State, out io.Writer) {
 			continue
 		default:
 			if !searchSpecificFunction(choice, out) {
-				fmt.Fprintf(out, "❌ Unknown category '%s'\n", input)
+				fmt.Fprintf(out, "Unknown category '%s'\n", input)
 			}
 		}
 		
-		fmt.Fprintln(out, "\nPress Enter to continue...")
+		print(out, "\nPress Enter to continue...")
 		line.Prompt("")
 	}
 }
 
 // showStandardLibrary shows the standard library menu
 func showStandardLibrary(line *liner.State, out io.Writer) {
-	fmt.Fprintln(out, "")
-	fmt.Fprintln(out, "🏛️  MUNIN STANDARD LIBRARY")
-	fmt.Fprintln(out, "═════════════════════════")
+	print(out, "")
+	print(out, "MUNIN STANDARD LIBRARY")
+	print(out, "═════════════════════════")
 	
 	modules := map[string]string{
 		"1": "Array - Enhanced array operations and manipulation",
@@ -622,13 +622,13 @@ func showStandardLibrary(line *liner.State, out io.Writer) {
 	}
 	
 	for {
-		fmt.Fprintln(out, "")
-		fmt.Fprintln(out, "Select a module:")
+		print(out, "")
+		print(out, "Select a module:")
 		for k, v := range modules {
 			fmt.Fprintf(out, "  %s. %s\n", k, v)
 		}
-		fmt.Fprintln(out, "")
-		fmt.Fprintln(out, "Commands: Enter number, module name, 'all' for everything, or 'b' to go back")
+		print(out, "")
+		print(out, "Commands: Enter number, module name, 'all' for everything, or 'b' to go back")
 		
 		input, err := line.Prompt("stdlib> ")
 		if err != nil || strings.ToLower(strings.TrimSpace(input)) == "b" {
@@ -659,20 +659,20 @@ func showStandardLibrary(line *liner.State, out io.Writer) {
 			continue
 		default:
 			if !searchSpecificFunction(choice, out) {
-				fmt.Fprintf(out, "❌ Unknown module '%s'\n", input)
+				fmt.Fprintf(out, "Unknown module '%s'\n", input)
 			}
 		}
 		
-		fmt.Fprintln(out, "\nPress Enter to continue...")
+		print(out, "\nPress Enter to continue...")
 		line.Prompt("")
 	}
 }
 
 // showLanguageFeatures shows language syntax and features
 func showLanguageFeatures(line *liner.State, out io.Writer) {
-	fmt.Fprintln(out, "")
-	fmt.Fprintln(out, "⚡ CARRION LANGUAGE FEATURES")
-	fmt.Fprintln(out, "═══════════════════════════")
+	print(out, "")
+	print(out, "CARRION LANGUAGE FEATURES")
+	print(out, "═══════════════════════════")
 	
 	features := map[string]string{
 		"1": "Variables & Assignment - Basic assignment, tuple unpacking, operators",
@@ -686,13 +686,13 @@ func showLanguageFeatures(line *liner.State, out io.Writer) {
 	}
 	
 	for {
-		fmt.Fprintln(out, "")
-		fmt.Fprintln(out, "Select a topic:")
+		print(out, "")
+		print(out, "Select a topic:")
 		for k, v := range features {
 			fmt.Fprintf(out, "  %s. %s\n", k, v)
 		}
-		fmt.Fprintln(out, "")
-		fmt.Fprintln(out, "Commands: Enter number, topic name, 'all' for everything, or 'b' to go back")
+		print(out, "")
+		print(out, "Commands: Enter number, topic name, 'all' for everything, or 'b' to go back")
 		
 		input, err := line.Prompt("syntax> ")
 		if err != nil || strings.ToLower(strings.TrimSpace(input)) == "b" {
@@ -722,19 +722,19 @@ func showLanguageFeatures(line *liner.State, out io.Writer) {
 		case "":
 			continue
 		default:
-			fmt.Fprintf(out, "❌ Unknown topic '%s'\n", input)
+			fmt.Fprintf(out, "Unknown topic '%s'\n", input)
 		}
 		
-		fmt.Fprintln(out, "\nPress Enter to continue...")
+		print(out, "\nPress Enter to continue...")
 		line.Prompt("")
 	}
 }
 
 // showExamples shows code examples and tutorials
 func showExamples(line *liner.State, out io.Writer) {
-	fmt.Fprintln(out, "")
-	fmt.Fprintln(out, "🎯 EXAMPLES & TUTORIALS")
-	fmt.Fprintln(out, "══════════════════════")
+	print(out, "")
+	print(out, "EXAMPLES & TUTORIALS")
+	print(out, "══════════════════════")
 	
 	examples := map[string]string{
 		"1": "Hello World & Basics - Getting started with Carrion",
@@ -748,13 +748,13 @@ func showExamples(line *liner.State, out io.Writer) {
 	}
 	
 	for {
-		fmt.Fprintln(out, "")
-		fmt.Fprintln(out, "Select an example category:")
+		print(out, "")
+		print(out, "Select an example category:")
 		for k, v := range examples {
 			fmt.Fprintf(out, "  %s. %s\n", k, v)
 		}
-		fmt.Fprintln(out, "")
-		fmt.Fprintln(out, "Commands: Enter number, 'all' for everything, or 'b' to go back")
+		print(out, "")
+		print(out, "Commands: Enter number, 'all' for everything, or 'b' to go back")
 		
 		input, err := line.Prompt("examples> ")
 		if err != nil || strings.ToLower(strings.TrimSpace(input)) == "b" {
@@ -784,30 +784,30 @@ func showExamples(line *liner.State, out io.Writer) {
 		case "":
 			continue
 		default:
-			fmt.Fprintf(out, "❌ Unknown example category '%s'\n", input)
+			fmt.Fprintf(out, "Unknown example category '%s'\n", input)
 		}
 		
-		fmt.Fprintln(out, "\nPress Enter to continue...")
+		print(out, "\nPress Enter to continue...")
 		line.Prompt("")
 	}
 }
 
 // searchFunctions provides interactive search functionality
 func searchFunctions(line *liner.State, out io.Writer) {
-	fmt.Fprintln(out, "")
-	fmt.Fprintln(out, "🔍 FUNCTION SEARCH")
-	fmt.Fprintln(out, "═════════════════")
-	fmt.Fprintln(out, "")
-	fmt.Fprintln(out, "Enter keywords to search for functions, or type 'categories' to browse by category.")
-	fmt.Fprintln(out, "Examples: 'array', 'string upper', 'file read', 'math', 'convert'")
-	fmt.Fprintln(out, "Commands: 'b' to go back, 'q' to quit, 'h' for help, 'categories' to browse")
-	fmt.Fprintln(out, "")
+	print(out, "")
+	print(out, "FUNCTION SEARCH")
+	print(out, "═════════════════")
+	print(out, "")
+	print(out, "Enter keywords to search for functions, or type 'categories' to browse by category.")
+	print(out, "Examples: 'array', 'string upper', 'file read', 'math', 'convert'")
+	print(out, "Commands: 'b' to go back, 'q' to quit, 'h' for help, 'categories' to browse")
+	print(out, "")
 	
 	for {
 		input, err := line.Prompt("search> ")
 		if err != nil {
 			if err == io.EOF {
-				fmt.Fprintln(out, "\n🦅 Returning to help menu...")
+				print(out, "\nReturning to help menu...")
 			}
 			return
 		}
@@ -817,19 +817,19 @@ func searchFunctions(line *liner.State, out io.Writer) {
 		// Handle exit commands
 		switch query {
 		case "b", "back":
-			fmt.Fprintln(out, "\n🦅 Returning to help menu...")
+			print(out, "\nReturning to help menu...")
 			return
 		case "q", "quit", "exit":
-			fmt.Fprintln(out, "\n🦅 Returning to help menu...")
+			print(out, "\nReturning to help menu...")
 			return
 		case "h", "help", "?":
-			fmt.Fprintln(out, "")
-			fmt.Fprintln(out, "🔍 SEARCH HELP:")
-			fmt.Fprintln(out, "   • Type keywords to search: 'array', 'string upper', 'file read'")
-			fmt.Fprintln(out, "   • 'categories' - Browse function categories")
-			fmt.Fprintln(out, "   • 'b' or 'back' - Return to help menu")
-			fmt.Fprintln(out, "   • 'q' or 'quit' - Return to help menu")
-			fmt.Fprintln(out, "")
+			print(out, "")
+			print(out, "SEARCH HELP:")
+			print(out, "   • Type keywords to search: 'array', 'string upper', 'file read'")
+			print(out, "   • 'categories' - Browse function categories")
+			print(out, "   • 'b' or 'back' - Return to help menu")
+			print(out, "   • 'q' or 'quit' - Return to help menu")
+			print(out, "")
 			continue
 		case "":
 			continue
@@ -840,47 +840,47 @@ func searchFunctions(line *liner.State, out io.Writer) {
 		
 		results := performFunctionSearch(query)
 		if len(results) == 0 {
-			fmt.Fprintf(out, "❌ No functions found matching '%s'\n", input)
-			fmt.Fprintln(out, "💡 Try broader terms like 'array', 'string', 'file', or 'math'")
+			fmt.Fprintf(out, "No functions found matching '%s'\n", input)
+			print(out, "Try broader terms like 'array', 'string', 'file', or 'math'")
 		} else {
-			fmt.Fprintf(out, "\n🎯 Found %d function(s) matching '%s':\n\n", len(results), input)
+			fmt.Fprintf(out, "\nFound %d function(s) matching '%s':\n\n", len(results), input)
 			for i, result := range results {
 				fmt.Fprintf(out, "%d. %s\n", i+1, result)
 			}
 		}
-		fmt.Fprintln(out, "")
+		print(out, "")
 	}
 }
 
 // showTipsAndTricks shows REPL tips and advanced features
 func showTipsAndTricks(out io.Writer) {
-	fmt.Fprintln(out, "")
-	fmt.Fprintln(out, "💡 TIPS & TRICKS")
-	fmt.Fprintln(out, "═══════════════")
-	fmt.Fprintln(out, "")
-	fmt.Fprintln(out, "🚀 REPL Shortcuts:")
-	fmt.Fprintln(out, "   • Tab - Auto-complete functions and keywords")
-	fmt.Fprintln(out, "   • ↑/↓ - Navigate command history")
-	fmt.Fprintln(out, "   • 'clear' - Clear the screen")
-	fmt.Fprintln(out, "   • 'mimir' - Open this interactive help")
-	fmt.Fprintln(out, "   • Double Enter - Execute multi-line blocks")
-	fmt.Fprintln(out, "")
-	fmt.Fprintln(out, "⚡ Language Features:")
-	fmt.Fprintln(out, "   • All primitives auto-wrap: 42.to_bin(), \"hello\".upper()")
-	fmt.Fprintln(out, "   • Tuple unpacking: x, y = (10, 20)")
-	fmt.Fprintln(out, "   • F-strings: f\"Value is {x}\"")
-	fmt.Fprintln(out, "   • Method chaining: arr.sort().reverse().to_string()")
-	fmt.Fprintln(out, "")
-	fmt.Fprintln(out, "🎯 Quick Testing:")
-	fmt.Fprintln(out, "   • Test expressions: type(42), len(\"hello\")")
-	fmt.Fprintln(out, "   • Explore objects: dir(Array([1,2,3]))")
-	fmt.Fprintln(out, "   • Check versions: version(), modules()")
-	fmt.Fprintln(out, "")
-	fmt.Fprintln(out, "🐛 Debugging:")
-	fmt.Fprintln(out, "   • Print types: print(type(variable))")
-	fmt.Fprintln(out, "   • Inspect values: print(repr(value))")
-	fmt.Fprintln(out, "   • Use check() for assertions")
-	fmt.Fprintln(out, "")
+	print(out, "")
+	print(out, "TIPS & TRICKS")
+	print(out, "═══════════════")
+	print(out, "")
+	print(out, "REPL Shortcuts:")
+	print(out, "   • Tab - Auto-complete functions and keywords")
+	print(out, "   • ↑/↓ - Navigate command history")
+	print(out, "   • 'clear' - Clear the screen")
+	print(out, "   • 'mimir' - Open this interactive help")
+	print(out, "   • Double Enter - Execute multi-line blocks")
+	print(out, "")
+	print(out, "Language Features:")
+	print(out, "   • All primitives auto-wrap: 42.to_bin(), \"hello\".upper()")
+	print(out, "   • Tuple unpacking: x, y = (10, 20)")
+	print(out, "   • F-strings: f\"Value is {x}\"")
+	print(out, "   • Method chaining: arr.sort().reverse().to_string()")
+	print(out, "")
+	print(out, "Quick Testing:")
+	print(out, "   • Test expressions: type(42), len(\"hello\")")
+	print(out, "   • Explore objects: dir(Array([1,2,3]))")
+	print(out, "   • Check versions: version(), modules()")
+	print(out, "")
+	print(out, "Debugging:")
+	print(out, "   • Print types: print(type(variable))")
+	print(out, "   • Inspect values: print(repr(value))")
+	print(out, "   • Use check() for assertions")
+	print(out, "")
 }
 
 // StartWithDebug begins the REPL with debug configuration
