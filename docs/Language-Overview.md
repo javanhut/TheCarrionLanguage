@@ -15,7 +15,7 @@ Carrion is a dynamically typed, interpreted programming language with a Norse my
 - **Error Handling**: Comprehensive try-catch system with custom syntax
 - **Module System**: Import and organize code across files
 - **Package Management**: Integrated Bifrost package manager for dependency management
-- **Universal Iteration**: Strings, arrays, and hashes are all iterable
+- **Universal Iteration**: Strings, arrays, and maps are all iterable
 - **Membership Testing**: Enhanced `in` operator works with all collection types
 - **Multiplication Operators**: String and array repetition with `*` operator
 
@@ -57,7 +57,7 @@ x, y = (10, 20)
 
 ### Collection Types
 - **Array**: Ordered, mutable lists (`[1, 2, 3]`)
-- **Hash**: Key-value dictionaries (`{"key": "value"}`)
+- **Map**: Key-value dictionaries (`{"key": "value"}`) with support for string, integer, float, and boolean keys
 - **Tuple**: Immutable ordered collections (`(1, 2, 3)`)
 
 ## Getting Started

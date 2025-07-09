@@ -27,7 +27,7 @@ const (
 	STRING_OBJ       = "STRING"
 	ARRAY_OBJ        = "ARRAY"
 	BUILTIN_OBJ      = "BUILTIN"
-	HASH_OBJ         = "HASH"
+	MAP_OBJ          = "MAP"
 	TUPLE_OBJ        = "TUPLE"
 	GRIMOIRE_OBJ     = "GRIMOIRE"
 	INSTANCE_OBJ     = "INSTANCE"
@@ -163,6 +163,12 @@ func (s *String) HashKey() HashKey {
 	return HashKey{Type: s.Type(), Value: h.Sum64()}
 }
 
+func (f *Float) HashKey() HashKey {
+	// Convert float to its bit representation for hashing
+	bits := uint64(f.Value * 1000000) // Multiply by 1M to preserve 6 decimal places
+	return HashKey{Type: f.Type(), Value: bits}
+}
+
 type HashPair struct {
 	Key   Object
 	Value Object
@@ -171,7 +177,7 @@ type Hash struct {
 	Pairs map[HashKey]HashPair
 }
 
-func (h *Hash) Type() ObjectType { return HASH_OBJ }
+func (h *Hash) Type() ObjectType { return MAP_OBJ }
 func (h *Hash) Inspect() string {
 	var out bytes.Buffer
 	pairs := []string{}

@@ -35,9 +35,9 @@ Carrion source files use the `.crl` extension.
 
 ### Comments
 ```python
-// Single-line comment
-/* Multi-line
-   comment */
+"/#" Single-line comment
+``` Multi-line
+   comment```
 ```
 
 ### Identifiers
@@ -154,13 +154,20 @@ mixed = [1, "hello", True, 3.14]
 empty = []
 ```
 
-#### Hash
-Key-value mappings (dictionaries):
+#### Map
+Key-value mappings (dictionaries) with support for multiple key types:
 ```python
-person = {"name": "Alice", "age": 30}
-config = {"debug": True, "timeout": 30}
-empty_hash = {}
+person = {"name": "Alice", "age": 30}  // String keys
+config = {"debug": True, "timeout": 30}  // String keys
+mixed_map = {"name": "Alice", 42: "answer", 3.14: "pi", True: "enabled"}  // Mixed key types
+empty_map = {}
 ```
+
+**Supported Key Types:**
+- **String**: `"key"`, `'key'`
+- **Integer**: `42`, `-17`
+- **Float**: `3.14`, `-2.5`
+- **Boolean**: `True`, `False`
 
 #### Tuple
 Immutable ordered sequences:
@@ -488,6 +495,8 @@ check(condition, "Error message")
 ### Import Syntax
 ```python
 # Smart import patterns
+import "GrimoireName"                # NEW: Grimoire-based import (searches all locations)
+import "GrimoireName" as alias       # NEW: Grimoire import with alias
 import "filename"                    # Local file
 import "filename.ClassName"          # Selective import
 import "package/module"              # Simplified package import
@@ -500,6 +509,13 @@ import "module.ClassName" as alias   # Selective import with alias
 
 ### Module Structure
 Each `.crl` file is a module that can export functions and grimoires (classes). The import system automatically resolves packages with version management and searches appropriate directories.
+
+### Grimoire-Based Imports
+The enhanced import system allows importing grimoires (classes) directly by name:
+- Searches current directory, project modules, global bifrost modules, and system packages
+- Automatically locates grimoire definitions without requiring file paths
+- Supports aliasing for convenient naming
+- Works with both local files and installed packages
 
 ## Built-in Functions
 
@@ -524,11 +540,11 @@ Each `.crl` file is a module that can export functions and grimoires (classes). 
 
 ### Collection Functions
 - `enumerate(array)` - Get indexed pairs
-- `pairs(hash, filter)` - Get key-value pairs (enhanced: supports "key"/"k" and "value"/"v" filters)
+- `pairs(map, filter)` - Get key-value pairs (enhanced: supports "key"/"k" and "value"/"v" filters)
 - `is_sametype(obj1, obj2)` - Compare types
 
 ### JSON Parsing Functions
-- `parseHash(jsonString)` - Parse JSON object string into a Carrion hash (dictionaries only)
+- `parseHash(jsonString)` - Parse JSON object string into a Carrion map (dictionaries only)
   - Only accepts valid JSON objects `{...}`
   - Returns an error for arrays, primitives, or invalid JSON
   - Example: `parseHash('{"name": "Alice", "age": 30}')`
@@ -537,7 +553,7 @@ Each `.crl` file is a module that can export functions and grimoires (classes). 
 All collection types support the `in` operator and iteration with `for` loops:
 - **Strings**: Character-by-character iteration and substring checking
 - **Arrays**: Element iteration and membership testing  
-- **Hashes**: Key iteration by default, key membership testing
+- **Maps**: Key iteration by default, key membership testing
 - **Ranges**: Number sequence iteration
 
 ## Standard Library (Munin)
@@ -590,7 +606,7 @@ Carrion provides comprehensive JSON support for parsing and stringifying data:
 - Numbers → `Integer` (whole) or `Float` (decimal)
 - Strings → `String`
 - Arrays → `Array`
-- Objects → `Hash` (with string keys)
+- Objects → `Map` (with string keys)
 
 #### Parsing JSON
 ```python

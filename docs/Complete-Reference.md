@@ -171,20 +171,34 @@ first = numbers[0]            // 10
 last = numbers[-1]            // 6
 ```
 
-#### Hash (Dictionary)
+#### Map (Dictionary)
+Maps are key-value data structures that support keys of the following types:
+- **String**: `"key"`, `'key'`
+- **Integer**: `42`, `-17`
+- **Float**: `3.14`, `-2.5`
+- **Boolean**: `True`, `False`
+
 ```python
 person = {
-    "name": "Alice",
-    "age": 30,
-    "city": "New York"
+    "name": "Alice",      // String key
+    "age": 30,            // String key
+    "city": "New York"    // String key
 }
 
-// Hash operations
+// Example with mixed key types
+mixed_map = {
+    "name": "Alice",      // String key
+    42: "answer",         // Integer key  
+    3.14: "pi",          // Float key
+    True: "enabled"       // Boolean key
+}
+
+// Map operations
 person["email"] = "alice@example.com"
 name = person["name"]
 print(len(person))            // 4
 
-// Iterate over hash
+// Iterate over map
 for key, value in pairs(person):
     print(f"{key}: {value}")
 ```
@@ -335,7 +349,7 @@ for i in range(2, 8):
 for i in range(0, 10, 2):
     print(i)  // 0, 2, 4, 6, 8
 
-// Iterate over hash
+// Iterate over map
 person = {"name": "Alice", "age": 30}
 for key, value in pairs(person):
     print(f"{key}: {value}")
@@ -629,7 +643,7 @@ items = ["a", "b", "c"]
 for index, value in enumerate(items):
     print(f"{index}: {value}")
 
-// Hash iteration
+// Map iteration
 data = {"x": 10, "y": 20}
 for key in pairs(data, "key"):
     print(f"Key: {key}")
@@ -950,11 +964,16 @@ print("Process complete!")
 
 ### Basic Imports
 ```python
+// NEW: Grimoire-based imports (search by class name)
+import "Stack"
+import "FileHelper" as FH
+helper = FH()
+
 // Import entire module
 import "math_utils"
 result = add(5, 3)  // Function from math_utils.crl
 
-// Import specific grimoire
+// Import specific grimoire from specific module
 import "data_structures.Stack"
 stack = Stack()
 stack.push(1)
@@ -1152,7 +1171,7 @@ OS.remove("output.txt")
 
 ### Example 2: Data Analysis Tool
 ```python
-// Simple data analysis with arrays and hashes
+// Simple data analysis with arrays and maps
 grim DataAnalyzer:
     init():
         self.data = []
@@ -1358,7 +1377,7 @@ content = File.read("data.txt")  // Preferred
 // Use arrays for ordered collections
 numbers = [1, 2, 3, 4, 5]
 
-// Use hashes for key-value mappings
+// Use maps for key-value mappings
 person = {"name": "Alice", "age": 30}
 
 // 3. Minimize file operations

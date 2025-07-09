@@ -65,7 +65,7 @@ print(f"It's {status} outside")
 ## Loops
 
 ### For Loops
-For loops iterate over sequences like arrays, strings, hashes, ranges, or any iterable.
+For loops iterate over sequences like arrays, strings, maps, ranges, or any iterable.
 
 #### Basic For Loop
 ```python
@@ -87,9 +87,9 @@ Carrion supports iteration over multiple data types:
 
 - **Arrays**: Iterate over elements
 - **Strings**: Iterate over characters (NEW!)
-- **Hashes**: Iterate over keys by default (NEW!)
+- **Maps**: Iterate over keys by default (NEW!)
 - **Ranges**: Iterate over number sequences
-- **pairs() results**: Iterate over key-value pairs from hashes (ENHANCED!)
+- **pairs() results**: Iterate over key-value pairs from maps (ENHANCED!)
 
 #### Examples
 ```python
@@ -103,16 +103,16 @@ word = "hello"
 for char in word:
     print(char)  // Prints: h, e, l, l, o
 
-// Iterate over hash keys
+// Iterate over map keys
 user_data = {"name": "Alice", "age": 30, "city": "Paris"}
 for key in user_data:
     print(f"Key: {key}")  // Prints: Key: name, Key: age, Key: city
 
-// Iterate over hash key-value pairs using pairs()
+// Iterate over map key-value pairs using pairs()
 for key, value in pairs(user_data):
     print(f"{key}: {value}")  // Prints: name: Alice, age: 30, city: Paris
 
-// Iterate over hash values only
+// Iterate over map values only
 for value in pairs(user_data, "value"):
     print(f"Value: {value}")  // Prints: Value: Alice, Value: 30, Value: Paris
 

@@ -6,8 +6,19 @@
 
 print("=== Carrion Import System Demo ===")
 
-# Example 1: Basic import (imports all grimoires into current scope)
-print("\n1. Basic Import:")
+# Example 1: NEW - Grimoire-based import (search by class name)
+print("\n1. Grimoire-Based Import (NEW):")
+print("   import \"Calculator\" as MyCalc")
+print("   # Searches for Calculator grimoire in all available modules")
+
+# Note: This would work if Calculator grimoire exists in any accessible module
+# import "Calculator" as MyCalc
+# calc0 = MyCalc("GrimoireSearch")
+# result0 = calc0.add(5, 3)
+# print(f"   Grimoire import result: {result0}")
+
+# Example 2: Basic import (imports all grimoires into current scope)
+print("\n2. Basic Import:")
 print("   import \"testmodules/calculator\"")
 
 # Note: We'll skip this in the demo to avoid conflicts with aliased import
@@ -16,8 +27,8 @@ print("   import \"testmodules/calculator\"")
 # result1 = calc1.add(10, 5)
 # print(f"   Basic import result: {result1}")
 
-# Example 2: Aliased import (creates namespace)
-print("\n2. Aliased Import:")
+# Example 3: Aliased import (creates namespace)
+print("\n3. Aliased Import:")
 print("   import \"testmodules/calculator\" as calc")
 
 import "testmodules/calculator" as calc
@@ -28,23 +39,23 @@ calc_instance = Calculator("AliasedCalc")
 result2 = calc_instance.multiply(6, 7)
 print(f"   Namespace access result: {result2}")
 
-# Example 3: Direct grimoire instantiation (your desired syntax)
-print("\n3. Direct Grimoire Instantiation:")
+# Example 4: Direct grimoire instantiation (your desired syntax)
+print("\n4. Direct Grimoire Instantiation:")
 print("   variable_name = calc.Calculator(\"init parameter\")")
 
 variable_name = calc.Calculator("This is entry into the grimoire init method")
 result3 = variable_name.divide(84, 12)
 print(f"   Direct instantiation result: {result3}")
 
-# Example 4: Accessing standalone functions from namespace
-print("\n4. Standalone Function Access:")
+# Example 5: Accessing standalone functions from namespace
+print("\n5. Standalone Function Access:")
 print("   func_result = calc.standalone_function()")
 
 func_result = calc.standalone_function()
 print(f"   Function result: {func_result}")
 
-# Example 5: Subdirectory imports
-print("\n5. Subdirectory Import:")
+# Example 6: Subdirectory imports
+print("\n6. Subdirectory Import:")
 print("   import \"testmodules/subdir/advanced_math\" as math")
 
 import "testmodules/subdir/advanced_math" as math
@@ -63,8 +74,8 @@ print(f"   3^4: {power}")
 util = math.utility_function()
 print(f"   Utility: {util}")
 
-# Example 6: Multiple instances from same import
-print("\n6. Multiple Instances:")
+# Example 7: Multiple instances from same import
+print("\n7. Multiple Instances:")
 print("   Creating multiple instances from same import")
 
 calc_a = calc.Calculator("Instance A")
@@ -79,8 +90,8 @@ print(f"   Instance A result: {result_a}")
 print(f"   Instance B result: {result_b}")
 print(f"   Instance C result: {result_c}")
 
-# Example 7: Method chaining and complex operations
-print("\n7. Complex Operations:")
+# Example 8: Method chaining and complex operations
+print("\n8. Complex Operations:")
 
 # Create a calculator for complex math
 complex_calc = math.AdvancedMath("Scientific mode")
@@ -96,6 +107,7 @@ small_fib = complex_calc.fibonacci(10)
 print(f"   Fibonacci(10): {small_fib}")
 
 print("\n=== Import System Summary ===")
+print("✓ NEW: Grimoire-based imports: import \"GrimoireName\" as alias")
 print("✓ Basic imports: import \"module\"")
 print("✓ Aliased imports: import \"module\" as alias")
 print("✓ Namespace access: alias.GrimoireName")

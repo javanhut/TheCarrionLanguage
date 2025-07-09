@@ -15,7 +15,7 @@ print("Array index: arr[2] = " + str(arr[2]))
 // Why? Because in evalIndexExpression, the code only handles:
 // - Arrays (ARRAY_OBJ)
 // - Tuples (TUPLE_OBJ)  
-// - Hashes/Dictionaries (HASH_OBJ)
+// - Hashes/Dictionaries (MAP_OBJ)
 // But not Strings (STRING_OBJ)
 
 // To add string indexing, we'd need to:

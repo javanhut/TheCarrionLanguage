@@ -902,9 +902,34 @@ func (p *Parser) parseHashLiteral() ast.Expression {
 	hash := &ast.HashLiteral{Token: p.currToken}
 	hash.Pairs = make(map[ast.Expression]ast.Expression)
 
+	// Skip newlines and indentation after opening brace
+	p.skipNewlines()
+	if p.peekTokenIs(token.INDENT) {
+		p.nextToken()
+	}
+
 	for !p.peekTokenIs(token.RBRACE) {
+		// Skip any newlines before key
+		p.skipNewlines()
+		
+		// Check for DEDENT which might precede closing brace
+		if p.peekTokenIs(token.DEDENT) {
+			p.nextToken()
+			p.skipNewlines()
+			// After dedent, we should find the closing brace
+			if p.peekTokenIs(token.RBRACE) {
+				break
+			}
+		}
+		
+		// Check again for closing brace after handling dedent/newlines
+		if p.peekTokenIs(token.RBRACE) {
+			break
+		}
+
 		p.nextToken()
 
+		// Parse the key without comma being an infix operator
 		commaFn := p.infixParseFns[token.COMMA]
 		delete(p.infixParseFns, token.COMMA)
 		key := p.parseExpression(LOWEST)
@@ -917,6 +942,7 @@ func (p *Parser) parseHashLiteral() ast.Expression {
 		}
 		p.nextToken()
 
+		// Parse the value without comma being an infix operator
 		commaFn = p.infixParseFns[token.COMMA]
 		delete(p.infixParseFns, token.COMMA)
 		value := p.parseExpression(LOWEST)
@@ -926,7 +952,16 @@ func (p *Parser) parseHashLiteral() ast.Expression {
 
 		hash.Pairs[key] = value
 
-		if !p.peekTokenIs(token.RBRACE) && !p.expectPeek(token.COMMA) {
+		// Check what comes after the value
+		if p.peekTokenIs(token.COMMA) {
+			p.nextToken() // consume comma
+			p.skipNewlines() // skip any newlines after comma
+		} else if p.peekTokenIs(token.NEWLINE) || p.peekTokenIs(token.DEDENT) || p.peekTokenIs(token.RBRACE) {
+			// These are all valid separators/terminators
+			// Don't consume them here, let the loop handle them
+		} else {
+			// If it's not a valid separator/terminator, it's an error
+			p.errors = append(p.errors, "expected comma, newline, or closing brace after value in hash literal")
 			return nil
 		}
 	}
@@ -956,9 +991,46 @@ func (p *Parser) parseFloatLiteral() ast.Expression {
 }
 
 func (p *Parser) parseIndexExpression(left ast.Expression) ast.Expression {
-	exp := &ast.IndexExpression{Token: p.currToken, Left: left}
+	tok := p.currToken
 	p.nextToken()
-	exp.Index = p.parseExpression(LOWEST)
+	
+	// Check if this is a slice expression by looking for colon
+	if p.currTokenIs(token.COLON) {
+		// This is a slice starting with :
+		sliceExp := &ast.SliceExpression{Token: tok, Left: left, Start: nil}
+		p.nextToken()
+		if !p.currTokenIs(token.RBRACK) {
+			sliceExp.End = p.parseExpression(LOWEST)
+		}
+		if !p.currTokenIs(token.RBRACK) {
+			if !p.expectPeek(token.RBRACK) {
+				return nil
+			}
+		}
+		return sliceExp
+	}
+	
+	// Parse the first expression
+	firstExp := p.parseExpression(LOWEST)
+	
+	// Check if there's a colon after the first expression (slice)
+	if p.peekTokenIs(token.COLON) {
+		sliceExp := &ast.SliceExpression{Token: tok, Left: left, Start: firstExp}
+		p.nextToken() // consume the colon
+		p.nextToken() // move to next token after colon
+		if !p.currTokenIs(token.RBRACK) {
+			sliceExp.End = p.parseExpression(LOWEST)
+		}
+		if !p.currTokenIs(token.RBRACK) {
+			if !p.expectPeek(token.RBRACK) {
+				return nil
+			}
+		}
+		return sliceExp
+	}
+	
+	// Regular index expression
+	exp := &ast.IndexExpression{Token: tok, Left: left, Index: firstExp}
 	if !p.expectPeek(token.RBRACK) {
 		return nil
 	}
@@ -2055,34 +2127,50 @@ func (p *Parser) parseImportStatement() ast.Statement {
 	
 	importPath := p.currToken.Literal
 	
-	// Check if the import path ends with a dot notation for selective imports
-	// We need to check if the LAST dot represents a grimoire selection
-	lastDotIndex := strings.LastIndex(importPath, ".")
-	if lastDotIndex != -1 && lastDotIndex < len(importPath)-1 {
-		// Check if the part after the last dot looks like a grimoire name (starts with uppercase)
-		potentialGrimoire := importPath[lastDotIndex+1:]
-		if len(potentialGrimoire) > 0 && potentialGrimoire[0] >= 'A' && potentialGrimoire[0] <= 'Z' {
-			// This looks like a selective import: "module/path.GrimoireName"
-			modulePath := importPath[:lastDotIndex]
-			stmt.FilePath = &ast.StringLiteral{
-				Token: p.currToken,
-				Value: modulePath, // The module path without the grimoire name
-			}
-			stmt.ClassName = &ast.Identifier{
-				Token: p.currToken,
-				Value: potentialGrimoire, // The specific grimoire name
+	// Check if this is a grimoire-only import (single name starting with uppercase)
+	if !strings.Contains(importPath, "/") && !strings.Contains(importPath, ".") && 
+		len(importPath) > 0 && importPath[0] >= 'A' && importPath[0] <= 'Z' {
+		// This is a grimoire name import like import "HelloWorld"
+		// We'll treat it as a selective import where the evaluator will search for the grimoire
+		stmt.ClassName = &ast.Identifier{
+			Token: p.currToken,
+			Value: importPath,
+		}
+		// FilePath will be empty, signaling to search for this grimoire
+		stmt.FilePath = &ast.StringLiteral{
+			Token: p.currToken,
+			Value: "", // Empty to indicate grimoire search
+		}
+	} else {
+		// Check if the import path ends with a dot notation for selective imports
+		// We need to check if the LAST dot represents a grimoire selection
+		lastDotIndex := strings.LastIndex(importPath, ".")
+		if lastDotIndex != -1 && lastDotIndex < len(importPath)-1 {
+			// Check if the part after the last dot looks like a grimoire name (starts with uppercase)
+			potentialGrimoire := importPath[lastDotIndex+1:]
+			if len(potentialGrimoire) > 0 && potentialGrimoire[0] >= 'A' && potentialGrimoire[0] <= 'Z' {
+				// This looks like a selective import: "module/path.GrimoireName"
+				modulePath := importPath[:lastDotIndex]
+				stmt.FilePath = &ast.StringLiteral{
+					Token: p.currToken,
+					Value: modulePath, // The module path without the grimoire name
+				}
+				stmt.ClassName = &ast.Identifier{
+					Token: p.currToken,
+					Value: potentialGrimoire, // The specific grimoire name
+				}
+			} else {
+				// Regular import path that happens to have dots
+				stmt.FilePath = &ast.StringLiteral{
+					Token: p.currToken,
+					Value: importPath,
+				}
 			}
 		} else {
-			// Regular import path that happens to have dots
 			stmt.FilePath = &ast.StringLiteral{
 				Token: p.currToken,
 				Value: importPath,
 			}
-		}
-	} else {
-		stmt.FilePath = &ast.StringLiteral{
-			Token: p.currToken,
-			Value: importPath,
 		}
 	}
 
