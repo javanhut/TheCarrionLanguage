@@ -884,3 +884,12 @@ func jsonToCarrionObject(data interface{}) object.Object {
 		return &object.Error{Message: fmt.Sprintf("Unsupported JSON type: %T", v)}
 	}
 }
+
+// GetBuiltins returns a copy of the built-ins map for external access
+func GetBuiltins() map[string]*object.Builtin {
+	result := make(map[string]*object.Builtin)
+	for name, builtin := range builtins {
+		result[name] = builtin
+	}
+	return result
+}

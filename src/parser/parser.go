@@ -229,9 +229,9 @@ func tokenFromExpression(expr ast.Expression) token.Token {
 func (p *Parser) parseExpressionTuple(firstExpr ast.Expression, isLHS bool) ast.Expression {
 	if firstExpr == nil {
 		if isLHS {
-			p.errors = append(p.errors, "expected assignable expression")
+			p.addError("expected assignable expression")
 		} else {
-			p.errors = append(p.errors, "expected expression")
+			p.addError("expected expression")
 		}
 		return nil
 	}
@@ -340,7 +340,7 @@ func (p *Parser) parseCheckStatement() ast.Statement {
 	p.nextToken()
 	stmt.Condition = p.parseExpression(LOWEST)
 	if stmt.Condition == nil {
-		p.errors = append(p.errors, "expected condition expression in check statement")
+		p.addError("expected condition expression in check statement")
 		return nil
 	}
 
@@ -1092,7 +1092,20 @@ func (p *Parser) parseBoolean() ast.Expression {
 }
 
 func (p *Parser) peekError(t token.TokenType) {
-	msg := fmt.Sprintf("expected next token to be %s, got %s instead", t, p.peekToken.Type)
+	msg := fmt.Sprintf("at line %d, column %d: expected next token to be %s, got %s instead", 
+		p.peekToken.Line, p.peekToken.Column, t, p.peekToken.Type)
+	p.errors = append(p.errors, msg)
+}
+
+func (p *Parser) addError(message string) {
+	msg := fmt.Sprintf("at line %d, column %d: %s", 
+		p.currToken.Line, p.currToken.Column, message)
+	p.errors = append(p.errors, msg)
+}
+
+func (p *Parser) addErrorWithToken(message string, tok token.Token) {
+	msg := fmt.Sprintf("at line %d, column %d: %s", 
+		tok.Line, tok.Column, message)
 	p.errors = append(p.errors, msg)
 }
 
@@ -1307,9 +1320,7 @@ func (p *Parser) expectPeek(t token.TokenType) bool {
 		}
 	}
 
-	msg := fmt.Sprintf("expected next token to be %s, got %s instead",
-		t, p.peekToken.Type)
-	p.errors = append(p.errors, msg)
+	p.peekError(t)
 	return false
 }
 

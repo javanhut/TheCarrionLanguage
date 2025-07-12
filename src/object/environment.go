@@ -121,3 +121,12 @@ func (e *Environment) SetWithGlobalCheck(name string, val Object) Object {
 	}
 	return e.Set(name, val)
 }
+
+// GetStore returns a copy of the environment's store for external access
+func (e *Environment) GetStore() map[string]Object {
+	result := make(map[string]Object)
+	for name, obj := range e.store {
+		result[name] = obj
+	}
+	return result
+}

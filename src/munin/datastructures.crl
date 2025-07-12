@@ -3,6 +3,13 @@ grim Node:
         self.data = data
         self.next = None
 
+grim TreeNode:
+    init(value):
+        self.value = value
+        self.left = None
+        self.right = None
+
+
 grim Stack:
     init():
         self.head = None
@@ -222,4 +229,112 @@ grim Heap:
                 self._swap(index, smaller_child_index)
             
             index = smaller_child_index
+
+grim BTree:
+    init():
+        self.node = None
+
+    spell insert(value):
+        if self.node == None:
+            self.node = TreeNode(value)
+            return self.node
+            
+        spell _insert_recursive(node, value):
+            if value == node.value:
+                return
+            
+            if value < node.value:
+                if node.left == None:
+                    node.left = TreeNode(value)
+                else:
+                    _insert_recursive(node.left, value)
+            else:
+                if node.right == None:
+                    node.right = TreeNode(value)
+                else:
+                    _insert_recursive(node.right, value)
+        
+        _insert_recursive(self.node, value)
+        return self.node
+
+    spell size():
+        spell _size_recursive(node):
+            if node == None:
+                return 0
+            left_size = _size_recursive(node.left)
+            right_size = _size_recursive(node.right)
+            return left_size + 1 + right_size
+        
+        return _size_recursive(self.node)
+
+    spell max_depth():
+        spell _max_depth_recursive(node):
+            if node == None:
+                return 0
+            left_depth = _max_depth_recursive(node.left)
+            right_depth = _max_depth_recursive(node.right)
+            return max(left_depth, right_depth) + 1
+        
+        return _max_depth_recursive(self.node)
+
+    spell inorder():
+        result = Array([])
+        spell inorderTraversal(root, result):
+            if root == None:
+                return
+
+            inorderTraversal(root.left, result)
+            result.append(root.value)
+            inorderTraversal(root.right, result)
+            return
+        inorderTraversal(self.node, result)
+        return result
+
+    spell preorder():
+        result = Array([])
+        spell preorderTraversal(node, result):
+            if node == None:
+                return
+            result.append(node.value)
+            preorderTraversal(node.left, result)
+            preorderTraversal(node.right, result)
+            return 
+        preorderTraversal(self.node, result)
+        return result
+
+    spell postorder():
+        result = Array([])
+        spell postorderTraversal(node, result):
+            if node == None:
+                return
+            postorderTraversal(node.left, result)
+            postorderTraversal(node.right, result)
+            result.append(node.value)
+            return 
+        postorderTraversal(self.node, result)
+        return result
+
+    spell print_tree(traversal="inorder"):
+        printed_tree = None
+        match traversal:
+            case "inorder":
+                printed_tree = self.inorder()
+            case "preorder":
+                printed_tree = self.preorder()
+            case "postorder":
+                printed_tree = self.postorder()
+        print(f"Traversal:{traversal}: {printed_tree}")
+
+    spell find(value):
+        root = self.node 
+        if root == None:
+            return False
+        while root:
+            if root.value == value:
+                return True
+            if value > root.value:
+                root = root.right
+            otherwise value < root.value:
+                root = root.left
+        return False
         

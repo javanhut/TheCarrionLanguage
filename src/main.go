@@ -12,6 +12,8 @@ import (
 	"github.com/javanhut/TheCarrionLanguage/src/repl"
 )
 
+var versionNum string = "0.1.8"
+
 const CROW_IMAGE = `
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣀⣀⣀⠀⠀⠀⠀⠀⠀⠀⠀
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣴⣿⣿⡟⠋⢻⣷⣄⡀⠀⠀⠀⠀⠀
@@ -32,6 +34,8 @@ const CROW_IMAGE = `
 
 func main() {
 	// Define command line flags
+	version := flag.Bool("version", false, "Prints out the Current version of the Carrion Language")
+	shortVersion := flag.Bool("v", false, "Prints out the current Carrion Version (short from)")
 	idebug := flag.Bool("idebug", false, "Enable interpreter debugging")
 	id := flag.Bool("id", false, "Enable interpreter debugging (short form)")
 	lexerDebug := flag.Bool("lexer", false, "Enable lexer debugging (use with --idebug)")
@@ -62,6 +66,14 @@ func main() {
 	env := object.NewEnvironment()
 	env.SetDebugConfig(debugConfig)
 
+	// Print out the version of Carrion Lang
+	if *version || *shortVersion {
+		print := fmt.Println
+		versionInfo := fmt.Sprintf("Carrion Language version %v", versionNum)
+		print(versionInfo)
+		return
+	}
+
 	// Attempt to load the standard library
 	if err := evaluator.LoadMuninStdlib(env); err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to load stdlib: %v\n", err)
@@ -79,6 +91,10 @@ func main() {
 				fmt.Fprintf(os.Stderr, "%v\n", err)
 				os.Exit(1)
 			}
+		} else if filePath == "version" || filePath == "v" {
+			fmt.Fprintln(os.Stderr, "Use --version or -v flag to display version information.")
+			os.Exit(1)
+
 		} else {
 			fmt.Fprintln(os.Stderr, "Unsupported file type. Only .crl files are allowed.")
 			os.Exit(1)

@@ -100,10 +100,14 @@ func getSourcePosition(node ast.Node) object.SourcePosition {
 func getNodeToken(node ast.Node) *token.Token {
 	switch n := node.(type) {
 	case *ast.Program:
-		if len(n.Statements) > 0 {
-			return getNodeToken(n.Statements[0])
+		// For programs, return a token representing the start of the program
+		return &token.Token{
+			Type:     token.NEWLINE,
+			Literal:  "",
+			Line:     1,
+			Column:   1,
+			Filename: "",
 		}
-		return nil
 	case *ast.ExpressionStatement:
 		return getNodeToken(n.Expression)
 	case *ast.IntegerLiteral:
@@ -155,6 +159,26 @@ func getNodeToken(node ast.Node) *token.Token {
 	case *ast.AttemptStatement:
 		return &n.Token
 	case *ast.WithStatement:
+		return &n.Token
+	case *ast.MainStatement:
+		return &n.Token
+	case *ast.RaiseStatement:
+		return &n.Token
+	case *ast.IgnoreStatement:
+		return &n.Token
+	case *ast.StopStatement:
+		return &n.Token
+	case *ast.SkipStatement:
+		return &n.Token
+	case *ast.CheckStatement:
+		return &n.Token
+	case *ast.ElseStatement:
+		return &n.Token
+	case *ast.GlobalStatement:
+		return &n.Token
+	case *ast.SliceExpression:
+		return &n.Token
+	case *ast.WildcardExpression:
 		return &n.Token
 	default:
 		// Return a synthetic token for unknown nodes to prevent nil pointer issues
@@ -450,6 +474,15 @@ func Eval(node ast.Node, env *object.Environment, ctx *CallContext) object.Objec
 	if env == nil {
 		return newErrorWithTrace("environment cannot be nil", node, ctx)
 	}
+	// Add ctx validation
+	if ctx == nil {
+		ctx = &CallContext{
+			FunctionName: "<unknown>",
+			Node:         node,
+			Parent:       nil,
+			env:          env,
+		}
+	}
 	
 	// Debug AST node types for // operations
 	if debugPrimitiveWrapping {
@@ -599,9 +632,12 @@ func Eval(node ast.Node, env *object.Environment, ctx *CallContext) object.Objec
 	case *ast.WildcardExpression:
 		return &object.String{Value: "_"}
 	case *ast.ReturnStatement:
-		val := Eval(node.ReturnValue, env, ctx)
-		if isError(val) {
-			return val
+		var val object.Object = NONE
+		if node.ReturnValue != nil {
+			val = Eval(node.ReturnValue, env, ctx)
+			if isError(val) {
+				return val
+			}
 		}
 		return &object.ReturnValue{Value: val}
 	case *ast.Boolean:
@@ -2289,6 +2325,17 @@ func evalProgram(program *ast.Program, env *object.Environment, ctx *CallContext
 	var result object.Object
 	var mainStatement *ast.MainStatement
 	
+	// Create a proper program context if none exists
+	if ctx == nil {
+		ctx = &CallContext{
+			FunctionName:      "<program>",
+			Node:              program,
+			Parent:            nil,
+			IsDirectExecution: true,
+			env:               env,
+		}
+	}
+	
 	// First pass: check if main statement exists
 	for _, statement := range program.Statements {
 		if mainStmt, ok := statement.(*ast.MainStatement); ok {
@@ -2338,7 +2385,14 @@ func evalProgram(program *ast.Program, env *object.Environment, ctx *CallContext
 	
 	// If main statement exists, execute it last (only for direct execution)
 	if mainStatement != nil && ctx != nil && ctx.IsDirectExecution {
-		result = Eval(mainStatement, env, ctx)
+		mainCtx := &CallContext{
+			FunctionName:      "main()",
+			Node:              mainStatement,
+			Parent:            ctx,
+			IsDirectExecution: true,
+			env:               env,
+		}
+		result = Eval(mainStatement, env, mainCtx)
 		
 		switch result.(type) {
 		case *object.ReturnValue:
