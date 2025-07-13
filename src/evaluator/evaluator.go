@@ -4158,7 +4158,7 @@ func unpackArray(
 	ctx *CallContext,
 	node ast.Node,
 ) object.Object {
-	if len(variables) == 2 {
+	if len(variables) == 2 && len(arr.Elements) > 2 {
 		// Special case: k, v <- [10, 20, 30]
 		// k gets indices [0, 1, 2], v gets values [10, 20, 30]
 		
@@ -4202,30 +4202,6 @@ func unpackTuple(
 	ctx *CallContext,
 	node ast.Node,
 ) object.Object {
-	if len(variables) == 2 {
-		// Special case: k, v <- (10, 20, 30)
-		// k gets indices [0, 1, 2], v gets values [10, 20, 30]
-		
-		// Create indices array
-		indices := &object.Array{Elements: []object.Object{}}
-		for i := range tuple.Elements {
-			indices.Elements = append(indices.Elements, &object.Integer{Value: int64(i)})
-		}
-		
-		// Convert tuple to array for values
-		values := &object.Array{Elements: tuple.Elements}
-		
-		// Assign to variables
-		if ident, ok := variables[0].(*ast.Identifier); ok {
-			env.Set(ident.Value, indices)
-		}
-		if ident, ok := variables[1].(*ast.Identifier); ok {
-			env.Set(ident.Value, values)
-		}
-		
-		return object.NONE
-	}
-	
 	// Regular unpacking
 	if len(variables) != len(tuple.Elements) {
 		return newErrorWithTrace(
