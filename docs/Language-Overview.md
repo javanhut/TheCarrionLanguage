@@ -39,7 +39,7 @@ x, y = (10, 20)
 
 ### Comments
 ```python
-// Single-line comment
+# Single-line comment
 /* 
    Multi-line
    comment 

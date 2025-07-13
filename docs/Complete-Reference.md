@@ -52,7 +52,7 @@ Carrion is a dynamic, interpreted programming language with Norse mythology-insp
 
 ### Comments
 ```python
-// Single-line comment
+# Single-line comment
 /* Multi-line
    comment */
 ```

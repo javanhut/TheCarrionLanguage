@@ -54,8 +54,15 @@ func testEval(input string) object.Object {
 		return &object.Error{Message: strings.Join(p.Errors(), ", ")}
 	}
 
-   // Evaluate AST with no initial call context
-	result := Eval(program, env, nil)
+   // Evaluate AST with direct execution context for proper main statement handling
+	ctx := &CallContext{
+		FunctionName:      "<program>",
+		Node:              program,
+		Parent:            nil,
+		IsDirectExecution: true,
+		env:               env,
+	}
+	result := Eval(program, env, ctx)
 	return result
 }
 
@@ -795,4 +802,72 @@ main:
 		evaluated := testEval(input)
 		testIntegerObject(t, evaluated, 75) // 3 * 5 * 5
 	})
+}
+
+func TestStringIndexing(t *testing.T) {
+	t.Run("string indexing should return character", func(t *testing.T) {
+		input := `s = "hello"
+result = s[1]`
+		evaluated := testEval(input)
+		result, ok := evaluated.(*object.String)
+		if !ok {
+			t.Fatalf("object is not String. got=%T (%+v)", evaluated, evaluated)
+		}
+		if result.Value != "e" {
+			t.Errorf("string has wrong value. got=%q, wanted=%q", result.Value, "e")
+		}
+	})
+	
+	t.Run("string indexing bounds", func(t *testing.T) {
+		tests := []struct {
+			input    string
+			expected string
+			desc     string
+		}{
+			{`s = "hello"; s[0]`, "h", "first character"},
+			{`s = "hello"; s[4]`, "o", "last character"},
+		}
+		
+		for _, tt := range tests {
+			t.Run(tt.desc, func(t *testing.T) {
+				evaluated := testEval(tt.input)
+				result, ok := evaluated.(*object.String)
+				if !ok {
+					t.Fatalf("object is not String. got=%T (%+v)", evaluated, evaluated)
+				}
+				if result.Value != tt.expected {
+					t.Errorf("string has wrong value. got=%q, wanted=%q", result.Value, tt.expected)
+				}
+			})
+		}
+	})
+	
+	t.Run("array indexing should work correctly", func(t *testing.T) {
+		input := `arr = [1, 2, 3]
+result = arr[1]`
+		evaluated := testEval(input)
+		testIntegerObject(t, evaluated, 2)
+	})
+}
+
+func TestIncrementDecrementOperators(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected int64
+		desc     string
+	}{
+		{"x = 5; x += 3; x", 8, "addition assignment"},
+		{"x = 10; x -= 4; x", 6, "subtraction assignment"},
+		{"x = 3; x *= 4; x", 12, "multiplication assignment"},
+		{"x = 12; x /= 3; x", 4, "division assignment"},
+		{"x = 1; ++x", 2, "pre-increment"},
+		{"x = 5; --x", 4, "pre-decrement"},
+	}
+	
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			evaluated := testEval(tt.input)
+			testIntegerObject(t, evaluated, tt.expected)
+		})
+	}
 }

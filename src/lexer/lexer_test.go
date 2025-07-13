@@ -17,23 +17,23 @@ func TestNextToken(t *testing.T) {
   result >= 16
   "foobar"
   "foo bar"
-  [1, 2]
-  `
+  [1, 2]`
 
 	tests := []struct {
 		expectedType    token.TokenType
 		expectedLiteral string
 	}{
-		// Line 1: five = 5
+		{token.NEWLINE, ""},
 		{token.IDENT, "five"},
 		{token.ASSIGN, "="},
 		{token.INT, "5"},
-
-		// Line 2: two spaces + ten = 10
+		{token.NEWLINE, ""},
+		{token.INDENT, ""},
 		{token.IDENT, "ten"},
 		{token.ASSIGN, "="},
 		{token.INT, "10"},
-		// Line 3: two spaces + spell add(x , y):
+		{token.NEWLINE, ""},
+		{token.NEWLINE, ""},
 		{token.SPELL, "spell"},
 		{token.IDENT, "add"},
 		{token.LPAREN, "("},
@@ -42,12 +42,14 @@ func TestNextToken(t *testing.T) {
 		{token.IDENT, "y"},
 		{token.RPAREN, ")"},
 		{token.COLON, ":"},
-		// Line 4: four spaces + return x + y
+		{token.NEWLINE, ""},
+		{token.INDENT, ""},
 		{token.RETURN, "return"},
 		{token.IDENT, "x"},
 		{token.PLUS, "+"},
 		{token.IDENT, "y"},
-		// Line 6: two spaces + result = add(five, ten)
+		{token.NEWLINE, ""},
+		{token.DEDENT, ""},
 		{token.IDENT, "result"},
 		{token.ASSIGN, "="},
 		{token.IDENT, "add"},
@@ -56,19 +58,25 @@ func TestNextToken(t *testing.T) {
 		{token.COMMA, ","},
 		{token.IDENT, "ten"},
 		{token.RPAREN, ")"},
-
-		// result greater than or equal to 16
+		{token.NEWLINE, ""},
+		{token.NEWLINE, ""},
 		{token.IDENT, "result"},
 		{token.GE, ">="},
 		{token.INT, "16"},
+		{token.NEWLINE, ""},
+		{token.NEWLINE, ""},
 		{token.STRING, "foobar"},
+		{token.NEWLINE, ""},
+		{token.NEWLINE, ""},
 		{token.STRING, "foo bar"},
+		{token.NEWLINE, ""},
+		{token.NEWLINE, ""},
 		{token.LBRACK, "["},
 		{token.INT, "1"},
 		{token.COMMA, ","},
 		{token.INT, "2"},
 		{token.RBRACK, "]"},
-		// End of input: dedent to base and EOF
+		{token.NEWLINE, ""},
 		{token.DEDENT, ""},
 		{token.EOF, ""},
 	}

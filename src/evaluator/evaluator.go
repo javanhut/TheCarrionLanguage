@@ -4113,21 +4113,21 @@ func evalUnpackStatement(
 			// Extract the internal array from the instance
 			if elements, ok := value.Env.Get("elements"); ok {
 				if arr, ok := elements.(*object.Array); ok {
-					return unpackArray(node.Variables, arr, env, ctx)
+					return unpackArray(node.Variables, arr, env, ctx, node)
 				}
 			}
 		case "Tuple":
 			// Extract the internal tuple from the instance
 			if elements, ok := value.Env.Get("elements"); ok {
 				if tup, ok := elements.(*object.Tuple); ok {
-					return unpackTuple(node.Variables, tup, env, ctx)
+					return unpackTuple(node.Variables, tup, env, ctx, node)
 				}
 			}
 		case "Map", "Dict":
 			// Extract the internal hash from the instance
 			if pairs, ok := value.Env.Get("pairs"); ok {
 				if hash, ok := pairs.(*object.Hash); ok {
-					return unpackMap(node.Variables, hash, env, ctx)
+					return unpackMap(node.Variables, hash, env, ctx, node)
 				}
 			}
 		}
@@ -4137,11 +4137,11 @@ func evalUnpackStatement(
 			ctx,
 		)
 	case *object.Array:
-		return unpackArray(node.Variables, value, env, ctx)
+		return unpackArray(node.Variables, value, env, ctx, node)
 	case *object.Tuple:
-		return unpackTuple(node.Variables, value, env, ctx)
+		return unpackTuple(node.Variables, value, env, ctx, node)
 	case *object.Hash:
-		return unpackMap(node.Variables, value, env, ctx)
+		return unpackMap(node.Variables, value, env, ctx, node)
 	default:
 		return newErrorWithTrace(
 			fmt.Sprintf("cannot unpack object of type %T", val),
@@ -4156,6 +4156,7 @@ func unpackArray(
 	arr *object.Array,
 	env *object.Environment,
 	ctx *CallContext,
+	node ast.Node,
 ) object.Object {
 	if len(variables) == 2 {
 		// Special case: k, v <- [10, 20, 30]
@@ -4180,10 +4181,9 @@ func unpackArray(
 	
 	// Regular unpacking: a, b, c <- [1, 2, 3]
 	if len(variables) != len(arr.Elements) {
-		return &object.Error{
-			Message: fmt.Sprintf("cannot unpack %d values into %d variables", 
-				len(arr.Elements), len(variables)),
-		}
+		return newErrorWithTrace(
+			"cannot unpack %d values into %d variables",
+			node, ctx, len(arr.Elements), len(variables))
 	}
 	
 	for i, variable := range variables {
@@ -4200,6 +4200,7 @@ func unpackTuple(
 	tuple *object.Tuple,
 	env *object.Environment,
 	ctx *CallContext,
+	node ast.Node,
 ) object.Object {
 	if len(variables) == 2 {
 		// Special case: k, v <- (10, 20, 30)
@@ -4227,10 +4228,9 @@ func unpackTuple(
 	
 	// Regular unpacking
 	if len(variables) != len(tuple.Elements) {
-		return &object.Error{
-			Message: fmt.Sprintf("cannot unpack %d values into %d variables", 
-				len(tuple.Elements), len(variables)),
-		}
+		return newErrorWithTrace(
+			"cannot unpack %d values into %d variables",
+			node, ctx, len(tuple.Elements), len(variables))
 	}
 	
 	for i, variable := range variables {
@@ -4247,11 +4247,12 @@ func unpackMap(
 	hash *object.Hash,
 	env *object.Environment,
 	ctx *CallContext,
+	node ast.Node,
 ) object.Object {
 	if len(variables) != 2 {
-		return &object.Error{
-			Message: "map unpacking requires exactly 2 variables (keys, values)",
-		}
+		return newErrorWithTrace(
+			"map unpacking requires exactly 2 variables (keys, values)",
+			node, ctx)
 	}
 	
 	// Extract keys and values

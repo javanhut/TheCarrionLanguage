@@ -556,7 +556,6 @@ type UnpackStatement struct {
 }
 
 func (us *UnpackStatement) statementNode()       {}
-func (us *UnpackStatement) expressionNode()      {} // Also implement expressionNode for infix parsing
 func (us *UnpackStatement) TokenLiteral() string { return us.Token.Literal }
 func (us *UnpackStatement) String() string {
 	var out strings.Builder

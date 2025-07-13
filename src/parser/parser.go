@@ -593,19 +593,13 @@ func (p *Parser) parseAttemptStatement() ast.Statement {
 		p.nextToken() // ENSNARE
 		clause := &ast.EnsnareClause{Token: p.currToken}
 
-		// Optional condition or alias in parentheses
+		// Optional condition in parentheses
 		if p.peekTokenIs(token.LPAREN) {
 			p.nextToken() // consume '('
 			p.nextToken() // move to the content
 
-			// Check if it's a simple identifier (alias) or an expression (condition)
-			if p.currTokenIs(token.IDENT) && p.peekTokenIs(token.RPAREN) {
-				// It's an alias like ensnare (e):
-				clause.Alias = &ast.Identifier{Token: p.currToken, Value: p.currToken.Literal}
-			} else {
-				// It's a condition expression
-				clause.Condition = p.parseExpression(LOWEST)
-			}
+			// Parse as condition expression (identifiers like TypeError are treated as expressions)
+			clause.Condition = p.parseExpression(LOWEST)
 
 			if !p.expectPeek(token.RPAREN) {
 				return nil
