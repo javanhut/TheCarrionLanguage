@@ -81,6 +81,7 @@ func (e *Error) Inspect() string  { return "ERROR: " + e.Message }
 type Function struct {
    // Parameters holds function parameters, either simple identifiers or full Parameter nodes
    Parameters  []ast.Expression
+   ReturnType  ast.Expression
 	Body        *ast.BlockStatement
 	Env         *Environment
 	IsAbstract  bool

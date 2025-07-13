@@ -61,6 +61,7 @@ var precedences = map[token.TokenType]int{
 	token.AMPERSAND: 5,
 	token.XOR:       4,
 	token.PIPE:      3,
+	token.UNPACK:    ASSIGN, // Same precedence as assignment
 }
 
 type (
@@ -1201,6 +1202,12 @@ func (p *Parser) parseStatement() ast.Statement {
 		p.peekTokenIs(token.DIVASSGN) {
 		return p.finishAssignmentStatement(leftExpr)
 	}
+	
+	// Check for unpack operator
+	if p.peekTokenIs(token.UNPACK) {
+		p.nextToken() // move to <- token
+		return p.parseUnpackStatement(leftExpr)
+	}
 
 	stmt := &ast.ExpressionStatement{
 		Token:      p.currToken,
@@ -1818,8 +1825,15 @@ func (p *Parser) parseFunctionDefinition() ast.Statement {
 	// CRITICAL FIX: Explicitly exit parameter parsing mode
 	p.parsingParameters = false
 
+	// Check for return type hint with -> syntax
+	if p.peekTokenIs(token.ARROW) {
+		p.nextToken() // Move to -> token
+		p.nextToken() // Move past -> to type expression
+		stmt.ReturnType = p.parseExpression(LOWEST)
+	}
+
 	if !p.expectPeek(token.COLON) {
-		p.errors = append(p.errors, "Expected ':' after parameter list")
+		p.errors = append(p.errors, "Expected ':' after parameter list or return type")
 		return nil
 	}
 
@@ -2413,6 +2427,29 @@ func (p *Parser) parseWithStatement() ast.Statement {
 	
 	// Parse the body
 	stmt.Body = p.parseBlockStatement()
+	
+	return stmt
+}
+
+func (p *Parser) parseUnpackStatement(left ast.Expression) *ast.UnpackStatement {
+	// Handle unpack operator: a, b <- [1, 2, 3]
+	// The left side should be a tuple of variables
+	stmt := &ast.UnpackStatement{
+		Token: p.currToken,
+		Value: nil,
+	}
+	
+	// Convert left expression to list of variables
+	if tuple, ok := left.(*ast.TupleLiteral); ok {
+		stmt.Variables = tuple.Elements
+	} else {
+		// Single variable
+		stmt.Variables = []ast.Expression{left}
+	}
+	
+	// Parse the right side (value being unpacked)
+	p.nextToken()
+	stmt.Value = p.parseExpression(LOWEST)
 	
 	return stmt
 }

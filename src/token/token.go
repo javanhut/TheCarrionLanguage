@@ -70,6 +70,8 @@ const (
 	LBRACK     TokenType = "["
 	RBRACK     TokenType = "]"
 	UNDERSCORE TokenType = "_"
+	ARROW      TokenType = "->"
+	UNPACK     TokenType = "<-"
 
 	// Keywords
 	VAR         TokenType = "VAR"
