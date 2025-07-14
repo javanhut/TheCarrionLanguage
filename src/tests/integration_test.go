@@ -154,7 +154,7 @@ print(int("10"))`,
 			defer os.Remove(tmpFile)
 			
 			// Run the code
-			cmd := exec.Command("go", "run", "main.go", tmpFile)
+			cmd := exec.Command("go", "run", "../main.go", tmpFile)
 			cmd.Dir = "."
 			output, err := cmd.CombinedOutput()
 			

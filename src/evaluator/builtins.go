@@ -142,6 +142,12 @@ var builtins = map[string]*object.Builtin{
 			}
 
 			obj := args[0]
+			
+			// Special handling for Array instances
+			if inst, ok := obj.(*object.Instance); ok && inst.Grimoire != nil && inst.Grimoire.Name == "Array" {
+				return &object.String{Value: "ARRAY"}
+			}
+			
 			return &object.String{Value: string(obj.Type())}
 		},
 	},

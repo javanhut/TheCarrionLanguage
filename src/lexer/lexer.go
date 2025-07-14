@@ -136,6 +136,9 @@ func (l *Lexer) NextToken() token.Token {
 		} else if nxt == '=' {
 			l.charIndex += 2
 			return token.Token{Type: token.DECREMENT, Literal: "-="}
+		} else if nxt == '>' {
+			l.charIndex += 2
+			return token.Token{Type: token.ARROW, Literal: "->"}
 		}
 		l.charIndex++
 		return l.newToken(token.MINUS, "-")
@@ -187,6 +190,9 @@ func (l *Lexer) NextToken() token.Token {
 		} else if l.peekChar() == '=' { // less than or equal
 			l.charIndex += 2
 			return token.Token{Type: token.LE, Literal: "<="}
+		} else if l.peekChar() == '-' { // unpack operator
+			l.charIndex += 2
+			return token.Token{Type: token.UNPACK, Literal: "<-"}
 		}
 		l.charIndex++
 		return l.newToken(token.LT, "<")

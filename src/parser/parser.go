@@ -61,6 +61,7 @@ var precedences = map[token.TokenType]int{
 	token.AMPERSAND: 5,
 	token.XOR:       4,
 	token.PIPE:      3,
+	token.UNPACK:    ASSIGN, // Same precedence as assignment
 }
 
 type (
@@ -592,19 +593,13 @@ func (p *Parser) parseAttemptStatement() ast.Statement {
 		p.nextToken() // ENSNARE
 		clause := &ast.EnsnareClause{Token: p.currToken}
 
-		// Optional condition or alias in parentheses
+		// Optional condition in parentheses
 		if p.peekTokenIs(token.LPAREN) {
 			p.nextToken() // consume '('
 			p.nextToken() // move to the content
 
-			// Check if it's a simple identifier (alias) or an expression (condition)
-			if p.currTokenIs(token.IDENT) && p.peekTokenIs(token.RPAREN) {
-				// It's an alias like ensnare (e):
-				clause.Alias = &ast.Identifier{Token: p.currToken, Value: p.currToken.Literal}
-			} else {
-				// It's a condition expression
-				clause.Condition = p.parseExpression(LOWEST)
-			}
+			// Parse as condition expression (identifiers like TypeError are treated as expressions)
+			clause.Condition = p.parseExpression(LOWEST)
 
 			if !p.expectPeek(token.RPAREN) {
 				return nil
@@ -1200,6 +1195,12 @@ func (p *Parser) parseStatement() ast.Statement {
 		p.peekTokenIs(token.MULTASSGN) ||
 		p.peekTokenIs(token.DIVASSGN) {
 		return p.finishAssignmentStatement(leftExpr)
+	}
+	
+	// Check for unpack operator
+	if p.peekTokenIs(token.UNPACK) {
+		p.nextToken() // move to <- token
+		return p.parseUnpackStatement(leftExpr)
 	}
 
 	stmt := &ast.ExpressionStatement{
@@ -1818,8 +1819,15 @@ func (p *Parser) parseFunctionDefinition() ast.Statement {
 	// CRITICAL FIX: Explicitly exit parameter parsing mode
 	p.parsingParameters = false
 
+	// Check for return type hint with -> syntax
+	if p.peekTokenIs(token.ARROW) {
+		p.nextToken() // Move to -> token
+		p.nextToken() // Move past -> to type expression
+		stmt.ReturnType = p.parseExpression(LOWEST)
+	}
+
 	if !p.expectPeek(token.COLON) {
-		p.errors = append(p.errors, "Expected ':' after parameter list")
+		p.errors = append(p.errors, "Expected ':' after parameter list or return type")
 		return nil
 	}
 
@@ -2413,6 +2421,29 @@ func (p *Parser) parseWithStatement() ast.Statement {
 	
 	// Parse the body
 	stmt.Body = p.parseBlockStatement()
+	
+	return stmt
+}
+
+func (p *Parser) parseUnpackStatement(left ast.Expression) *ast.UnpackStatement {
+	// Handle unpack operator: a, b <- [1, 2, 3]
+	// The left side should be a tuple of variables
+	stmt := &ast.UnpackStatement{
+		Token: p.currToken,
+		Value: nil,
+	}
+	
+	// Convert left expression to list of variables
+	if tuple, ok := left.(*ast.TupleLiteral); ok {
+		stmt.Variables = tuple.Elements
+	} else {
+		// Single variable
+		stmt.Variables = []ast.Expression{left}
+	}
+	
+	// Parse the right side (value being unpacked)
+	p.nextToken()
+	stmt.Value = p.parseExpression(LOWEST)
 	
 	return stmt
 }

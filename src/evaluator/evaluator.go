@@ -693,6 +693,7 @@ func Eval(node ast.Node, env *object.Environment, ctx *CallContext) object.Objec
 	case *ast.FunctionDefinition:
 		fnObj := &object.Function{
 			Parameters: node.Parameters,
+			ReturnType: node.ReturnType,
 			Body:       node.Body,
 			Env:        env,
 		}
@@ -735,6 +736,8 @@ func Eval(node ast.Node, env *object.Environment, ctx *CallContext) object.Objec
 		return evalAttemptStatement(node, env, ctx)
 	case *ast.WithStatement:
 		return evalWithStatement(node, env, ctx)
+	case *ast.UnpackStatement:
+		return evalUnpackStatement(node, env, ctx)
 	case *ast.IgnoreStatement:
 		return object.NONE
 	case *ast.CallExpression:
@@ -1659,6 +1662,11 @@ func evalCallExpression(
 	switch fnTyped := fn.(type) {
 
 	case *object.Function:
+		// Type checking before function call
+		if typeErr := checkParameterTypes(fnTyped, args, ctx); typeErr != nil {
+			return typeErr
+		}
+		
 		// use the correctly typed value as the map key
 		fun := fnTyped // alias for brevity
 
@@ -3134,6 +3142,31 @@ func applyCompoundOperator(
 		}
 	}
 
+	// Handle string concatenation with +=
+	extractString := func(obj object.Object) (*object.String, bool) {
+		if strObj, ok := obj.(*object.String); ok {
+			return strObj, true
+		}
+		if instance, ok := obj.(*object.Instance); ok {
+			if instance.Grimoire.Name == "String" {
+				if value, exists := instance.Env.Get("value"); exists {
+					if strObj, ok := value.(*object.String); ok {
+						return strObj, true
+					}
+				}
+			}
+		}
+		return nil, false
+	}
+	
+	if operator == "+=" {
+		if lStr, ok := extractString(leftVal); ok {
+			if rStr, ok := extractString(rightVal); ok {
+				return &object.String{Value: lStr.Value + rStr.Value}
+			}
+		}
+	}
+
 	return newErrorWithTrace("unsupported type for compound assignment: %s",
 		node, ctx, leftVal.Type())
 }
@@ -4058,4 +4091,235 @@ func evalGlobalStatement(
 		env.MarkGlobal(name.Value)
 	}
 	return object.NONE
+}
+
+func evalUnpackStatement(
+	node *ast.UnpackStatement,
+	env *object.Environment,
+	ctx *CallContext,
+) object.Object {
+	// Evaluate the value being unpacked
+	val := Eval(node.Value, env, ctx)
+	if isError(val) {
+		return val
+	}
+	
+	// Handle different types of unpacking
+	switch value := val.(type) {
+	case *object.Instance:
+		// Handle instances of Array, Tuple, Map grimoires
+		switch value.Grimoire.Name {
+		case "Array":
+			// Extract the internal array from the instance
+			if elements, ok := value.Env.Get("elements"); ok {
+				if arr, ok := elements.(*object.Array); ok {
+					return unpackArray(node.Variables, arr, env, ctx, node)
+				}
+			}
+		case "Tuple":
+			// Extract the internal tuple from the instance
+			if elements, ok := value.Env.Get("elements"); ok {
+				if tup, ok := elements.(*object.Tuple); ok {
+					return unpackTuple(node.Variables, tup, env, ctx, node)
+				}
+			}
+		case "Map", "Dict":
+			// Extract the internal hash from the instance
+			if pairs, ok := value.Env.Get("pairs"); ok {
+				if hash, ok := pairs.(*object.Hash); ok {
+					return unpackMap(node.Variables, hash, env, ctx, node)
+				}
+			}
+		}
+		return newErrorWithTrace(
+			fmt.Sprintf("cannot unpack instance of %s", value.Grimoire.Name),
+			node,
+			ctx,
+		)
+	case *object.Array:
+		return unpackArray(node.Variables, value, env, ctx, node)
+	case *object.Tuple:
+		return unpackTuple(node.Variables, value, env, ctx, node)
+	case *object.Hash:
+		return unpackMap(node.Variables, value, env, ctx, node)
+	default:
+		return newErrorWithTrace(
+			fmt.Sprintf("cannot unpack object of type %T", val),
+			node,
+			ctx,
+		)
+	}
+}
+
+func unpackArray(
+	variables []ast.Expression,
+	arr *object.Array,
+	env *object.Environment,
+	ctx *CallContext,
+	node ast.Node,
+) object.Object {
+	if len(variables) == 2 && len(arr.Elements) > 2 {
+		// Special case: k, v <- [10, 20, 30]
+		// k gets indices [0, 1, 2], v gets values [10, 20, 30]
+		
+		// Create indices array
+		indices := &object.Array{Elements: []object.Object{}}
+		for i := range arr.Elements {
+			indices.Elements = append(indices.Elements, &object.Integer{Value: int64(i)})
+		}
+		
+		// Assign to variables
+		if ident, ok := variables[0].(*ast.Identifier); ok {
+			env.Set(ident.Value, indices)
+		}
+		if ident, ok := variables[1].(*ast.Identifier); ok {
+			env.Set(ident.Value, arr)
+		}
+		
+		return object.NONE
+	}
+	
+	// Regular unpacking: a, b, c <- [1, 2, 3]
+	if len(variables) != len(arr.Elements) {
+		return newErrorWithTrace(
+			"cannot unpack %d values into %d variables",
+			node, ctx, len(arr.Elements), len(variables))
+	}
+	
+	for i, variable := range variables {
+		if ident, ok := variable.(*ast.Identifier); ok {
+			env.Set(ident.Value, arr.Elements[i])
+		}
+	}
+	
+	return object.NONE
+}
+
+func unpackTuple(
+	variables []ast.Expression,
+	tuple *object.Tuple,
+	env *object.Environment,
+	ctx *CallContext,
+	node ast.Node,
+) object.Object {
+	// Regular unpacking
+	if len(variables) != len(tuple.Elements) {
+		return newErrorWithTrace(
+			"cannot unpack %d values into %d variables",
+			node, ctx, len(tuple.Elements), len(variables))
+	}
+	
+	for i, variable := range variables {
+		if ident, ok := variable.(*ast.Identifier); ok {
+			env.Set(ident.Value, tuple.Elements[i])
+		}
+	}
+	
+	return object.NONE
+}
+
+func unpackMap(
+	variables []ast.Expression,
+	hash *object.Hash,
+	env *object.Environment,
+	ctx *CallContext,
+	node ast.Node,
+) object.Object {
+	if len(variables) != 2 {
+		return newErrorWithTrace(
+			"map unpacking requires exactly 2 variables (keys, values)",
+			node, ctx)
+	}
+	
+	// Extract keys and values
+	keys := &object.Array{Elements: []object.Object{}}
+	values := &object.Array{Elements: []object.Object{}}
+	
+	for _, pair := range hash.Pairs {
+		keys.Elements = append(keys.Elements, pair.Key)
+		values.Elements = append(values.Elements, pair.Value)
+	}
+	
+	// Assign to variables
+	if ident, ok := variables[0].(*ast.Identifier); ok {
+		env.Set(ident.Value, keys)
+	}
+	if ident, ok := variables[1].(*ast.Identifier); ok {
+		env.Set(ident.Value, values)
+	}
+	
+	return object.NONE
+}
+
+// Type checking helper functions
+func getTypeString(expr ast.Expression) string {
+	if ident, ok := expr.(*ast.Identifier); ok {
+		return ident.Value
+	}
+	return "Unknown"
+}
+
+func getObjectTypeString(obj object.Object) string {
+	switch o := obj.(type) {
+	case *object.Instance:
+		// For instances, return the grimoire name (which is the type)
+		return o.Grimoire.Name
+	case *object.Integer:
+		return "Integer"
+	case *object.Float:
+		return "Float"
+	case *object.String:
+		return "String"
+	case *object.Boolean:
+		return "Boolean"
+	case *object.Array:
+		return "Array"
+	case *object.Hash:
+		return "Map"
+	case *object.Tuple:
+		return "Tuple"
+	case *object.Function:
+		return "Function"
+	case *object.None:
+		return "None"
+	default:
+		return "Unknown"
+	}
+}
+
+func isTypeCompatible(expected, actual string) bool {
+	// Exact match
+	if expected == actual {
+		return true
+	}
+	
+	// Special cases for numeric types
+	if (expected == "Integer" && actual == "Float") || 
+	   (expected == "Float" && actual == "Integer") {
+		return true
+	}
+	
+	// None can be assigned to any type
+	if actual == "None" {
+		return true
+	}
+	
+	return false
+}
+
+func checkParameterTypes(fn *object.Function, args []object.Object, ctx *CallContext) object.Object {
+	for i, pExpr := range fn.Parameters {
+		if param, ok := pExpr.(*ast.Parameter); ok && param.TypeHint != nil {
+			if i < len(args) {
+				expectedType := getTypeString(param.TypeHint)
+				actualType := getObjectTypeString(args[i])
+				if !isTypeCompatible(expectedType, actualType) {
+					return newErrorWithTrace(
+						"Type error: parameter '%s' expects %s but got %s",
+						ctx.Node, ctx, param.Name.Value, expectedType, actualType)
+				}
+			}
+		}
+	}
+	return nil
 }

@@ -95,16 +95,16 @@ It has similar syntax to python but no typing just yet will have optional type h
 
 # Comments:
 
-Comments in Carrion use C-style syntax:
-- Single-line comments: `//`
-- Multi-line comments: `/* */`
+Comments in Carrion use:
+- Single-line comments: `#`
+- Multi-line comments: `/* */` or ``` ``` ``` (triple backticks)
 
 
 
 "Example syntax":
 
 ```python
-// This is just a comment
+# This is just a comment
 spell foobar(x, y):
     return x + y
 ```

@@ -168,16 +168,27 @@ func (p *Parameter) expressionNode()      {}
 func (p *Parameter) TokenLiteral() string { return "Parameter" }
 
 func (p *Parameter) String() string {
-	if p.DefaultValue != nil {
-		return fmt.Sprintf("%s=%s", p.Name.String(), p.DefaultValue.String())
+	var out strings.Builder
+	out.WriteString(p.Name.String())
+	
+	if p.TypeHint != nil {
+		out.WriteString(": ")
+		out.WriteString(p.TypeHint.String())
 	}
-	return p.Name.String()
+	
+	if p.DefaultValue != nil {
+		out.WriteString(" = ")
+		out.WriteString(p.DefaultValue.String())
+	}
+	
+	return out.String()
 }
 
 type FunctionDefinition struct {
 	Token      token.Token
 	Name       *Identifier
 	Parameters []Expression
+	ReturnType Expression
 	Body       *BlockStatement
 	DocString  *StringLiteral
 }
@@ -196,7 +207,14 @@ func (fd *FunctionDefinition) String() string {
 	out.WriteString(fd.Name.String())
 	out.WriteString("(")
 	out.WriteString(strings.Join(params, ", "))
-	out.WriteString("):\n")
+	out.WriteString(")")
+	
+	if fd.ReturnType != nil {
+		out.WriteString(" -> ")
+		out.WriteString(fd.ReturnType.String())
+	}
+	
+	out.WriteString(":\n")
 	out.WriteString(fd.Body.String())
 
 	return out.String()
@@ -528,5 +546,29 @@ func (ws *WithStatement) String() string {
 	out.WriteString(ws.Variable.String())
 	out.WriteString(":\n")
 	out.WriteString(ws.Body.String())
+	return out.String()
+}
+
+type UnpackStatement struct {
+	Token     token.Token
+	Variables []Expression // List of variables to unpack to
+	Value     Expression   // The value being unpacked
+}
+
+func (us *UnpackStatement) statementNode()       {}
+func (us *UnpackStatement) TokenLiteral() string { return us.Token.Literal }
+func (us *UnpackStatement) String() string {
+	var out strings.Builder
+	
+	// Join variables with commas
+	vars := []string{}
+	for _, v := range us.Variables {
+		vars = append(vars, v.String())
+	}
+	
+	out.WriteString(strings.Join(vars, ", "))
+	out.WriteString(" <- ")
+	out.WriteString(us.Value.String())
+	
 	return out.String()
 }
