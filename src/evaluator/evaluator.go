@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/javanhut/TheCarrionLanguage/src/ast"
 	"github.com/javanhut/TheCarrionLanguage/src/debug"
@@ -63,6 +64,57 @@ func CleanupGlobalState() {
 	
 	// Reset current context
 	CurrentContext = nil
+	
+	// Cleanup goroutine manager
+	CleanupGoroutineManager()
+}
+
+// CleanupGoroutineManager waits for goroutines to finish and resets the manager
+func CleanupGoroutineManager() {
+	
+	// Create a channel to signal completion
+	done := make(chan bool, 1)
+	
+	go func() {
+		// Wait for all named goroutines to finish
+		namedGoroutines := globalGoroutineManager.GetAllNamedGoroutines()
+		for _, goroutine := range namedGoroutines {
+			if goroutine.IsRunning {
+				select {
+				case <-goroutine.Done:
+					// Goroutine finished normally
+				case <-time.After(100 * time.Millisecond):
+					// Continue to next goroutine after short timeout
+				}
+			}
+		}
+		
+		// Wait for all anonymous goroutines to finish
+		anonymousGoroutines := globalGoroutineManager.GetAllAnonymousGoroutines()
+		for _, goroutine := range anonymousGoroutines {
+			if goroutine.IsRunning {
+				select {
+				case <-goroutine.Done:
+					// Goroutine finished normally
+				case <-time.After(100 * time.Millisecond):
+					// Continue to next goroutine after short timeout
+				}
+			}
+		}
+		
+		done <- true
+	}()
+	
+	// Wait for completion or timeout after 5 seconds
+	select {
+	case <-done:
+		// All goroutines finished or timed out individually
+	case <-time.After(5 * time.Second):
+		// Global timeout reached
+	}
+	
+	// Reset the global goroutine manager to a fresh state
+	globalGoroutineManager.Reset()
 }
 
 // CleanupCallStack removes entries from call stack for specific function
@@ -1580,6 +1632,49 @@ func evalStaticMethodCall(
 	return evalWithRecursionLimit(method.Body, methodEnv, method, methodCtx, 0)
 }
 
+// bindMethodParameters binds arguments to method parameters, handling default values and self parameter
+func bindMethodParameters(
+	method *object.Function,
+	args []object.Object,
+	methodEnv *object.Environment,
+	methodCtx *CallContext,
+	skipSelf bool,
+) {
+	argIndex := 0
+	for _, pExpr := range method.Parameters {
+		switch param := pExpr.(type) {
+		case *ast.Identifier:
+			name := param.Value
+			// Skip 'self' parameter if requested (for instance methods)
+			if skipSelf && name == "self" {
+				continue
+			}
+			if argIndex < len(args) {
+				methodEnv.Set(name, args[argIndex])
+				argIndex++
+			} else {
+				methodEnv.Set(name, NONE)
+			}
+		case *ast.Parameter:
+			name := param.Name.Value
+			// Skip 'self' parameter if requested (for instance methods)
+			if skipSelf && name == "self" {
+				continue
+			}
+			if argIndex < len(args) {
+				methodEnv.Set(name, args[argIndex])
+				argIndex++
+			} else if param.DefaultValue != nil {
+				methodEnv.Set(name, Eval(param.DefaultValue, method.Env, methodCtx))
+			} else {
+				methodEnv.Set(name, NONE)
+			}
+		default:
+			// unsupported parameter type
+		}
+	}
+}
+
 // evalGrimoireMethodCall executes a method call on a grimoire instance
 // Sets MethodGrimoire to the method's defining class for proper super resolution
 func evalGrimoireMethodCall(
@@ -1622,41 +1717,8 @@ func evalGrimoireMethodCall(
 		MethodGrimoire: methodOwner,
 	}
 
-	// Bind arguments: support simple identifiers or full Parameter nodes
-	// For method calls, we need to handle the 'self' parameter specially
-	argIndex := 0
-	for _, pExpr := range method.Parameters {
-		switch param := pExpr.(type) {
-		case *ast.Identifier:
-			name := param.Value
-			// Skip 'self' parameter - it's already set in the method environment
-			if name == "self" {
-				continue
-			}
-			if argIndex < len(args) {
-				methodEnv.Set(name, args[argIndex])
-				argIndex++
-			} else {
-				methodEnv.Set(name, NONE)
-			}
-		case *ast.Parameter:
-			name := param.Name.Value
-			// Skip 'self' parameter - it's already set in the method environment
-			if name == "self" {
-				continue
-			}
-			if argIndex < len(args) {
-				methodEnv.Set(name, args[argIndex])
-				argIndex++
-			} else if param.DefaultValue != nil {
-				methodEnv.Set(name, Eval(param.DefaultValue, method.Env, methodCtx))
-			} else {
-				methodEnv.Set(name, NONE)
-			}
-		default:
-			// unsupported parameter type
-		}
-	}
+	// Bind arguments using the common helper function
+	bindMethodParameters(method, args, methodEnv, methodCtx, true)
 
 	// Execute with bounds checking for recursive calls
 	return evalWithRecursionLimit(method.Body, methodEnv, method, methodCtx, 0)
@@ -1716,36 +1778,8 @@ func evalBoundMethodCall(
 		MethodGrimoire: methodOwner,
 	}
 
-	// Bind arguments: support simple identifiers or full Parameter nodes
-	argIndex := 0
-	for _, pExpr := range method.Parameters {
-		switch param := pExpr.(type) {
-		case *ast.Identifier:
-			name := param.Value
-			if name == "self" {
-				continue
-			}
-			if argIndex < len(args) {
-				methodEnv.Set(name, args[argIndex])
-				argIndex++
-			} else {
-				methodEnv.Set(name, object.NONE)
-			}
-		case *ast.Parameter:
-			name := param.Name.Value
-			if name == "self" {
-				continue
-			}
-			if argIndex < len(args) {
-				methodEnv.Set(name, args[argIndex])
-				argIndex++
-			} else if param.DefaultValue != nil {
-				methodEnv.Set(name, Eval(param.DefaultValue, method.Env, methodCtx))
-			} else {
-				methodEnv.Set(name, object.NONE)
-			}
-		}
-	}
+	// Bind arguments using the common helper function
+	bindMethodParameters(method, args, methodEnv, methodCtx, true)
 
 	// Execute with bounds checking for recursive calls
 	return evalWithRecursionLimit(method.Body, methodEnv, method, methodCtx, 0)
@@ -3485,6 +3519,54 @@ func isError(obj object.Object) bool {
 		isErrorWithTrace(obj)
 }
 
+// isStopIterationError checks if an object represents a StopIteration error
+func isStopIterationError(obj object.Object) bool {
+	switch err := obj.(type) {
+	case *object.Error:
+		return strings.Contains(err.Message, "StopIteration")
+	case *object.CustomError:
+		// Check the name directly
+		if err.Name == "StopIteration" {
+			return true
+		}
+		// Check the message
+		if strings.Contains(err.Message, "StopIteration") {
+			return true
+		}
+		// Check details for StopIteration pattern
+		if details, ok := err.Details["errorType"]; ok {
+			if strType, ok := details.(*object.String); ok && strType.Value == "String" {
+				if instance, ok := err.Details["instance"]; ok {
+					if strInstance, ok := instance.(*object.String); ok && strInstance.Value == "StopIteration" {
+						return true
+					}
+				}
+			}
+		}
+		return false
+	case *object.ErrorWithTrace:
+		// Check the message
+		if strings.Contains(err.Message, "StopIteration") {
+			return true
+		}
+		// Check CustomDetails for StopIteration pattern
+		if err.CustomDetails != nil {
+			if errorType, ok := err.CustomDetails["errorType"]; ok {
+				if strType, ok := errorType.(*object.String); ok && strType.Value == "String" {
+					if instance, ok := err.CustomDetails["instance"]; ok {
+						if strInstance, ok := instance.(*object.String); ok && strInstance.Value == "StopIteration" {
+							return true
+						}
+					}
+				}
+			}
+		}
+		return false
+	default:
+		return false
+	}
+}
+
 func evalWhileStatement(
 	node *ast.WhileStatement,
 	env *object.Environment,
@@ -3641,44 +3723,10 @@ func evalForStatement(
 						nextValue := evalGrimoireMethodCall(iterator, "next", []object.Object{}, env, forCtx)
 						
 						// Check if it's a StopIteration error
-						if errObj, isErr := nextValue.(*object.Error); isErr {
-							if strings.Contains(errObj.Message, "StopIteration") {
-								break
-							}
-							return nextValue
+						if isStopIterationError(nextValue) {
+							break
 						}
-						if customErr, isCustomErr := nextValue.(*object.CustomError); isCustomErr {
-							// Debug: Check the actual errorType from details
-							if details, ok := customErr.Details["errorType"]; ok {
-								if strType, ok := details.(*object.String); ok && strType.Value == "String" {
-									if instance, ok := customErr.Details["instance"]; ok {
-										if strInstance, ok := instance.(*object.String); ok && strInstance.Value == "StopIteration" {
-											break
-										}
-									}
-								}
-							}
-							if strings.Contains(customErr.Message, "StopIteration") || customErr.Name == "StopIteration" {
-								break
-							}
-							return nextValue
-						}
-						if errWithTrace, isErrWithTrace := nextValue.(*object.ErrorWithTrace); isErrWithTrace {
-							if strings.Contains(errWithTrace.Message, "StopIteration") {
-								break
-							}
-							// Check CustomDetails for StopIteration pattern  
-							if errWithTrace.CustomDetails != nil {
-								if errorType, ok := errWithTrace.CustomDetails["errorType"]; ok {
-									if strType, ok := errorType.(*object.String); ok && strType.Value == "String" {
-										if instance, ok := errWithTrace.CustomDetails["instance"]; ok {
-											if strInstance, ok := instance.(*object.String); ok && strInstance.Value == "StopIteration" {
-												break
-											}
-										}
-									}
-								}
-							}
+						if isError(nextValue) {
 							return nextValue
 						}
 						
@@ -4705,14 +4753,23 @@ func evalDivergeStatement(
 	// Set name if provided
 	if node.Name != nil {
 		goroutine.Name = node.Name.Value
-		globalGoroutineManager.Goroutines[goroutine.Name] = goroutine
+		globalGoroutineManager.AddNamedGoroutine(goroutine.Name, goroutine)
 	} else {
-		globalGoroutineManager.Anonymous = append(globalGoroutineManager.Anonymous, goroutine)
+		globalGoroutineManager.AddAnonymousGoroutine(goroutine)
 	}
 	
 	// Start the goroutine
 	go func() {
 		defer func() {
+			// Recover from any panic to prevent deadlock
+			if r := recover(); r != nil {
+				// Convert panic to error and store it
+				goroutine.Error = &object.Error{
+					Message: fmt.Sprintf("Goroutine panic: %v", r),
+				}
+			}
+			
+			// Always ensure Done channel receives a value
 			goroutine.IsRunning = false
 			goroutine.Done <- true
 		}()
@@ -4751,22 +4808,23 @@ func evalConvergeStatement(
 		// Wait for all goroutines
 		
 		// Wait for named goroutines
-		for _, goroutine := range globalGoroutineManager.Goroutines {
+		namedGoroutines := globalGoroutineManager.GetAllNamedGoroutines()
+		for _, goroutine := range namedGoroutines {
 			if goroutine.IsRunning {
 				<-goroutine.Done
 			}
 		}
 		
 		// Wait for anonymous goroutines
-		for _, goroutine := range globalGoroutineManager.Anonymous {
+		anonymousGoroutines := globalGoroutineManager.GetAllAnonymousGoroutines()
+		for _, goroutine := range anonymousGoroutines {
 			if goroutine.IsRunning {
 				<-goroutine.Done
 			}
 		}
 		
 		// Clear all goroutines
-		globalGoroutineManager.Goroutines = make(map[string]*object.Goroutine)
-		globalGoroutineManager.Anonymous = make([]*object.Goroutine, 0)
+		globalGoroutineManager.ClearAll()
 		
 	} else {
 		// Wait for specific named goroutines
@@ -4776,7 +4834,7 @@ func evalConvergeStatement(
 				return newErrorWithTrace("converge expects goroutine names", node, ctx)
 			}
 			
-			goroutine, exists := globalGoroutineManager.Goroutines[nameIdent.Value]
+			goroutine, exists := globalGoroutineManager.GetNamedGoroutine(nameIdent.Value)
 			if !exists {
 				return newErrorWithTrace("goroutine '%s' not found", node, ctx, nameIdent.Value)
 			}
@@ -4786,7 +4844,7 @@ func evalConvergeStatement(
 			}
 			
 			// Remove from manager
-			delete(globalGoroutineManager.Goroutines, nameIdent.Value)
+			globalGoroutineManager.RemoveNamedGoroutine(nameIdent.Value)
 		}
 	}
 	

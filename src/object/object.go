@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"hash/fnv"
 	"strings"
+	"sync"
 
 	"github.com/javanhut/TheCarrionLanguage/src/ast"
 )
@@ -341,6 +342,7 @@ func (g *Goroutine) Inspect() string {
 
 // GoroutineManager manages all active goroutines
 type GoroutineManager struct {
+	mu         sync.RWMutex
 	Goroutines map[string]*Goroutine
 	Anonymous  []*Goroutine
 }
@@ -354,6 +356,73 @@ func NewGoroutineManager() *GoroutineManager {
 
 func (gm *GoroutineManager) Type() ObjectType { return GOROUTINE_MANAGER_OBJ }
 func (gm *GoroutineManager) Inspect() string {
+	gm.mu.RLock()
+	defer gm.mu.RUnlock()
 	return fmt.Sprintf("GoroutineManager(named: %d, anonymous: %d)", 
 		len(gm.Goroutines), len(gm.Anonymous))
+}
+
+// AddNamedGoroutine adds a named goroutine to the manager
+func (gm *GoroutineManager) AddNamedGoroutine(name string, goroutine *Goroutine) {
+	gm.mu.Lock()
+	defer gm.mu.Unlock()
+	gm.Goroutines[name] = goroutine
+}
+
+// AddAnonymousGoroutine adds an anonymous goroutine to the manager
+func (gm *GoroutineManager) AddAnonymousGoroutine(goroutine *Goroutine) {
+	gm.mu.Lock()
+	defer gm.mu.Unlock()
+	gm.Anonymous = append(gm.Anonymous, goroutine)
+}
+
+// GetNamedGoroutine retrieves a named goroutine from the manager
+func (gm *GoroutineManager) GetNamedGoroutine(name string) (*Goroutine, bool) {
+	gm.mu.RLock()
+	defer gm.mu.RUnlock()
+	goroutine, exists := gm.Goroutines[name]
+	return goroutine, exists
+}
+
+// RemoveNamedGoroutine removes a named goroutine from the manager
+func (gm *GoroutineManager) RemoveNamedGoroutine(name string) {
+	gm.mu.Lock()
+	defer gm.mu.Unlock()
+	delete(gm.Goroutines, name)
+}
+
+// GetAllNamedGoroutines returns a copy of all named goroutines
+func (gm *GoroutineManager) GetAllNamedGoroutines() map[string]*Goroutine {
+	gm.mu.RLock()
+	defer gm.mu.RUnlock()
+	result := make(map[string]*Goroutine, len(gm.Goroutines))
+	for name, goroutine := range gm.Goroutines {
+		result[name] = goroutine
+	}
+	return result
+}
+
+// GetAllAnonymousGoroutines returns a copy of all anonymous goroutines
+func (gm *GoroutineManager) GetAllAnonymousGoroutines() []*Goroutine {
+	gm.mu.RLock()
+	defer gm.mu.RUnlock()
+	result := make([]*Goroutine, len(gm.Anonymous))
+	copy(result, gm.Anonymous)
+	return result
+}
+
+// ClearAll removes all goroutines from the manager
+func (gm *GoroutineManager) ClearAll() {
+	gm.mu.Lock()
+	defer gm.mu.Unlock()
+	gm.Goroutines = make(map[string]*Goroutine)
+	gm.Anonymous = make([]*Goroutine, 0)
+}
+
+// Reset completely resets the manager to a fresh state
+func (gm *GoroutineManager) Reset() {
+	gm.mu.Lock()
+	defer gm.mu.Unlock()
+	gm.Goroutines = make(map[string]*Goroutine)
+	gm.Anonymous = make([]*Goroutine, 0)
 }

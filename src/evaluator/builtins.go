@@ -141,13 +141,30 @@ var builtins = map[string]*object.Builtin{
 			endChar := "\n"
 			printArgs := args
 			
-			// If we have more than one argument, the last one might be the end specifier
-			if len(args) >= 2 {
-				// Check if the last argument is a string (could be our end parameter)
-				if lastArg, ok := extractStringBuiltin(args[len(args)-1]); ok {
-					// If the second-to-last argument is also provided, treat last as end
-					endChar = lastArg
-					printArgs = args[:len(args)-1]
+			// Check if the first argument is a hash/map containing end specification
+			if len(args) > 0 {
+				if hash, ok := args[0].(*object.Hash); ok {
+					// Look for "end" key in the hash
+					endKey := &object.String{Value: "end"}
+					if endPair, exists := hash.Pairs[endKey.HashKey()]; exists {
+						if endStr, ok := extractStringBuiltin(endPair.Value); ok {
+							endChar = endStr
+						}
+					}
+					
+					// Look for "values" key in the hash for the actual values to print
+					valuesKey := &object.String{Value: "values"}
+					if valuesPair, exists := hash.Pairs[valuesKey.HashKey()]; exists {
+						if array, ok := valuesPair.Value.(*object.Array); ok {
+							printArgs = array.Elements
+						} else {
+							// If values is not an array, treat it as a single value
+							printArgs = []object.Object{valuesPair.Value}
+						}
+					} else {
+						// If no values key, print nothing (only apply end character)
+						printArgs = []object.Object{}
+					}
 				}
 			}
 			

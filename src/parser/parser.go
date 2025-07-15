@@ -400,6 +400,24 @@ func (p *Parser) parseConvergeStatement() ast.Statement {
 		}
 	}
 	
+	// Check for optional timeout keyword
+	if p.peekTokenIs(token.IDENT) && p.peekToken.Literal == "timeout" {
+		p.nextToken() // consume "timeout" identifier
+		
+		// Parse the timeout value expression
+		if !p.expectPeek(token.INT) {
+			return nil
+		}
+		
+		// Convert string to int64
+		timeoutValue, err := strconv.ParseInt(p.currToken.Literal, 0, 64)
+		if err != nil {
+			return nil
+		}
+		
+		stmt.Timeout = &ast.IntegerLiteral{Token: p.currToken, Value: timeoutValue}
+	}
+	
 	return stmt
 }
 

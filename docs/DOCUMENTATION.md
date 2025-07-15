@@ -425,7 +425,7 @@ The Carrion Language is implemented in Go and follows a traditional interpreter 
 #### Input/Output
 - `print(*args)` - Print arguments with newline
 - `printn(*args)` - Print arguments without newline  
-- `printend(*args, end)` - Print with custom end character
+- `printend(options)` - Print with custom end character using options map: `{values: [args], end: "string"}`
 - `input(prompt)` - Read user input with optional prompt
 
 #### Mathematics

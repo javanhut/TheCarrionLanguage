@@ -18,18 +18,6 @@ arcane grim Iterable:
         ```
         raise "Subclasses must implement iter"
     
-    spell next():
-        ```
-        Get the next item from the iterator.
-        
-        Returns:
-            The next item in the iteration
-            
-        Raises:
-            StopIteration: When no more items are available
-            Error: Subclasses must override this method
-        ```
-        raise "Subclasses must implement next"
 
 grim Iterator:
     ```
