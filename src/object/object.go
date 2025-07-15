@@ -330,6 +330,7 @@ type Goroutine struct {
 	Result    Object
 	Error     Object
 	IsRunning bool
+	cleaned   bool // Track if cleanup has been performed
 }
 
 func (g *Goroutine) Type() ObjectType { return GOROUTINE_OBJ }
@@ -340,17 +341,73 @@ func (g *Goroutine) Inspect() string {
 	return "goroutine(anonymous)"
 }
 
+// Cleanup closes channels and releases resources when a goroutine finishes
+func (g *Goroutine) Cleanup() {
+	if g.cleaned {
+		return // Already cleaned up
+	}
+	g.cleaned = true
+	
+	// Close the Done channel if it's not already closed
+	if g.Done != nil {
+		select {
+		case <-g.Done:
+			// Channel already closed or has a value
+		default:
+			close(g.Done)
+		}
+	}
+	
+	// Mark as not running
+	g.IsRunning = false
+	
+	// Clear references to help GC
+	g.Result = nil
+	g.Error = nil
+}
+
+// IsCompleted checks if the goroutine has finished execution
+func (g *Goroutine) IsCompleted() bool {
+	if g.Done == nil {
+		return true
+	}
+	
+	select {
+	case <-g.Done:
+		return true
+	default:
+		return false
+	}
+}
+
 // GoroutineManager manages all active goroutines
 type GoroutineManager struct {
-	mu         sync.RWMutex
-	Goroutines map[string]*Goroutine
-	Anonymous  []*Goroutine
+	mu                sync.RWMutex
+	Goroutines        map[string]*Goroutine
+	Anonymous         []*Goroutine
+	MaxNamedSize      int  // Maximum number of named goroutines (0 = unlimited)
+	MaxAnonymousSize  int  // Maximum number of anonymous goroutines (0 = unlimited)
+	AutoCleanup       bool // Whether to automatically clean up completed goroutines
 }
 
 func NewGoroutineManager() *GoroutineManager {
 	return &GoroutineManager{
-		Goroutines: make(map[string]*Goroutine),
-		Anonymous:  make([]*Goroutine, 0),
+		Goroutines:       make(map[string]*Goroutine),
+		Anonymous:        make([]*Goroutine, 0),
+		MaxNamedSize:     0,    // Unlimited by default
+		MaxAnonymousSize: 0,    // Unlimited by default
+		AutoCleanup:      true, // Enable auto cleanup by default
+	}
+}
+
+// NewGoroutineManagerWithLimits creates a new GoroutineManager with specified limits
+func NewGoroutineManagerWithLimits(maxNamed, maxAnonymous int, autoCleanup bool) *GoroutineManager {
+	return &GoroutineManager{
+		Goroutines:       make(map[string]*Goroutine),
+		Anonymous:        make([]*Goroutine, 0),
+		MaxNamedSize:     maxNamed,
+		MaxAnonymousSize: maxAnonymous,
+		AutoCleanup:      autoCleanup,
 	}
 }
 
@@ -363,17 +420,41 @@ func (gm *GoroutineManager) Inspect() string {
 }
 
 // AddNamedGoroutine adds a named goroutine to the manager
-func (gm *GoroutineManager) AddNamedGoroutine(name string, goroutine *Goroutine) {
+func (gm *GoroutineManager) AddNamedGoroutine(name string, goroutine *Goroutine) error {
 	gm.mu.Lock()
 	defer gm.mu.Unlock()
+	
+	// Auto cleanup if enabled
+	if gm.AutoCleanup {
+		gm.cleanupCompletedLocked()
+	}
+	
+	// Check size limits
+	if gm.MaxNamedSize > 0 && len(gm.Goroutines) >= gm.MaxNamedSize {
+		return fmt.Errorf("named goroutine limit reached: %d", gm.MaxNamedSize)
+	}
+	
 	gm.Goroutines[name] = goroutine
+	return nil
 }
 
 // AddAnonymousGoroutine adds an anonymous goroutine to the manager
-func (gm *GoroutineManager) AddAnonymousGoroutine(goroutine *Goroutine) {
+func (gm *GoroutineManager) AddAnonymousGoroutine(goroutine *Goroutine) error {
 	gm.mu.Lock()
 	defer gm.mu.Unlock()
+	
+	// Auto cleanup if enabled
+	if gm.AutoCleanup {
+		gm.cleanupCompletedLocked()
+	}
+	
+	// Check size limits
+	if gm.MaxAnonymousSize > 0 && len(gm.Anonymous) >= gm.MaxAnonymousSize {
+		return fmt.Errorf("anonymous goroutine limit reached: %d", gm.MaxAnonymousSize)
+	}
+	
 	gm.Anonymous = append(gm.Anonymous, goroutine)
+	return nil
 }
 
 // GetNamedGoroutine retrieves a named goroutine from the manager
@@ -415,8 +496,119 @@ func (gm *GoroutineManager) GetAllAnonymousGoroutines() []*Goroutine {
 func (gm *GoroutineManager) ClearAll() {
 	gm.mu.Lock()
 	defer gm.mu.Unlock()
+	
+	// Cleanup all named goroutines
+	for _, goroutine := range gm.Goroutines {
+		goroutine.Cleanup()
+	}
+	
+	// Cleanup all anonymous goroutines
+	for _, goroutine := range gm.Anonymous {
+		goroutine.Cleanup()
+	}
+	
 	gm.Goroutines = make(map[string]*Goroutine)
 	gm.Anonymous = make([]*Goroutine, 0)
+}
+
+// CleanupCompletedGoroutines removes and cleans up all completed goroutines
+func (gm *GoroutineManager) CleanupCompletedGoroutines() {
+	gm.mu.Lock()
+	defer gm.mu.Unlock()
+	gm.cleanupCompletedLocked()
+}
+
+// cleanupCompletedLocked performs cleanup without acquiring the lock (internal use)
+func (gm *GoroutineManager) cleanupCompletedLocked() {
+	// Clean up completed named goroutines
+	for name, goroutine := range gm.Goroutines {
+		if goroutine.IsCompleted() {
+			goroutine.Cleanup()
+			delete(gm.Goroutines, name)
+		}
+	}
+	
+	// Clean up completed anonymous goroutines
+	newAnonymous := make([]*Goroutine, 0)
+	for _, goroutine := range gm.Anonymous {
+		if goroutine.IsCompleted() {
+			goroutine.Cleanup()
+		} else {
+			newAnonymous = append(newAnonymous, goroutine)
+		}
+	}
+	gm.Anonymous = newAnonymous
+}
+
+// RemoveAndCleanupNamed removes a named goroutine and performs cleanup
+func (gm *GoroutineManager) RemoveAndCleanupNamed(name string) {
+	gm.mu.Lock()
+	defer gm.mu.Unlock()
+	
+	if goroutine, exists := gm.Goroutines[name]; exists {
+		goroutine.Cleanup()
+		delete(gm.Goroutines, name)
+	}
+}
+
+// GetCompletedCount returns the number of completed goroutines
+func (gm *GoroutineManager) GetCompletedCount() (namedCompleted, anonymousCompleted int) {
+	gm.mu.RLock()
+	defer gm.mu.RUnlock()
+	
+	for _, goroutine := range gm.Goroutines {
+		if goroutine.IsCompleted() {
+			namedCompleted++
+		}
+	}
+	
+	for _, goroutine := range gm.Anonymous {
+		if goroutine.IsCompleted() {
+			anonymousCompleted++
+		}
+	}
+	
+	return namedCompleted, anonymousCompleted
+}
+
+// SetMaxLimits updates the maximum size limits for both collections
+func (gm *GoroutineManager) SetMaxLimits(maxNamed, maxAnonymous int) {
+	gm.mu.Lock()
+	defer gm.mu.Unlock()
+	gm.MaxNamedSize = maxNamed
+	gm.MaxAnonymousSize = maxAnonymous
+}
+
+// SetAutoCleanup enables or disables automatic cleanup of completed goroutines
+func (gm *GoroutineManager) SetAutoCleanup(enabled bool) {
+	gm.mu.Lock()
+	defer gm.mu.Unlock()
+	gm.AutoCleanup = enabled
+}
+
+// GetLimits returns the current size limits and auto-cleanup setting
+func (gm *GoroutineManager) GetLimits() (maxNamed, maxAnonymous int, autoCleanup bool) {
+	gm.mu.RLock()
+	defer gm.mu.RUnlock()
+	return gm.MaxNamedSize, gm.MaxAnonymousSize, gm.AutoCleanup
+}
+
+// GetCapacityInfo returns current usage and capacity information
+func (gm *GoroutineManager) GetCapacityInfo() (namedCount, namedMax, anonymousCount, anonymousMax int) {
+	gm.mu.RLock()
+	defer gm.mu.RUnlock()
+	return len(gm.Goroutines), gm.MaxNamedSize, len(gm.Anonymous), gm.MaxAnonymousSize
+}
+
+// IsAtCapacity checks if either collection is at its maximum capacity
+func (gm *GoroutineManager) IsAtCapacity() (namedAtCapacity, anonymousAtCapacity bool) {
+	gm.mu.RLock()
+	defer gm.mu.RUnlock()
+	
+	namedAtCapacity = gm.MaxNamedSize > 0 && len(gm.Goroutines) >= gm.MaxNamedSize
+	anonymousAtCapacity = gm.MaxAnonymousSize > 0 && len(gm.Anonymous) >= gm.MaxAnonymousSize
+	
+	return namedAtCapacity, anonymousAtCapacity
 }
 
 // Reset completely resets the manager to a fresh state
