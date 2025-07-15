@@ -29,9 +29,15 @@ const (
 	BUILTIN_OBJ      = "BUILTIN"
 	MAP_OBJ          = "MAP"
 	TUPLE_OBJ        = "TUPLE"
-	GRIMOIRE_OBJ     = "GRIMOIRE"
-	INSTANCE_OBJ     = "INSTANCE"
-	NAMESPACE_OBJ    = "NAMESPACE"
+	GRIMOIRE_OBJ         = "GRIMOIRE"
+	INSTANCE_OBJ         = "INSTANCE"
+	NAMESPACE_OBJ        = "NAMESPACE"
+	GOROUTINE_OBJ        = "GOROUTINE"
+	GOROUTINE_MANAGER_OBJ = "GOROUTINE_MANAGER"
+	CAUGHT_ERROR_OBJ = "CAUGHT_ERROR"
+	STOP_OBJ         = "STOP"
+	SKIP_OBJ         = "SKIP"
+	SUPER_OBJ        = "SUPER"
 )
 
 var NONE = &None{}
@@ -236,14 +242,38 @@ type Instance struct {
 
 func (i *Instance) Type() ObjectType { return INSTANCE_OBJ }
 
+// Super represents a reference to the parent class for method calls
+// Used for super.method() calls in inheritance hierarchies
+type Super struct {
+	Instance *Instance // The instance calling super
+	Parent   *Grimoire // The parent grimoire to call methods on
+}
+
+func (s *Super) Type() ObjectType { return SUPER_OBJ }
+func (s *Super) Inspect() string { return "super" }
+
 // CaughtError wraps an error that has been caught by an ensnare clause
 // This prevents it from being treated as a propagatable error
 type CaughtError struct {
 	OriginalError Object
 }
 
-func (ce *CaughtError) Type() ObjectType { return "CAUGHT_ERROR" }
+func (ce *CaughtError) Type() ObjectType { return CAUGHT_ERROR_OBJ }
 func (ce *CaughtError) Inspect() string { return ce.OriginalError.Inspect() }
+
+// GetMessage returns the error message
+func (ce *CaughtError) GetMessage() string {
+	if errWithTrace, ok := ce.OriginalError.(*ErrorWithTrace); ok {
+		return errWithTrace.Message
+	}
+	if customErr, ok := ce.OriginalError.(*CustomError); ok {
+		return customErr.Message
+	}
+	if err, ok := ce.OriginalError.(*Error); ok {
+		return err.Message
+	}
+	return ce.OriginalError.Inspect()
+}
 func (i *Instance) Inspect() string {
 	// Special handling for primitive wrapper instances
 	switch i.Grimoire.Name {
@@ -274,20 +304,56 @@ type Namespace struct {
 	Env *Environment // Holds all exported members of the imported module
 }
 
-func (n *Namespace) Type() ObjectType { return "NAMESPACE" }
+func (n *Namespace) Type() ObjectType { return NAMESPACE_OBJ }
 func (n *Namespace) Inspect() string  { return "<namespace>" }
 
 type Stop struct{}
 
-func (s *Stop) Type() ObjectType { return "STOP" }
+func (s *Stop) Type() ObjectType { return STOP_OBJ }
 func (s *Stop) Inspect() string  { return "stop" }
 
 type Skip struct{}
 
-func (s *Skip) Type() ObjectType { return "SKIP" }
+func (s *Skip) Type() ObjectType { return SKIP_OBJ }
 func (s *Skip) Inspect() string  { return "skip" }
 
 var (
 	STOP = &Stop{}
 	SKIP = &Skip{}
 )
+
+// Goroutine represents a running goroutine in Carrion
+type Goroutine struct {
+	Name      string
+	Done      chan bool
+	Result    Object
+	Error     Object
+	IsRunning bool
+}
+
+func (g *Goroutine) Type() ObjectType { return GOROUTINE_OBJ }
+func (g *Goroutine) Inspect() string {
+	if g.Name != "" {
+		return fmt.Sprintf("goroutine(%s)", g.Name)
+	}
+	return "goroutine(anonymous)"
+}
+
+// GoroutineManager manages all active goroutines
+type GoroutineManager struct {
+	Goroutines map[string]*Goroutine
+	Anonymous  []*Goroutine
+}
+
+func NewGoroutineManager() *GoroutineManager {
+	return &GoroutineManager{
+		Goroutines: make(map[string]*Goroutine),
+		Anonymous:  make([]*Goroutine, 0),
+	}
+}
+
+func (gm *GoroutineManager) Type() ObjectType { return GOROUTINE_MANAGER_OBJ }
+func (gm *GoroutineManager) Inspect() string {
+	return fmt.Sprintf("GoroutineManager(named: %d, anonymous: %d)", 
+		len(gm.Goroutines), len(gm.Anonymous))
+}

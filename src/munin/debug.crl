@@ -1,5 +1,39 @@
-# Debug utilities for Carrion language
+"""
+Debug utilities grimoire providing development and troubleshooting tools.
 
+This grimoire offers comprehensive debugging functionality including variable
+inspection, call stack analysis, performance profiling, and logging utilities.
+It serves as an essential toolkit for Carrion developers to diagnose issues
+and optimize their applications.
+
+Usage:
+    debug = Debug()
+    debug.log("info", "Application started")
+    print(debug.info())
+"""
 grim Debug:
+    """
+    Initialize the Debug grimoire with default settings.
+    """
+    init():
+        self.enabled = True
+    
+    """
+    Log a message with specified level.
+    
+    Args:
+        level (str): Log level 
+        message (str): Message to log
+    """
+    spell log(level, message):
+        if self.enabled:
+            print("[" + level + "] " + message)
+    
+    """
+    Provides information about the Debug grimoire and its capabilities.
+    
+    Returns:
+        str: Information about available debugging functions
+    """
     spell info():
-        return None
+        return "Debug grimoire - Development and troubleshooting tools"

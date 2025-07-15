@@ -46,7 +46,7 @@ Returns:
     and the Munin standard library in a human-readable format.
 ```
 spell version():
-    return "Carrion Verison 0.1.6 Munin Standard Library 0.1.0"
+    return "Carrion Version 0.1.6 Munin Standard Library 0.1.0"
 
 ```
 Returns detailed information about all available modules in the Munin standard library.

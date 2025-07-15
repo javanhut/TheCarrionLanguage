@@ -1,4 +1,38 @@
+"""
+File operations grimoire providing comprehensive file system access and manipulation.
+
+This grimoire offers both instance-based file handle operations and static utility
+methods for common file operations. It wraps the underlying file system interface
+with error handling and convenience methods for reading, writing, and managing files.
+
+Key Features:
+- File handle management with proper resource cleanup
+- Read/write operations with size control and positioning
+- Static utility methods for common file operations
+- Path-based operations without explicit handle management
+- Support for different file modes (read, write, append)
+
+Usage:
+    # Instance-based approach
+    file = File("data.txt", "r")
+    content = file.file_read()
+    file.close()
+    
+    # Static utility approach
+    content = File.read("data.txt")
+    File.write("output.txt", "Hello World")
+"""
 grim File:
+    """
+    Initialize a File instance with optional path and mode.
+    
+    If path is provided, automatically opens the file with the specified mode.
+    Otherwise, creates an uninitialized File instance for later use.
+    
+    Args:
+        path (str): Path to the file (default: "")
+        mode (str): File open mode - "r", "w", "a" (default: "")
+    """
     init(path="", mode=""):
         if path != "":
             self.handle = fileOpen(path, mode)
@@ -11,6 +45,18 @@ grim File:
             self.mode = ""
             self._closed = True
         
+    """
+    Open a file with the specified path and mode.
+    
+    Closes any previously opened file before opening the new one.
+    
+    Args:
+        path (str): Path to the file to open
+        mode (str): File open mode - "r" (read), "w" (write), "a" (append)
+        
+    Returns:
+        File: This File instance for method chaining
+    """
     spell file_open(path, mode="r"):
         if self.handle != None and not self._closed:
             self.close()
@@ -20,6 +66,15 @@ grim File:
         self._closed = False
         return self
         
+    """
+    Read content from the opened file.
+    
+    Args:
+        size (int): Number of bytes to read, -1 for entire file (default: -1)
+        
+    Returns:
+        str: File content, or None if file is closed/invalid
+    """
     spell file_read(size=-1):
         if self._closed or self.handle == None:
             return None
@@ -28,26 +83,65 @@ grim File:
         else:
             return fileReadHandle(self.handle, size)
         
+    """
+    Write content to the opened file.
+    
+    Args:
+        content (str): Content to write to the file
+        
+    Returns:
+        int: Number of bytes written, or None if file is closed/invalid
+    """
     spell file_write(content):
         if self._closed or self.handle == None:
             return None
         return fileWriteHandle(self.handle, content)
         
+    """
+    Set the file position to the specified offset.
+    
+    Args:
+        offset (int): Position offset
+        whence (int): Reference point - 0 (start), 1 (current), 2 (end)
+        
+    Returns:
+        int: New file position, or None if file is closed/invalid
+    """
     spell seek(offset, whence=0):
         if self._closed or self.handle == None:
             return None
         return fileSeek(self.handle, offset, whence)
         
+    """
+    Get the current file position.
+    
+    Returns:
+        int: Current file position, or None if file is closed/invalid
+    """
     spell tell():
         if self._closed or self.handle == None:
             return None
         return fileTell(self.handle)
         
+    """
+    Flush any buffered write operations to disk.
+    
+    Returns:
+        bool: Success status, or None if file is closed/invalid
+    """
     spell flush():
         if self._closed or self.handle == None:
             return None
         return fileFlush(self.handle)
         
+    """
+    Close the file handle and release resources.
+    
+    Safe to call multiple times. Sets the file state to closed.
+    
+    Returns:
+        None
+    """
     spell close():
         if not self._closed and self.handle != None:
             fileClose(self.handle)
@@ -56,23 +150,86 @@ grim File:
         return None
         
     # Backwards compatibility methods
+    """
+    Legacy method for reading file content.
+    
+    Returns:
+        str: File content (delegates to file_read)
+    """
     spell read_content():
         return self.file_read()
         
+    """
+    Legacy method for writing file content.
+    
+    Args:
+        content (str): Content to write
+        
+    Returns:
+        int: Number of bytes written (delegates to file_write)
+    """
     spell write_content(content):
         return self.file_write(content)
     # Static convenience methods using path-based operations
+    """
+    Static method to read entire file content.
+    
+    Args:
+        path (str): Path to the file to read
+        
+    Returns:
+        str: File content
+    """
     spell read(path):
         return fileRead(path)
     
+    """
+    Static method to write content to a file.
+    
+    Args:
+        path (str): Path to the file to write
+        content (str): Content to write
+        
+    Returns:
+        int: Number of bytes written
+    """
     spell write(path, content):
         return fileWrite(path, content)
     
+    """
+    Static method to append content to a file.
+    
+    Args:
+        path (str): Path to the file to append to
+        content (str): Content to append
+        
+    Returns:
+        int: Number of bytes written
+    """
     spell append(path, content):
         return fileAppend(path, content)
     
+    """
+    Static method to check if a file exists.
+    
+    Args:
+        path (str): Path to check
+        
+    Returns:
+        bool: True if file exists, False otherwise
+    """
     spell exists(path):
         return fileExists(path)
     
+    """
+    Static method to create and open a new File instance.
+    
+    Args:
+        path (str): Path to the file
+        mode (str): File open mode (default: "r")
+        
+    Returns:
+        File: New File instance with opened file
+    """
     spell open(path, mode="r"):
         return File(path, mode)
