@@ -113,6 +113,8 @@ const (
 	MAIN        TokenType = "MAIN"
 	GLOBAL      TokenType = "GLOBAL"
 	AUTOCLOSE   TokenType = "AUTOCLOSE"
+	DIVERGE     TokenType = "DIVERGE"
+	CONVERGE    TokenType = "CONVERGE"
 )
 
 var keywords = map[string]TokenType{
@@ -152,6 +154,8 @@ var keywords = map[string]TokenType{
 	"main":        MAIN,
 	"global":      GLOBAL,
 	"autoclose":   AUTOCLOSE,
+	"diverge":     DIVERGE,
+	"converge":    CONVERGE,
 	//"range":     RANGE,
 	"None": NONE,
 }

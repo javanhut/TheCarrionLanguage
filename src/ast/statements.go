@@ -477,6 +477,51 @@ func (s *SkipStatement) statementNode()       {}
 func (s *SkipStatement) TokenLiteral() string { return s.Token.Literal }
 func (s *SkipStatement) String() string       { return "skip" }
 
+type DivergeStatement struct {
+	Token token.Token // the 'diverge' token
+	Name  *Identifier // optional name for the goroutine
+	Body  *BlockStatement
+}
+
+func (ds *DivergeStatement) statementNode()       {}
+func (ds *DivergeStatement) TokenLiteral() string { return ds.Token.Literal }
+func (ds *DivergeStatement) String() string {
+	var out bytes.Buffer
+	out.WriteString("diverge")
+	if ds.Name != nil {
+		out.WriteString(" ")
+		out.WriteString(ds.Name.String())
+	}
+	out.WriteString(":\n")
+	if ds.Body != nil {
+		out.WriteString(ds.Body.String())
+	}
+	return out.String()
+}
+
+type ConvergeStatement struct {
+	Token   token.Token   // the 'converge' token
+	Names   []Expression  // optional names of goroutines to wait for
+	Timeout Expression    // optional timeout
+}
+
+func (cs *ConvergeStatement) statementNode()       {}
+func (cs *ConvergeStatement) TokenLiteral() string { return cs.Token.Literal }
+func (cs *ConvergeStatement) String() string {
+	var out bytes.Buffer
+	out.WriteString("converge")
+	if len(cs.Names) > 0 {
+		out.WriteString(" ")
+		for i, name := range cs.Names {
+			if i > 0 {
+				out.WriteString(", ")
+			}
+			out.WriteString(name.String())
+		}
+	}
+	return out.String()
+}
+
 type CheckStatement struct {
 	Token     token.Token
 	Condition Expression

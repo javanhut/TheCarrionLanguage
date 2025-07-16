@@ -1,21 +1,185 @@
 grim Node:
+    ```
+    A simple node implementation for linked data structures.
+    
+    Contains data and a reference to the next node in the structure.
+    ```
     init(data):
+        ```
+        Initialize a new node with the given data.
+        
+        Args:
+            data: The data to store in this node
+        ```
         self.data = data
         self.next = None
 
+grim StackIterator:
+    ```
+    Iterator for Stack data structure.
+    
+    Iterates through stack elements from top to bottom (LIFO order).
+    ```
+    init(stack):
+        ```
+        Initialize iterator for the given stack.
+        
+        Args:
+            stack: The Stack instance to iterate over
+        ```
+        self.current = stack.head
+    
+    spell next():
+        ```
+        Get the next element from the stack.
+        
+        Returns:
+            The next data element in the stack
+            
+        Raises:
+            StopIteration: When no more elements are available
+        ```
+        if self.current == None:
+            raise "StopIteration"
+        data = self.current.data
+        self.current = self.current.next
+        return data
+
+grim QueueIterator:
+    ```
+    Iterator for Queue data structure.
+    
+    Iterates through queue elements from front to rear (FIFO order).
+    ```
+    init(queue):
+        ```
+        Initialize iterator for the given queue.
+        
+        Args:
+            queue: The Queue instance to iterate over
+        ```
+        self.current = queue.front
+    
+    spell next():
+        ```
+        Get the next element from the queue.
+        
+        Returns:
+            The next data element in the queue
+            
+        Raises:
+            StopIteration: When no more elements are available
+        ```
+        if self.current == None:
+            raise "StopIteration"
+        data = self.current.data
+        self.current = self.current.next
+        return data
+
+grim HeapIterator:
+    ```
+    Iterator for Heap data structure.
+    
+    Iterates through heap elements in their internal array order
+    (not in sorted order).
+    ```
+    init(heap):
+        ```
+        Initialize iterator for the given heap.
+        
+        Args:
+            heap: The Heap instance to iterate over
+        ```
+        self.heap = heap
+        self.index = 0
+    
+    spell next():
+        ```
+        Get the next element from the heap.
+        
+        Returns:
+            The next data element in the heap
+            
+        Raises:
+            StopIteration: When no more elements are available
+        ```
+        if self.index >= self.heap.size:
+            raise "StopIteration"
+        value = self.heap.heap[self.index]
+        self.index = self.index + 1
+        return value
+
+grim BTreeIterator:
+    ```
+    Iterator for BTree data structure.
+    
+    Performs in-order traversal, yielding elements in sorted order.
+    ```
+    init(btree):
+        ```
+        Initialize iterator for the given binary tree.
+        
+        Args:
+            btree: The BTree instance to iterate over
+        ```
+        self.values = btree.inorder()
+        self.index = 0
+    
+    spell next():
+        ```
+        Get the next element from the tree in sorted order.
+        
+        Returns:
+            The next data element in sorted order
+            
+        Raises:
+            StopIteration: When no more elements are available
+        ```
+        if self.index >= len(self.values):
+            raise "StopIteration"
+        value = self.values[self.index]
+        self.index = self.index + 1
+        return value
+
 grim TreeNode:
+    ```
+    A node for binary tree data structures.
+    
+    Contains a value and references to left and right child nodes.
+    ```
     init(value):
+        ```
+        Initialize a new tree node with the given value.
+        
+        Args:
+            value: The value to store in this node
+        ```
         self.value = value
         self.left = None
         self.right = None
 
 
-grim Stack:
+grim Stack(Iterable):
+    ```
+    A Last-In-First-Out (LIFO) data structure implementation.
+    
+    Supports standard stack operations: push, pop, peek, and iteration.
+    Elements are added and removed from the top of the stack.
+    ```
     init():
+        ```
+        Initialize an empty stack.
+        ```
         self.head = None
         self.size = 0
 
     spell push(value):
+        ```
+        Add an element to the top of the stack.
+        
+        Args:
+            value: The element to add to the stack
+        ```
         new_node = Node(value)
         if self.head:
             new_node.next = self.head
@@ -23,6 +187,15 @@ grim Stack:
         self.size = self.size + 1
         
     spell pop():
+        ```
+        Remove and return the top element from the stack.
+        
+        Returns:
+            The element that was at the top of the stack
+            
+        Raises:
+            Error: If the stack is empty
+        ```
         if self.size == 0:
             return "Cannot perform pop as Stack is empty"
         popped_node = self.head
@@ -31,32 +204,80 @@ grim Stack:
         return popped_node.data
 
     spell peek():
+        ```
+        Return the top element without removing it from the stack.
+        
+        Returns:
+            The element at the top of the stack
+            
+        Raises:
+            Error: If the stack is empty
+        ```
         if self.size == 0:
             return "Cannot peek Stack is Empty"
         return self.head.data
     
     spell is_empty():
+        ```
+        Check if the stack is empty.
+        
+        Returns:
+            True if the stack contains no elements, False otherwise
+        ```
         return self.size == 0
 
     spell get_size():
+        ```
+        Get the number of elements in the stack.
+        
+        Returns:
+            Integer representing the number of elements in the stack
+        ```
         return self.size
 
     spell print():
+        ```
+        Print all elements in the stack from top to bottom.
+        ```
         temp = self.head
         while temp:
             print(temp.data)
             temp = temp.next
         print("")
+    
+    spell iter():
+        ```
+        Return an iterator for this stack.
+        
+        Returns:
+            StackIterator instance for iterating through elements
+        ```
+        return StackIterator(self)
             
 
 
-grim Queue:
+grim Queue(Iterable):
+    ```
+    A First-In-First-Out (FIFO) data structure implementation.
+    
+    Supports standard queue operations: enqueue, dequeue, peek, and iteration.
+    Elements are added at the rear and removed from the front.
+    ```
     init():
+        ```
+        Initialize an empty queue.
+        ```
         self.front = None
         self.rear = None
         self.length = 0
     
     spell enqueue(element):
+        ```
+        Add an element to the rear of the queue.
+        
+        Args:
+            element: The element to add to the queue
+        ```
         new_node = Node(element)
         if self.rear == None:
             self.front = new_node
@@ -68,6 +289,15 @@ grim Queue:
             self.length = self.length + 1
 
     spell dequeue():
+        ```
+        Remove and return the front element from the queue.
+        
+        Returns:
+            The element that was at the front of the queue
+            
+        Raises:
+            Error: If the queue is empty
+        ```
         if self.length == 0:
             return "Cannot Dequeue as Queue is Empty"
         temp = self.front
@@ -78,26 +308,71 @@ grim Queue:
         return temp.data
 
     spell peek():
+        ```
+        Return the front element without removing it from the queue.
+        
+        Returns:
+            The element at the front of the queue
+            
+        Raises:
+            Error: If the queue is empty
+        ```
         if self.length == 0:
             return "Cannot peek as Queue is empty"
         return self.front.data
 
     spell is_empty():
+        ```
+        Check if the queue is empty.
+        
+        Returns:
+            True if the queue contains no elements, False otherwise
+        ```
         return self.length == 0
 
     spell get_size():
+        ```
+        Get the number of elements in the queue.
+        
+        Returns:
+            Integer representing the number of elements in the queue
+        ```
         return self.length
     
     spell print():
+        ```
+        Print all elements in the queue from front to rear.
+        ```
         temp = self.front
         while temp:
             print(temp.data)
             temp = temp.next
         print("")
+    
+    spell iter():
+        ```
+        Return an iterator for this queue.
+        
+        Returns:
+            QueueIterator instance for iterating through elements
+        ```
+        return QueueIterator(self)
         
 
-grim Heap:
+grim Heap(Iterable):
+    ```
+    A binary heap data structure implementation.
+    
+    Supports both min-heap and max-heap configurations. Provides efficient
+    insertion, extraction, and peek operations with O(log n) complexity.
+    ```
     init(is_min_heap = True):
+        ```
+        Initialize a new heap.
+        
+        Args:
+            is_min_heap: True for min-heap (default), False for max-heap
+        ```
         self.heap = Array([])
         self.is_min_heap = is_min_heap
         self.size = 0
@@ -162,11 +437,29 @@ grim Heap:
             index = smaller_child_index
     
     spell insert(value):
+        ```
+        Insert a new value into the heap.
+        
+        Args:
+            value: The value to insert into the heap
+        ```
         self.heap.append(value)
         self.size = self.size + 1
         self._heapify_up()
     
     spell extract():
+        ```
+        Extract and return the root element from the heap.
+        
+        For min-heap: returns the minimum element
+        For max-heap: returns the maximum element
+        
+        Returns:
+            The root element of the heap
+            
+        Raises:
+            Error: If the heap is empty
+        ```
         if self.size == 0:
             return "Cannot extract from empty heap"
         
@@ -183,6 +476,18 @@ grim Heap:
         return root
     
     spell peek():
+        ```
+        Return the root element without removing it from the heap.
+        
+        For min-heap: returns the minimum element
+        For max-heap: returns the maximum element
+        
+        Returns:
+            The root element of the heap
+            
+        Raises:
+            Error: If the heap is empty
+        ```
         if self.size == 0:
             return "Cannot peek empty heap"
         return self.heap[0]
@@ -229,12 +534,40 @@ grim Heap:
                 self._swap(index, smaller_child_index)
             
             index = smaller_child_index
+    
+    spell iter():
+        ```
+        Return an iterator for this heap.
+        
+        Returns:
+            HeapIterator instance for iterating through elements
+        ```
+        return HeapIterator(self)
 
-grim BTree:
+grim BTree(Iterable):
+    ```
+    A binary search tree implementation.
+    
+    Maintains sorted order of elements with efficient search, insertion,
+    and traversal operations. Left subtree contains smaller values,
+    right subtree contains larger values.
+    ```
     init():
+        ```
+        Initialize an empty binary tree.
+        ```
         self.node = None
 
     spell insert(value):
+        ```
+        Insert a value into the binary search tree.
+        
+        Args:
+            value: The value to insert into the tree
+            
+        Returns:
+            The root node of the tree
+        ```
         if self.node == None:
             self.node = TreeNode(value)
             return self.node
@@ -323,9 +656,18 @@ grim BTree:
                 printed_tree = self.preorder()
             case "postorder":
                 printed_tree = self.postorder()
-        print(f"Traversal:{traversal}: {printed_tree}")
+        print("Traversal:", traversal, ":", printed_tree)
 
     spell find(value):
+        ```
+        Search for a value in the binary search tree.
+        
+        Args:
+            value: The value to search for
+            
+        Returns:
+            True if the value is found, False otherwise
+        ```
         root = self.node 
         if root == None:
             return False
@@ -337,4 +679,13 @@ grim BTree:
             otherwise value < root.value:
                 root = root.left
         return False
+    
+    spell iter():
+        ```
+        Return an iterator for this binary tree.
+        
+        Returns:
+            BTreeIterator instance for iterating through elements in sorted order
+        ```
+        return BTreeIterator(self)
         

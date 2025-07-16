@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/javanhut/TheCarrionLanguage/src/ast"
 	"github.com/javanhut/TheCarrionLanguage/src/debug"
@@ -37,6 +38,7 @@ type CallContext struct {
 	env          *object.Environment
 	depth        int
 	IsDirectExecution bool  // True when file is run directly, false when imported
+	MethodGrimoire *object.Grimoire // The grimoire that owns the current method
 }
 
 // A map to track call stack depth for recursive functions
@@ -62,6 +64,57 @@ func CleanupGlobalState() {
 	
 	// Reset current context
 	CurrentContext = nil
+	
+	// Cleanup goroutine manager
+	CleanupGoroutineManager()
+}
+
+// CleanupGoroutineManager waits for goroutines to finish and resets the manager
+func CleanupGoroutineManager() {
+	
+	// Create a channel to signal completion
+	done := make(chan bool, 1)
+	
+	go func() {
+		// Wait for all named goroutines to finish
+		namedGoroutines := globalGoroutineManager.GetAllNamedGoroutines()
+		for _, goroutine := range namedGoroutines {
+			if goroutine.IsRunning {
+				select {
+				case <-goroutine.Done:
+					// Goroutine finished normally
+				case <-time.After(100 * time.Millisecond):
+					// Continue to next goroutine after short timeout
+				}
+			}
+		}
+		
+		// Wait for all anonymous goroutines to finish
+		anonymousGoroutines := globalGoroutineManager.GetAllAnonymousGoroutines()
+		for _, goroutine := range anonymousGoroutines {
+			if goroutine.IsRunning {
+				select {
+				case <-goroutine.Done:
+					// Goroutine finished normally
+				case <-time.After(100 * time.Millisecond):
+					// Continue to next goroutine after short timeout
+				}
+			}
+		}
+		
+		done <- true
+	}()
+	
+	// Wait for completion or timeout after 5 seconds
+	select {
+	case <-done:
+		// All goroutines finished or timed out individually
+	case <-time.After(5 * time.Second):
+		// Global timeout reached
+	}
+	
+	// Reset the global goroutine manager to a fresh state
+	globalGoroutineManager.Reset()
 }
 
 // CleanupCallStack removes entries from call stack for specific function
@@ -169,6 +222,10 @@ func getNodeToken(node ast.Node) *token.Token {
 	case *ast.StopStatement:
 		return &n.Token
 	case *ast.SkipStatement:
+		return &n.Token
+	case *ast.DivergeStatement:
+		return &n.Token
+	case *ast.ConvergeStatement:
 		return &n.Token
 	case *ast.CheckStatement:
 		return &n.Token
@@ -508,6 +565,7 @@ func Eval(node ast.Node, env *object.Environment, ctx *CallContext) object.Objec
 			Node:         node,
 			Parent:       ctx,
 			env:          env,
+			MethodGrimoire: ctx.MethodGrimoire, // Inherit from parent
 		}
 		ctx = newCtx
 	}
@@ -528,6 +586,10 @@ func Eval(node ast.Node, env *object.Environment, ctx *CallContext) object.Objec
 		return object.STOP
 	case *ast.SkipStatement:
 		return object.SKIP
+	case *ast.DivergeStatement:
+		return evalDivergeStatement(node, env, ctx)
+	case *ast.ConvergeStatement:
+		return evalConvergeStatement(node, env, ctx)
 	case *ast.CheckStatement:
 		cond := Eval(node.Condition, env, ctx)
 		if isError(cond) {
@@ -1016,6 +1078,7 @@ func evalAttemptStatement(
 		Node:         node.TryBlock,
 		Parent:       ctx,
 		env:          env,
+		MethodGrimoire: ctx.MethodGrimoire, // Inherit from parent
 	}
 	tryResult := Eval(node.TryBlock, env, tryCtx)
 
@@ -1041,23 +1104,64 @@ func evalAttemptStatement(
 				// If there's a condition, evaluate it to check if we should catch
 				condition := Eval(ensnare.Condition, env, ctx)
 				if isError(condition) {
-					result = condition
-					break
-				}
-				
-				// Check different error types
-				if customErr, ok := tryResult.(*object.CustomError); ok {
-					if grimoire, ok := condition.(*object.Grimoire); ok {
-						shouldCatch = customErr.ErrorType == grimoire
-					} else if str, ok := condition.(*object.String); ok {
-						shouldCatch = customErr.Name == str.Value
+					// Check if this is an "identifier not found" error, which means it should be treated as an alias
+					if errWithTrace, ok := condition.(*object.ErrorWithTrace); ok {
+						if strings.Contains(errWithTrace.Message, "identifier not found") {
+							// Treat this as an alias - catch all errors and bind to the identifier
+							if identifier, ok := ensnare.Condition.(*ast.Identifier); ok {
+								shouldCatch = true
+								ensnareEnv = object.NewEnclosedEnvironment(env)
+								if isError(tryResult) {
+									caughtError := &object.CaughtError{OriginalError: tryResult}
+									ensnareEnv.Set(identifier.Value, caughtError)
+								} else {
+									ensnareEnv.Set(identifier.Value, tryResult)
+								}
+							}
+						} else {
+							result = condition
+							break
+						}
+					} else {
+						result = condition
+						break
 					}
-				} else if errWithTrace, ok := tryResult.(*object.ErrorWithTrace); ok {
-					if str, ok := condition.(*object.String); ok {
-						shouldCatch = strings.HasPrefix(errWithTrace.Message, str.Value)
+				} else {
+					// Check different error types
+					if customErr, ok := tryResult.(*object.CustomError); ok {
+						if grimoire, ok := condition.(*object.Grimoire); ok {
+							shouldCatch = customErr.ErrorType == grimoire
+						} else if str, ok := condition.(*object.String); ok {
+							shouldCatch = customErr.Name == str.Value
+						}
+					} else if errWithTrace, ok := tryResult.(*object.ErrorWithTrace); ok {
+						if grimoire, ok := condition.(*object.Grimoire); ok {
+							// Check if the error type matches the grimoire name
+							if errWithTrace.CustomDetails != nil {
+								if errorType, exists := errWithTrace.CustomDetails["errorType"]; exists {
+									if errorTypeStr, ok := errorType.(*object.String); ok {
+										shouldCatch = errorTypeStr.Value == grimoire.Name
+									}
+								}
+							}
+						} else if str, ok := condition.(*object.String); ok {
+							// Check if the error type matches the string or if message starts with it
+							if errWithTrace.CustomDetails != nil {
+								if errorType, exists := errWithTrace.CustomDetails["errorType"]; exists {
+									if errorTypeStr, ok := errorType.(*object.String); ok {
+										shouldCatch = errorTypeStr.Value == str.Value
+									}
+								}
+							}
+							if !shouldCatch {
+								shouldCatch = strings.HasPrefix(errWithTrace.Message, str.Value)
+							}
+						}
 					}
 				}
-				ensnareEnv = env
+				if ensnareEnv == nil {
+					ensnareEnv = env
+				}
 			} else {
 				// No condition or alias, catch all errors
 				shouldCatch = true
@@ -1456,6 +1560,8 @@ func evalGrimoireDefinition(
 	return grimoire
 }
 
+// evalStaticMethodCall executes a static method call on a grimoire
+// Sets MethodGrimoire to the grimoire itself since static methods belong to the class
 func evalStaticMethodCall(
 	grimoire *object.Grimoire,
 	methodName string,
@@ -1491,6 +1597,7 @@ func evalStaticMethodCall(
 		Node:         ctx.Node,
 		Parent:       ctx,
 		env:          methodEnv,
+		MethodGrimoire: grimoire,
 	}
 
 	// Bind arguments: support simple identifiers or full Parameter nodes
@@ -1525,6 +1632,51 @@ func evalStaticMethodCall(
 	return evalWithRecursionLimit(method.Body, methodEnv, method, methodCtx, 0)
 }
 
+// bindMethodParameters binds arguments to method parameters, handling default values and self parameter
+func bindMethodParameters(
+	method *object.Function,
+	args []object.Object,
+	methodEnv *object.Environment,
+	methodCtx *CallContext,
+	skipSelf bool,
+) {
+	argIndex := 0
+	for _, pExpr := range method.Parameters {
+		switch param := pExpr.(type) {
+		case *ast.Identifier:
+			name := param.Value
+			// Skip 'self' parameter if requested (for instance methods)
+			if skipSelf && name == "self" {
+				continue
+			}
+			if argIndex < len(args) {
+				methodEnv.Set(name, args[argIndex])
+				argIndex++
+			} else {
+				methodEnv.Set(name, NONE)
+			}
+		case *ast.Parameter:
+			name := param.Name.Value
+			// Skip 'self' parameter if requested (for instance methods)
+			if skipSelf && name == "self" {
+				continue
+			}
+			if argIndex < len(args) {
+				methodEnv.Set(name, args[argIndex])
+				argIndex++
+			} else if param.DefaultValue != nil {
+				methodEnv.Set(name, Eval(param.DefaultValue, method.Env, methodCtx))
+			} else {
+				methodEnv.Set(name, NONE)
+			}
+		default:
+			// unsupported parameter type
+		}
+	}
+}
+
+// evalGrimoireMethodCall executes a method call on a grimoire instance
+// Sets MethodGrimoire to the method's defining class for proper super resolution
 func evalGrimoireMethodCall(
 	instance *object.Instance,
 	methodName string,
@@ -1552,49 +1704,82 @@ func evalGrimoireMethodCall(
 	methodEnv := object.NewEnclosedEnvironment(instance.Env)
 	methodEnv.Set("self", instance)
 
+	// Find which grimoire owns this method for proper super resolution
+	// This enables multi-level inheritance by tracking method ownership
+	methodOwner := findMethodOwner(instance, methodName, method)
+	
 	// Create method context
 	methodCtx := &CallContext{
-		FunctionName: instance.Grimoire.Name + "." + methodName,
+		FunctionName: methodOwner.Name + "." + methodName,
 		Node:         ctx.Node,
 		Parent:       ctx,
 		env:          methodEnv,
+		MethodGrimoire: methodOwner,
 	}
 
-	// Bind arguments: support simple identifiers or full Parameter nodes
-	// For method calls, we need to handle the 'self' parameter specially
-	argIndex := 0
-	for _, pExpr := range method.Parameters {
-		switch param := pExpr.(type) {
-		case *ast.Identifier:
-			name := param.Value
-			// Skip 'self' parameter - it's already set in the method environment
-			if name == "self" {
-				continue
+	// Bind arguments using the common helper function
+	bindMethodParameters(method, args, methodEnv, methodCtx, true)
+
+	// Execute with bounds checking for recursive calls
+	return evalWithRecursionLimit(method.Body, methodEnv, method, methodCtx, 0)
+}
+
+// findMethodOwner finds which grimoire in the inheritance chain owns the given method
+// This is crucial for proper super resolution in multi-level inheritance, ensuring
+// that super calls resolve to the parent of the method's defining class, not the instance's class
+func findMethodOwner(instance *object.Instance, methodName string, method *object.Function) *object.Grimoire {
+	current := instance.Grimoire
+	for current != nil {
+		// Check if this grimoire has the method
+		if methodName == "init" {
+			if current.InitMethod == method {
+				return current
 			}
-			if argIndex < len(args) {
-				methodEnv.Set(name, args[argIndex])
-				argIndex++
-			} else {
-				methodEnv.Set(name, NONE)
+		} else {
+			if m, exists := current.Methods[methodName]; exists && m == method {
+				return current
 			}
-		case *ast.Parameter:
-			name := param.Name.Value
-			// Skip 'self' parameter - it's already set in the method environment
-			if name == "self" {
-				continue
-			}
-			if argIndex < len(args) {
-				methodEnv.Set(name, args[argIndex])
-				argIndex++
-			} else if param.DefaultValue != nil {
-				methodEnv.Set(name, Eval(param.DefaultValue, method.Env, methodCtx))
-			} else {
-				methodEnv.Set(name, NONE)
-			}
-		default:
-			// unsupported parameter type
 		}
+		current = current.Inherits
 	}
+	// Fallback: return the instance's grimoire if we can't find the owner
+	return instance.Grimoire
+}
+
+// evalBoundMethodCall executes a bound method call with proper context tracking
+// Sets MethodGrimoire to enable correct super resolution in inheritance hierarchies
+func evalBoundMethodCall(
+	boundMethod *object.BoundMethod,
+	args []object.Object,
+	env *object.Environment,
+	ctx *CallContext,
+) object.Object {
+	// For bound methods, use the stored method directly with proper environment
+	method := boundMethod.Method
+	instance := boundMethod.Instance
+	methodName := boundMethod.Name
+
+	// Create isolated method environment from the method's original environment, not instance env
+	methodEnv := object.NewEnclosedEnvironment(method.Env)
+	methodEnv.Set("self", instance)
+
+	// Find which grimoire owns this method for proper super resolution
+	// This enables multi-level inheritance by tracking method ownership
+	methodOwner := findMethodOwner(instance, methodName, method)
+	
+	
+	// Create method context
+	methodCtx := &CallContext{
+		FunctionName: methodOwner.Name + "." + methodName,
+		Node:         ctx.Node,
+		Parent:       ctx,
+		env:          methodEnv,
+		depth:        ctx.depth + 1,
+		MethodGrimoire: methodOwner,
+	}
+
+	// Bind arguments using the common helper function
+	bindMethodParameters(method, args, methodEnv, methodCtx, true)
 
 	// Execute with bounds checking for recursive calls
 	return evalWithRecursionLimit(method.Body, methodEnv, method, methodCtx, 0)
@@ -1706,7 +1891,8 @@ func evalCallExpression(
 		}
 		return unwrapReturnValue(evaluated)
 	case *object.BoundMethod:
-		return evalGrimoireMethodCall(fnTyped.Instance, fnTyped.Name, args, env, ctx)
+		// Use a special version of evalGrimoireMethodCall that uses the stored method
+		return evalBoundMethodCall(fnTyped, args, env, ctx)
 
 	case *object.StaticMethod:
 		return evalStaticMethodCall(fnTyped.Grimoire, fnTyped.Name, args, env, ctx)
@@ -1732,6 +1918,7 @@ func evalCallExpression(
 				Node:         fnTyped.InitMethod.Body,
 				Parent:       ctx,
 				env:          extended,
+				MethodGrimoire: fnTyped,
 			}
 			result := Eval(fnTyped.InitMethod.Body, extended, initCtx)
 			if isError(result) {
@@ -1777,6 +1964,38 @@ func evalDotExpression(
 		return leftObj
 	}
 
+	// Handle super object access
+	if superObj, ok := leftObj.(*object.Super); ok {
+		var parentMethod *object.Function
+		var methodExists bool
+
+		// Check if it's the init method
+		if node.Right.Value == "init" {
+			parentMethod = superObj.Parent.InitMethod
+			methodExists = (parentMethod != nil)
+		} else {
+			// Check regular methods
+			parentMethod, methodExists = superObj.Parent.Methods[node.Right.Value]
+		}
+
+		if !methodExists {
+			return newErrorWithTrace(
+				"no method '%s' found in parent class",
+				node,
+				ctx,
+				node.Right.Value,
+			)
+		}
+
+
+		return &object.BoundMethod{
+			Instance: superObj.Instance,
+			Method:   parentMethod,
+			Name:     node.Right.Value,
+		}
+	}
+
+	// Handle super string-based access (fallback for original syntax)
 	if node.Left.String() == "super" {
 		instance, ok := env.Get("self")
 		if !ok || instance == nil {
@@ -1796,8 +2015,19 @@ func evalDotExpression(
 			return newErrorWithTrace("no parent class found for 'super'", node, ctx)
 		}
 
-		parentMethod, ok := inst.Grimoire.Inherits.Methods[node.Right.Value]
-		if !ok {
+		var parentMethod *object.Function
+		var methodExists bool
+
+		// Check if it's the init method
+		if node.Right.Value == "init" {
+			parentMethod = inst.Grimoire.Inherits.InitMethod
+			methodExists = (parentMethod != nil)
+		} else {
+			// Check regular methods
+			parentMethod, methodExists = inst.Grimoire.Inherits.Methods[node.Right.Value]
+		}
+
+		if !methodExists {
 			return newErrorWithTrace(
 				"no method '%s' found in parent class",
 				node,
@@ -1835,6 +2065,28 @@ func evalDotExpression(
 			Grimoire: grimoire,
 			Method:   method,
 			Name:     methodName,
+		}
+	}
+
+	// Handle CaughtError access
+	if caughtErr, ok := leftObj.(*object.CaughtError); ok {
+		switch node.Right.Value {
+		case "message":
+			return &object.String{Value: caughtErr.GetMessage()}
+		case "type":
+			if errWithTrace, ok := caughtErr.OriginalError.(*object.ErrorWithTrace); ok {
+				if errWithTrace.CustomDetails != nil {
+					if errorType, exists := errWithTrace.CustomDetails["errorType"]; exists {
+						return errorType
+					}
+				}
+			}
+			if customErr, ok := caughtErr.OriginalError.(*object.CustomError); ok {
+				return &object.String{Value: customErr.Name}
+			}
+			return &object.String{Value: "Error"}
+		default:
+			return newErrorWithTrace("CaughtError has no property: %s", node, ctx, node.Right.Value)
 		}
 	}
 
@@ -2315,6 +2567,43 @@ func extendFunctionEnv(
 }
 
 func evalIdentifier(node *ast.Identifier, env *object.Environment, ctx *CallContext) object.Object {
+	// Handle super keyword
+	if node.Value == "super" {
+		instance, ok := env.Get("self")
+		if !ok || instance == nil {
+			return newErrorWithTrace("'super' can only be used in an instance method", node, ctx)
+		}
+
+		inst, ok := instance.(*object.Instance)
+		if !ok {
+			return newErrorWithTrace(
+				"'super' must be used in an instance of a grimoire",
+				node,
+				ctx,
+			)
+		}
+
+		// Use the method's grimoire context if available, otherwise fall back to instance grimoire
+		// This ensures super resolves to the parent of the current method's class, not the instance's class
+		// Critical for multi-level inheritance to work correctly
+		var currentGrimoire *object.Grimoire
+		if ctx.MethodGrimoire != nil {
+			currentGrimoire = ctx.MethodGrimoire
+		} else {
+			currentGrimoire = inst.Grimoire
+		}
+		
+		if currentGrimoire == nil || currentGrimoire.Inherits == nil {
+			return newErrorWithTrace("no parent class found for 'super'", node, ctx)
+		}
+
+		// Return a super object that can be used for method calls
+		return &object.Super{
+			Instance: inst,
+			Parent:   currentGrimoire.Inherits,
+		}
+	}
+
 	// First check builtins.
 	if builtin, ok := builtins[node.Value]; ok {
 		return builtin
@@ -3230,6 +3519,54 @@ func isError(obj object.Object) bool {
 		isErrorWithTrace(obj)
 }
 
+// isStopIterationError checks if an object represents a StopIteration error
+func isStopIterationError(obj object.Object) bool {
+	switch err := obj.(type) {
+	case *object.Error:
+		return strings.Contains(err.Message, "StopIteration")
+	case *object.CustomError:
+		// Check the name directly
+		if err.Name == "StopIteration" {
+			return true
+		}
+		// Check the message
+		if strings.Contains(err.Message, "StopIteration") {
+			return true
+		}
+		// Check details for StopIteration pattern
+		if details, ok := err.Details["errorType"]; ok {
+			if strType, ok := details.(*object.String); ok && strType.Value == "String" {
+				if instance, ok := err.Details["instance"]; ok {
+					if strInstance, ok := instance.(*object.String); ok && strInstance.Value == "StopIteration" {
+						return true
+					}
+				}
+			}
+		}
+		return false
+	case *object.ErrorWithTrace:
+		// Check the message
+		if strings.Contains(err.Message, "StopIteration") {
+			return true
+		}
+		// Check CustomDetails for StopIteration pattern
+		if err.CustomDetails != nil {
+			if errorType, ok := err.CustomDetails["errorType"]; ok {
+				if strType, ok := errorType.(*object.String); ok && strType.Value == "String" {
+					if instance, ok := err.CustomDetails["instance"]; ok {
+						if strInstance, ok := instance.(*object.String); ok && strInstance.Value == "StopIteration" {
+							return true
+						}
+					}
+				}
+			}
+		}
+		return false
+	default:
+		return false
+	}
+}
+
 func evalWhileStatement(
 	node *ast.WhileStatement,
 	env *object.Environment,
@@ -3370,8 +3707,83 @@ func evalForStatement(
 			return result
 		}
 	case *object.Instance:
-		// Handle Array instances
-		if iter.Grimoire.Name == "Array" {
+		// First check if the instance has an iter method
+		if _, ok := iter.Grimoire.Methods["iter"]; ok {
+			// Call iter to get an iterator
+			iteratorObj := evalGrimoireMethodCall(iter, "iter", []object.Object{}, env, forCtx)
+			if isError(iteratorObj) {
+				return iteratorObj
+			}
+			
+			// Use the iterator to iterate
+			if iterator, ok := iteratorObj.(*object.Instance); ok {
+				// Process elements one at a time instead of collecting all first
+				for {
+					if _, hasNext := iterator.Grimoire.Methods["next"]; hasNext {
+						nextValue := evalGrimoireMethodCall(iterator, "next", []object.Object{}, env, forCtx)
+						
+						// Check if it's a StopIteration error
+						if isStopIterationError(nextValue) {
+							break
+						}
+						if isError(nextValue) {
+							return nextValue
+						}
+						
+						// Process each element immediately
+						switch varExpr := fs.Variable.(type) {
+						case *ast.Identifier:
+							env.Set(varExpr.Value, nextValue)
+						case *ast.TupleLiteral:
+							var items []object.Object
+							if tupObj, ok := nextValue.(*object.Tuple); ok {
+								items = tupObj.Elements
+							} else if arrObj, ok := nextValue.(*object.Array); ok {
+								items = arrObj.Elements
+							} else {
+								return newErrorWithTrace(fmt.Sprintf("cannot unpack non-iterable element: %s", nextValue.Type()), fs, ctx)
+							}
+							if len(varExpr.Elements) > len(items) {
+								return newErrorWithTrace("not enough values to unpack", fs, ctx)
+							}
+							for i, elem := range varExpr.Elements {
+								ident, ok := elem.(*ast.Identifier)
+								if !ok {
+									return newErrorWithTrace("invalid assignment target in for loop", fs, ctx)
+								}
+								env.Set(ident.Value, items[i])
+							}
+						default:
+							env.Set(fs.Variable.String(), nextValue)
+						}
+						
+						if fs.Body != nil {
+							loopResult := Eval(fs.Body, env, forCtx)
+							if loopResult != nil {
+								rt := getObjectType(loopResult)
+								if rt == string(object.STOP.Type()) {
+									return object.STOP
+								}
+								if rt == string(object.SKIP.Type()) {
+									continue
+								}
+								if rt == object.RETURN_VALUE_OBJ || rt == object.ERROR_OBJ ||
+									rt == object.CUSTOM_ERROR_OBJ || isErrorWithTrace(loopResult) {
+									return loopResult
+								}
+							}
+						}
+					} else {
+						return newErrorWithTrace("Iterator must have next method", fs, ctx)
+					}
+				}
+				// Iterator exhausted, return NONE
+				return NONE
+			} else {
+				return newErrorWithTrace("iter must return an iterator instance", fs, ctx)
+			}
+		} else if iter.Grimoire.Name == "Array" {
+			// Handle Array instances
 			if elementsObj, ok := iter.Env.Get("elements"); ok {
 				if arr, ok := elementsObj.(*object.Array); ok {
 					result := processArrayIteration(arr.Elements, fs, env, forCtx, ctx)
@@ -4322,4 +4734,119 @@ func checkParameterTypes(fn *object.Function, args []object.Object, ctx *CallCon
 		}
 	}
 	return nil
+}
+
+// Global goroutine manager
+var globalGoroutineManager = object.NewGoroutineManager()
+
+func evalDivergeStatement(
+	node *ast.DivergeStatement,
+	env *object.Environment,
+	ctx *CallContext,
+) object.Object {
+	// Create a new goroutine
+	goroutine := &object.Goroutine{
+		Done:      make(chan bool, 1),
+		IsRunning: true,
+	}
+	
+	// Set name if provided
+	if node.Name != nil {
+		goroutine.Name = node.Name.Value
+		globalGoroutineManager.AddNamedGoroutine(goroutine.Name, goroutine)
+	} else {
+		globalGoroutineManager.AddAnonymousGoroutine(goroutine)
+	}
+	
+	// Start the goroutine
+	go func() {
+		defer func() {
+			// Recover from any panic to prevent deadlock
+			if r := recover(); r != nil {
+				// Convert panic to error and store it
+				goroutine.Error = &object.Error{
+					Message: fmt.Sprintf("Goroutine panic: %v", r),
+				}
+			}
+			
+			// Always ensure Done channel receives a value
+			goroutine.IsRunning = false
+			goroutine.Done <- true
+		}()
+		
+		// Create a new environment for the goroutine
+		goroutineEnv := object.NewEnclosedEnvironment(env)
+		
+		// Create a new context for the goroutine
+		goroutineCtx := &CallContext{
+			FunctionName: "diverge",
+			Node:         node.Body,
+			Parent:       ctx,
+			env:          goroutineEnv,
+		}
+		
+		// Execute the body
+		result := Eval(node.Body, goroutineEnv, goroutineCtx)
+		
+		// Store the result or error
+		if isError(result) {
+			goroutine.Error = result
+		} else {
+			goroutine.Result = result
+		}
+	}()
+	
+	return goroutine
+}
+
+func evalConvergeStatement(
+	node *ast.ConvergeStatement,
+	env *object.Environment,
+	ctx *CallContext,
+) object.Object {
+	if len(node.Names) == 0 {
+		// Wait for all goroutines
+		
+		// Wait for named goroutines
+		namedGoroutines := globalGoroutineManager.GetAllNamedGoroutines()
+		for _, goroutine := range namedGoroutines {
+			if goroutine.IsRunning {
+				<-goroutine.Done
+			}
+		}
+		
+		// Wait for anonymous goroutines
+		anonymousGoroutines := globalGoroutineManager.GetAllAnonymousGoroutines()
+		for _, goroutine := range anonymousGoroutines {
+			if goroutine.IsRunning {
+				<-goroutine.Done
+			}
+		}
+		
+		// Clear all goroutines
+		globalGoroutineManager.ClearAll()
+		
+	} else {
+		// Wait for specific named goroutines
+		for _, nameExpr := range node.Names {
+			nameIdent, ok := nameExpr.(*ast.Identifier)
+			if !ok {
+				return newErrorWithTrace("converge expects goroutine names", node, ctx)
+			}
+			
+			goroutine, exists := globalGoroutineManager.GetNamedGoroutine(nameIdent.Value)
+			if !exists {
+				return newErrorWithTrace("goroutine '%s' not found", node, ctx, nameIdent.Value)
+			}
+			
+			if goroutine.IsRunning {
+				<-goroutine.Done
+			}
+			
+			// Remove from manager
+			globalGoroutineManager.RemoveNamedGoroutine(nameIdent.Value)
+		}
+	}
+	
+	return object.NONE
 }

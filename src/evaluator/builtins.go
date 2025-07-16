@@ -95,9 +95,88 @@ var builtins = map[string]*object.Builtin{
 	},
 	"print": {
 		Fn: func(args ...object.Object) object.Object {
-			for _, arg := range args {
-				fmt.Println(arg.Inspect(), " ")
+			if len(args) == 0 {
+				fmt.Println()
+				return &object.None{}
 			}
+			
+			// Build the output string from all arguments
+			var parts []string
+			for _, arg := range args {
+				parts = append(parts, arg.Inspect())
+			}
+			
+			// Join with spaces and print with newline (default behavior)
+			output := strings.Join(parts, " ")
+			fmt.Println(output)
+			return &object.None{}
+		},
+	},
+	"printn": {
+		Fn: func(args ...object.Object) object.Object {
+			if len(args) == 0 {
+				return &object.None{}
+			}
+			
+			// Build the output string from all arguments
+			var parts []string
+			for _, arg := range args {
+				parts = append(parts, arg.Inspect())
+			}
+			
+			// Join with spaces and print without newline
+			output := strings.Join(parts, " ")
+			fmt.Print(output)
+			return &object.None{}
+		},
+	},
+	"printend": {
+		Fn: func(args ...object.Object) object.Object {
+			if len(args) < 1 {
+				fmt.Println()
+				return &object.None{}
+			}
+			
+			// Default end character is newline
+			endChar := "\n"
+			printArgs := args
+			
+			// Check if the first argument is a hash/map containing end specification
+			if len(args) > 0 {
+				if hash, ok := args[0].(*object.Hash); ok {
+					// Look for "end" key in the hash
+					endKey := &object.String{Value: "end"}
+					if endPair, exists := hash.Pairs[endKey.HashKey()]; exists {
+						if endStr, ok := extractStringBuiltin(endPair.Value); ok {
+							endChar = endStr
+						}
+					}
+					
+					// Look for "values" key in the hash for the actual values to print
+					valuesKey := &object.String{Value: "values"}
+					if valuesPair, exists := hash.Pairs[valuesKey.HashKey()]; exists {
+						if array, ok := valuesPair.Value.(*object.Array); ok {
+							printArgs = array.Elements
+						} else {
+							// If values is not an array, treat it as a single value
+							printArgs = []object.Object{valuesPair.Value}
+						}
+					} else {
+						// If no values key, print nothing (only apply end character)
+						printArgs = []object.Object{}
+					}
+				}
+			}
+			
+			// Build the output string from print arguments
+			var parts []string
+			for _, arg := range printArgs {
+				parts = append(parts, arg.Inspect())
+			}
+			
+			// Join with spaces and print with specified end character
+			output := strings.Join(parts, " ")
+			fmt.Print(output + endChar)
 			return &object.None{}
 		},
 	},

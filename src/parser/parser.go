@@ -203,6 +203,8 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerStatement(token.IGNORE, p.parseIgnoreStatement)
 	p.registerStatement(token.STOP, p.parseStopStatement)
 	p.registerStatement(token.SKIP, p.parseSkipStatement)
+	p.registerStatement(token.DIVERGE, p.parseDivergeStatement)
+	p.registerStatement(token.CONVERGE, p.parseConvergeStatement)
 	p.registerStatement(token.CHECK, p.parseCheckStatement)
 	p.registerStatement(token.GLOBAL, p.parseGlobalStatement)
 	p.registerStatement(token.AUTOCLOSE, p.parseWithStatement)
@@ -329,6 +331,94 @@ func (p *Parser) parseStopStatement() ast.Statement {
 
 func (p *Parser) parseSkipStatement() ast.Statement {
 	return &ast.SkipStatement{Token: p.currToken}
+}
+
+func (p *Parser) parseDivergeStatement() ast.Statement {
+	currentIndent := p.getCurrentIndent()
+	p.controlStack = append(p.controlStack, struct {
+		Type        string
+		IndentLevel int
+		HasElse     bool
+		Token       token.Token
+	}{
+		Type:        "diverge",
+		IndentLevel: currentIndent,
+		HasElse:     false,
+		Token:       p.currToken,
+	})
+	
+	stmt := &ast.DivergeStatement{Token: p.currToken}
+	
+	// Check if there's an optional name
+	if p.peekTokenIs(token.IDENT) {
+		p.nextToken()
+		stmt.Name = &ast.Identifier{Token: p.currToken, Value: p.currToken.Literal}
+	}
+	
+	// Expect colon
+	if !p.expectPeek(token.COLON) {
+		return nil
+	}
+	
+	// Skip newlines after colon
+	for p.peekTokenIs(token.NEWLINE) {
+		p.nextToken()
+	}
+	
+	// Handle indentation and parse body
+	if p.peekTokenIs(token.INDENT) {
+		p.nextToken() // Move to INDENT token
+		p.nextToken() // Move past INDENT to first statement token
+		stmt.Body = p.parseBlockStatement()
+	} else {
+		stmt.Body = p.parseBlockStatement()
+	}
+	
+	// Pop control stack
+	if len(p.controlStack) > 0 {
+		p.controlStack = p.controlStack[:len(p.controlStack)-1]
+	}
+	
+	return stmt
+}
+
+func (p *Parser) parseConvergeStatement() ast.Statement {
+	stmt := &ast.ConvergeStatement{Token: p.currToken}
+	
+	// Check if there are names to wait for
+	if p.peekTokenIs(token.IDENT) {
+		p.nextToken()
+		stmt.Names = append(stmt.Names, &ast.Identifier{Token: p.currToken, Value: p.currToken.Literal})
+		
+		// Parse additional names separated by commas
+		for p.peekTokenIs(token.COMMA) {
+			p.nextToken() // consume comma
+			if !p.expectPeek(token.IDENT) {
+				return nil
+			}
+			stmt.Names = append(stmt.Names, &ast.Identifier{Token: p.currToken, Value: p.currToken.Literal})
+		}
+	}
+	
+	// Check for optional timeout keyword
+	if p.peekTokenIs(token.IDENT) && p.peekToken.Literal == "timeout" {
+		p.nextToken() // consume "timeout" identifier
+		
+		// Parse the timeout value expression
+		if !p.expectPeek(token.INT) {
+			return nil
+		}
+		
+		// Convert string to int64
+		timeoutValue, err := strconv.ParseInt(p.currToken.Literal, 0, 64)
+		if err != nil {
+			return nil
+		}
+		
+		stmt.Timeout = &ast.IntegerLiteral{Token: p.currToken, Value: timeoutValue}
+	}
+	
+	return stmt
 }
 
 func (p *Parser) parseCheckStatement() ast.Statement {
@@ -841,12 +931,27 @@ func (p *Parser) parseDotExpression(left ast.Expression) ast.Expression {
 		Left:  left,
 	}
 
-	if !p.expectPeek(token.IDENT) {
+	// Accept IDENT or certain keywords that can be used as method names
+	if !p.expectPeekMethodName() {
 		return nil
 	}
 
 	exp.Right = &ast.Identifier{Token: p.currToken, Value: p.currToken.Literal}
 	return exp
+}
+
+// expectPeekMethodName accepts IDENT or keywords that can be used as method names
+func (p *Parser) expectPeekMethodName() bool {
+	if p.peekTokenIs(token.IDENT) ||
+		p.peekTokenIs(token.INIT) ||
+		p.peekTokenIs(token.SPELL) ||
+		p.peekTokenIs(token.SELF) {
+		p.nextToken()
+		return true
+	}
+	
+	p.peekError(token.IDENT)
+	return false
 }
 
 func (p *Parser) parseParenExpression() ast.Expression {
@@ -1178,6 +1283,10 @@ func (p *Parser) parseStatement() ast.Statement {
 		return p.parseSkipStatement()
 	case token.STOP:
 		return p.parseStopStatement()
+	case token.DIVERGE:
+		return p.parseDivergeStatement()
+	case token.CONVERGE:
+		return p.parseConvergeStatement()
 	case token.CHECK:
 		return p.parseCheckStatement()
 	case token.GLOBAL:

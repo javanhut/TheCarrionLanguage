@@ -1,7 +1,38 @@
+"""
+Integer wrapper grimoire providing enhanced integer operations and utilities.
+
+This grimoire extends basic integer functionality with mathematical operations,
+number base conversions, and numerical property testing. It serves as a 
+comprehensive toolkit for integer manipulation in Carrion applications.
+
+Key Features:
+- Number base conversions (binary, octal, hexadecimal)
+- Mathematical operations (GCD, LCM, power, absolute value)
+- Property testing (even, odd, prime number detection)
+- Type conversions to string and float
+
+Usage:
+    num = Integer(42)
+    print(num.to_hex())  # "0x2a"
+    print(num.is_even()) # True
+    print(num.gcd(24))   # 6
+"""
 grim Integer:
+    """
+    Initialize an Integer instance with an optional value.
+    
+    Args:
+        value (int): The integer value to wrap (default: 0)
+    """
     init(value = 0):
         self.value = value
     
+    """
+    Convert the integer to binary representation.
+    
+    Returns:
+        str: Binary string with '0b' prefix (e.g., "0b1010")
+    """
     spell to_bin():
         if self.value == 0:
             return "0b0"
@@ -22,6 +53,12 @@ grim Integer:
         else:
             return "0b" + result
     
+    """
+    Convert the integer to octal representation.
+    
+    Returns:
+        str: Octal string with '0o' prefix (e.g., "0o755")
+    """
     spell to_oct():
         if self.value == 0:
             return "0o0"
@@ -42,6 +79,12 @@ grim Integer:
         else:
             return "0o" + result
     
+    """
+    Convert the integer to hexadecimal representation.
+    
+    Returns:
+        str: Hexadecimal string with '0x' prefix (e.g., "0xff")
+    """
     spell to_hex():
         if self.value == 0:
             return "0x0"
@@ -63,11 +106,29 @@ grim Integer:
         else:
             return "0x" + result
     
+    """
+    Get the absolute value of the integer.
+    
+    Returns:
+        int: The absolute value of this integer
+    """
     spell abs():
         if self.value < 0:
             return -self.value
         return self.value
     
+    """
+    Raise this integer to the power of the given exponent.
+    
+    Uses efficient exponentiation by squaring algorithm. For negative
+    exponents, returns 0 due to integer division behavior.
+    
+    Args:
+        exponent (int): The power to raise this integer to
+        
+    Returns:
+        int: The result of self.value ** exponent
+    """
     spell pow(exponent):
         result = 1
         base = self.value
@@ -84,6 +145,18 @@ grim Integer:
         
         return result
     
+    """
+    Calculate the greatest common divisor with another integer.
+    
+    Uses Euclidean algorithm to find GCD. Handles negative numbers
+    by working with absolute values.
+    
+    Args:
+        other (int or Integer): The other integer for GCD calculation
+        
+    Returns:
+        int: The greatest common divisor of both numbers
+    """
     spell gcd(other):
         a = self.value
         b = other
@@ -102,6 +175,17 @@ grim Integer:
         
         return a
     
+    """
+    Calculate the least common multiple with another integer.
+    
+    Uses the relationship: LCM(a,b) = (a * b) / GCD(a,b)
+    
+    Args:
+        other (int or Integer): The other integer for LCM calculation
+        
+    Returns:
+        int: The least common multiple of both numbers
+    """
     spell lcm(other):
         a = self.value
         b = other
@@ -112,12 +196,33 @@ grim Integer:
         lcm_val = (a * b) // gcd_val
         return lcm_val
     
+    """
+    Check if the integer is even.
+    
+    Returns:
+        bool: True if the integer is even, False otherwise
+    """
     spell is_even():
         return self.value % 2 == 0
     
+    """
+    Check if the integer is odd.
+    
+    Returns:
+        bool: True if the integer is odd, False otherwise
+    """
     spell is_odd():
         return self.value % 2 != 0
     
+    """
+    Check if the integer is a prime number.
+    
+    Uses trial division optimization, checking only odd divisors
+    up to the square root of the number.
+    
+    Returns:
+        bool: True if the integer is prime, False otherwise
+    """
     spell is_prime():
         if self.value < 2:
             return False
@@ -134,8 +239,20 @@ grim Integer:
         
         return True
     
+    """
+    Convert the integer to its string representation.
+    
+    Returns:
+        str: String representation of the integer value
+    """
     spell to_string():
         return str(self.value)
     
+    """
+    Convert the integer to a floating-point number.
+    
+    Returns:
+        float: Float representation of the integer value
+    """
     spell to_float():
         return float(self.value)
