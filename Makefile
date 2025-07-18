@@ -38,12 +38,14 @@ build-source:
 # 2) Build the Linux binary + tarball
 build-linux:
 	GOOS=linux GOARCH=amd64 go build -o carrion ./src
-	tar -czf carrion_linux_amd64.tar.gz carrion
+	cd cmd/sindri && GOOS=linux GOARCH=amd64 go build -o sindri .
+	tar -czf carrion_linux_amd64.tar.gz carrion cmd/sindri/sindri
 
 # 3) Build the Windows binary + zip
 build-windows:
 	GOOS=windows GOARCH=amd64 go build -o carrion.exe ./src
-	zip carrion_windows_amd64.zip carrion.exe
+	cd cmd/sindri && GOOS=windows GOARCH=amd64 go build -o sindri.exe .
+	zip carrion_windows_amd64.zip carrion.exe cmd/sindri/sindri.exe
 
 # Existing Docker image build
 build:
@@ -72,7 +74,7 @@ clean:
 	docker rmi -f "$(USER_NAME)/$(IMAGE_NAME):latest" || true
 
 install:
-	@echo "Installing Carrion Language and Bifrost Package Manager for $(OS)...."
+	@echo "Installing Carrion Language, Sindri Testing Framework, and Bifrost Package Manager for $(OS)...."
 	@./setup.sh
 	@./install/install.sh "$(OS)"
 	@if [ -d "bifrost" ]; then \
@@ -83,7 +85,7 @@ install:
 	fi
 
 uninstall:
-	@echo "Uninstalling Carrion and Bifrost from disk..."
+	@echo "Uninstalling Carrion, Sindri, and Bifrost from disk..."
 	@./install/uninstall.sh
 	@if [ -d "bifrost" ]; then \
 		echo "Uninstalling Bifrost Package Manager..."; \

@@ -624,6 +624,52 @@ func Eval(node ast.Node, env *object.Environment, ctx *CallContext) object.Objec
 		if isError(cond) {
 			return cond
 		}
+		
+		// Special handling for check(value, expected) pattern
+		if node.Message != nil {
+			expected := Eval(node.Message, env, ctx)
+			if isError(expected) {
+				return expected
+			}
+			
+			// Check if this looks like check(actual, expected)
+			if cond.Type() == expected.Type() {
+				// Compare the values
+				equal := false
+				switch c := cond.(type) {
+				case *object.Integer:
+					if e, ok := expected.(*object.Integer); ok {
+						equal = c.Value == e.Value
+					}
+				case *object.String:
+					if e, ok := expected.(*object.String); ok {
+						equal = c.Value == e.Value
+					}
+				case *object.Boolean:
+					if e, ok := expected.(*object.Boolean); ok {
+						equal = c.Value == e.Value
+					}
+				case *object.Float:
+					if e, ok := expected.(*object.Float); ok {
+						equal = c.Value == e.Value
+					}
+				default:
+					equal = cond.Inspect() == expected.Inspect()
+				}
+				
+				if !equal {
+					msg := fmt.Sprintf("Value %s didn't match Value %s, Expected %s to Equal %s got %s instead", 
+						cond.Inspect(), expected.Inspect(), cond.Inspect(), expected.Inspect(), cond.Inspect())
+					details := make(map[string]object.Object)
+					details["actual"] = cond
+					details["expected"] = expected
+					return newCustomErrorWithTrace("Assertion Check Failed", msg, node, ctx, details)
+				}
+				return object.NONE
+			}
+		}
+		
+		// Standard boolean check
 		if !isTruthy(cond) {
 			msg := "Assertion failed: " + node.Condition.String()
 			if node.Message != nil {
