@@ -28,3 +28,7 @@ debug_*.go
 .carrion_history
 .claude
 CLAUDE.md
+
+# Carrion and Sindri binaries
+carrion
+sindri
