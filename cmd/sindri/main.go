@@ -808,7 +808,7 @@ func generateHTMLContent(results []FileTestResult, totalTests, totalPassed, tota
         </div>
         
         <div class="progress-bar">
-            <div class="progress-fill" style="width: %.1f%%">
+            <div class="progress-fill" style="width: %.1f%%" data-width="%.1f">
                 %.1f%% Passed
             </div>
         </div>
@@ -826,9 +826,10 @@ func generateHTMLContent(results []FileTestResult, totalTests, totalPassed, tota
         // Animate progress bar on load
         window.addEventListener('load', function() {
             const progressFill = document.querySelector('.progress-fill');
+            const targetWidth = progressFill.getAttribute('data-width');
             progressFill.style.width = '0%%';
             setTimeout(() => {
-                progressFill.style.width = progressFill.getAttribute('style').match(/width: ([\d.]+%%)/)[1];
+                progressFill.style.width = targetWidth + '%%';
             }, 100);
         });
         
@@ -849,5 +850,5 @@ func generateHTMLContent(results []FileTestResult, totalTests, totalPassed, tota
         });
     </script>
 </body>
-</html>`, time.Now().Format("2006-01-02 15:04:05"), time.Now().Format("January 2, 2006 at 3:04 PM"), totalTests, totalPassed, totalFailed, totalDuration, passRate, passRate, passRate, testResultsHTML.String())
+</html>`, time.Now().Format("2006-01-02 15:04:05"), time.Now().Format("January 2, 2006 at 3:04 PM"), totalTests, totalPassed, totalFailed, totalDuration, passRate, passRate, passRate, passRate, testResultsHTML.String())
 }
