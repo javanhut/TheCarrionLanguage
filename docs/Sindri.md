@@ -54,14 +54,14 @@ Tests are written as regular Carrion spells (functions) that use the built-in `c
 ```carrion
 spell appraise_arithmetic():
     # Test basic arithmetic operations
-    check(2 + 2, 4)
-    check(10 - 3, 7)
-    check(6 * 7, 42)
+    check(2 + 2 == 4)
+    check(10 - 3 == 7)
+    check(6 * 7 == 42)
 
 spell test_appraise_strings():
     # Test string operations
     greeting = "Hello, " + "World!"
-    check(greeting, "Hello, World!")
+    check(greeting == "Hello, World!")
 ```
 
 ### The check Statement

@@ -371,6 +371,30 @@ func isPrimitiveLiteral(obj object.Object) bool {
 	}
 }
 
+func areValuesEqual(a, b object.Object) bool {
+	if a.Type() != b.Type() {
+		return false
+	}
+
+	switch objA := a.(type) {
+	case *object.Integer:
+		objB := b.(*object.Integer)
+		return objA.Value == objB.Value
+	case *object.String:
+		objB := b.(*object.String)
+		return objA.Value == objB.Value
+	case *object.Boolean:
+		objB := b.(*object.Boolean)
+		return objA.Value == objB.Value
+	case *object.Float:
+		objB := b.(*object.Float)
+		const epsilon = 1e-9
+		return math.Abs(objA.Value-objB.Value) < epsilon
+	default:
+		return a.Inspect() == b.Inspect()
+	}
+}
+
 func wrapPrimitive(obj object.Object, env *object.Environment, ctx *CallContext) object.Object {
 	if debugPrimitiveWrapping {
 		fmt.Fprintf(os.Stderr, "WRAP: Evaluating %T, ctx=%s, hasSelf=%t\n", obj, getContextName(ctx), hasSelfInEnv(env))
@@ -634,38 +658,21 @@ func Eval(node ast.Node, env *object.Environment, ctx *CallContext) object.Objec
 			
 			// Check if this looks like check(actual, expected)
 			if cond.Type() == expected.Type() {
-				// Compare the values
-				equal := false
-				switch c := cond.(type) {
-				case *object.Integer:
-					if e, ok := expected.(*object.Integer); ok {
-						equal = c.Value == e.Value
-					}
-				case *object.String:
-					if e, ok := expected.(*object.String); ok {
-						equal = c.Value == e.Value
-					}
-				case *object.Boolean:
-					if e, ok := expected.(*object.Boolean); ok {
-						equal = c.Value == e.Value
-					}
-				case *object.Float:
-					if e, ok := expected.(*object.Float); ok {
-						equal = c.Value == e.Value
-					}
-				default:
-					equal = cond.Inspect() == expected.Inspect()
-				}
-				
-				if !equal {
-					msg := fmt.Sprintf("Value %s didn't match Value %s, Expected %s to Equal %s got %s instead", 
-						cond.Inspect(), expected.Inspect(), cond.Inspect(), expected.Inspect(), cond.Inspect())
+				if !areValuesEqual(cond, expected) {
+					msg := fmt.Sprintf("Value %s didn't Match Value %s, Expected %s to Equal %s got %s instead", cond.Inspect(), expected.Inspect(), cond.Inspect(), expected.Inspect(), cond.Inspect())
 					details := make(map[string]object.Object)
 					details["actual"] = cond
 					details["expected"] = expected
 					return newCustomErrorWithTrace("Assertion Check Failed", msg, node, ctx, details)
 				}
 				return object.NONE
+			} else {
+				// Types don't match - this is also an assertion failure
+				msg := fmt.Sprintf("Value %s didn't Match Value %s, Expected %s to Equal %s got %s instead", cond.Inspect(), expected.Inspect(), cond.Inspect(), expected.Inspect(), cond.Inspect())
+				details := make(map[string]object.Object)
+				details["actual"] = cond
+				details["expected"] = expected
+				return newCustomErrorWithTrace("Assertion Check Failed", msg, node, ctx, details)
 			}
 		}
 		
