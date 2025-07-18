@@ -228,16 +228,16 @@ grim Float:
     Convert the float to an integer (truncated).
     
     Returns:
-        Integer: Integer representation of the float value
+        Integer representation of the float value
     """
     spell to_int():
-        return Integer(int(self.value))
+        return int(self.value)
     
     """
     Convert the float to its string representation.
     
     Returns:
-        String: String representation of the float value
+        String representation of the float value
     """
     spell to_string():
-        return String(str(self.value))
+        return str(self.value)

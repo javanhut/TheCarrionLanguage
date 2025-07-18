@@ -1,0 +1,66 @@
+#!/usr/bin/env carrion
+
+print("=== Testing Basic Time Functions ===\n")
+
+# Test 1: Core time functions that should work
+print("1. Basic Time Functions")
+print("-----------------------")
+
+current = timeNow()
+print("Current timestamp:", current)
+
+nano = timeNowNano()
+print("Nano timestamp:", nano)
+
+# Test sleep
+print("Sleeping 0.5 seconds...")
+timeSleep(0.5)
+print("Done sleeping")
+
+# Test time formatting
+formatted = timeFormat(current)
+print("Formatted time:", formatted)
+
+formatted_custom = timeFormat(current, "2006-01-02")
+print("Custom format:", formatted_custom)
+
+# Test parsing
+timestamp = timeParse("2006-01-02", "2024-01-01")
+print("Parsed timestamp:", timestamp)
+
+# Test date components
+date_parts = timeDate()
+print("Current date parts:", date_parts)
+
+date_from_ts = timeDate(current)
+print("Date from timestamp:", date_from_ts)
+
+# Test time math
+future = timeAddDuration(current, 3600)  # Add 1 hour
+print("Future timestamp (+ 1 hour):", future)
+
+diff = timeDiff(future, current)
+print("Difference:", diff, "seconds")
+
+# Test duration functions
+dur_sec = seconds(30)
+print("30 seconds duration type:", type(dur_sec))
+
+dur_min = minutes(5)
+print("5 minutes duration type:", type(dur_min))
+
+# Test from unix
+time_obj = fromUnix(current)
+print("Time object from timestamp:", type(time_obj))
+
+# Test unix conversion back
+unix_ts = unix(time_obj)
+print("Unix timestamp from time object:", unix_ts)
+
+# Test comparison
+time1 = fromUnix(current)
+time2 = fromUnix(future)
+print("time1 before time2:", timeBefore(time1, time2))
+print("time1 after time2:", timeAfter(time1, time2))
+
+print("\n=== Basic Time Functions Test Complete ===")

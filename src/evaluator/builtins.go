@@ -222,12 +222,38 @@ var builtins = map[string]*object.Builtin{
 
 			obj := args[0]
 			
-			// Special handling for Array instances
-			if inst, ok := obj.(*object.Instance); ok && inst.Grimoire != nil && inst.Grimoire.Name == "Array" {
-				return &object.String{Value: "ARRAY"}
+			// Use getObjectTypeString to get proper type names for instances
+			switch o := obj.(type) {
+			case *object.Instance:
+				if o.Grimoire != nil {
+					return &object.String{Value: o.Grimoire.Name}
+				}
+				return &object.String{Value: "instance"}
+			case *object.Integer:
+				return &object.String{Value: "Integer"}
+			case *object.Float:
+				return &object.String{Value: "Float"}
+			case *object.String:
+				return &object.String{Value: "String"}
+			case *object.Boolean:
+				return &object.String{Value: "Boolean"}
+			case *object.Array:
+				return &object.String{Value: "Array"}
+			case *object.Hash:
+				return &object.String{Value: "Map"}
+			case *object.Tuple:
+				return &object.String{Value: "Tuple"}
+			case *object.Function:
+				return &object.String{Value: "Function"}
+			case *object.None:
+				return &object.String{Value: "None"}
+			case *object.Time:
+				return &object.String{Value: "Time"}
+			case *object.Duration:
+				return &object.String{Value: "Duration"}
+			default:
+				return &object.String{Value: string(obj.Type())}
 			}
-			
-			return &object.String{Value: string(obj.Type())}
 		},
 	},
 	"int": {
@@ -235,17 +261,26 @@ var builtins = map[string]*object.Builtin{
 			if len(args) != 1 {
 				return newError("wrong number of arguments. got=%d, want=1", len(args))
 			}
-			switch arg := args[0].(type) {
+			
+			// Unwrap Instance objects to get the underlying primitive
+			arg := args[0]
+			if instance, ok := arg.(*object.Instance); ok {
+				if value, exists := instance.Env.Get("value"); exists {
+					arg = value
+				}
+			}
+			
+			switch typedArg := arg.(type) {
 			case *object.String:
-				value, err := strconv.Atoi(arg.Value)
+				value, err := strconv.Atoi(typedArg.Value)
 				if err != nil {
 					return newError("cannot convert string to int: %s", err)
 				}
 				return &object.Integer{Value: int64(value)}
 			case *object.Float:
-				return &object.Integer{Value: int64(arg.Value)}
+				return &object.Integer{Value: int64(typedArg.Value)}
 			case *object.Integer:
-				return arg
+				return typedArg
 			default:
 				return newError("cannot convert %s to int", arg.Type())
 			}
@@ -256,17 +291,26 @@ var builtins = map[string]*object.Builtin{
 			if len(args) != 1 {
 				return newError("wrong number of arguments. got=%d, want=1", len(args))
 			}
-			switch arg := args[0].(type) {
+			
+			// Unwrap Instance objects to get the underlying primitive
+			arg := args[0]
+			if instance, ok := arg.(*object.Instance); ok {
+				if value, exists := instance.Env.Get("value"); exists {
+					arg = value
+				}
+			}
+			
+			switch typedArg := arg.(type) {
 			case *object.String:
-				value, err := strconv.Atoi(arg.Value)
+				value, err := strconv.Atoi(typedArg.Value)
 				if err != nil {
 					return newError("cannot convert string to int: %s", err)
 				}
 				return &object.Integer{Value: int64(value)}
 			case *object.Float:
-				return &object.Integer{Value: int64(arg.Value)}
+				return &object.Integer{Value: int64(typedArg.Value)}
 			case *object.Integer:
-				return arg
+				return typedArg
 			default:
 				return newError("cannot convert %s to int", arg.Type())
 			}
@@ -278,17 +322,26 @@ var builtins = map[string]*object.Builtin{
 			if len(args) != 1 {
 				return newError("wrong number of arguments. got=%d, want=1", len(args))
 			}
-			switch arg := args[0].(type) {
+			
+			// Unwrap Instance objects to get the underlying primitive
+			arg := args[0]
+			if instance, ok := arg.(*object.Instance); ok {
+				if value, exists := instance.Env.Get("value"); exists {
+					arg = value
+				}
+			}
+			
+			switch typedArg := arg.(type) {
 			case *object.String:
-				value, err := strconv.ParseFloat(arg.Value, 64)
+				value, err := strconv.ParseFloat(typedArg.Value, 64)
 				if err != nil {
 					return newError("cannot convert string to float: %s", err)
 				}
 				return &object.Float{Value: value}
 			case *object.Integer:
-				return &object.Float{Value: float64(arg.Value)}
+				return &object.Float{Value: float64(typedArg.Value)}
 			case *object.Float:
-				return arg
+				return typedArg
 			default:
 				return newError("cannot convert %s to float", arg.Type())
 			}
@@ -299,7 +352,19 @@ var builtins = map[string]*object.Builtin{
 			if len(args) != 1 {
 				return newError("wrong number of arguments. got=%d, want=1", len(args))
 			}
-			primitive := &object.String{Value: args[0].Inspect()}
+			
+			// For Instance objects, try to get the underlying primitive value first
+			arg := args[0]
+			if instance, ok := arg.(*object.Instance); ok {
+				if value, exists := instance.Env.Get("value"); exists {
+					// Use the underlying primitive's string representation
+					primitive := &object.String{Value: value.Inspect()}
+					return wrapPrimitiveForBuiltin(primitive)
+				}
+			}
+			
+			// Fallback to using Inspect() on the object directly
+			primitive := &object.String{Value: arg.Inspect()}
 			// Create a String instance that supports method calls like .lower()
 			return wrapPrimitiveForBuiltin(primitive)
 		},
@@ -319,9 +384,9 @@ var builtins = map[string]*object.Builtin{
 				strValue = arg.Inspect()
 			}
 
-			// Return regular string object for now
-			// String grimoire instances are created through the grimoire system
-			return &object.String{Value: strValue}
+			// Create a String grimoire instance using the grimoire system
+			primitive := &object.String{Value: strValue}
+			return wrapPrimitiveForBuiltin(primitive)
 		},
 	},
 	"bool": {

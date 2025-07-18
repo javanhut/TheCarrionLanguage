@@ -1,0 +1,25 @@
+#!/usr/bin/env carrion
+
+print("=== Minimal Time Test ===")
+
+# Test only functions that were working before
+current = timeNow()
+print("Current timestamp:", current)
+
+# Test simple sleep
+timeSleep(0.1)
+print("Sleep worked")
+
+# Test basic formatting (no custom format)
+formatted = timeFormat(current)
+print("Formatted:", formatted)
+
+# Test basic parsing
+parsed = timeParse("2006-01-02", "2024-01-01")
+print("Parsed:", parsed)
+
+# Test duration creation
+dur = seconds(10)
+print("Duration type:", type(dur))
+
+print("=== Minimal test complete ===")

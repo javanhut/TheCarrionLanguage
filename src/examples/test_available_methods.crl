@@ -1,0 +1,31 @@
+#!/usr/bin/env carrion
+
+print("=== Testing Available Time Grimoire Methods ===")
+
+# Test creating a Time grimoire instance
+time_grim = Time()
+print("Time grimoire created successfully")
+
+# Test the methods that were working in the original version
+print("\nTesting working methods:")
+
+# This was working
+current_time = time_grim.now()
+print("time_grim.now():", current_time)
+
+# This was working  
+time_grim.sleep(0.1)
+print("time_grim.sleep() worked")
+
+# This was working
+date_parts = time_grim.get_date()
+print("time_grim.get_date():", date_parts)
+
+# Try the format method from the original version
+attempt:
+    formatted = time_grim.format_timestamp(1234567890)
+    print("time_grim.format_timestamp() worked:", formatted)
+ensnare:
+    print("time_grim.format_timestamp() failed")
+
+print("\n=== Available methods test complete ===")

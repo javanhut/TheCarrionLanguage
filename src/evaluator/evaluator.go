@@ -153,13 +153,19 @@ func getSourcePosition(node ast.Node) object.SourcePosition {
 func getNodeToken(node ast.Node) *token.Token {
 	switch n := node.(type) {
 	case *ast.Program:
-		// For programs, return a token representing the start of the program
+		// For programs, try to get filename from the first statement
+		var filename string
+		if len(n.Statements) > 0 {
+			if firstToken := getNodeToken(n.Statements[0]); firstToken != nil {
+				filename = firstToken.Filename
+			}
+		}
 		return &token.Token{
 			Type:     token.NEWLINE,
 			Literal:  "",
 			Line:     1,
 			Column:   1,
-			Filename: "",
+			Filename: filename,
 		}
 	case *ast.ExpressionStatement:
 		return getNodeToken(n.Expression)
@@ -270,11 +276,34 @@ func newErrorWithTrace(
 	for currentCtx != nil {
 		if currentCtx.Node != nil {
 			nodePos := getSourcePosition(currentCtx.Node)
+			
+			// If current node has unknown filename, try to get it from parent context
+			if (nodePos.Filename == "unknown" || nodePos.Filename == "") && currentCtx.Parent != nil && currentCtx.Parent.Node != nil {
+				parentPos := getSourcePosition(currentCtx.Parent.Node)
+				if parentPos.Filename != "unknown" && parentPos.Filename != "" {
+					nodePos.Filename = parentPos.Filename
+				}
+			}
+			
 			entry := object.StackTraceEntry{
 				FunctionName: currentCtx.FunctionName,
 				Position:     nodePos,
 			}
-			err.Stack = append(err.Stack, entry)
+			
+			// Skip duplicate consecutive entries with same function name and unknown location
+			shouldSkip := false
+			if len(err.Stack) > 0 {
+				lastEntry := err.Stack[len(err.Stack)-1]
+				if lastEntry.FunctionName == entry.FunctionName && 
+				   (entry.Position.Filename == "unknown" || entry.Position.Filename == "") &&
+				   (lastEntry.Position.Filename != "unknown" && lastEntry.Position.Filename != "") {
+					shouldSkip = true
+				}
+			}
+			
+			if !shouldSkip {
+				err.Stack = append(err.Stack, entry)
+			}
 		}
 		currentCtx = currentCtx.Parent
 	}
@@ -1041,7 +1070,7 @@ func evalRaiseStatement(
 		return newCustomErrorWithTrace("Error", str.Value, node, ctx, details)
 	}
 
-	return newErrorWithTrace("cannot raise non-error object: %s", node, ctx, errObj.Type())
+	return newErrorWithTrace("cannot raise non-error object: %s", node, ctx, getObjectTypeString(errObj))
 }
 
 func evalExpressions(
@@ -1329,9 +1358,38 @@ func evalAssignStatement(
 ) object.Object {
 	switch target := node.Name.(type) {
 	case *ast.Identifier:
-			val := Eval(node.Value, env, ctx)
+		val := Eval(node.Value, env, ctx)
 		if isError(val) {
 			return val
+		}
+
+		// Check type hint if present
+		if node.TypeHint != nil {
+			// Get the type name from the type hint expression
+			typeHintIdent, ok := node.TypeHint.(*ast.Identifier)
+			if !ok {
+				return newErrorWithTrace("invalid type hint: %s", node, ctx, node.TypeHint.String())
+			}
+			expectedType := typeHintIdent.Value
+
+			// Validate the type
+			if !checkType(val, expectedType) {
+				return newErrorWithTrace("type mismatch: cannot assign %s to variable '%s' with type hint %s", node, ctx, getObjectTypeString(val), target.Value, expectedType)
+			}
+
+			// Store the type hint for future validations
+			typeHintKey := "__type_hint__" + target.Value
+			env.Set(typeHintKey, &object.String{Value: expectedType})
+		} else {
+			// Check if variable already has a type hint from previous assignment
+			typeHintKey := "__type_hint__" + target.Value
+			if existingTypeHint, exists := env.Get(typeHintKey); exists {
+				if typeHintStr, ok := existingTypeHint.(*object.String); ok {
+					if !checkType(val, typeHintStr.Value) {
+						return newErrorWithTrace("type mismatch: cannot assign %s to variable '%s' with type hint %s", node, ctx, getObjectTypeString(val), target.Value, typeHintStr.Value)
+					}
+				}
+			}
 		}
 
 		// Don't wrap primitives - this breaks arithmetic operations
@@ -1457,14 +1515,54 @@ func evalIndexAssignment(
 func checkType(val object.Object, expectedType string) bool {
 	switch expectedType {
 	case "str":
-		return val.Type() == object.STRING_OBJ
+		// Check both primitive STRING and String grimoire instances
+		if val.Type() == object.STRING_OBJ {
+			return true
+		}
+		if instance, ok := val.(*object.Instance); ok && instance.Grimoire.Name == "String" {
+			return true
+		}
+		return false
 	case "int":
-		return val.Type() == object.INTEGER_OBJ
+		// Check both primitive INTEGER and Integer grimoire instances
+		if val.Type() == object.INTEGER_OBJ {
+			return true
+		}
+		if instance, ok := val.(*object.Instance); ok && instance.Grimoire.Name == "Integer" {
+			return true
+		}
+		return false
 	case "float":
-		return val.Type() == object.FLOAT_OBJ
+		// Check both primitive FLOAT and Float grimoire instances
+		if val.Type() == object.FLOAT_OBJ {
+			return true
+		}
+		if instance, ok := val.(*object.Instance); ok && instance.Grimoire.Name == "Float" {
+			return true
+		}
+		return false
 	case "bool":
-		return val.Type() == object.BOOLEAN_OBJ
+		// Check both primitive BOOLEAN and Boolean grimoire instances
+		if val.Type() == object.BOOLEAN_OBJ {
+			return true
+		}
+		if instance, ok := val.(*object.Instance); ok && instance.Grimoire.Name == "Boolean" {
+			return true
+		}
+		return false
+	case "list":
+		return val.Type() == object.ARRAY_OBJ
+	case "dict":
+		return val.Type() == object.MAP_OBJ
+	case "None":
+		return val.Type() == object.NONE_OBJ
+	case "any":
+		return true
 	default:
+		// For custom grimoire types, check if the value is an instance of that type
+		if instance, ok := val.(*object.Instance); ok {
+			return instance.Grimoire.Name == expectedType
+		}
 		return true
 	}
 }
@@ -2092,7 +2190,7 @@ func evalDotExpression(
 
 	instance, ok := leftObj.(*object.Instance)
 	if !ok {
-		return newErrorWithTrace("type error: %s is not an instance or namespace", node, ctx, leftObj.Type())
+		return newErrorWithTrace("type error: %s is not an instance or namespace", node, ctx, getObjectTypeString(leftObj))
 	}
 
 	fieldOrMethodName := node.Right.Value
@@ -2558,6 +2656,14 @@ func extendFunctionEnv(
 			} else {
 				env.Set(name, NONE)
 			}
+			
+			// Store type hint for parameter if present
+			if param.TypeHint != nil {
+				if typeHintIdent, ok := param.TypeHint.(*ast.Identifier); ok {
+					typeHintKey := "__type_hint__" + name
+					env.Set(typeHintKey, &object.String{Value: typeHintIdent.Value})
+				}
+			}
 		default:
 			// Unsupported parameter node
 		}
@@ -2683,7 +2789,7 @@ func evalProgram(program *ast.Program, env *object.Environment, ctx *CallContext
 	// If main statement exists, execute it last (only for direct execution)
 	if mainStatement != nil && ctx != nil && ctx.IsDirectExecution {
 		mainCtx := &CallContext{
-			FunctionName:      "main()",
+			FunctionName:      "main",
 			Node:              mainStatement,
 			Parent:            ctx,
 			IsDirectExecution: true,
@@ -4705,18 +4811,46 @@ func isTypeCompatible(expected, actual string) bool {
 		return true
 	}
 	
+	// Handle type hint aliases (int -> Integer, str -> String, etc.)
+	expectedNormalized := normalizeTypeName(expected)
+	actualNormalized := normalizeTypeName(actual)
+	
+	if expectedNormalized == actualNormalized {
+		return true
+	}
+	
 	// Special cases for numeric types
-	if (expected == "Integer" && actual == "Float") || 
-	   (expected == "Float" && actual == "Integer") {
+	if (expectedNormalized == "Integer" && actualNormalized == "Float") || 
+	   (expectedNormalized == "Float" && actualNormalized == "Integer") {
 		return true
 	}
 	
 	// None can be assigned to any type
-	if actual == "None" {
+	if actualNormalized == "None" {
 		return true
 	}
 	
 	return false
+}
+
+// normalizeTypeName converts type hint names to their grimoire equivalents
+func normalizeTypeName(typeName string) string {
+	switch typeName {
+	case "int":
+		return "Integer"
+	case "str":
+		return "String"
+	case "float":
+		return "Float"
+	case "bool":
+		return "Boolean"
+	case "list":
+		return "Array"
+	case "dict":
+		return "Map"
+	default:
+		return typeName
+	}
 }
 
 func checkParameterTypes(fn *object.Function, args []object.Object, ctx *CallContext) object.Object {
@@ -4810,16 +4944,30 @@ func evalConvergeStatement(
 		// Wait for named goroutines
 		namedGoroutines := globalGoroutineManager.GetAllNamedGoroutines()
 		for _, goroutine := range namedGoroutines {
-			if goroutine.IsRunning {
-				<-goroutine.Done
+			// Wait for goroutine completion with race condition protection
+			select {
+			case <-goroutine.Done:
+				// Goroutine completed
+			default:
+				// If Done channel doesn't have a value yet, wait for it
+				if goroutine.IsRunning {
+					<-goroutine.Done
+				}
 			}
 		}
 		
 		// Wait for anonymous goroutines
 		anonymousGoroutines := globalGoroutineManager.GetAllAnonymousGoroutines()
 		for _, goroutine := range anonymousGoroutines {
-			if goroutine.IsRunning {
-				<-goroutine.Done
+			// Wait for goroutine completion with race condition protection
+			select {
+			case <-goroutine.Done:
+				// Goroutine completed
+			default:
+				// If Done channel doesn't have a value yet, wait for it
+				if goroutine.IsRunning {
+					<-goroutine.Done
+				}
 			}
 		}
 		
@@ -4839,12 +4987,20 @@ func evalConvergeStatement(
 				return newErrorWithTrace("goroutine '%s' not found", node, ctx, nameIdent.Value)
 			}
 			
-			if goroutine.IsRunning {
-				<-goroutine.Done
+			// Wait for goroutine completion regardless of IsRunning state
+			// to handle race conditions where IsRunning might have changed
+			select {
+			case <-goroutine.Done:
+				// Goroutine completed
+			default:
+				// If Done channel doesn't have a value yet, wait for it
+				if goroutine.IsRunning {
+					<-goroutine.Done
+				}
 			}
 			
-			// Remove from manager
-			globalGoroutineManager.RemoveNamedGoroutine(nameIdent.Value)
+			// Remove from manager with proper cleanup
+			globalGoroutineManager.RemoveAndCleanupNamed(nameIdent.Value)
 		}
 	}
 	

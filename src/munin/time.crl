@@ -1,13 +1,18 @@
 ```
 Time module grimoire for Carrion language
-Provides time-related functionality using Go's time package
+Provides comprehensive time-related functionality using Go's time package
 ```
 
 grim Time:
     init():
         self.name = "Time"
     
+    # Core time functions
     spell now():
+        ```Get current time as Time object```
+        return now()
+    
+    spell now_timestamp():
         ```Get current Unix timestamp (seconds since epoch)```
         return timeNow()
     
@@ -16,48 +21,190 @@ grim Time:
         return timeNowNano()
     
     spell sleep(seconds):
-        ```Sleep for specified number of seconds (can be float)```
+        ```Sleep for specified number of seconds```
         return timeSleep(seconds)
     
-    spell format(timestamp, format_str = "2006-01-02 15:04:05"):
-        ```Format Unix timestamp to string using Go time format```
-        return timeFormat(timestamp, format_str)
+    # Duration creation
+    spell create_seconds(n):
+        ```Create duration from seconds```
+        return seconds(n)
     
-    spell parse(format_str, time_str):
-        ```Parse time string using format, returns Unix timestamp```
-        return timeParse(format_str, time_str)
+    spell create_minutes(n):
+        ```Create duration from minutes```
+        return minutes(n)
     
-    spell date(timestamp = None):
-        ```Get date components [year, month, day] from timestamp or current time```
-        if timestamp == None:
-            return timeDate()
+    spell create_hours(n):
+        ```Create duration from hours```
+        return hours(n)
+    
+    spell create_milliseconds(n):
+        ```Create duration from milliseconds```
+        return milliseconds(n)
+    
+    # Duration conversion
+    spell duration_to_seconds(dur):
+        ```Convert duration to seconds (float)```
+        return durationToSeconds(dur)
+    
+    spell duration_to_minutes(dur):
+        ```Convert duration to minutes (float)```
+        return durationToMinutes(dur)
+    
+    spell duration_to_hours(dur):
+        ```Convert duration to hours (float)```
+        return durationToHours(dur)
+    
+    spell duration_to_milliseconds(dur):
+        ```Convert duration to milliseconds (int)```
+        return durationToMilliseconds(dur)
+    
+    # Unix timestamp operations
+    spell from_unix(timestamp):
+        ```Create Time object from Unix timestamp```
+        return fromUnix(timestamp)
+    
+    spell from_unix_nano(timestamp):
+        ```Create Time object from Unix timestamp in nanoseconds```
+        return fromUnixNano(timestamp)
+    
+    spell to_unix(time_obj):
+        ```Get Unix timestamp from Time object```
+        return unix(time_obj)
+    
+    spell to_unix_nano(time_obj):
+        ```Get Unix timestamp in nanoseconds from Time object```
+        return unixNano(time_obj)
+    
+    # Date operations
+    spell get_date():
+        ```Get current date as [year, month, day]```
+        return timeDate()
+    
+    spell get_date_from_timestamp(timestamp):
+        ```Get date from timestamp as [year, month, day]```
         return timeDate(timestamp)
     
-    spell add_duration(timestamp, seconds):
+    spell get_date_from_time(time_obj):
+        ```Get date from Time object as [year, month, day]```
+        return timeDate(time_obj)
+    
+    # Time component functions
+    spell get_year(time_obj):
+        ```Get year from Time object```
+        return year(time_obj)
+    
+    spell get_month(time_obj):
+        ```Get month from Time object (1-12)```
+        return month(time_obj)
+    
+    spell get_day(time_obj):
+        ```Get day of month from Time object```
+        return day(time_obj)
+    
+    spell get_weekday(time_obj):
+        ```Get weekday from Time object (0=Sunday, 6=Saturday)```
+        return weekday(time_obj)
+    
+    spell get_hour(time_obj):
+        ```Get hour from Time object (0-23)```
+        return hour(time_obj)
+    
+    spell get_minute(time_obj):
+        ```Get minute from Time object (0-59)```
+        return minute(time_obj)
+    
+    spell get_second(time_obj):
+        ```Get second from Time object (0-59)```
+        return second(time_obj)
+    
+    # Duration calculations
+    spell since_timestamp(timestamp):
+        ```Get duration since given timestamp```
+        return timeSince(timestamp)
+    
+    spell since_time(time_obj):
+        ```Get duration since given Time object```
+        return timeSince(time_obj)
+    
+    spell until_timestamp(timestamp):
+        ```Get duration until given timestamp```
+        return timeUntil(timestamp)
+    
+    spell until_time(time_obj):
+        ```Get duration until given Time object```
+        return timeUntil(time_obj)
+    
+    spell add_duration_to_time(time_obj, duration):
+        ```Add duration to Time object, returns new Time object```
+        return addDuration(time_obj, duration)
+    
+    spell add_duration_to_timestamp(timestamp, seconds):
         ```Add duration in seconds to timestamp, returns new timestamp```
         return timeAddDuration(timestamp, seconds)
     
-    spell diff(timestamp1, timestamp2):
+    spell diff_timestamps(timestamp1, timestamp2):
         ```Calculate difference between two timestamps in seconds```
         return timeDiff(timestamp1, timestamp2)
+    
+    spell diff_times(time1, time2):
+        ```Calculate difference between two Time objects as duration```
+        return timeDiff(time1, time2)
+    
+    # Time comparison
+    spell is_before(time1, time2):
+        ```Check if time1 is before time2```
+        return timeBefore(time1, time2)
+    
+    spell is_after(time1, time2):
+        ```Check if time1 is after time2```
+        return timeAfter(time1, time2)
+    
+    spell is_equal(time1, time2):
+        ```Check if time1 equals time2```
+        return timeEqual(time1, time2)
+    
+    # Timezone operations
+    spell to_utc(time_obj):
+        ```Convert Time object to UTC timezone```
+        return utc(time_obj)
+    
+    spell to_local(time_obj):
+        ```Convert Time object to local timezone```
+        return local(time_obj)
 
 ```Convenience functions for common time operations```
 spell now():
     ```Get current Unix timestamp```
-    time = Time()
-    return time.now()
+    return timeNow()
 
 spell sleep(seconds):
     ```Sleep for specified number of seconds```
-    time = Time()
-    return time.sleep(seconds)
+    return timeSleep(seconds)
 
-spell date():
+spell current_date():
     ```Get current date as [year, month, day]```
-    time = Time()
-    return time.date()
+    return timeDate()
 
-spell format_time(timestamp, format_str = "2006-01-02 15:04:05"):
-    ```Format timestamp to string```
-    time = Time()
-    return time.format(timestamp, format_str)
+spell time_since(timestamp):
+    ```Get duration since given timestamp```
+    return timeSince(timestamp)
+
+spell time_until(timestamp):
+    ```Get duration until given timestamp```
+    return timeUntil(timestamp)
+
+spell time_diff(timestamp1, timestamp2):
+    ```Calculate difference between two timestamps```
+    return timeDiff(timestamp1, timestamp2)
+
+spell create_duration_seconds(n):
+    ```Create duration from seconds```
+    return seconds(n)
+
+spell create_duration_minutes(n):
+    ```Create duration from minutes```
+    return minutes(n)
+
+spell create_duration_hours(n):
+    ```Create duration from hours```
+    return hours(n)

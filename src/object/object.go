@@ -6,6 +6,7 @@ import (
 	"hash/fnv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/javanhut/TheCarrionLanguage/src/ast"
 )
@@ -18,27 +19,29 @@ type Object interface {
 }
 
 const (
-	INTEGER_OBJ      = "INTEGER"
-	FLOAT_OBJ        = "FLOAT"
-	BOOLEAN_OBJ      = "BOOLEAN"
-	NONE_OBJ         = "NONE"
-	RETURN_VALUE_OBJ = "RETURN_VALUE"
-	ERROR_OBJ        = "ERROR"
-	FUNCTION_OBJ     = "FUNCTION"
-	STRING_OBJ       = "STRING"
-	ARRAY_OBJ        = "ARRAY"
-	BUILTIN_OBJ      = "BUILTIN"
-	MAP_OBJ          = "MAP"
-	TUPLE_OBJ        = "TUPLE"
-	GRIMOIRE_OBJ         = "GRIMOIRE"
-	INSTANCE_OBJ         = "INSTANCE"
-	NAMESPACE_OBJ        = "NAMESPACE"
-	GOROUTINE_OBJ        = "GOROUTINE"
+	INTEGER_OBJ           = "INTEGER"
+	FLOAT_OBJ             = "FLOAT"
+	BOOLEAN_OBJ           = "BOOLEAN"
+	NONE_OBJ              = "NONE"
+	RETURN_VALUE_OBJ      = "RETURN_VALUE"
+	ERROR_OBJ             = "ERROR"
+	FUNCTION_OBJ          = "FUNCTION"
+	STRING_OBJ            = "STRING"
+	ARRAY_OBJ             = "ARRAY"
+	BUILTIN_OBJ           = "BUILTIN"
+	MAP_OBJ               = "MAP"
+	TUPLE_OBJ             = "TUPLE"
+	GRIMOIRE_OBJ          = "GRIMOIRE"
+	INSTANCE_OBJ          = "INSTANCE"
+	NAMESPACE_OBJ         = "NAMESPACE"
+	GOROUTINE_OBJ         = "GOROUTINE"
 	GOROUTINE_MANAGER_OBJ = "GOROUTINE_MANAGER"
-	CAUGHT_ERROR_OBJ = "CAUGHT_ERROR"
-	STOP_OBJ         = "STOP"
-	SKIP_OBJ         = "SKIP"
-	SUPER_OBJ        = "SUPER"
+	CAUGHT_ERROR_OBJ      = "CAUGHT_ERROR"
+	STOP_OBJ              = "STOP"
+	SKIP_OBJ              = "SKIP"
+	SUPER_OBJ             = "SUPER"
+	TIME_OBJ              = "TIME"
+	DURATION_OBJ          = "DURATION"
 )
 
 var NONE = &None{}
@@ -86,9 +89,9 @@ func (e *Error) Type() ObjectType { return ERROR_OBJ }
 func (e *Error) Inspect() string  { return "ERROR: " + e.Message }
 
 type Function struct {
-   // Parameters holds function parameters, either simple identifiers or full Parameter nodes
-   Parameters  []ast.Expression
-   ReturnType  ast.Expression
+	// Parameters holds function parameters, either simple identifiers or full Parameter nodes
+	Parameters  []ast.Expression
+	ReturnType  ast.Expression
 	Body        *ast.BlockStatement
 	Env         *Environment
 	IsAbstract  bool
@@ -251,7 +254,25 @@ type Super struct {
 }
 
 func (s *Super) Type() ObjectType { return SUPER_OBJ }
-func (s *Super) Inspect() string { return "super" }
+func (s *Super) Inspect() string  { return "super" }
+
+type Time struct {
+	Value time.Time
+}
+
+func (ti *Time) Type() ObjectType { return TIME_OBJ }
+func (ti *Time) Inspect() string {
+	return ti.Value.Format(time.RFC3339)
+}
+
+type Duration struct {
+	Value time.Duration
+}
+
+func (dur *Duration) Type() ObjectType { return DURATION_OBJ }
+func (dur *Duration) Inspect() string {
+	return dur.Value.String()
+}
 
 // CaughtError wraps an error that has been caught by an ensnare clause
 // This prevents it from being treated as a propagatable error
@@ -260,7 +281,7 @@ type CaughtError struct {
 }
 
 func (ce *CaughtError) Type() ObjectType { return CAUGHT_ERROR_OBJ }
-func (ce *CaughtError) Inspect() string { return ce.OriginalError.Inspect() }
+func (ce *CaughtError) Inspect() string  { return ce.OriginalError.Inspect() }
 
 // GetMessage returns the error message
 func (ce *CaughtError) GetMessage() string {
@@ -289,13 +310,13 @@ func (i *Instance) Inspect() string {
 			}
 		}
 	}
-	
+
 	// Check if the instance has a to_string method
 	if _, ok := i.Grimoire.Methods["to_string"]; ok {
 		// We would need the evaluator to call this method properly
 		// For now, fall through to default behavior
 	}
-	
+
 	return fmt.Sprintf("<instance of %s>", i.Grimoire.Name)
 }
 
@@ -347,7 +368,7 @@ func (g *Goroutine) Cleanup() {
 		return // Already cleaned up
 	}
 	g.cleaned = true
-	
+
 	// Close the Done channel if it's not already closed
 	if g.Done != nil {
 		select {
@@ -357,10 +378,10 @@ func (g *Goroutine) Cleanup() {
 			close(g.Done)
 		}
 	}
-	
+
 	// Mark as not running
 	g.IsRunning = false
-	
+
 	// Clear references to help GC
 	g.Result = nil
 	g.Error = nil
@@ -371,7 +392,7 @@ func (g *Goroutine) IsCompleted() bool {
 	if g.Done == nil {
 		return true
 	}
-	
+
 	select {
 	case <-g.Done:
 		return true
@@ -382,12 +403,12 @@ func (g *Goroutine) IsCompleted() bool {
 
 // GoroutineManager manages all active goroutines
 type GoroutineManager struct {
-	mu                sync.RWMutex
-	Goroutines        map[string]*Goroutine
-	Anonymous         []*Goroutine
-	MaxNamedSize      int  // Maximum number of named goroutines (0 = unlimited)
-	MaxAnonymousSize  int  // Maximum number of anonymous goroutines (0 = unlimited)
-	AutoCleanup       bool // Whether to automatically clean up completed goroutines
+	mu               sync.RWMutex
+	Goroutines       map[string]*Goroutine
+	Anonymous        []*Goroutine
+	MaxNamedSize     int  // Maximum number of named goroutines (0 = unlimited)
+	MaxAnonymousSize int  // Maximum number of anonymous goroutines (0 = unlimited)
+	AutoCleanup      bool // Whether to automatically clean up completed goroutines
 }
 
 func NewGoroutineManager() *GoroutineManager {
@@ -415,7 +436,7 @@ func (gm *GoroutineManager) Type() ObjectType { return GOROUTINE_MANAGER_OBJ }
 func (gm *GoroutineManager) Inspect() string {
 	gm.mu.RLock()
 	defer gm.mu.RUnlock()
-	return fmt.Sprintf("GoroutineManager(named: %d, anonymous: %d)", 
+	return fmt.Sprintf("GoroutineManager(named: %d, anonymous: %d)",
 		len(gm.Goroutines), len(gm.Anonymous))
 }
 
@@ -423,17 +444,17 @@ func (gm *GoroutineManager) Inspect() string {
 func (gm *GoroutineManager) AddNamedGoroutine(name string, goroutine *Goroutine) error {
 	gm.mu.Lock()
 	defer gm.mu.Unlock()
-	
+
 	// Auto cleanup if enabled
 	if gm.AutoCleanup {
 		gm.cleanupCompletedLocked()
 	}
-	
+
 	// Check size limits
 	if gm.MaxNamedSize > 0 && len(gm.Goroutines) >= gm.MaxNamedSize {
 		return fmt.Errorf("named goroutine limit reached: %d", gm.MaxNamedSize)
 	}
-	
+
 	gm.Goroutines[name] = goroutine
 	return nil
 }
@@ -442,17 +463,17 @@ func (gm *GoroutineManager) AddNamedGoroutine(name string, goroutine *Goroutine)
 func (gm *GoroutineManager) AddAnonymousGoroutine(goroutine *Goroutine) error {
 	gm.mu.Lock()
 	defer gm.mu.Unlock()
-	
+
 	// Auto cleanup if enabled
 	if gm.AutoCleanup {
 		gm.cleanupCompletedLocked()
 	}
-	
+
 	// Check size limits
 	if gm.MaxAnonymousSize > 0 && len(gm.Anonymous) >= gm.MaxAnonymousSize {
 		return fmt.Errorf("anonymous goroutine limit reached: %d", gm.MaxAnonymousSize)
 	}
-	
+
 	gm.Anonymous = append(gm.Anonymous, goroutine)
 	return nil
 }
@@ -496,17 +517,17 @@ func (gm *GoroutineManager) GetAllAnonymousGoroutines() []*Goroutine {
 func (gm *GoroutineManager) ClearAll() {
 	gm.mu.Lock()
 	defer gm.mu.Unlock()
-	
+
 	// Cleanup all named goroutines
 	for _, goroutine := range gm.Goroutines {
 		goroutine.Cleanup()
 	}
-	
+
 	// Cleanup all anonymous goroutines
 	for _, goroutine := range gm.Anonymous {
 		goroutine.Cleanup()
 	}
-	
+
 	gm.Goroutines = make(map[string]*Goroutine)
 	gm.Anonymous = make([]*Goroutine, 0)
 }
@@ -527,7 +548,7 @@ func (gm *GoroutineManager) cleanupCompletedLocked() {
 			delete(gm.Goroutines, name)
 		}
 	}
-	
+
 	// Clean up completed anonymous goroutines
 	newAnonymous := make([]*Goroutine, 0)
 	for _, goroutine := range gm.Anonymous {
@@ -544,7 +565,7 @@ func (gm *GoroutineManager) cleanupCompletedLocked() {
 func (gm *GoroutineManager) RemoveAndCleanupNamed(name string) {
 	gm.mu.Lock()
 	defer gm.mu.Unlock()
-	
+
 	if goroutine, exists := gm.Goroutines[name]; exists {
 		goroutine.Cleanup()
 		delete(gm.Goroutines, name)
@@ -555,19 +576,19 @@ func (gm *GoroutineManager) RemoveAndCleanupNamed(name string) {
 func (gm *GoroutineManager) GetCompletedCount() (namedCompleted, anonymousCompleted int) {
 	gm.mu.RLock()
 	defer gm.mu.RUnlock()
-	
+
 	for _, goroutine := range gm.Goroutines {
 		if goroutine.IsCompleted() {
 			namedCompleted++
 		}
 	}
-	
+
 	for _, goroutine := range gm.Anonymous {
 		if goroutine.IsCompleted() {
 			anonymousCompleted++
 		}
 	}
-	
+
 	return namedCompleted, anonymousCompleted
 }
 
@@ -604,10 +625,10 @@ func (gm *GoroutineManager) GetCapacityInfo() (namedCount, namedMax, anonymousCo
 func (gm *GoroutineManager) IsAtCapacity() (namedAtCapacity, anonymousAtCapacity bool) {
 	gm.mu.RLock()
 	defer gm.mu.RUnlock()
-	
+
 	namedAtCapacity = gm.MaxNamedSize > 0 && len(gm.Goroutines) >= gm.MaxNamedSize
 	anonymousAtCapacity = gm.MaxAnonymousSize > 0 && len(gm.Anonymous) >= gm.MaxAnonymousSize
-	
+
 	return namedAtCapacity, anonymousAtCapacity
 }
 

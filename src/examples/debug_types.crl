@@ -1,0 +1,23 @@
+#!/usr/bin/env carrion
+
+print("=== Debugging Time Function Types ===")
+
+# Test what each function returns/expects
+print("1. now() returns:", type(now()))
+print("2. timeNow() returns:", type(timeNow()))
+print("3. fromUnix(timeNow()) returns:", type(fromUnix(timeNow())))
+
+current_ts = timeNow()
+current_time = fromUnix(current_ts)
+
+print("4. timeFormat expects INTEGER, current_ts type:", type(current_ts))
+print("5. formatTime expects TIME, current_time type:", type(current_time))
+
+# Test what works
+formatted1 = timeFormat(current_ts)
+print("6. timeFormat(INTEGER) works:", formatted1)
+
+formatted2 = formatTime(current_time, "2006-01-02")
+print("7. formatTime(TIME, format) works:", formatted2)
+
+print("=== Debug complete ===")

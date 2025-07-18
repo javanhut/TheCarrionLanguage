@@ -228,6 +228,9 @@ main:
     converge stage1
     print("Stage 1 finished, starting stage 2")
     
+    # Evaluation after converge works correctly
+    stage1_result = "data_collected"
+    
     # Stage 2
     diverge stage2:
         print("Stage 2: Data processing")
@@ -237,6 +240,9 @@ main:
     converge stage2
     print("Stage 2 finished, starting stage 3")
     
+    # Multiple sequential converge operations work reliably
+    stage2_result = stage1_result + "_processed"
+    
     # Stage 3
     diverge stage3:
         print("Stage 3: Data analysis")
@@ -245,6 +251,48 @@ main:
     
     converge stage3
     print("All stages completed!")
+    
+    # Final evaluation after all stages
+    final_result = stage2_result + "_analyzed"
+    print("Pipeline result:", final_result)
+```
+
+### Example 5: Multiple Workers with Individual Convergence
+
+```carrion
+main:
+    print("Testing multiple workers with individual convergence")
+    
+    # Start multiple workers
+    diverge worker_a:
+        print("Worker A: Processing...")
+        sleep(500)
+        print("Worker A: Done")
+    
+    diverge worker_b:
+        print("Worker B: Processing...")
+        sleep(300)
+        print("Worker B: Done")
+    
+    diverge worker_c:
+        print("Worker C: Processing...")
+        sleep(200)
+        print("Worker C: Done")
+    
+    # Converge workers individually as they complete
+    converge worker_c  # Fastest worker
+    print("Worker C completed, evaluation works")
+    result_c = 100
+    
+    converge worker_b  # Medium speed worker
+    print("Worker B completed, evaluation works")
+    result_b = result_c + 50
+    
+    converge worker_a  # Slowest worker
+    print("Worker A completed, evaluation works")
+    result_a = result_b + result_c
+    
+    print("Final results:", result_a, result_b, result_c)
 ```
 
 ## Best Practices
@@ -302,8 +350,31 @@ diverge optional_task:
 converge critical_task  # Wait for critical work
 print("Critical work done, continuing...")
 
+# Code evaluation works correctly after converge
+important_result = process_critical_data()
+
 # Optional: wait for remaining work
 converge optional_task
+final_cleanup()
+```
+
+### 5. Sequential Operations Work Reliably
+
+```carrion
+# Multiple sequential diverge/converge operations are fully supported
+for i in range(5):
+    worker_name = "worker" + str(i)
+    
+    diverge worker_name:
+        print("Worker", i, "processing...")
+        # Do work
+        
+    converge worker_name
+    print("Worker", i, "completed")
+    
+    # Evaluation after each converge works correctly
+    result = i * 10
+    process_result(result)
 ```
 
 ## Technical Details
@@ -313,11 +384,20 @@ converge optional_task
 Each goroutine is represented by a `Goroutine` object containing:
 
 - **Name**: Optional identifier for the goroutine
-- **Done**: Channel for synchronization
+- **Done**: Buffered channel for synchronization (capacity 1)
 - **Result**: Execution result (if any)
 - **Error**: Error object if execution failed
 - **IsRunning**: Current execution state
-- **cleaned**: Cleanup status flag
+- **cleaned**: Cleanup status flag to prevent double cleanup
+
+### Resource Management Improvements
+
+As of the latest version, the concurrency system includes several important improvements:
+
+- **Proper cleanup**: Named goroutines are cleaned up using `RemoveAndCleanupNamed()` which ensures channels are properly closed and resources released
+- **Race condition protection**: Converge operations use `select` statements to handle timing issues where goroutines complete between checking `IsRunning` and reading from the `Done` channel
+- **Automatic cleanup**: The goroutine manager automatically cleans up completed goroutines when adding new ones (if `AutoCleanup` is enabled)
+- **Thread-safe operations**: All goroutine manager operations are protected by mutexes
 
 ### Environment Isolation
 
@@ -381,8 +461,42 @@ The system automatically:
 - Manages memory to prevent leaks
 - Provides error tracing and reporting
 
+## Troubleshooting
+
+### Common Issues and Solutions
+
+#### Sequential Converge Operations
+
+**Issue**: Evaluation not working after multiple sequential converge operations.
+
+**Solution**: This has been fixed in the latest version. The system now properly cleans up goroutine resources and handles race conditions that could affect subsequent operations.
+
+#### Resource Leaks
+
+**Issue**: Long-running programs with many goroutines consuming increasing memory.
+
+**Solution**: The goroutine manager now includes automatic cleanup (enabled by default) and proper resource management. Named goroutines are cleaned up when converged.
+
+#### Race Conditions
+
+**Issue**: Timing issues where converge operations occasionally fail.
+
+**Solution**: The converge logic now uses `select` statements to handle cases where goroutines complete between checking `IsRunning` and reading from the `Done` channel.
+
+## Recent Improvements
+
+The concurrency system has been enhanced with the following improvements:
+
+- **Fixed resource cleanup**: Named goroutines now use `RemoveAndCleanupNamed()` for proper resource management
+- **Race condition protection**: Converge operations handle timing edge cases more robustly  
+- **Better error handling**: Improved panic recovery and error propagation within goroutines
+- **Sequential operation support**: Multiple sequential diverge/converge operations work reliably
+- **Automatic cleanup**: Completed goroutines are automatically cleaned up to prevent memory leaks
+
 ## Conclusion
 
 Carrion's concurrency system provides a powerful yet simple way to write concurrent programs. The `diverge` and `converge` keywords offer intuitive control over goroutine creation and synchronization, while the underlying system handles the complex details of resource management, error handling, and cleanup.
+
+With the recent improvements, you can now reliably use sequential diverge/converge operations, multiple named workers, and complex evaluation patterns after convergence. The system is designed to be both easy to use and robust for production applications.
 
 By following the patterns and best practices outlined in this document, you can effectively use Carrion's concurrency features to build robust, efficient concurrent applications.

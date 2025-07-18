@@ -197,6 +197,40 @@ grim String:
         return self.value
     
     ```
+    Converts the string to an integer value.
+    
+    This spell attempts to parse the string content as an integer number.
+    The string should contain only digits and an optional leading minus sign
+    for negative numbers. Whitespace is not handled, so strings should be
+    trimmed before conversion if needed.
+    
+    Returns:
+        Integer representation of the string content
+    
+    Raises:
+        Error if the string cannot be converted to a valid integer
+    ```
+    spell to_int():
+        return int(self.value)
+    
+    ```
+    Converts the string to a floating-point value.
+    
+    This spell attempts to parse the string content as a floating-point number.
+    The string can contain digits, a decimal point, and an optional leading
+    minus sign for negative numbers. Scientific notation is not supported
+    in this basic implementation.
+    
+    Returns:
+        Float representation of the string content
+    
+    Raises:
+        Error if the string cannot be converted to a valid float
+    ```
+    spell to_float():
+        return float(self.value)
+    
+    ```
     Joins a list of strings using this string as the separator.
     
     This spell takes a list of strings and concatenates them together,
