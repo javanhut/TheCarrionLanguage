@@ -1,0 +1,2 @@
+spell appraise_simple():
+    check(1, 1)
