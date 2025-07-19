@@ -1,0 +1,3 @@
+spell appraise_check_test():
+    result = check(5, 10)
+    print("Check result:", result)

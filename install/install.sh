@@ -36,12 +36,21 @@ case "$TARGET_OS" in
     # Cross-compile for Linux on amd64. Adjust GOARCH if needed (e.g., arm64).
     GOOS=linux GOARCH=amd64 go build -o carrion ./src
     
-    echo "Moving binary to /usr/local/bin..."
+    echo "Building Sindri Testing Framework for Linux..."
+    cd cmd/sindri
+    GOOS=linux GOARCH=amd64 go build -o sindri .
+    cd ../..
+    
+    echo "Moving binaries to /usr/local/bin..."
     sudo mv carrion /usr/local/bin/carrion
     sudo chmod +x /usr/local/bin/carrion
+    sudo mv cmd/sindri/sindri /usr/local/bin/sindri
+    sudo chmod +x /usr/local/bin/sindri
     
-    echo "The Carrion Programming Language has been installed successfully on Linux!"
-    echo "You can now run the interactive REPL by typing: carrion"
+    echo "The Carrion Programming Language and Sindri Testing Framework have been installed successfully on Linux!"
+    echo "You can now run:"
+    echo "  - Interactive REPL: carrion"
+    echo "  - Test runner: sindri appraise test_file.crl"
     ;;
 
   windows)
@@ -49,10 +58,16 @@ case "$TARGET_OS" in
     # Cross-compile for Windows on amd64. Adjust GOARCH if needed (e.g., arm64).
     GOOS=windows GOARCH=amd64 go build -o carrion.exe ./src
     
-    echo "A 'carrion.exe' file has been created."
-    echo "On Windows, place carrion.exe in a directory on your PATH (e.g., C:\\Windows\\System32)"
-    echo "or simply run it directly in your terminal:"
+    echo "Building Sindri Testing Framework for Windows..."
+    cd cmd/sindri
+    GOOS=windows GOARCH=amd64 go build -o sindri.exe .
+    cd ../..
+    
+    echo "Binaries 'carrion.exe' and 'sindri.exe' have been created."
+    echo "On Windows, place both files in a directory on your PATH (e.g., C:\\Windows\\System32)"
+    echo "or simply run them directly in your terminal:"
     echo "  .\\carrion.exe"
+    echo "  .\\sindri.exe appraise test_file.crl"
     ;;
 
   mac)
@@ -60,12 +75,21 @@ case "$TARGET_OS" in
     # Cross-compile for Darwin on amd64. Adjust GOARCH if you're on Apple Silicon (e.g., arm64).
     GOOS=darwin GOARCH=amd64 go build -o carrion ./src
     
-    echo "Moving binary to /usr/local/bin..."
+    echo "Building Sindri Testing Framework for macOS..."
+    cd cmd/sindri
+    GOOS=darwin GOARCH=amd64 go build -o sindri .
+    cd ../..
+    
+    echo "Moving binaries to /usr/local/bin..."
     sudo mv carrion /usr/local/bin/carrion
     sudo chmod +x /usr/local/bin/carrion
+    sudo mv cmd/sindri/sindri /usr/local/bin/sindri
+    sudo chmod +x /usr/local/bin/sindri
     
-    echo "The Carrion Programming Language has been installed successfully on macOS!"
-    echo "You can now run the interactive REPL by typing: carrion"
+    echo "The Carrion Programming Language and Sindri Testing Framework have been installed successfully on macOS!"
+    echo "You can now run:"
+    echo "  - Interactive REPL: carrion"
+    echo "  - Test runner: sindri appraise test_file.crl"
     ;;
 
   *)

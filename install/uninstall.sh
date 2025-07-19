@@ -39,36 +39,70 @@ fi
 case "$OS" in
 
   linux)
-    echo "Uninstalling Carrion from Linux..."
+    echo "Uninstalling Carrion and Sindri from Linux..."
+    removed_count=0
     if [ -f /usr/local/bin/carrion ]; then
       sudo rm /usr/local/bin/carrion
       echo "Carrion uninstalled successfully from /usr/local/bin."
+      removed_count=$((removed_count + 1))
     else
       echo "Carrion does not appear to be installed in /usr/local/bin."
+    fi
+    if [ -f /usr/local/bin/sindri ]; then
+      sudo rm /usr/local/bin/sindri
+      echo "Sindri uninstalled successfully from /usr/local/bin."
+      removed_count=$((removed_count + 1))
+    else
+      echo "Sindri does not appear to be installed in /usr/local/bin."
+    fi
+    if [ $removed_count -eq 0 ]; then
+      echo "No Carrion components found to uninstall."
     fi
     ;;
 
   windows)
-    echo "Uninstalling Carrion from Windows..."
-    # Typically, on Windows, you might not have used `sudo` or `/usr/local/bin`.
-    # Here’s one example approach:
+    echo "Uninstalling Carrion and Sindri from Windows..."
+    removed_count=0
     if [ -f "carrion.exe" ]; then
       rm "carrion.exe"
       echo "Carrion.exe removed from the current directory."
+      removed_count=$((removed_count + 1))
     else
       echo "Carrion.exe not found in the current directory."
-      echo "If Carrion was placed elsewhere, please remove it manually."
+    fi
+    if [ -f "sindri.exe" ]; then
+      rm "sindri.exe"
+      echo "Sindri.exe removed from the current directory."
+      removed_count=$((removed_count + 1))
+    else
+      echo "Sindri.exe not found in the current directory."
+    fi
+    if [ $removed_count -eq 0 ]; then
+      echo "No Carrion components found in current directory."
+      echo "If they were placed elsewhere, please remove them manually."
     fi
     ;;
 
   darwin)
     # Example logic for macOS if you have it
-    echo "Uninstalling Carrion from macOS..."
+    echo "Uninstalling Carrion and Sindri from macOS..."
+    removed_count=0
     if [ -f /usr/local/bin/carrion ]; then
       sudo rm /usr/local/bin/carrion
       echo "Carrion uninstalled successfully from /usr/local/bin."
+      removed_count=$((removed_count + 1))
     else
       echo "Carrion does not appear to be installed in /usr/local/bin."
+    fi
+    if [ -f /usr/local/bin/sindri ]; then
+      sudo rm /usr/local/bin/sindri
+      echo "Sindri uninstalled successfully from /usr/local/bin."
+      removed_count=$((removed_count + 1))
+    else
+      echo "Sindri does not appear to be installed in /usr/local/bin."
+    fi
+    if [ $removed_count -eq 0 ]; then
+      echo "No Carrion components found to uninstall."
     fi
     ;;
 

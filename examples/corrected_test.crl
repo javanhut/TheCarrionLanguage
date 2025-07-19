@@ -1,0 +1,32 @@
+spell appraise_basic_math():
+    result = 2 + 2
+    check(result == 4)
+
+spell appraise_string_operations():
+    hello = "Hello"
+    world = "World"
+    combined = hello + " " + world
+    check(combined == "Hello World")
+
+spell appraise_boolean_logic():
+    a = True
+    b = False
+    result = a and b
+    check(result == False)
+
+spell math_add_appraise():
+    x = 10
+    y = 5
+    sum = x + y
+    check(sum == 15)
+
+spell example_appraise_subtraction():
+    first = 20
+    second = 8
+    difference = first - second
+    check(difference == 12)
+
+# This is a failing test to demonstrate error reporting
+spell appraise_failing_test():
+    result = 3 * 3
+    check(result == 10)  # This should fail since 3 * 3 = 9, not 10

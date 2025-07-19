@@ -1,0 +1,4 @@
+spell appraise_debug():
+    result = 3 * 3
+    print("Result is:", result)
+    check(10, result)
