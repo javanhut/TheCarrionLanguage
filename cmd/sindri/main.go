@@ -37,6 +37,7 @@ type TestRunner struct {
 	env      *object.Environment
 	detailed bool
 	results  map[string][]TestResult
+	timeout  time.Duration
 }
 
 const hammer = `
@@ -184,6 +185,7 @@ func NewTestRunner(detailed bool) *TestRunner {
 		env:      object.NewEnvironment(),
 		detailed: detailed,
 		results:  make(map[string][]TestResult),
+		timeout:  30 * time.Second, // Default timeout of 30 seconds per test
 	}
 }
 
@@ -363,36 +365,58 @@ func (tr *TestRunner) runSingleTest(funcName string, env *object.Environment) Te
 		StartTime:    startTime,
 	}
 
-	// Handle grimoire methods vs standalone functions
-	var evalResult object.Object
-	ctx := &evaluator.CallContext{
-		FunctionName: funcName,
+	// Channel to receive the evaluation result
+	type evalResultWithError struct {
+		result object.Object
+		err    error
 	}
+	resultChan := make(chan evalResultWithError, 1)
 
-	if strings.Contains(funcName, ".") {
-		// For now, grimoire method testing is not supported
-		evalResult = &object.Error{Message: "Grimoire method testing not yet supported"}
-	} else {
-		// Standalone function - create a call expression and evaluate it
-		callExpr := &ast.CallExpression{
-			Function:  &ast.Identifier{Value: funcName},
-			Arguments: []ast.Expression{},
+	// Run the test evaluation in a goroutine
+	go func() {
+		// Handle grimoire methods vs standalone functions
+		var evalResult object.Object
+		ctx := &evaluator.CallContext{
+			FunctionName: funcName,
 		}
-		ctx.Node = callExpr
-		evalResult = evaluator.Eval(callExpr, env, ctx)
-	}
 
-	// Record duration
-	result.Duration = time.Since(startTime)
+		if strings.Contains(funcName, ".") {
+			// For now, grimoire method testing is not supported
+			evalResult = &object.Error{Message: "Grimoire method testing not yet supported"}
+		} else {
+			// Standalone function - create a call expression and evaluate it
+			callExpr := &ast.CallExpression{
+				Function:  &ast.Identifier{Value: funcName},
+				Arguments: []ast.Expression{},
+			}
+			ctx.Node = callExpr
+			evalResult = evaluator.Eval(callExpr, env, ctx)
+		}
 
-	// Check if the test passed
-	switch errorObj := evalResult.(type) {
-	case *object.Error:
-		result.ErrorMessage = errorObj.Message
-	case *object.ErrorWithTrace:
-		result.ErrorMessage = errorObj.Message
-	default:
-		result.Passed = true
+		resultChan <- evalResultWithError{result: evalResult, err: nil}
+	}()
+
+	// Wait for either the result or timeout
+	select {
+	case evalRes := <-resultChan:
+		// Test completed within timeout
+		result.Duration = time.Since(startTime)
+
+		// Check if the test passed
+		switch errorObj := evalRes.result.(type) {
+		case *object.Error:
+			result.ErrorMessage = errorObj.Message
+		case *object.ErrorWithTrace:
+			result.ErrorMessage = errorObj.Message
+		default:
+			result.Passed = true
+		}
+
+	case <-time.After(tr.timeout):
+		// Test timed out
+		result.Duration = time.Since(startTime)
+		result.ErrorMessage = fmt.Sprintf("Test execution timed out after %v", tr.timeout)
+		result.Passed = false
 	}
 
 	return result
