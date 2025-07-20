@@ -119,37 +119,37 @@ Carrion automatically resolves imports from multiple locations:
 - Global packages (`/usr/local/share/carrion/lib/`)
 - Standard library (Munin)
 
-See **[Modules Documentation](docs/Modules.md)** for detailed import and package management information.
+See **[Modules Documentation](Modules.md)** for detailed import and package management information.
 
 ## Documentation
 
 ### Core Documentation
 
-- **[Language Documentation](docs/CARRION.md)** - Comprehensive guide to Carrion syntax and features
-- **[Language Overview](docs/Language-Overview.md)** - High-level introduction to Carrion's design principles
-- **[Language Reference](docs/Language-Reference.md)** - Complete language specification and reference
+- **[Language Documentation](CARRION.md)** - Comprehensive guide to Carrion syntax and features
+- **[Language Overview](Language-Overview.md)** - High-level introduction to Carrion's design principles
+- **[Language Reference](Language-Reference.md)** - Complete language specification and reference
 
 ### Language Features
 
-- **[Control Flow](docs/Control-Flow.md)** - Loops, conditionals, and flow control structures
-- **[Error Handling](docs/Error-Handling.md)** - Exception handling with attempt/ensnare/resolve
-- **[Operators](docs/Operators.md)** - Arithmetic, logical, and comparison operators
-- **[Modules](docs/Modules.md)** - Import system and module organization
+- **[Control Flow](Control-Flow.md)** - Loops, conditionals, and flow control structures
+- **[Error Handling](Error-Handling.md)** - Exception handling with attempt/ensnare/resolve
+- **[Operators](Operators.md)** - Arithmetic, logical, and comparison operators
+- **[Modules](Modules.md)** - Import system and module organization
 
 ### Object-Oriented Programming
 
-- **[Grimoires (Classes)](docs/Grimoires.md)** - Object-oriented programming with grimoires
+- **[Grimoires (Classes)](Grimoires.md)** - Object-oriented programming with grimoires
 
 ### Standard Library
 
-- **[Standard Library (Munin)](docs/Standard-Library.md)** - Built-in functions and modules
-- **[Builtin Functions](docs/Builtin-Functions.md)** - Core functions available in every program
+- **[Standard Library (Munin)](Standard-Library.md)** - Built-in functions and modules
+- **[Builtin Functions](Builtin-Functions.md)** - Core functions available in every program
 
 ### Tools & Interactive Features
 
-- **[Interactive Help](docs/Interactive-Help-Demo.md)** - REPL and interactive development features
-- **[Sindri Testing Framework](docs/Sindri.md)** - Comprehensive testing and benchmarking tool
-- **[Mimir Documentation Tool](docs/Mimir.md)** - Interactive documentation and help system
+- **[Interactive Help](Interactive-Help-Demo.md)** - REPL and interactive development features
+- **[Sindri Testing Framework](Sindri.md)** - Comprehensive testing and benchmarking tool
+- **[Mimir Documentation Tool](Mimir.md)** - Interactive documentation and help system
 
 ### Additional Resources
 
