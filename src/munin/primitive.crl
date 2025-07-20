@@ -1,6 +1,16 @@
-# Base primitive types and utilities
+```
+Base primitive types and utilities grimoire for the Carrion language.
+
+This grimoire serves as a foundation for primitive type operations and utilities.
+Currently awaiting implementation pending parameter access fixes.
+```
 
 grim Primitive:
     init():
+        ```
+        Initialize a new Primitive instance.
+        
+        Note: Implementation pending parameter access fixes.
+        ```
         # TODO: Implement when parameter access is fixed
         ignore

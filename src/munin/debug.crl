@@ -12,28 +12,28 @@ Usage:
     print(debug.info())
 """
 grim Debug:
-    """
-    Initialize the Debug grimoire with default settings.
-    """
     init():
+        ```
+        Initialize the Debug grimoire with default settings.
+        ```
         self.enabled = True
     
-    """
-    Log a message with specified level.
-    
-    Args:
-        level (str): Log level 
-        message (str): Message to log
-    """
     spell log(level, message):
+        ```
+        Log a message with specified level.
+        
+        Args:
+            level (str): Log level 
+            message (str): Message to log
+        ```
         if self.enabled:
             print("[" + level + "] " + message)
     
-    """
-    Provides information about the Debug grimoire and its capabilities.
-    
-    Returns:
-        str: Information about available debugging functions
-    """
     spell info():
+        ```
+        Provides information about the Debug grimoire and its capabilities.
+        
+        Returns:
+            str: Information about available debugging functions
+        ```
         return "Debug grimoire - Development and troubleshooting tools"

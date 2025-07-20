@@ -1,7 +1,7 @@
 """
 Operating System interface grimoire providing system-level operations and utilities.
 
-This grimoire wraps the underlying OS interface with convenient methods for
+This grimoire wraps the underlying os interface with convenient methods for
 process execution, environment management, file system operations, and
 system utilities. It serves as a bridge between Carrion applications
 and the operating system.
@@ -15,133 +15,135 @@ Key Features:
 - Cross-platform compatibility
 
 Usage:
-    os = OS()
     result = os.run("ls", ["-la"], True)
     current_dir = os.cwd()
     os.setenv("MYVAR", "value")
     files = os.listdir("/tmp")
 """
-grim OS:
-    """
-    Execute a system command with optional arguments and output capture.
-    
-    Args:
-        command (str): The command to execute
-        args (list): Command arguments (default: [])
-        captureOutput (bool): Whether to capture command output (default: False)
-        
-    Returns:
-        dict: Command result with exit code and output (if captured)
-    """
+
+
+
+grim os:
     spell run(command, args=[], captureOutput=False):
+        ```
+        Execute a system command with optional arguments and output capture.
+        
+        Args:
+            command (str): The command to execute
+            args (list): Command arguments (default: [])
+            captureOutput (bool): Whether to capture command output (default: False)
+            
+        Returns:
+            dict: Command result with exit code and output (if captured)
+        ```
         return osRunCommand(command, args, captureOutput)
     
-    """
-    Get the value of an environment variable.
-    
-    Args:
-        key (str): Environment variable name
-        
-    Returns:
-        str: Environment variable value, or None if not found
-    """
     spell getenv(key):
+        ```
+        Get the value of an environment variable.
+        
+        Args:
+            key (str): Environment variable name
+            
+        Returns:
+            str: Environment variable value, or None if not found
+        ```
         return osGetEnv(key)
     
-    """
-    Set an environment variable.
-    
-    Args:
-        key (str): Environment variable name
-        value (str): Environment variable value
-        
-    Returns:
-        bool: True if successful, False otherwise
-    """
     spell setenv(key, value):
+        ```
+        Set an environment variable.
+        
+        Args:
+            key (str): Environment variable name
+            value (str): Environment variable value
+            
+        Returns:
+            bool: True if successful, False otherwise
+        ```
         return osSetEnv(key, value)
     
-    """
-    Get the current working directory.
-    
-    Returns:
-        str: Path to the current working directory
-    """
     spell cwd():
+        ```
+        Get the current working directory.
+        
+        Returns:
+            str: Path to the current working directory
+        ```
         return osGetCwd()
     
-    """
-    Change the current working directory.
-    
-    Args:
-        path (str): Path to change to
-        
-    Returns:
-        bool: True if successful, False otherwise
-    """
     spell chdir(path):
+        ```
+        Change the current working directory.
+        
+        Args:
+            path (str): Path to change to
+            
+        Returns:
+            bool: True if successful, False otherwise
+        ```
         return osChdir(path)
     
-    """
-    Sleep for the specified number of seconds.
-    
-    Args:
-        seconds (float): Number of seconds to sleep
-        
-    Returns:
-        None
-    """
     spell sleep(seconds):
+        ```
+        Sleep for the specified number of seconds.
+        
+        Args:
+            seconds (float): Number of seconds to sleep
+            
+        Returns:
+            None
+        ```
         return osSleep(seconds)
     
-    """
-    List the contents of a directory.
-    
-    Args:
-        path (str): Directory path to list (default: ".")
+    spell list_dir(path="."):
+        ```
+        List the contents of a directory.
         
-    Returns:
-        list: List of file and directory names
-    """
-    spell listdir(path="."):
+        Args:
+            path (str): Directory path to list (default: ".")
+            
+        Returns:
+            list: List of file and directory names
+        ```
         return osListDir(path)
     
-    """
-    Remove a file or directory.
-    
-    Args:
-        path (str): Path to remove
-        
-    Returns:
-        bool: True if successful, False otherwise
-    """
     spell remove(path):
+        ```
+        Remove a file or directory.
+        
+        Args:
+            path (str): Path to remove
+            
+        Returns:
+            bool: True if successful, False otherwise
+        ```
         return osRemove(path)
     
-    """
-    Create a directory with specified permissions.
-    
-    Args:
-        path (str): Directory path to create
-        perm (int): Permission flags (default: 0755)
-        
-    Returns:
-        bool: True if successful, False otherwise
-    """
     spell mkdir(path, perm=0755):
+        ```
+        Create a directory with specified permissions.
+        
+        Args:
+            path (str): Directory path to create
+            perm (int): Permission flags (default: 0755)
+            
+        Returns:
+            bool: True if successful, False otherwise
+        ```
         return osMkdir(path, perm)
     
-    """
-    Expand environment variables in a path string.
-    
-    Replaces ${VAR} and $VAR patterns with their environment values.
-    
-    Args:
-        path_str (str): Path string with environment variables
-        
-    Returns:
-        str: Path with expanded environment variables
-    """
     spell expandEnv(path_str):
+        ```
+        Expand environment variables in a path string.
+        
+        Replaces ${VAR} and $VAR patterns with their environment values.
+        
+        Args:
+            path_str (str): Path string with environment variables
+            
+        Returns:
+            str: Path with expanded environment variables
+        ```
         return osExpandEnv(path_str)
 

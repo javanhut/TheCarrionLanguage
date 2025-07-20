@@ -19,25 +19,25 @@ Usage:
     print(num.is_positive()) # True
 """
 grim Float:
-    """
-    Initialize a Float instance with an optional value.
-    
-    Args:
-        value (float): The floating-point value to wrap (default: 0.0)
-    """
     init(value = 0.0):
+        ```
+        Initialize a Float instance with an optional value.
+        
+        Args:
+            value (float): The floating-point value to wrap (default: 0.0)
+        ```
         self.value = float(value)
     
-    """
-    Round the float to a specified number of decimal places.
-    
-    Args:
-        decimals (int): Number of decimal places to round to (default: 0)
-        
-    Returns:
-        Float: New Float instance with rounded value
-    """
     spell round(decimals = 0):
+        ```
+        Round the float to a specified number of decimal places.
+        
+        Args:
+            decimals (int): Number of decimal places to round to (default: 0)
+            
+        Returns:
+            Float: New Float instance with rounded value
+        ```
         multiplier = 1.0
         for i in range(0, decimals):
             multiplier = multiplier * 10.0
@@ -45,22 +45,22 @@ grim Float:
         rounded = int(self.value * multiplier + 0.5)
         return Float(float(rounded) / multiplier)
     
-    """
-    Return the floor (largest integer less than or equal to) of the float.
-    
-    Returns:
-        Float: New Float instance with floor value
-    """
     spell floor():
+        ```
+        Return the floor (largest integer less than or equal to) of the float.
+        
+        Returns:
+            Float: New Float instance with floor value
+        ```
         return Float(float(int(self.value)))
     
-    """
-    Return the ceiling (smallest integer greater than or equal to) of the float.
-    
-    Returns:
-        Float: New Float instance with ceiling value
-    """
     spell ceil():
+        ```
+        Return the ceiling (smallest integer greater than or equal to) of the float.
+        
+        Returns:
+            Float: New Float instance with ceiling value
+        ```
         if self.value == float(int(self.value)):
             return Float(self.value)
         else:
@@ -69,24 +69,24 @@ grim Float:
             else:
                 return Float(float(int(self.value)))
     
-    """
-    Get the absolute value of the float.
-    
-    Returns:
-        Float: New Float instance with absolute value
-    """
     spell abs():
+        ```
+        Get the absolute value of the float.
+        
+        Returns:
+            Float: New Float instance with absolute value
+        ```
         if self.value < 0:
             return Float(-self.value)
         return Float(self.value)
     
-    """
-    Calculate the square root using Newton's method.
-    
-    Returns:
-        Float: Square root of the value, or None for negative numbers
-    """
     spell sqrt():
+        ```
+        Calculate the square root using Newton's method.
+        
+        Returns:
+            Float: Square root of the value, or None for negative numbers
+        ```
         if self.value < 0:
             return None  # Cannot compute square root of negative number
         
@@ -106,19 +106,19 @@ grim Float:
         
         return Float(guess)
     
-    """
-    Raise this float to the power of the given exponent.
-    
-    Uses efficient algorithms for integer exponents. For non-integer
-    exponents, provides simplified approximation.
-    
-    Args:
-        exponent (float or Float): The power to raise this float to
-        
-    Returns:
-        Float: The result of self.value ** exponent
-    """
     spell pow(exponent):
+        ```
+        Raise this float to the power of the given exponent.
+        
+        Uses efficient algorithms for integer exponents. For non-integer
+        exponents, provides simplified approximation.
+        
+        Args:
+            exponent (float or Float): The power to raise this float to
+            
+        Returns:
+            Float: The result of self.value ** exponent
+        ```
         exp = exponent
         if type(exponent) == "INSTANCE":
             exp = exponent.value
@@ -145,15 +145,15 @@ grim Float:
         # For other cases, return approximation
         return Float(self.value)  # Simplified - would need full math library
     
-    """
-    Calculate the sine using Taylor series approximation.
-    
-    Uses 10 terms of the Taylor series for reasonable accuracy.
-    
-    Returns:
-        Float: Sine of the value in radians
-    """
     spell sin():
+        ```
+        Calculate the sine using Taylor series approximation.
+        
+        Uses 10 terms of the Taylor series for reasonable accuracy.
+        
+        Returns:
+            Float: Sine of the value in radians
+        ```
         # Taylor series approximation for sin(x)
         x = self.value
         result = 0.0
@@ -165,15 +165,15 @@ grim Float:
         
         return Float(result)
     
-    """
-    Calculate the cosine using Taylor series approximation.
-    
-    Uses 10 terms of the Taylor series for reasonable accuracy.
-    
-    Returns:
-        Float: Cosine of the value in radians
-    """
     spell cos():
+        ```
+        Calculate the cosine using Taylor series approximation.
+        
+        Uses 10 terms of the Taylor series for reasonable accuracy.
+        
+        Returns:
+            Float: Cosine of the value in radians
+        ```
         # Taylor series approximation for cos(x)
         x = self.value
         result = 1.0
@@ -185,59 +185,59 @@ grim Float:
         
         return Float(result)
     
-    """
-    Check if the float represents an integer value.
-    
-    Returns:
-        Boolean: True if the float has no fractional part
-    """
     spell is_integer():
+        ```
+        Check if the float represents an integer value.
+        
+        Returns:
+            Boolean: True if the float has no fractional part
+        ```
         return Boolean(self.value == float(int(self.value)))
     
-    """
-    Check if the float is positive (greater than zero).
-    
-    Returns:
-        Boolean: True if the float is positive
-    """
     spell is_positive():
+        ```
+        Check if the float is positive (greater than zero).
+        
+        Returns:
+            Boolean: True if the float is positive
+        ```
         return Boolean(self.value > 0)
     
-    """
-    Check if the float is negative (less than zero).
-    
-    Returns:
-        Boolean: True if the float is negative
-    """
     spell is_negative():
+        ```
+        Check if the float is negative (less than zero).
+        
+        Returns:
+            Boolean: True if the float is negative
+        ```
         return Boolean(self.value < 0)
     
-    """
-    Check if the float is effectively zero within epsilon tolerance.
-    
-    Uses epsilon comparison for floating-point precision issues.
-    
-    Returns:
-        Boolean: True if the float is close to zero
-    """
     spell is_zero():
+        ```
+        Check if the float is effectively zero within epsilon tolerance.
+        
+        Uses epsilon comparison for floating-point precision issues.
+        
+        Returns:
+            Boolean: True if the float is close to zero
+        ```
         epsilon = 0.000001
         return Boolean(abs(self.value) < epsilon)
     
-    """
-    Convert the float to an integer (truncated).
-    
-    Returns:
-        Integer representation of the float value
-    """
     spell to_int():
+        ```
+        Convert the float to an integer (truncated).
+        
+        Returns:
+            Integer representation of the float value
+        ```
         return int(self.value)
     
-    """
-    Convert the float to its string representation.
-    
-    Returns:
-        String representation of the float value
-    """
     spell to_string():
+        ```
+        Convert the float to its string representation.
+        
+        Returns:
+            String representation of the float value
+        ```
         return str(self.value)

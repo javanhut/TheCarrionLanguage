@@ -41,16 +41,24 @@ case "$TARGET_OS" in
     GOOS=linux GOARCH=amd64 go build -o sindri .
     cd ../..
     
+    echo "Building Mimir Documentation Tool for Linux..."
+    cd cmd/mimir
+    GOOS=linux GOARCH=amd64 go build -o mimir .
+    cd ../..
+    
     echo "Moving binaries to /usr/local/bin..."
     sudo mv carrion /usr/local/bin/carrion
     sudo chmod +x /usr/local/bin/carrion
     sudo mv cmd/sindri/sindri /usr/local/bin/sindri
     sudo chmod +x /usr/local/bin/sindri
+    sudo mv cmd/mimir/mimir /usr/local/bin/mimir
+    sudo chmod +x /usr/local/bin/mimir
     
-    echo "The Carrion Programming Language and Sindri Testing Framework have been installed successfully on Linux!"
+    echo "The Carrion Programming Language, Sindri Testing Framework, and Mimir Documentation Tool have been installed successfully on Linux!"
     echo "You can now run:"
     echo "  - Interactive REPL: carrion"
     echo "  - Test runner: sindri appraise test_file.crl"
+    echo "  - Documentation: mimir"
     ;;
 
   windows)
@@ -63,11 +71,17 @@ case "$TARGET_OS" in
     GOOS=windows GOARCH=amd64 go build -o sindri.exe .
     cd ../..
     
-    echo "Binaries 'carrion.exe' and 'sindri.exe' have been created."
-    echo "On Windows, place both files in a directory on your PATH (e.g., C:\\Windows\\System32)"
+    echo "Building Mimir Documentation Tool for Windows..."
+    cd cmd/mimir
+    GOOS=windows GOARCH=amd64 go build -o mimir.exe .
+    cd ../..
+    
+    echo "Binaries 'carrion.exe', 'sindri.exe', and 'mimir.exe' have been created."
+    echo "On Windows, place all files in a directory on your PATH (e.g., C:\\Windows\\System32)"
     echo "or simply run them directly in your terminal:"
     echo "  .\\carrion.exe"
     echo "  .\\sindri.exe appraise test_file.crl"
+    echo "  .\\mimir.exe"
     ;;
 
   mac)
@@ -80,16 +94,24 @@ case "$TARGET_OS" in
     GOOS=darwin GOARCH=amd64 go build -o sindri .
     cd ../..
     
+    echo "Building Mimir Documentation Tool for macOS..."
+    cd cmd/mimir
+    GOOS=darwin GOARCH=amd64 go build -o mimir .
+    cd ../..
+    
     echo "Moving binaries to /usr/local/bin..."
     sudo mv carrion /usr/local/bin/carrion
     sudo chmod +x /usr/local/bin/carrion
     sudo mv cmd/sindri/sindri /usr/local/bin/sindri
     sudo chmod +x /usr/local/bin/sindri
+    sudo mv cmd/mimir/mimir /usr/local/bin/mimir
+    sudo chmod +x /usr/local/bin/mimir
     
-    echo "The Carrion Programming Language and Sindri Testing Framework have been installed successfully on macOS!"
+    echo "The Carrion Programming Language, Sindri Testing Framework, and Mimir Documentation Tool have been installed successfully on macOS!"
     echo "You can now run:"
     echo "  - Interactive REPL: carrion"
     echo "  - Test runner: sindri appraise test_file.crl"
+    echo "  - Documentation: mimir"
     ;;
 
   *)

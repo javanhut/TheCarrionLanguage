@@ -1,18 +1,47 @@
 grim Array:
     init(elements):
+        ```
+        Initialize a new Array instance.
+        
+        Creates an array with the provided elements or an empty array if None.
+        
+        Args:
+            elements: Initial elements for the array (None for empty array)
+        ```
         if elements == None:
             self.elements = []
         else:
             self.elements = elements
     
     spell length():
+        ```
+        Get the number of elements in the array.
+        
+        Returns:
+            int: The count of elements currently in the array
+        ```
         return len(self.elements)
 
     spell append(val):
+        ```
+        Add a new element to the end of the array.
+        
+        Args:
+            val: The value to append to the array
+            
+        Returns:
+            None
+        ```
         self.elements = self.elements + [val]
         return None
 
     spell to_string():
+        ```
+        Convert the array to a string representation.
+        
+        Returns:
+            str: String representation like "[elem1, elem2, elem3]"
+        ```
         result = "["
         for i in range(0, len(self.elements)):
             if i > 0:
@@ -22,6 +51,18 @@ grim Array:
         return result
 
     spell get(index):
+        ```
+        Retrieve an element at the specified index.
+        
+        Supports negative indexing (counting from end). Returns None
+        for out-of-bounds indices.
+        
+        Args:
+            index: The position to retrieve (int or Integer instance)
+            
+        Returns:
+            The element at the index, or None if out of bounds
+        ```
         idx = index
         if type(index) == "INSTANCE":
             idx = index.value
@@ -35,6 +76,18 @@ grim Array:
         return self.elements[idx]
 
     spell set(index, value):
+        ```
+        Set the value at a specific index in the array.
+        
+        Supports negative indexing. Does nothing if index is out of bounds.
+        
+        Args:
+            index: The position to update (int or Integer instance)
+            value: The new value to set at the position
+            
+        Returns:
+            None
+        ```
         idx = index
         if type(index) == "INSTANCE":
             idx = index.value
@@ -53,9 +106,24 @@ grim Array:
         return None
 
     spell is_empty():
+        ```
+        Check if the array contains no elements.
+        
+        Returns:
+            bool: True if array is empty, False otherwise
+        ```
         return len(self.elements) == 0
     
     spell contains(value):
+        ```
+        Check if the array contains a specific value.
+        
+        Args:
+            value: The value to search for in the array
+            
+        Returns:
+            bool: True if value exists in array, False otherwise
+        ```
         for element in self.elements:
             if element == value:
                 return True
@@ -233,6 +301,15 @@ grim Array:
         return new_elements
     
     spell keys():
+        ```
+        Extract keys from array elements.
+        
+        For tuple elements, returns the first item (key).
+        For non-tuple elements, returns the element itself.
+        
+        Returns:
+            list: Array of keys extracted from elements
+        ```
         result = []
         for element in self.elements:
             if type(element) == "TUPLE":
@@ -242,6 +319,15 @@ grim Array:
         return result
     
     spell values():
+        ```
+        Extract values from array elements.
+        
+        For tuple elements, returns the second item (value).
+        For non-tuple elements, returns the element itself.
+        
+        Returns:
+            list: Array of values extracted from elements
+        ```
         result = []
         for element in self.elements:
             if type(element) == "TUPLE":

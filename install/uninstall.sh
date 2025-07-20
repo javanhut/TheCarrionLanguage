@@ -39,7 +39,7 @@ fi
 case "$OS" in
 
   linux)
-    echo "Uninstalling Carrion and Sindri from Linux..."
+    echo "Uninstalling Carrion, Sindri, and Mimir from Linux..."
     removed_count=0
     if [ -f /usr/local/bin/carrion ]; then
       sudo rm /usr/local/bin/carrion
@@ -55,13 +55,20 @@ case "$OS" in
     else
       echo "Sindri does not appear to be installed in /usr/local/bin."
     fi
+    if [ -f /usr/local/bin/mimir ]; then
+      sudo rm /usr/local/bin/mimir
+      echo "Mimir uninstalled successfully from /usr/local/bin."
+      removed_count=$((removed_count + 1))
+    else
+      echo "Mimir does not appear to be installed in /usr/local/bin."
+    fi
     if [ $removed_count -eq 0 ]; then
       echo "No Carrion components found to uninstall."
     fi
     ;;
 
   windows)
-    echo "Uninstalling Carrion and Sindri from Windows..."
+    echo "Uninstalling Carrion, Sindri, and Mimir from Windows..."
     removed_count=0
     if [ -f "carrion.exe" ]; then
       rm "carrion.exe"
@@ -77,6 +84,13 @@ case "$OS" in
     else
       echo "Sindri.exe not found in the current directory."
     fi
+    if [ -f "mimir.exe" ]; then
+      rm "mimir.exe"
+      echo "Mimir.exe removed from the current directory."
+      removed_count=$((removed_count + 1))
+    else
+      echo "Mimir.exe not found in the current directory."
+    fi
     if [ $removed_count -eq 0 ]; then
       echo "No Carrion components found in current directory."
       echo "If they were placed elsewhere, please remove them manually."
@@ -85,7 +99,7 @@ case "$OS" in
 
   darwin)
     # Example logic for macOS if you have it
-    echo "Uninstalling Carrion and Sindri from macOS..."
+    echo "Uninstalling Carrion, Sindri, and Mimir from macOS..."
     removed_count=0
     if [ -f /usr/local/bin/carrion ]; then
       sudo rm /usr/local/bin/carrion
@@ -100,6 +114,13 @@ case "$OS" in
       removed_count=$((removed_count + 1))
     else
       echo "Sindri does not appear to be installed in /usr/local/bin."
+    fi
+    if [ -f /usr/local/bin/mimir ]; then
+      sudo rm /usr/local/bin/mimir
+      echo "Mimir uninstalled successfully from /usr/local/bin."
+      removed_count=$((removed_count + 1))
+    else
+      echo "Mimir does not appear to be installed in /usr/local/bin."
     fi
     if [ $removed_count -eq 0 ]; then
       echo "No Carrion components found to uninstall."

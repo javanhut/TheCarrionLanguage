@@ -653,8 +653,64 @@ The Carrion Language codebase is now in excellent condition with:
 
 ---
 
+---
+
+## 11. Development Tools
+
+### Sindri Testing Framework
+Comprehensive testing and benchmarking tool for Carrion applications.
+
+- **Location**: `cmd/sindri/`
+- **Installation**: Automatically installed with `make install`
+- **Usage**: `sindri appraise test_file.crl`
+- **Features**: Unit testing, benchmarking, assertion framework
+- **Documentation**: [Sindri.md](Sindri.md)
+
+### Mimir Documentation Tool
+Interactive documentation and help system for the Carrion Language.
+
+- **Location**: `cmd/mimir/`
+- **Installation**: Automatically installed with `make install`
+- **Usage**: 
+  - Interactive mode: `mimir`
+  - Function lookup: `mimir scry <function>`
+  - List functions: `mimir list`
+- **Features**: Interactive browsing, search functionality, comprehensive help
+- **Documentation**: [Mimir.md](Mimir.md)
+- **Integration**: Replaces in-REPL help system for better separation of concerns
+
+### Bifrost Package Manager
+Official package manager for Carrion (external submodule).
+
+- **Location**: `bifrost/` (git submodule)
+- **Installation**: Automatically installed with `make install`
+- **Usage**: `bifrost init`, `bifrost install <package>`
+- **Features**: Package management, dependency resolution, version handling
+
+### Build System
+Complete build and installation system.
+
+- **Makefile targets**:
+  - `make install` - Build and install all tools (carrion, sindri, mimir, bifrost)
+  - `make uninstall` - Remove all installed tools
+  - `make build-linux` - Cross-compile for Linux
+  - `make build-windows` - Cross-compile for Windows
+  - `make clean` - Clean Docker images
+
+- **Install scripts**:
+  - `install/install.sh` - Platform-specific installation
+  - `install/uninstall.sh` - Platform-specific removal
+  - `setup.sh` - Initial setup
+
+---
+
 ## Summary
 
-This documentation represents a **complete analysis and update** of The Carrion Language codebase as of the `docstrings_and_iterables` branch. All identified issues have been resolved, incomplete modules have been fully implemented, and the entire codebase is now comprehensively documented.
+This documentation represents a **complete analysis and update** of The Carrion Language codebase as of the current version. All identified issues have been resolved, incomplete modules have been fully implemented, and the entire codebase is now comprehensively documented.
 
-**The Carrion Language is ready for production use** with a robust interpreter, full-featured standard library, and excellent developer experience.
+**The Carrion Language ecosystem is ready for production use** with:
+- A robust interpreter and language runtime
+- Full-featured standard library (Munin)
+- Comprehensive development tools (Sindri, Mimir, Bifrost)
+- Complete build and installation system
+- Excellent developer experience with interactive documentation

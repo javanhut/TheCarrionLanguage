@@ -378,51 +378,162 @@ grim Heap(Iterable):
         self.size = 0
     
     spell _parent(index):
+        ```
+        Get the parent index of a given heap element.
+        
+        Args:
+            index: The index of the current element
+            
+        Returns:
+            The index of the parent element
+        ```
         return (index - 1) // 2
     
     spell _left_child(index):
+        ```
+        Get the left child index of a given heap element.
+        
+        Args:
+            index: The index of the current element
+            
+        Returns:
+            The index of the left child element
+        ```
         return 2 * index + 1
     
     spell _right_child(index):
+        ```
+        Get the right child index of a given heap element.
+        
+        Args:
+            index: The index of the current element
+            
+        Returns:
+            The index of the right child element
+        ```
         return 2 * index + 2
     
     spell _has_left_child(index):
+        ```
+        Check if a heap element has a left child.
+        
+        Args:
+            index: The index of the current element
+            
+        Returns:
+            True if left child exists, False otherwise
+        ```
         return self._left_child(index) < self.size
     
     spell _has_right_child(index):
+        ```
+        Check if a heap element has a right child.
+        
+        Args:
+            index: The index of the current element
+            
+        Returns:
+            True if right child exists, False otherwise
+        ```
         return self._right_child(index) < self.size
     
     spell _has_parent(index):
+        ```
+        Check if a heap element has a parent.
+        
+        Args:
+            index: The index of the current element
+            
+        Returns:
+            True if parent exists, False otherwise
+        ```
         return self._parent(index) >= 0
     
     spell _left_child_value(index):
+        ```
+        Get the value of the left child of a heap element.
+        
+        Args:
+            index: The index of the current element
+            
+        Returns:
+            The value of the left child element
+        ```
         return self.heap[self._left_child(index)]
     
     spell _right_child_value(index):
+        ```
+        Get the value of the right child of a heap element.
+        
+        Args:
+            index: The index of the current element
+            
+        Returns:
+            The value of the right child element
+        ```
         return self.heap[self._right_child(index)]
     
     spell _parent_value(index):
+        ```
+        Get the value of the parent of a heap element.
+        
+        Args:
+            index: The index of the current element
+            
+        Returns:
+            The value of the parent element
+        ```
         return self.heap[self._parent(index)]
     
     spell _swap(index1, index2):
+        ```
+        Swap two elements in the heap.
+        
+        Args:
+            index1: The index of the first element
+            index2: The index of the second element
+        ```
         temp = self.heap[index1]
         val2 = self.heap[index2]
         self.heap.set(index1, val2)
         self.heap.set(index2, temp)
     
     spell _compare(val1, val2):
+        ```
+        Compare two values according to heap type.
+        
+        For min-heap: returns True if val1 < val2
+        For max-heap: returns True if val1 > val2
+        
+        Args:
+            val1: The first value to compare
+            val2: The second value to compare
+            
+        Returns:
+            True if val1 should be higher in the heap than val2
+        ```
         if self.is_min_heap:
             return val1 < val2
         else:
             return val1 > val2
     
     spell _heapify_up():
+        ```
+        Restore heap property by moving the last element up.
+        
+        Used after insertion to maintain heap invariant.
+        ```
         index = self.size - 1
         while self._has_parent(index) and self._compare(self.heap[index], self._parent_value(index)):
             self._swap(index, self._parent(index))
             index = self._parent(index)
     
     spell _heapify_down():
+        ```
+        Restore heap property by moving the root element down.
+        
+        Used after extraction to maintain heap invariant.
+        ```
         index = 0
         while self._has_left_child(index):
             smaller_child_index = self._left_child(index)
@@ -493,19 +604,43 @@ grim Heap(Iterable):
         return self.heap[0]
     
     spell is_empty():
+        ```
+        Check if the heap is empty.
+        
+        Returns:
+            True if heap contains no elements, False otherwise
+        ```
         return self.size == 0
     
     spell get_size():
+        ```
+        Get the number of elements in the heap.
+        
+        Returns:
+            Integer representing the number of elements in the heap
+        ```
         return self.size
     
     spell clear():
+        ```
+        Remove all elements from the heap.
+        ```
         self.heap = Array([])
         self.size = 0
     
     spell to_array():
+        ```
+        Convert the heap to an array.
+        
+        Returns:
+            Array containing all heap elements in their internal order
+        ```
         return self.heap.slice(0, self.size)
     
     spell print():
+        ```
+        Print the heap contents and type.
+        ```
         if self.size == 0:
             print("Empty heap")
         else:
@@ -516,6 +651,15 @@ grim Heap(Iterable):
             print(f"{heap_type} Heap: {self.heap}")
     
     spell build_heap(array):
+        ```
+        Build a heap from an existing array.
+        
+        Uses the heapify algorithm to convert an arbitrary array
+        into a valid heap in O(n) time.
+        
+        Args:
+            array: The array to convert into a heap
+        ```
         self.heap = Array(array[:])
         self.size = len(array)
         
@@ -523,6 +667,14 @@ grim Heap(Iterable):
             self._heapify_down_from(i)
     
     spell _heapify_down_from(index):
+        ```
+        Restore heap property starting from a specific index.
+        
+        Used in build_heap to heapify subtrees.
+        
+        Args:
+            index: The starting index for heapification
+        ```
         while self._has_left_child(index):
             smaller_child_index = self._left_child(index)
             if self._has_right_child(index) and self._compare(self._right_child_value(index), self._left_child_value(index)):
@@ -591,6 +743,12 @@ grim BTree(Iterable):
         return self.node
 
     spell size():
+        ```
+        Get the number of nodes in the binary tree.
+        
+        Returns:
+            Integer representing the total number of nodes
+        ```
         spell _size_recursive(node):
             if node == None:
                 return 0
@@ -601,6 +759,12 @@ grim BTree(Iterable):
         return _size_recursive(self.node)
 
     spell max_depth():
+        ```
+        Calculate the maximum depth of the binary tree.
+        
+        Returns:
+            Integer representing the maximum depth (height) of the tree
+        ```
         spell _max_depth_recursive(node):
             if node == None:
                 return 0
@@ -611,6 +775,12 @@ grim BTree(Iterable):
         return _max_depth_recursive(self.node)
 
     spell inorder():
+        ```
+        Perform in-order traversal of the binary tree.
+        
+        Returns:
+            Array containing values in sorted order (left-root-right)
+        ```
         result = Array([])
         spell inorderTraversal(root, result):
             if root == None:
@@ -624,6 +794,12 @@ grim BTree(Iterable):
         return result
 
     spell preorder():
+        ```
+        Perform pre-order traversal of the binary tree.
+        
+        Returns:
+            Array containing values in pre-order (root-left-right)
+        ```
         result = Array([])
         spell preorderTraversal(node, result):
             if node == None:
@@ -636,6 +812,12 @@ grim BTree(Iterable):
         return result
 
     spell postorder():
+        ```
+        Perform post-order traversal of the binary tree.
+        
+        Returns:
+            Array containing values in post-order (left-right-root)
+        ```
         result = Array([])
         spell postorderTraversal(node, result):
             if node == None:
@@ -648,6 +830,12 @@ grim BTree(Iterable):
         return result
 
     spell print_tree(traversal="inorder"):
+        ```
+        Print the tree using specified traversal method.
+        
+        Args:
+            traversal: The traversal type ("inorder", "preorder", or "postorder")
+        ```
         printed_tree = None
         match traversal:
             case "inorder":

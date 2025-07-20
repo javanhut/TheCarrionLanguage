@@ -67,11 +67,11 @@ Experience the benefits of runtime type checking and an interpreter that support
 git clone https://github.com/javanhut/TheCarrionLanguage.git
 cd TheCarrionLanguage
 
-# Install both Carrion and Bifrost package manager (auto-detects OS)
+# Install Carrion Language, Sindri Testing Framework, Mimir Documentation Tool, and Bifrost package manager (auto-detects OS)
 make install
 ```
 
-**Note**: Installing Carrion automatically installs the **Bifrost Package Manager** (v1.0.0) as well. Both tools are installed together and can be uninstalled with `make uninstall`.
+**Note**: Installing Carrion automatically installs the **Sindri Testing Framework**, **Mimir Documentation Tool**, and **Bifrost Package Manager** (v1.0.0) as well. All tools are installed together and can be uninstalled with `make uninstall`.
 
 ### Manual Installation
 
@@ -148,6 +148,8 @@ See **[Modules Documentation](docs/Modules.md)** for detailed import and package
 ### Tools & Interactive Features
 
 - **[Interactive Help](docs/Interactive-Help-Demo.md)** - REPL and interactive development features
+- **[Sindri Testing Framework](docs/Sindri.md)** - Comprehensive testing and benchmarking tool
+- **[Mimir Documentation Tool](docs/Mimir.md)** - Interactive documentation and help system
 
 ### Additional Resources
 

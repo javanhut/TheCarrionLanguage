@@ -11,11 +11,11 @@ Usage:
     print(math.info())
 """
 grim Math:
-    """
-    Provides information about the Math grimoire and its capabilities.
-    
-    Returns:
-        str: Information about available mathematical functions
-    """
     spell info():
+        ```
+        Provides information about the Math grimoire and its capabilities.
+        
+        Returns:
+            str: Information about available mathematical functions
+        ```
         return "Math grimoire - Mathematical functions and constants"
