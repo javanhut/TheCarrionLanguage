@@ -1,8 +1,171 @@
 # Carrion Language Changelog
 
-## Version 0.1.8 - String Concatenation Bug Fix
+## Version 0.1.8
 
-### Critical Bug Fix
+### Tooling Ecosystem & Testing Framework
+
+#### New Tools & Frameworks
+
+##### Sindri Testing Framework
+- **Introduced comprehensive testing framework for Carrion language**
+  - Built-in test runner with `sindri appraise` command
+  - Automatic test discovery using "appraise" naming convention
+  - Colored terminal output for test results (green PASSED/red FAILED)
+  - Support for detailed and summary output modes
+  - **Location**: `cmd/sindri/main.go`
+
+##### Mimir Documentation System  
+- **Created interactive documentation and help system**
+  - Interactive documentation browser with menu navigation
+  - Command-line help lookup: `mimir scry <function>`
+  - Comprehensive function and module listings
+  - Category-based browsing and search functionality
+  - **Location**: `cmd/mimir/main.go`
+
+##### Bifrost Package Manager (Submodule)
+- **Added package manager for Carrion ecosystem**
+  - Git submodule integration for external package management
+  - Updated build system and documentation
+  - **Location**: `bifrost/` (submodule)
+
+#### Testing Framework Features
+
+##### Test Function Discovery
+- **Automatic detection of test functions containing "appraise"**
+  - Supports patterns: `appraise_<feature>()`, `test_appraise_<feature>()`
+  - Directory and file-based test discovery
+  - Support for multiple test files in directories
+
+##### Assertion System
+- **Built-in `check()` function for test assertions**
+  - Boolean assertion format: `check(boolean_expression)`
+  - Value comparison format: `check(actual, expected)`
+  - Descriptive error messages for failed assertions
+  - Type mismatch detection and reporting
+
+##### Test Runner Commands
+```bash
+sindri appraise <file.crl>          # Run specific test file
+sindri appraise [directory]         # Run all tests in directory  
+sindri appraise -d                  # Run with detailed output
+sindri appraise --detailed          # Run with detailed output
+```
+
+#### Documentation System Features
+
+##### Interactive Documentation
+- **Menu-driven documentation browser**
+  - Built-in Functions reference
+  - Standard Library (Munin modules) documentation  
+  - Language Features explanations
+  - Examples & Demos with working code
+  - Tips & Tricks for REPL usage
+
+##### Command-Line Documentation
+```bash
+mimir                    # Start interactive mode
+mimir scry <function>    # Get specific function help
+mimir list              # List all functions and modules
+mimir categories        # Browse by categories
+```
+
+##### Enhanced REPL Integration
+- **Updated REPL to direct users to Mimir**
+  - `help()` command now suggests using Mimir
+  - Seamless integration between REPL and documentation system
+
+#### Build System Updates
+
+##### Enhanced Makefile
+- **Added targets for new tools**
+  - `make sindri` - Build testing framework
+  - `make mimir` - Build documentation system  
+  - `make install` - Install all tools including Sindri and Mimir
+  - Updated `make all` to include new tools
+
+##### Installation Scripts
+- **Updated installation process**
+  - Modified `install/install.sh` to include Sindri testing framework
+  - Updated `install/uninstall.sh` for complete tool removal
+  - Enhanced `setup.sh` for development environment
+
+#### Example Files & Demos
+
+##### Sindri Test Examples
+- **Created comprehensive test examples**
+  - `examples/sindri_demo.crl` - Demonstration of testing patterns
+  - `examples/sindri_test_example.crl` - Basic test structure
+  - Multiple example test files showing assertion patterns
+  - Intentional failure examples for error demonstration
+
+##### ASCII Art Enhancement
+- **Added visual elements to Sindri**
+  - Forge-themed ASCII art in `cmd/assets/dwarf_in_forge.png`
+  - Enhanced visual appeal of testing framework
+
+#### Documentation Updates
+
+##### New Documentation Files
+- **Created comprehensive tool documentation**
+  - `docs/Sindri.md` - Complete testing framework guide
+  - `docs/Mimir.md` - Documentation system reference
+  - Updated existing docs to reference new tools
+
+##### Updated Documentation
+- **Enhanced existing documentation**
+  - `docs/Modules.md` - Updated for Bifrost integration
+  - `docs/README.md` - Added tool ecosystem overview
+  - `docs/CARRION.md` - Updated language overview with tooling
+
+##### Technical Implementation
+
+##### Core Integration
+- **Enhanced evaluator for testing support**
+  - Added `check()` builtin function for assertions
+  - Enhanced error handling for test execution
+  - **Location**: `src/evaluator/evaluator.go`
+
+##### Module System
+- **Updated builtin function system**
+  - Enhanced function registry for testing
+  - Improved error reporting for failed assertions
+  - **Location**: `src/evaluator/builtins.go`
+
+##### Migration Notes
+
+##### New Commands Available
+```bash
+# Testing
+sindri appraise examples/sindri_demo.crl
+
+# Documentation  
+mimir scry print
+mimir list
+
+# Package Management (via submodule)
+# See bifrost documentation for usage
+```
+
+##### Backward Compatibility
+- **No breaking changes** - All existing code continues to work
+- **Enhanced development experience** with new tooling
+- **Optional usage** - New tools don't affect existing workflows
+
+#### Performance & Quality
+
+##### Testing Framework Performance
+- **Fast test execution** with minimal overhead
+- **Colored output** for easy result identification
+- **Detailed error reporting** for debugging assistance
+
+##### Documentation System Performance  
+- **Interactive browsing** with responsive navigation
+- **Quick lookup** for specific functions
+- **Comprehensive coverage** of language features
+
+### String Concatenation Bug Fix
+
+#### Critical Bug Fix
 
 #### Fixed String Concatenation Type Issues
 - **Fixed critical bug where string concatenation operations returned BUILTIN type objects instead of proper String instances**
@@ -11,7 +174,7 @@
   - Now all string concatenation operations return properly wrapped String instances with method access
   - **Location**: `src/evaluator/evaluator.go`
 
-### Technical Implementation
+#### Technical Implementation
 
 #### Enhanced Infix Expression Evaluation
 - **Updated `evalStringInfixExpression` to use `wrapPrimitive()` for string concatenation results**
@@ -31,7 +194,7 @@
   - Maintains consistency across all primitive type operations
   - **Locations**: Multiple in `src/evaluator/evaluator.go`
 
-### Verification & Testing
+#### Verification & Testing
 
 #### Issues Resolved
 - **HTTP server socket operations** - `socket_send` now works correctly with concatenated strings
@@ -55,28 +218,28 @@ socket_send(client_id, response)
 print(response.length())  # Works correctly
 ```
 
-### Documentation Updates
+#### Documentation Updates
 
 #### Updated Type System Documentation
 - **Added String Concatenation and Type Consistency section** to `docs/Type-System.md`
 - **Documented concatenation behavior** with examples
 - **Explained previous issues and fixes** for reference
 
-### Performance Impact
+#### Performance Impact
 
 - **No performance regression** - Fix maintains existing operation speed
 - **Improved type safety** - Prevents runtime type errors
 - **Memory consistent** - Proper object lifecycle management
 
-### Migration Notes
+#### Migration Notes
 
 - **No breaking changes** - This is a bug fix that makes existing code work correctly
 - **Socket operations** - Code that failed due to string type issues will now work
 - **String methods** - Concatenated strings now have proper method access
 
-## Version 0.1.8 - Multi-Level Inheritance Fix & File/OS Grimoire Refactoring
+### Multi-Level Inheritance Fix & File/OS Grimoire Refactoring
 
-### Major Bug Fix
+#### Major Bug Fix
 
 #### Fixed Infinite Recursion in Multi-Level Inheritance
 - **Fixed critical bug where `super.init()` caused infinite recursion in 3+ level inheritance chains**
@@ -85,7 +248,7 @@ print(response.length())  # Works correctly
   - Supports inheritance hierarchies of any depth
   - **Location**: `src/evaluator/evaluator.go`
 
-### Technical Implementation
+#### Technical Implementation
 
 #### Method Grimoire Tracking
 - **Added `MethodGrimoire` field to `CallContext`** to track which class owns the current method
@@ -106,7 +269,7 @@ print(response.length())  # Works correctly
   - `evalStaticMethodCall` - sets static method's grimoire
   - Init method calls - sets constructor's grimoire
 
-### Verification & Testing
+#### Verification & Testing
 
 #### Test Cases Passing
 - **2-level inheritance** - Still works correctly (no regression)
@@ -136,7 +299,7 @@ obj = Level3("test")
 # After fix: Works perfectly, all constructors called in order
 ```
 
-### Documentation Updates
+#### Documentation Updates
 
 #### Updated Grimoires Documentation
 - **Added Multi-Level Inheritance section** with comprehensive examples
@@ -149,37 +312,37 @@ obj = Level3("test")
   - Override methods consistently
   - Document inheritance hierarchies
 
-### Migration Notes
+#### Migration Notes
 
 - **No breaking changes** - This is a bug fix that makes existing code work correctly
 - **No migration needed** - Code that worked around the bug will continue to work
 - **Improved stability** - Deep inheritance hierarchies now work as expected
 
-### Performance Impact
+#### Performance Impact
 
 - **No performance regression** - Fix adds minimal overhead
 - **Prevents stack overflow** - Eliminates infinite recursion
 - **Memory safe** - Proper cleanup of method contexts
 
-### Major Features
+#### Major Features
 
-#### Static Method Support for Grimoires
+##### Static Method Support for Grimoires
 - **Implemented static method calls on grimoire classes**
   - Added support for `Grimoire.method()` syntax
   - Created `StaticMethod` object type for handling static calls
   - Enhanced evaluator to support grimoire static methods
   - **Location**: `src/evaluator/evaluator.go`, `src/object/static_method.go`
 
-#### File & OS API Unification
+##### File & OS API Unification
 - **Refactored file and OS operations to use consistent grimoire API**
   - All file operations now use `File.method()` syntax
   - All OS operations now use `OS.method()` syntax
   - Moved builtin functions to dedicated modules
   - **Locations**: `src/modules/file.go`, `src/modules/os.go`
 
-### API Changes
+#### API Changes
 
-#### File Operations (Breaking Change)
+##### File Operations (Breaking Change)
 - **New File grimoire static methods**:
   - `File.read(path)` - Read entire file content
   - `File.write(path, content)` - Write content to file (overwrites)
@@ -187,7 +350,7 @@ obj = Level3("test")
   - `File.exists(path)` - Check if file exists
   - `File.open(path, mode)` - Create File object for complex operations
 
-#### OS Operations (Breaking Change)
+##### OS Operations (Breaking Change)
 - **New OS grimoire static methods**:
   - `OS.cwd()` - Get current working directory
   - `OS.chdir(path)` - Change directory
@@ -200,36 +363,36 @@ obj = Level3("test")
   - `OS.sleep(seconds)` - Sleep for specified time
   - `OS.expandEnv(string)` - Expand environment variables
 
-### Architecture Improvements
+##### Architecture Improvements
 
-#### Module System
+##### Module System
 - **Created dedicated modules for system operations**
   - `src/modules/file.go` - File operation implementations
   - `src/modules/os.go` - OS operation implementations
   - Enhanced module loading in `src/evaluator/stdlib.go`
 
-#### Builtin Function Cleanup
+##### Builtin Function Cleanup
 - **Removed system-level functions from core builtins**
   - Removed 14 file and OS functions from `src/evaluator/builtins.go`
   - Kept only core language functions as builtins
   - Improved separation of concerns
 
-#### Argument Handling
+##### Argument Handling
 - **Enhanced argument processing for wrapped primitives**
   - Added helper functions to handle both direct and instance-wrapped arguments
   - Improved compatibility with automatic primitive wrapping
   - **Location**: `src/modules/file.go`, `src/modules/os.go`
 
-### Documentation Updates
+#### Documentation Updates
 
 #### Updated Documentation
 - **Standard Library documentation** - Reflect new File and OS APIs
 - **Builtin Functions documentation** - Remove deprecated functions, add grimoire methods
 - **Version numbers** - Updated to 0.1.8 throughout documentation
 
-### Migration Guide
+#### Migration Guide
 
-#### Updating Existing Code
+##### Updating Existing Code
 ```python
 # Old API (deprecated)
 content = fileRead("data.txt")
@@ -242,16 +405,16 @@ File.write("output.txt", "hello")
 current_dir = OS.cwd()
 ```
 
-### Backward Compatibility
+#### Backward Compatibility
 - **File object operations** remain unchanged (`file.read_content()`, `file.write_content()`)
 - **Autoclose statement** works with both `open()` and `File.open()`
 - **Munin standard library** maintains existing grimoire APIs
 
 ## Version 0.1.6 - String Indexing & Standard Library Enhancement
 
-### Major Features
+#### Major Features
 
-#### String Indexing Support
+##### String Indexing Support
 - **Implemented string indexing for primitive strings**
   - Supports positive indices: `s[0]`, `s[1]`, `s[6]`
   - Supports negative indices: `s[-1]`, `s[-2]` (Python-style)
@@ -259,7 +422,7 @@ current_dir = OS.cwd()
   - Returns single-character strings
   - **Location**: `src/evaluator/evaluator.go:1498-1616`
 
-#### String Grimoire (Standard Library)
+##### String Grimoire (Standard Library)
 - **Created comprehensive String grimoire** in Munin standard library
   - `String(value)` - constructor for string objects
   - `length()` - get string length
@@ -271,9 +434,9 @@ current_dir = OS.cwd()
   - `char_at(index)` - safe character access with bounds checking
   - **Location**: `src/munin/string.crl`
 
-### New Builtin Functions
+#### New Builtin Functions
 
-#### Character/ASCII Functions
+##### Character/ASCII Functions
 - **`ord(char)`** - Convert single character to ASCII code
   - Example: `ord("A")` returns `65`
   - **Location**: `src/evaluator/builtins.go:767-780`
@@ -283,22 +446,22 @@ current_dir = OS.cwd()
   - Supports range 0-255
   - **Location**: `src/evaluator/builtins.go:782-795`
 
-### Project Organization
+#### Project Organization
 
-#### File Structure Improvements
+##### File Structure Improvements
 - **Moved all test files to proper locations**
   - All `test_*.crl` files → `src/examples/` (66 files)
   - All debug files → `debug/` directory
   - Cleaned up root directory structure
 
-#### Code Quality
+##### Code Quality
 - **Enhanced error handling** for string operations
 - **Improved bounds checking** with clear error messages
 - **Maintained backward compatibility** with existing code
 
-### Testing & Verification
+#### Testing & Verification
 
-#### Functionality Verified
+##### Functionality Verified
 - String indexing with positive indices
 - String indexing with negative indices  
 - Bounds checking and error handling
@@ -307,7 +470,7 @@ current_dir = OS.cwd()
 - New builtin functions (`ord`, `chr`)
 - Existing functionality preserved
 
-#### Example Usage
+##### Example Usage
 ```carrion
 # String indexing
 s = "hello world"
@@ -328,7 +491,7 @@ print(ord("A"))  # 65
 print(chr(65))   # "A"
 ```
 
-### Recursive String Operations
+#### Recursive String Operations
 - **Enhanced recursive function support** with string indexing
 - **Example**: Recursive string reversal now possible
 ```carrion
@@ -343,21 +506,21 @@ spell reverse(s):
 print(reverse("Carrion"))  # "noirraC"
 ```
 
-### Technical Implementation
+#### Technical Implementation
 
-#### Core Changes
+##### Core Changes
 - **Modified `evalIndexExpression`** to handle `STRING_OBJ` type
 - **Added `evalStringIndexExpression`** for string-specific indexing logic
 - **Enhanced builtin function registry** with character conversion functions
 - **Implemented String grimoire** following Carrion's grimoire patterns
 
-#### Error Handling
+##### Error Handling
 - **Descriptive error messages** for out-of-bounds access
 - **Type safety** for index operations (must be INTEGER)
 - **Graceful handling** of negative indices
 - **Clear stack traces** for debugging
 
-### Notes
+#### Notes
 - **Backward Compatible**: All existing code continues to work
 - **Performance**: String indexing is O(1) operation
 - **Memory Safe**: Proper bounds checking prevents crashes
