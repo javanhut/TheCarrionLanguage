@@ -163,6 +163,7 @@ func listAllFunctions() {
 	fmt.Println("Math:     Mathematical functions")
 	fmt.Println("Time:     Date and time utilities")
 	fmt.Println("HTTP:     Web requests and API calls")
+	fmt.Println("Sockets:  Network programming with TCP, UDP, Unix and Web sockets")
 
 	fmt.Println("\nUse 'mimir scry <function>' for detailed help on any item above")
 }
@@ -232,6 +233,7 @@ func searchSpecificFunction(name string) bool {
 		"os":       "os() - Operating system interface\n   Methods: .cwd(), .list_dir(), .getenv(), .run(), .sleep()\n   Example: os = os(); files = os.list_dir(\".\")",
 		"http":     "ApiRequest() - HTTP client for API requests\n   Methods: .get(), .post(), .put(), .delete(), .get_json(), .post_json()\n   Example: api = ApiRequest(); response = api.get_json(\"https://api.example.com/data\")",
 		"time":     "Time() - Date and time utilities\n   Methods: .now(), .now_timestamp(), .sleep(), .format(), .parse()\n   Example: t = Time(); timestamp = t.now_timestamp(); t.sleep(2)",
+		"sockets":  "Sockets - Network programming with TCP, UDP, Unix and Web sockets\n   Functions: new_socket(), client(), server(), socket_send(), socket_receive(), socket_close()\n   Functions: socket_listen(), socket_accept(), socket_set_timeout(), socket_get_info()\n   Example: client_id = client(\"tcp\", \"localhost:8080\"); socket_send(client_id, \"Hello\")",
 		"comments": "Comment syntax - Single-line (#) and multi-line (```)\n   Single: # comment\n   Multi: ``` comment block ```",
 	}
 
@@ -278,6 +280,7 @@ func performFunctionSearch(query string) []string {
 		"parseHash() - JSON parsing":             {"parsehash", "json", "parse", "hash", "object"},
 		"ApiRequest() - HTTP client":             {"apirequest", "http", "get", "post", "request", "web", "api", "json"},
 		"Time() - Time operations":               {"time", "now", "timestamp", "sleep", "date", "format"},
+		"Sockets - Network programming":          {"sockets", "socket", "network", "tcp", "udp", "unix", "web", "client", "server", "send", "receive"},
 		"Comments - Comment syntax":              {"comments", "syntax", "comment", "single-line", "multi-line"},
 	}
 
@@ -315,6 +318,9 @@ func showSearchCategories() {
 	fmt.Println("")
 	fmt.Println("Network & HTTP:")
 	fmt.Println("  httpGet, httpPost, httpPut, httpDelete, httpParseJSON")
+	fmt.Println("")
+	fmt.Println("Sockets & Network Programming:")
+	fmt.Println("  new_socket, client, server, socket_send, socket_receive, socket_close")
 	fmt.Println("")
 	fmt.Println("Time & Date:")
 	fmt.Println("  timeNow, timeSleep, timeFormat, timeParse")
@@ -418,6 +424,7 @@ func showStandardLibrary(line *liner.State) {
 		"8":  "Math - Mathematical functions",
 		"9":  "Time - Date and time utilities",
 		"10": "HTTP - Web requests and API calls",
+		"11": "Sockets - Network programming with TCP, UDP, Unix and Web sockets",
 	}
 
 	for {
@@ -437,8 +444,8 @@ func showStandardLibrary(line *liner.State) {
 		}
 		fmt.Println("")
 		fmt.Println("Commands:")
-		fmt.Println("  Numbers: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10")
-		fmt.Println("  Words: array, string, integer, float, boolean, file, os, math, time, http")
+		fmt.Println("  Numbers: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11")
+		fmt.Println("  Words: array, string, integer, float, boolean, file, os, math, time, http, sockets")
 		fmt.Println("  Special: 'all' for everything, 'b' to go back, 'q' to quit")
 
 		input, err := line.Prompt("stdlib> ")
@@ -476,6 +483,8 @@ func showStandardLibrary(line *liner.State) {
 			showTimeModule()
 		case "10", "http", "api":
 			showHTTPModule()
+		case "11", "sockets", "socket", "network":
+			showSocketsModule()
 		case "all":
 			showAllStandardLibrary()
 		case "":
@@ -740,4 +749,59 @@ func showTipsAndTricks() {
 	fmt.Println("   • 'modules()' - List available modules")
 	fmt.Println("")
 }
+
+// showSocketsModule displays detailed help for the Sockets module
+func showSocketsModule() {
+	fmt.Println("")
+	fmt.Println("SOCKETS MODULE")
+	fmt.Println("═══════════════")
+	fmt.Println("")
+	fmt.Println("Network programming with TCP, UDP, Unix domain sockets, and HTTP/Web servers.")
+	fmt.Println("Provides a unified interface for all network communication needs.")
+	fmt.Println("")
+	fmt.Println("SOCKET CREATION:")
+	fmt.Println("   new_socket(type, [protocol], [address], [timeout])")
+	fmt.Println("   • Create new socket of specified type")
+	fmt.Println("   • Types: \"tcp\", \"udp\", \"web\", \"unix\"")
+	fmt.Println("   • Example: socket_id = new_socket(\"tcp\", \"tcp\", \"localhost:8080\", 30)")
+	fmt.Println("")
+	fmt.Println("CLIENT CONNECTIONS:")
+	fmt.Println("   client(type, address, [timeout])")
+	fmt.Println("   • Connect to server as client")
+	fmt.Println("   • Example: client_id = client(\"tcp\", \"localhost:8080\", 30)")
+	fmt.Println("")
+	fmt.Println("SERVER CREATION:")
+	fmt.Println("   server(type, address, [timeout])")
+	fmt.Println("   • Start server listening on address")
+	fmt.Println("   • Example: server_id = server(\"tcp\", \"localhost:8080\", 30)")
+	fmt.Println("")
+	fmt.Println("DATA TRANSFER:")
+	fmt.Println("   socket_send(handle, data) - Send data through socket")
+	fmt.Println("   socket_receive(handle, [buffer_size]) - Receive data from socket")
+	fmt.Println("   • Example: socket_send(client_id, \"Hello Server!\")")
+	fmt.Println("   • Example: response = socket_receive(client_id, 1024)")
+	fmt.Println("")
+	fmt.Println("CONNECTION MANAGEMENT:")
+	fmt.Println("   socket_listen(handle) - Listen for incoming connections")
+	fmt.Println("   socket_accept(handle) - Accept client connection")
+	fmt.Println("   socket_close(handle) - Close socket connection")
+	fmt.Println("   socket_set_timeout(handle, seconds) - Set socket timeout")
+	fmt.Println("   socket_get_info(handle) - Get socket information")
+	fmt.Println("")
+	fmt.Println("SUPPORTED PROTOCOLS:")
+	fmt.Println("   • TCP - Reliable, connection-oriented")
+	fmt.Println("   • UDP - Fast, connectionless")
+	fmt.Println("   • Web/HTTP - HTTP server functionality")
+	fmt.Println("   • Unix - Unix domain sockets for local IPC")
+	fmt.Println("")
+	fmt.Println("EXAMPLE - Simple Echo Server:")
+	fmt.Println("   server_id = server(\"tcp\", \"localhost:8080\", 30)")
+	fmt.Println("   listener = socket_listen(server_id)")
+	fmt.Println("   client = socket_accept(listener)")
+	fmt.Println("   message = socket_receive(client, 1024)")
+	fmt.Println("   socket_send(client, f\"Echo: {message}\")")
+	fmt.Println("   socket_close(client)")
+	fmt.Println("")
+}
+
 

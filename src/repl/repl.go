@@ -89,32 +89,65 @@ func Start(in io.Reader, out io.Writer, env *object.Environment) {
 			"print", "input", "len", "type", "range", "max", "abs", "ord", "chr",
 			"int", "float", "str", "bool", "list", "tuple", "enumerate", "pairs", "is_sametype",
 			// Standard library constructors
-			"Array", "String", "Integer", "Float", "Boolean", "File", "OS",
+			"Array", "String", "Integer", "Float", "Boolean", "File", "os",
 			// Standard library functions
 			"help", "version", "modules",
 			// REPL commands
 			"clear", "quit", "exit",
 		}
 
+		// Module-specific function maps for improved autocomplete
+		moduleFunctions := map[string][]string{
+			"os": {
+				"cwd", "chdir", "list_dir", "mkdir", "remove", "getenv", "setenv", "run", "sleep",
+				"expandenv",
+			},
+			"file": {
+				"open", "read", "write", "append", "exists", "close", "seek", "tell", "flush",
+				"read_handle", "write_handle", "append_path", "read_path", "write_path",
+			},
+			"http": {
+				"get", "post", "put", "delete", "head", "request", "parse_json", "stringify_json",
+				"build_query",
+			},
+			"time": {
+				"now", "now_nano", "sleep", "parse", "format", "since", "until", "add", "sub",
+				"year", "month", "day", "hour", "minute", "second", "weekday", "yearday",
+			},
+			"socket": {
+				"new_socket", "client", "server", "send", "receive", "close", "listen", "accept",
+				"set_timeout", "get_info",
+			},
+		}
+
 		// Built-in method suggestions for common patterns
-		methodSuggestions := []string{
-			// Array methods
-			".append", ".sort", ".reverse", ".contains", ".length", ".get", ".set", ".clear",
-			".index_of", ".remove", ".first", ".last", ".slice", ".is_empty", ".to_string",
-			// String methods
-			".upper", ".lower", ".find", ".char_at", ".reverse",
-			// Integer methods
-			".to_bin", ".to_oct", ".to_hex", ".abs", ".pow", ".gcd", ".lcm",
-			".is_even", ".is_odd", ".is_prime", ".to_float",
-			// Float methods
-			".round", ".floor", ".ceil", ".sqrt", ".sin", ".cos", ".abs",
-			".is_integer", ".is_positive", ".is_negative", ".is_zero", ".to_int",
-			// Boolean methods
-			".to_int", ".negate", ".and_with", ".or_with", ".xor_with",
-			// File methods
-			".read", ".write", ".append", ".exists",
-			// OS methods
-			".cwd", ".chdir", ".listdir", ".mkdir", ".remove", ".getenv", ".setenv", ".run", ".sleep",
+		methodSuggestions := map[string][]string{
+			"Array": {
+				"append", "sort", "reverse", "contains", "length", "get", "set", "clear",
+				"index_of", "remove", "first", "last", "slice", "is_empty", "to_string",
+			},
+			"String": {
+				"upper", "lower", "find", "char_at", "reverse", "length", "split", "join",
+				"replace", "substring", "trim", "starts_with", "ends_with",
+			},
+			"Integer": {
+				"to_bin", "to_oct", "to_hex", "abs", "pow", "gcd", "lcm",
+				"is_even", "is_odd", "is_prime", "to_float",
+			},
+			"Float": {
+				"round", "floor", "ceil", "sqrt", "sin", "cos", "abs",
+				"is_integer", "is_positive", "is_negative", "is_zero", "to_int",
+			},
+			"Boolean": {
+				"to_int", "negate", "and_with", "or_with", "xor_with",
+			},
+			"File": {
+				"read", "write", "append", "exists", "close", "seek", "tell", "flush",
+			},
+			"Stack": {"push", "pop", "peek", "is_empty", "get_size", "print", "iter"},
+			"Queue": {"enqueue", "dequeue", "peek", "is_empty", "print", "iter"},
+			"Heap":  {"insert", "extract", "peek", "is_empty", "get_size", "clear", "to_array", "print", "build_heap", "iter"},
+			"BTree": {"insert", "size", "max_depth", "inorder", "preorder", "postorder", "print_tree", "find", "iter"},
 		}
 
 		// Only suggest keywords at the beginning of input
@@ -125,15 +158,51 @@ func Start(in io.Reader, out io.Writer, env *object.Environment) {
 		prefix := strings.ToLower(input)
 		var suggestions []string
 
-		// Check for method completions (when input contains a dot)
+		// Check for module-specific completions (e.g., "os.", "file.", etc.)
 		if strings.Contains(input, ".") {
-			for _, method := range methodSuggestions {
-				if strings.HasPrefix(strings.ToLower(method), "."+strings.ToLower(strings.Split(input, ".")[len(strings.Split(input, "."))-1])) {
-					// Reconstruct the full suggestion
-					parts := strings.Split(input, ".")
-					if len(parts) > 1 {
-						base := strings.Join(parts[:len(parts)-1], ".")
-						suggestions = append(suggestions, base+method)
+			parts := strings.Split(input, ".")
+			if len(parts) >= 2 {
+				moduleName := strings.ToLower(parts[0])
+				methodPrefix := strings.ToLower(parts[1])
+
+				// Check if it's a module function completion
+				if functions, exists := moduleFunctions[moduleName]; exists {
+					for _, function := range functions {
+						if strings.HasPrefix(function, methodPrefix) {
+							suggestions = append(suggestions, parts[0]+"."+function)
+						}
+					}
+				}
+
+				// Check if it's a grimoire method completion
+				grimoireName := strings.Title(parts[0])
+				if methods, exists := methodSuggestions[grimoireName]; exists {
+					for _, method := range methods {
+						if strings.HasPrefix(method, methodPrefix) {
+							suggestions = append(suggestions, parts[0]+"."+method)
+						}
+					}
+				}
+
+				// Fallback to original method completion logic for unknown modules
+				if len(suggestions) == 0 {
+					allMethods := []string{
+						"append", "sort", "reverse", "contains", "length", "get", "set", "clear",
+						"index_of", "remove", "first", "last", "slice", "is_empty", "to_string",
+						"upper", "lower", "find", "char_at", "reverse", "split", "join",
+						"replace", "substring", "trim", "starts_with", "ends_with",
+						"to_bin", "to_oct", "to_hex", "abs", "pow", "gcd", "lcm",
+						"is_even", "is_odd", "is_prime", "to_float",
+						"round", "floor", "ceil", "sqrt", "sin", "cos",
+						"is_integer", "is_positive", "is_negative", "is_zero", "to_int",
+						"negate", "and_with", "or_with", "xor_with",
+						"read", "write", "append", "exists", "close", "seek", "tell", "flush",
+						"cwd", "chdir", "listdir", "mkdir", "remove", "getenv", "setenv", "run", "sleep",
+					}
+					for _, method := range allMethods {
+						if strings.HasPrefix(method, methodPrefix) {
+							suggestions = append(suggestions, parts[0]+"."+method)
+						}
 					}
 				}
 			}
@@ -142,6 +211,13 @@ func Start(in io.Reader, out io.Writer, env *object.Environment) {
 			for _, kw := range keywords {
 				if strings.HasPrefix(strings.ToLower(kw), prefix) {
 					suggestions = append(suggestions, kw)
+				}
+			}
+
+			// Add module names to suggestions when they partially match
+			for moduleName := range moduleFunctions {
+				if strings.HasPrefix(moduleName, prefix) {
+					suggestions = append(suggestions, moduleName)
 				}
 			}
 		}

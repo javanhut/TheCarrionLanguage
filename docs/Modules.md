@@ -928,4 +928,811 @@ grim MathCalculator:
         pass
 ```
 
+## Sockets Module
+
+Carrion includes a powerful sockets module that simplifies network programming by wrapping Go's net and net/http packages with an easy-to-use Carrion interface. The sockets module supports TCP, UDP, Unix domain sockets, and HTTP/Web servers with built-in timeout and connection management.
+
+### Socket Creation
+
+#### Basic Socket Creation
+```python
+// Create different types of sockets
+tcp_socket = new_socket("tcp", "tcp", "localhost:8080", 30)
+udp_socket = new_socket("udp", "udp", "localhost:9090", 30)
+web_socket = new_socket("web", "http", "localhost:8000", 60)
+unix_socket = new_socket("unix", "unix", "/tmp/my.sock", 30)
+```
+
+#### Simplified Socket Creation
+```python
+// Using defaults - creates TCP socket on localhost:8080 with 30s timeout
+socket_id = new_socket("tcp")
+
+// With custom address
+socket_id = new_socket("tcp", "tcp", "192.168.1.100:9000")
+
+// With custom timeout (in seconds)
+socket_id = new_socket("tcp", "tcp", "localhost:8080", 60)
+```
+
+### Client Connections
+
+#### TCP Client
+```python
+// Connect to a TCP server
+client_id = client("tcp", "localhost:8080", 30)
+
+// Send data
+bytes_sent = socket_send(client_id, "Hello Server!")
+
+// Receive data
+response = socket_receive(client_id, 1024)
+print(f"Server response: {response}")
+
+// Close connection
+socket_close(client_id)
+```
+
+#### UDP Client
+```python
+// Connect to UDP endpoint
+udp_client = client("udp", "localhost:9090", 30)
+
+// Send UDP datagram
+socket_send(udp_client, "UDP message")
+
+// Receive response
+response = socket_receive(udp_client, 1024)
+print(f"UDP response: {response}")
+
+socket_close(udp_client)
+```
+
+#### Unix Domain Socket Client
+```python
+// Connect to Unix socket
+unix_client = client("unix", "/tmp/server.sock", 30)
+socket_send(unix_client, "Unix socket message")
+response = socket_receive(unix_client)
+socket_close(unix_client)
+```
+
+### Server Creation
+
+#### TCP Server
+```python
+// Start TCP server
+server_id = server("tcp", "localhost:8080", 30)
+
+// Listen for connections
+listener_id = socket_listen(server_id)
+
+// Accept client connections
+while True:
+    client_conn = socket_accept(listener_id)
+    
+    // Handle client
+    message = socket_receive(client_conn, 1024)
+    print(f"Client says: {message}")
+    
+    socket_send(client_conn, "Hello Client!")
+    socket_close(client_conn)
+```
+
+#### UDP Server
+```python
+// Start UDP server
+udp_server = server("udp", "localhost:9090", 30)
+
+// Receive and respond to datagrams
+while True:
+    data = socket_receive(udp_server, 1024)
+    print(f"Received UDP: {data}")
+    
+    socket_send(udp_server, "UDP response")
+```
+
+#### Web/HTTP Server
+```python
+// Start HTTP server
+web_server = server("web", "localhost:8000", 60)
+
+// The HTTP server runs in the background
+// Routes and handlers would be configured separately
+print("HTTP server started on localhost:8000")
+
+// Server continues running until closed
+// socket_close(web_server)  // Stop the server
+```
+
+#### Unix Domain Socket Server
+```python
+// Start Unix socket server
+unix_server = server("unix", "/tmp/server.sock", 30)
+listener = socket_listen(unix_server)
+
+while True:
+    client = socket_accept(listener)
+    data = socket_receive(client, 1024)
+    socket_send(client, f"Echo: {data}")
+    socket_close(client)
+```
+
+### Socket Management
+
+#### Setting Timeouts
+```python
+socket_id = new_socket("tcp", "tcp", "localhost:8080")
+
+// Set timeout to 45 seconds
+socket_set_timeout(socket_id, 45)
+
+// Timeout applies to all subsequent operations
+client_id = client("tcp", "localhost:8080")
+socket_set_timeout(client_id, 10)  // 10 second timeout for this client
+```
+
+#### Getting Socket Information
+```python
+socket_id = new_socket("tcp", "tcp", "localhost:8080", 30)
+
+info = socket_get_info(socket_id)
+print(f"Socket type: {info['type']}")
+print(f"Address: {info['address']}")
+print(f"Timeout: {info['timeout']} seconds")
+```
+
+### Complete Examples
+
+#### Simple Echo Server
+```python
+// echo_server.crl
+import "sockets"
+
+spell start_echo_server():
+    server_id = server("tcp", "localhost:8080", 30)
+    listener = socket_listen(server_id)
+    
+    print("Echo server started on localhost:8080")
+    
+    while True:
+        attempt:
+            client = socket_accept(listener)
+            print("Client connected")
+            
+            while True:
+                data = socket_receive(client, 1024)
+                if len(data) == 0:
+                    break
+                
+                print(f"Echoing: {data}")
+                socket_send(client, f"Echo: {data}")
+            
+            socket_close(client)
+            print("Client disconnected")
+            
+        ensnare error:
+            print(f"Error handling client: {error}")
+
+start_echo_server()
+```
+
+#### HTTP-like Client
+```python
+// http_client.crl
+import "sockets"
+
+spell make_http_request(host, port, path):
+    client_id = client("tcp", f"{host}:{port}", 30)
+    
+    // Send HTTP request
+    request = f"GET {path} HTTP/1.1\r\nHost: {host}\r\n\r\n"
+    socket_send(client_id, request)
+    
+    // Receive response
+    response = socket_receive(client_id, 4096)
+    socket_close(client_id)
+    
+    return response
+
+// Usage
+response = make_http_request("httpbin.org", "80", "/get")
+print(response)
+```
+
+#### Chat Server
+```python
+// chat_server.crl
+import "sockets"
+
+clients = []
+
+spell handle_client(client_id):
+    while True:
+        attempt:
+            message = socket_receive(client_id, 1024)
+            if len(message) == 0:
+                break
+            
+            // Broadcast to all clients
+            broadcast_message = f"Client says: {message}"
+            for other_client in clients:
+                if other_client != client_id:
+                    socket_send(other_client, broadcast_message)
+                    
+        ensnare:
+            break
+    
+    // Remove client
+    clients.remove(client_id)
+    socket_close(client_id)
+
+spell start_chat_server():
+    server_id = server("tcp", "localhost:8080", 30)
+    listener = socket_listen(server_id)
+    
+    print("Chat server started on localhost:8080")
+    
+    while True:
+        client = socket_accept(listener)
+        clients.append(client)
+        print(f"Client connected. Total clients: {len(clients)}")
+        
+        // Handle client in background (simplified - would use threads/async)
+        handle_client(client)
+
+start_chat_server()
+```
+
+### Socket Functions Reference
+
+| Function | Description | Parameters | Returns |
+|----------|-------------|------------|---------|
+| `new_socket(type, [protocol], [address], [timeout])` | Create new socket | type, protocol, address, timeout | socket handle |
+| `client(type, address, [timeout])` | Connect as client | type, address, timeout | client handle |
+| `server(type, address, [timeout])` | Start server | type, address, timeout | server handle |
+| `socket_send(handle, data)` | Send data | handle, data string | bytes sent |
+| `socket_receive(handle, [buffer_size])` | Receive data | handle, buffer size | received string |
+| `socket_close(handle)` | Close socket | handle | none |
+| `socket_listen(handle)` | Listen for connections | server handle | listener handle |
+| `socket_accept(handle)` | Accept client connection | listener handle | client handle |
+| `socket_set_timeout(handle, seconds)` | Set timeout | handle, timeout seconds | none |
+| `socket_get_info(handle)` | Get socket info | handle | info hash |
+
+### Supported Socket Types
+
+- **TCP**: Reliable, connection-oriented protocol
+- **UDP**: Fast, connectionless protocol  
+- **Web/HTTP**: HTTP server functionality
+- **Unix**: Unix domain sockets for local IPC
+
+### Automatic Port Allocation and Conflict Resolution
+
+The sockets module includes intelligent port allocation with automatic conflict resolution:
+
+#### Mutex-Protected Port Allocation
+- All port allocation is protected by a global mutex for thread safety
+- Prevents race conditions when multiple servers try to bind to the same port simultaneously
+- Tracks allocated ports to avoid conflicts
+
+#### Automatic Port Incrementing
+When creating a server and the requested port is already in use:
+- The system automatically tries the next available port (increments by 1)
+- Continues trying up to 100 ports to find an available one
+- Displays an informative message about the port change
+- Works for TCP, UDP, and Web/HTTP servers
+
+#### Unix Socket Path Resolution
+For Unix domain sockets, if the socket file path is already in use:
+- Automatically appends a number to the filename (e.g., `/tmp/server.sock.1`)
+- Continues incrementing until an available path is found
+- Displays an informative message about the path change
+
+#### Example of Automatic Port Allocation
+```python
+// First server gets the requested port
+server1 = server("tcp", "localhost:8080", 30)
+// Output: Server started on localhost:8080
+
+// Second server automatically gets incremented port
+server2 = server("tcp", "localhost:8080", 30)  
+// Output: Port 8080 already allocated, incremented to port 8081
+
+// Third server gets next available port
+server3 = server("tcp", "localhost:8080", 30)
+// Output: Port 8080 already allocated, incremented to port 8082
+
+// When servers are closed, ports are automatically released
+socket_close(server1)  // Port 8080 is now available again
+```
+
+#### Port Release and Cleanup
+- Ports are automatically released when sockets are closed with `socket_close()`
+- Ensures efficient port reuse and prevents port exhaustion
+- Maintains accurate tracking of allocated vs. available ports
+
+The sockets module provides a unified interface for all network programming needs in Carrion, abstracting away the complexity of Go's networking APIs while maintaining full functionality and performance.
+
 The module system in Carrion provides flexible code organization capabilities while maintaining simplicity and readability. It supports both simple imports for small projects and sophisticated module hierarchies for larger applications.
+
+## Sockets Module
+
+Carrion includes a powerful sockets module that simplifies network programming by wrapping Go's net and net/http packages with an easy-to-use Carrion interface. The sockets module supports TCP, UDP, Unix domain sockets, and HTTP/Web servers with built-in timeout and connection management.
+
+### Socket Creation
+
+#### Basic Socket Creation
+```python
+// Create different types of sockets
+tcp_socket = new_socket("tcp", "tcp", "localhost:8080", 30)
+udp_socket = new_socket("udp", "udp", "localhost:9090", 30)
+web_socket = new_socket("web", "http", "localhost:8000", 60)
+unix_socket = new_socket("unix", "unix", "/tmp/my.sock", 30)
+```
+
+#### Simplified Socket Creation
+```python
+// Using defaults - creates TCP socket on localhost:8080 with 30s timeout
+socket_id = new_socket("tcp")
+
+// With custom address
+socket_id = new_socket("tcp", "tcp", "192.168.1.100:9000")
+
+// With custom timeout (in seconds)
+socket_id = new_socket("tcp", "tcp", "localhost:8080", 60)
+```
+
+### Client Connections
+
+#### TCP Client
+```python
+// Connect to a TCP server
+client_id = client("tcp", "localhost:8080", 30)
+
+// Send data
+bytes_sent = socket_send(client_id, "Hello Server!")
+
+// Receive data
+response = socket_receive(client_id, 1024)
+print(f"Server response: {response}")
+
+// Close connection
+socket_close(client_id)
+```
+
+#### UDP Client
+```python
+// Connect to UDP endpoint
+udp_client = client("udp", "localhost:9090", 30)
+
+// Send UDP datagram
+socket_send(udp_client, "UDP message")
+
+// Receive response
+response = socket_receive(udp_client, 1024)
+print(f"UDP response: {response}")
+
+socket_close(udp_client)
+```
+
+#### Unix Domain Socket Client
+```python
+// Connect to Unix socket
+unix_client = client("unix", "/tmp/server.sock", 30)
+socket_send(unix_client, "Unix socket message")
+response = socket_receive(unix_client)
+socket_close(unix_client)
+```
+
+### Server Creation
+
+#### TCP Server
+```python
+// Start TCP server
+server_id = server("tcp", "localhost:8080", 30)
+
+// Listen for connections
+listener_id = socket_listen(server_id)
+
+// Accept client connections
+while True:
+    client_conn = socket_accept(listener_id)
+    
+    // Handle client
+    message = socket_receive(client_conn, 1024)
+    print(f"Client says: {message}")
+    
+    socket_send(client_conn, "Hello Client!")
+    socket_close(client_conn)
+```
+
+#### UDP Server
+```python
+// Start UDP server
+udp_server = server("udp", "localhost:9090", 30)
+
+// Receive and respond to datagrams
+while True:
+    data = socket_receive(udp_server, 1024)
+    print(f"Received UDP: {data}")
+    
+    socket_send(udp_server, "UDP response")
+```
+
+#### Web/HTTP Server
+```python
+// Start HTTP server
+web_server = server("web", "localhost:8000", 60)
+
+// The HTTP server runs in the background
+// Routes and handlers would be configured separately
+print("HTTP server started on localhost:8000")
+
+// Server continues running until closed
+// socket_close(web_server)  // Stop the server
+```
+
+#### Unix Domain Socket Server
+```python
+// Start Unix socket server
+unix_server = server("unix", "/tmp/server.sock", 30)
+listener = socket_listen(unix_server)
+
+while True:
+    client = socket_accept(listener)
+    data = socket_receive(client, 1024)
+    socket_send(client, f"Echo: {data}")
+    socket_close(client)
+```
+
+### Socket Management
+
+#### Setting Timeouts
+```python
+socket_id = new_socket("tcp", "tcp", "localhost:8080")
+
+// Set timeout to 45 seconds
+socket_set_timeout(socket_id, 45)
+
+// Timeout applies to all subsequent operations
+client_id = client("tcp", "localhost:8080")
+socket_set_timeout(client_id, 10)  // 10 second timeout for this client
+```
+
+#### Getting Socket Information
+```python
+socket_id = new_socket("tcp", "tcp", "localhost:8080", 30)
+
+info = socket_get_info(socket_id)
+print(f"Socket type: {info['type']}")
+print(f"Address: {info['address']}")
+print(f"Timeout: {info['timeout']} seconds")
+```
+
+### Complete Examples
+
+#### Simple Echo Server
+```python
+// echo_server.crl
+import "sockets"
+
+spell start_echo_server():
+    server_id = server("tcp", "localhost:8080", 30)
+    listener = socket_listen(server_id)
+    
+    print("Echo server started on localhost:8080")
+    
+    while True:
+        attempt:
+            client = socket_accept(listener)
+            print("Client connected")
+            
+            while True:
+                data = socket_receive(client, 1024)
+                if len(data) == 0:
+                    break
+                
+                print(f"Echoing: {data}")
+                socket_send(client, f"Echo: {data}")
+            
+            socket_close(client)
+            print("Client disconnected")
+            
+        ensnare error:
+            print(f"Error handling client: {error}")
+
+start_echo_server()
+```
+
+#### HTTP-like Client
+```python
+// http_client.crl
+import "sockets"
+
+spell make_http_request(host, port, path):
+    client_id = client("tcp", f"{host}:{port}", 30)
+    
+    // Send HTTP request
+    request = f"GET {path} HTTP/1.1\r\nHost: {host}\r\n\r\n"
+    socket_send(client_id, request)
+    
+    // Receive response
+    response = socket_receive(client_id, 4096)
+    socket_close(client_id)
+    
+    return response
+
+// Usage
+response = make_http_request("httpbin.org", "80", "/get")
+print(response)
+```
+
+#### Chat Server
+```python
+// chat_server.crl
+import "sockets"
+
+clients = []
+
+spell handle_client(client_id):
+    while True:
+        attempt:
+            message = socket_receive(client_id, 1024)
+            if len(message) == 0:
+                break
+            
+            // Broadcast to all clients
+            broadcast_message = f"Client says: {message}"
+            for other_client in clients:
+                if other_client != client_id:
+                    socket_send(other_client, broadcast_message)
+                    
+        ensnare:
+            break
+    
+    // Remove client
+    clients.remove(client_id)
+    socket_close(client_id)
+
+spell start_chat_server():
+    server_id = server("tcp", "localhost:8080", 30)
+    listener = socket_listen(server_id)
+    
+    print("Chat server started on localhost:8080")
+    
+    while True:
+        client = socket_accept(listener)
+        clients.append(client)
+        print(f"Client connected. Total clients: {len(clients)}")
+        
+        // Handle client in background (simplified - would use threads/async)
+        handle_client(client)
+
+start_chat_server()
+```
+
+### Socket Functions Reference
+
+| Function | Description | Parameters | Returns |
+|----------|-------------|------------|---------|
+| `new_socket(type, [protocol], [address], [timeout])` | Create new socket | type, protocol, address, timeout | socket handle |
+| `client(type, address, [timeout])` | Connect as client | type, address, timeout | client handle |
+| `server(type, address, [timeout])` | Start server | type, address, timeout | server handle |
+| `socket_send(handle, data)` | Send data | handle, data string | bytes sent |
+| `socket_receive(handle, [buffer_size])` | Receive data | handle, buffer size | received string |
+| `socket_close(handle)` | Close socket | handle | none |
+| `socket_listen(handle)` | Listen for connections | server handle | listener handle |
+| `socket_accept(handle)` | Accept client connection | listener handle | client handle |
+| `socket_set_timeout(handle, seconds)` | Set timeout | handle, timeout seconds | none |
+| `socket_get_info(handle)` | Get socket info | handle | info hash |
+
+### Supported Socket Types
+
+- **TCP**: Reliable, connection-oriented protocol
+- **UDP**: Fast, connectionless protocol  
+- **Web/HTTP**: HTTP server functionality
+- **Unix**: Unix domain sockets for local IPC
+
+The sockets module provides a unified interface for all network programming needs in Carrion, abstracting away the complexity of Go's networking APIs while maintaining full functionality and performance.
+
+## Server Framework (Grimoires)
+
+Carrion provides an object-oriented server framework through grimoire classes that simplify server creation and management. These classes provide auto-close functionality, inheritance hierarchies, and standardized interfaces for different server types.
+
+### Base Server Class
+
+The `Server` grimoire provides the foundation for all server types:
+
+```python
+# Create base server (usually not used directly)
+base_server = Server("tcp", "localhost:8080", 30)
+
+# Basic server operations
+base_server.start()              // Start the server
+base_server.shutdown()           // Stop the server  
+base_server.is_active()          // Check if running
+base_server.get_info()           // Get server information
+
+# Context management
+base_server.set_context("key", "value")
+value = base_server.get_context("key", "default")
+```
+
+### TCP Server
+
+The `TCPServer` grimoire provides TCP socket server functionality:
+
+```python
+# Create TCP server
+tcp_server = TCPServer("127.0.0.1:8080", 30)
+
+# Start server and accept connections
+tcp_server.tcp_start()
+client = tcp_server.accept_client()
+
+# Client communication
+tcp_server.send_to_client(client, "Hello Client!")
+response = tcp_server.receive_from_client(client, 1024)
+
+# Server management
+print(f"Connected clients: {tcp_server.client_count()}")
+tcp_server.tcp_shutdown()
+```
+
+### UDP Server  
+
+The `UDPServer` grimoire provides UDP datagram communication:
+
+```python
+# Create UDP server
+udp_server = UDPServer("127.0.0.1:8081", 30)
+
+# Start server
+udp_server.udp_start()
+
+# Send and receive datagrams
+udp_server.send_datagram("Hello!", "127.0.0.1:9000")
+data_and_sender = udp_server.receive_datagram(1024)
+
+# Message buffering
+udp_server.buffer_message("Test message", "sender_address")
+buffered_messages = udp_server.get_buffered_messages()
+message_count = udp_server.message_count()
+
+# Cleanup
+udp_server.udp_shutdown()
+```
+
+### Unix Domain Socket Server
+
+The `UnixServer` grimoire provides Unix domain socket communication:
+
+```python
+# Create Unix socket server
+unix_server = UnixServer("/tmp/my_socket", 30)
+
+# Start server
+unix_server.unix_start()
+
+# Accept and handle clients
+client = unix_server.accept_client()
+unix_server.send_to_client(client, "Hello Unix Client!")
+response = unix_server.receive_from_client(client, 1024)
+
+# Broadcast to all clients  
+sent_count = unix_server.broadcast_to_clients("Broadcast message")
+print(f"Clients connected: {unix_server.client_count()}")
+
+# Cleanup (automatically removes socket file)
+unix_server.unix_shutdown()
+```
+
+### HTTP Server
+
+The `HTTPServer` grimoire provides HTTP protocol server with routing:
+
+```python
+# Create HTTP server
+http_server = HTTPServer("127.0.0.1", 8082, 30)
+
+# Add routes (handlers would be defined as spell functions)
+http_server.add_route("GET", "/api/users", user_handler)
+http_server.add_route("POST", "/api/data", data_handler)
+
+# Add middleware 
+http_server.add_middleware(auth_middleware)
+http_server.add_middleware(logging_middleware)
+
+# Static file serving
+http_server.add_static_path("/static", "/var/www/static")
+
+# Start server
+http_server.http_start()
+
+# Process requests (typically in a loop)
+response = http_server.handle_request(request_data)
+
+# Server info
+routes = http_server.get_routes()
+route_count = http_server.route_count()
+
+# Cleanup
+http_server.http_shutdown()
+```
+
+### Web Server
+
+The `WebServer` grimoire extends HTTPServer for static file serving:
+
+```python
+# Create web server with document root
+web_server = WebServer("127.0.0.1", 8083, 30, "/var/www/html")
+
+# Configure MIME types
+web_server.add_mime_type("crl", "text/x-carrion")
+
+# Set default index pages
+web_server.set_default_pages(["index.html", "home.html", "main.html"])
+
+# Start web server (automatically serves static files)
+web_server.web_start()
+
+# Serve specific files
+response = web_server.serve_file("about.html")
+dir_listing = web_server.serve_directory("docs/")
+
+# Cleanup
+web_server.web_shutdown()
+```
+
+### Server Framework Features
+
+#### Auto-Close Registration
+All servers automatically register for cleanup when created:
+```python
+# Servers are automatically added to _auto_close_servers
+tcp_server = TCPServer("localhost:8080", 30)
+// Server will be cleaned up automatically on program exit
+```
+
+#### Inheritance and Polymorphism
+```python
+# All server types inherit from base Server class
+servers = [
+    TCPServer("localhost:8080", 30),
+    UDPServer("localhost:8081", 30), 
+    UnixServer("/tmp/socket", 30),
+    HTTPServer("localhost", 8082, 30),
+    WebServer("localhost", 8083, 30, "/var/www")
+]
+
+# Common interface across all server types
+for server in servers:
+    server.set_context("created", "now")
+    print(f"Server active: {server.is_active()}")
+```
+
+#### Context Management
+All servers support context storage for application data:
+```python
+server.set_context("database_url", "postgresql://...")
+server.set_context("max_connections", 100)
+server.set_context("ssl_enabled", True)
+
+// Retrieve with defaults
+db_url = server.get_context("database_url", "sqlite://default.db")
+max_conn = server.get_context("max_connections", 50)
+```
+
+### Server Types Summary
+
+| Server Type | Use Case | Key Features |
+|-------------|----------|--------------|
+| `Server` | Base class | Context management, auto-close |
+| `TCPServer` | TCP connections | Client management, reliable communication |
+| `UDPServer` | UDP datagrams | Message buffering, connectionless |
+| `UnixServer` | Local IPC | Unix sockets, client broadcasting |
+| `HTTPServer` | HTTP protocol | Routing, middleware, static files |
+| `WebServer` | Static websites | Document root, MIME types, directory listing |
+
+The server framework provides a modern, object-oriented approach to network programming in Carrion while maintaining the simplicity and performance of the underlying socket system.

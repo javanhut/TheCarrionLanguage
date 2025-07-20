@@ -1,0 +1,464 @@
+# Servers Grimoire - Easy server creation with auto-close functionality
+
+# Global registry for auto-close servers
+_auto_close_servers = []
+
+grim Server:
+    init(server_type="", address, timeout):
+        self.server_type = server_type
+        self.address = address
+        self.timeout = timeout
+        self.handle = None
+        self.listener_handle = None
+        self.is_running = False
+        self.context = {}
+        
+        # Register for auto-close
+        _auto_close_servers.append(self)
+    
+    spell start():
+        if self.is_running:
+            print(self.server_type + " server already running on " + self.address)
+            return self
+        
+        attempt:
+            self.handle = server(self.server_type, self.address, self.timeout)
+            
+            if self.server_type == "tcp" or self.server_type == "unix":
+                self.listener_handle = socket_listen(self.handle)
+            
+            self.is_running = True
+            print(self.server_type.upper() + " server started on " + self.address)
+            return self
+            
+        ensnare (error):
+            print("Failed to start " + self.server_type + " server: " + str(error))
+            return None
+    
+    spell shutdown():
+        ```
+        Stop the server and clean up resources.
+        ```
+        if not self.is_running:
+            return self
+        
+        attempt:
+            if self.listener_handle:
+                socket_close(self.listener_handle)
+            if self.handle:
+                socket_close(self.handle)
+            
+            self.is_running = False
+            print(self.server_type.upper() + " server stopped")
+            
+            if self in _auto_close_servers:
+                _auto_close_servers.remove(self)
+                
+        ensnare (error):
+            print("Error stopping server: " + str(error))
+        
+        return self
+    
+    spell set_context(key, value):
+        self.context[key] = value
+        return self
+    
+    spell get_context(key, default):
+        if key in self.context:
+            return self.context[key]
+        return default
+    
+    spell get_info():
+        if self.handle:
+            return socket_get_info(self.handle)
+        return None
+    
+    spell is_active():
+        return self.is_running
+
+grim TCPServer(Server):
+    init(address, timeout):
+        super.init("tcp", address, timeout)
+        self.clients = []
+    
+    spell tcp_start():
+        return super.start()
+    
+    spell tcp_stop():
+        # Close all client connections
+        for client in self.clients:
+            attempt:
+                socket_close(client)
+            ensnare:
+                pass
+        self.clients = []
+        
+        return super.shutdown()
+    
+    spell accept_client():
+        if not self.is_running:
+            print("TCP server is not running")
+            return None
+        
+        attempt:
+            client_handle = socket_accept(self.listener_handle)
+            self.clients.append(client_handle)
+            return client_handle
+        ensnare (error):
+            print("Error accepting client: " + str(error))
+            return None
+    
+    spell send_to_client(client_handle, data):
+        return socket_send(client_handle, data)
+    
+    spell receive_from_client(client_handle, buffer_size):
+        return socket_receive(client_handle, buffer_size)
+    
+    spell set_context(key, value):
+        return super.set_context(key, value)
+    
+    spell get_context(key, default):
+        return super.get_context(key, default)
+    
+    spell get_info():
+        return super.get_info()
+    
+    spell is_active():
+        return super.is_active()
+    
+    spell client_count():
+        return len(self.clients)
+
+grim UDPServer(Server):
+    init(address, timeout):
+        super.init("udp", address, timeout)
+        self.message_buffer = []
+    
+    spell udp_start():
+        ```
+        Start UDP server for datagram communication.
+        ```
+        return super.start()
+    
+    spell udp_shutdown():
+        ```
+        Shutdown UDP server and clear message buffer.
+        ```
+        self.message_buffer = []
+        return super.shutdown()
+    
+    spell send_datagram(data, target_address):
+        ```
+        Send UDP datagram to target address.
+        ```
+        if not self.is_running:
+            print("UDP server is not running")
+            return False
+        
+        attempt:
+            return socket_send_to(self.handle, data, target_address)
+        ensnare (error):
+            print("Error sending datagram: " + str(error))
+            return False
+    
+    spell receive_datagram(buffer_size):
+        ```
+        Receive UDP datagram and return data with sender address.
+        ```
+        if not self.is_running:
+            print("UDP server is not running")
+            return None
+        
+        attempt:
+            return socket_receive_from(self.handle, buffer_size)
+        ensnare (error):
+            print("Error receiving datagram: " + str(error))
+            return None
+    
+    spell buffer_message(message, sender):
+        ```
+        Buffer received message for later processing.
+        ```
+        self.message_buffer.append({"message": message, "sender": sender, "timestamp": "now"})
+        return self
+    
+    spell get_buffered_messages():
+        ```
+        Get all buffered messages and clear buffer.
+        ```
+        messages = self.message_buffer
+        self.message_buffer = []
+        return messages
+    
+    spell message_count():
+        ```
+        Get count of buffered messages.
+        ```
+        return len(self.message_buffer)
+
+grim UnixServer(Server):
+    init(socket_path, timeout):
+        super.init("unix", socket_path, timeout)
+        self.socket_path = socket_path
+        self.clients = []
+    
+    spell unix_start():
+        ```
+        Start Unix domain socket server.
+        ```
+        return super.start()
+    
+    spell unix_shutdown():
+        ```
+        Shutdown Unix server and cleanup socket file.
+        ```
+        # Close all client connections
+        for client in self.clients:
+            attempt:
+                socket_close(client)
+            ensnare:
+                pass
+        self.clients = []
+        
+        # Clean up socket file
+        attempt:
+            if file_exists(self.socket_path):
+                file_remove(self.socket_path)
+        ensnare:
+            pass
+        
+        return super.shutdown()
+    
+    spell accept_client():
+        ```
+        Accept new client connection on Unix socket.
+        ```
+        if not self.is_running:
+            print("Unix server is not running")
+            return None
+        
+        attempt:
+            client_handle = socket_accept(self.listener_handle)
+            self.clients.append(client_handle)
+            return client_handle
+        ensnare (error):
+            print("Error accepting Unix client: " + str(error))
+            return None
+    
+    spell send_to_client(client_handle, data):
+        ```
+        Send data to specific Unix socket client.
+        ```
+        return socket_send(client_handle, data)
+    
+    spell receive_from_client(client_handle, buffer_size):
+        ```
+        Receive data from specific Unix socket client.
+        ```
+        return socket_receive(client_handle, buffer_size)
+    
+    spell broadcast_to_clients(data):
+        ```
+        Send data to all connected Unix socket clients.
+        ```
+        sent_count = 0
+        for client in self.clients:
+            attempt:
+                socket_send(client, data)
+                sent_count = sent_count + 1
+            ensnare:
+                pass
+        return sent_count
+    
+    spell client_count():
+        ```
+        Get number of connected Unix socket clients.
+        ```
+        return len(self.clients)
+
+grim HTTPServer(Server):
+    init(address, port, timeout):
+        super.init("http", address + ":" + str(port), timeout)
+        self.port = port
+        self.routes = {}
+        self.middleware = []
+        self.static_paths = {}
+    
+    spell http_start():
+        ```
+        Start HTTP server with routing capabilities.
+        ```
+        return super.start()
+    
+    spell http_shutdown():
+        ```
+        Shutdown HTTP server and clear routes.
+        ```
+        self.routes = {}
+        self.middleware = []
+        self.static_paths = {}
+        return super.shutdown()
+    
+    spell add_route(method, path, handler):
+        ```
+        Add HTTP route handler for method and path.
+        ```
+        route_key = method.upper() + ":" + path
+        self.routes[route_key] = handler
+        return self
+    
+    spell add_middleware(middleware_func):
+        ```
+        Add middleware function to request processing chain.
+        ```
+        self.middleware.append(middleware_func)
+        return self
+    
+    spell add_static_path(url_path, file_path):
+        ```
+        Map URL path to static file directory.
+        ```
+        self.static_paths[url_path] = file_path
+        return self
+    
+    spell handle_request(request_data):
+        ```
+        Process HTTP request and return response.
+        ```
+        if not self.is_running:
+            return http_response(500, "Server not running", {})
+        
+        attempt:
+            # Parse request
+            request = http_parse_request(request_data)
+            
+            # Apply middleware
+            for middleware in self.middleware:
+                request = middleware(request)
+            
+            # Check static paths first
+            for url_path in self.static_paths:
+                if request["path"].startswith(url_path):
+                    file_path = self.static_paths[url_path] + request["path"].replace(url_path, "")
+                    return serve_static_file(file_path)
+            
+            # Route handling
+            route_key = request["method"] + ":" + request["path"]
+            if route_key in self.routes:
+                handler = self.routes[route_key]
+                return handler(request)
+            
+            # 404 Not Found
+            return http_response(404, "Not Found", {"Content-Type": "text/plain"})
+            
+        ensnare (error):
+            return http_response(500, "Internal Server Error: " + str(error), {"Content-Type": "text/plain"})
+    
+    spell get_routes():
+        ```
+        Get all registered routes.
+        ```
+        return self.routes
+    
+    spell route_count():
+        ```
+        Get number of registered routes.
+        ```
+        return len(self.routes)
+
+grim WebServer(HTTPServer):
+    init(address, port, timeout, document_root):
+        super.init(address, port, timeout)
+        self.document_root = document_root
+        self.default_pages = ["index.html", "index.htm", "default.html"]
+        self.mime_types = {
+            "html": "text/html",
+            "htm": "text/html", 
+            "css": "text/css",
+            "js": "application/javascript",
+            "json": "application/json",
+            "png": "image/png",
+            "jpg": "image/jpeg",
+            "jpeg": "image/jpeg",
+            "gif": "image/gif",
+            "svg": "image/svg+xml",
+            "txt": "text/plain"
+        }
+    
+    spell web_start():
+        ```
+        Start web server with document root serving.
+        ```
+        # Set up default static path mapping
+        self.add_static_path("/", self.document_root)
+        return super.http_start()
+    
+    spell web_shutdown():
+        ```
+        Shutdown web server.
+        ```
+        return super.http_shutdown()
+    
+    spell serve_file(file_path):
+        ```
+        Serve static file with appropriate MIME type.
+        ```
+        attempt:
+            if not file_exists(self.document_root + "/" + file_path):
+                return http_response(404, "File not found", {"Content-Type": "text/plain"})
+            
+            # Get file extension for MIME type
+            extension = file_path.split(".").last().lower()
+            mime_type = "application/octet-stream"
+            if extension in self.mime_types:
+                mime_type = self.mime_types[extension]
+            
+            # Read and serve file
+            file_content = file_read(self.document_root + "/" + file_path)
+            headers = {"Content-Type": mime_type, "Content-Length": str(len(file_content))}
+            return http_response(200, file_content, headers)
+            
+        ensnare (error):
+            return http_response(500, "Error serving file: " + str(error), {"Content-Type": "text/plain"})
+    
+    spell serve_directory(dir_path):
+        ```
+        Serve directory listing or default index file.
+        ```
+        full_path = self.document_root + "/" + dir_path
+        
+        # Try to serve default pages first
+        for default_page in self.default_pages:
+            default_file = full_path + "/" + default_page
+            if file_exists(default_file):
+                return self.serve_file(dir_path + "/" + default_page)
+        
+        # Generate directory listing
+        attempt:
+            files = list_directory(full_path)
+            html = "<html><head><title>Directory: " + dir_path + "</title></head><body>"
+            html = html + "<h1>Directory: " + dir_path + "</h1><ul>"
+            
+            for file_name in files:
+                html = html + "<li><a href=\"" + dir_path + "/" + file_name + "\">" + file_name + "</a></li>"
+            
+            html = html + "</ul></body></html>"
+            return http_response(200, html, {"Content-Type": "text/html"})
+            
+        ensnare (error):
+            return http_response(500, "Error listing directory: " + str(error), {"Content-Type": "text/plain"})
+    
+    spell add_mime_type(extension, mime_type):
+        ```
+        Add custom MIME type mapping.
+        ```
+        self.mime_types[extension] = mime_type
+        return self
+    
+    spell set_default_pages(pages):
+        ```
+        Set list of default index pages to serve.
+        ```
+        self.default_pages = pages
+        return self
+
