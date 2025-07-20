@@ -46,9 +46,9 @@ func extractSocketString(obj object.Object) (string, bool) {
 				return strVal.Value, true
 			}
 		}
-		return v.Inspect(), true
+		return "", false
 	default:
-		return obj.Inspect(), true
+		return "", false
 	}
 }
 
@@ -84,6 +84,11 @@ func removeSocketHandle(handleID int64) {
 	delete(socketHandles, handleID)
 }
 
+// Port validation function
+func isValidPort(port int) bool {
+	return port >= 1 && port <= 65535
+}
+
 // Port allocation functions
 func allocatePort(address string) (string, string) {
 	portAllocationMutex.Lock()
@@ -103,11 +108,22 @@ func allocatePort(address string) (string, string) {
 		return address, ""
 	}
 
+	// Validate port range
+	if !isValidPort(portNum) {
+		return address, fmt.Sprintf("Port %d is out of valid range (1-65535)", portNum)
+	}
+
 	originalPort := portNum
 	var message string
 
 	// Try up to 100 ports to find an available one
 	for attempts := 0; attempts < 100; attempts++ {
+		// Validate current port number is still in range
+		if !isValidPort(portNum) {
+			message = fmt.Sprintf("Could not find available port starting from %d (reached end of valid port range)", originalPort)
+			return address, message
+		}
+
 		testAddress := net.JoinHostPort(host, strconv.Itoa(portNum))
 		
 		// Resolve the address to canonical form for consistent tracking
@@ -118,11 +134,12 @@ func allocatePort(address string) (string, string) {
 		
 		// Check if port is already tracked as allocated
 		if !allocatedPorts[canonicalAddress] {
-			// Try to bind to the port to see if it's actually available
-			if isPortAvailable(testAddress) {
-				// Mark port as allocated using canonical address
+			// Attempt to bind directly to eliminate TOCTOU race condition
+			listener, err := net.Listen("tcp", testAddress)
+			if err == nil {
+				// Successfully bound - mark as allocated and close listener
+				listener.Close()
 				allocatedPorts[canonicalAddress] = true
-				// Port allocated successfully
 				
 				if portNum != originalPort {
 					message = fmt.Sprintf("Port %d already allocated, incremented to port %d", originalPort, portNum)
@@ -130,6 +147,10 @@ func allocatePort(address string) (string, string) {
 				
 				return testAddress, message
 			}
+			
+			// Binding failed, implement exponential backoff for retries
+			backoffDuration := time.Duration(1<<uint(attempts%5)) * time.Millisecond
+			time.Sleep(backoffDuration)
 		}
 		
 		// Port is in use, try next port
@@ -157,22 +178,19 @@ func releasePort(address string) {
 	delete(allocatedPorts, address)
 }
 
-func isPortAvailable(address string) bool {
-	// Try to bind to the port to check availability
-	listener, err := net.Listen("tcp", address)
-	if err != nil {
-		return false
-	}
-	listener.Close()
-	return true
-}
-
 // Socket wrapper types
 type TCPSocket struct {
 	Conn    net.Conn
 	Type    string
 	Address string
 	Timeout time.Duration
+}
+
+type TCPListener struct {
+	Listener net.Listener
+	Type     string
+	Address  string
+	Timeout  time.Duration
 }
 
 type UDPSocket struct {
@@ -226,7 +244,12 @@ var SocketsModule = map[string]*object.Builtin{
 			timeout := 30 * time.Second
 			if len(args) > 3 {
 				if t, ok := extractSocketInt(args[3]); ok {
-					timeout = time.Duration(t) * time.Second
+					if t < 0 {
+						// Use default timeout for negative values
+						timeout = 30 * time.Second
+					} else {
+						timeout = time.Duration(t) * time.Second
+					}
 				}
 			}
 
@@ -482,6 +505,52 @@ var SocketsModule = map[string]*object.Builtin{
 			return getSocketInfo(socket)
 		},
 	},
+
+	"socket_send_to": {
+		Fn: func(args ...object.Object) object.Object {
+			if len(args) != 3 {
+				return &object.Error{Message: "socket_send_to requires 3 arguments: handleID, data, targetAddress"}
+			}
+			handleID, ok := extractSocketInt(args[0])
+			if !ok {
+				return &object.Error{Message: "socket_send_to: handleID must be an integer"}
+			}
+			data, ok := extractSocketString(args[1])
+			if !ok {
+				return &object.Error{Message: "socket_send_to: data must be a string"}
+			}
+			targetAddress, ok := extractSocketString(args[2])
+			if !ok {
+				return &object.Error{Message: "socket_send_to: targetAddress must be a string"}
+			}
+			socket, exists := getSocketHandle(handleID)
+			if !exists {
+				return &object.Error{Message: "socket_send_to: invalid socket handle"}
+			}
+			return sendDataTo(socket, data, targetAddress)
+		},
+	},
+
+	"socket_receive_from": {
+		Fn: func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return &object.Error{Message: "socket_receive_from requires 2 arguments: handleID, bufferSize"}
+			}
+			handleID, ok := extractSocketInt(args[0])
+			if !ok {
+				return &object.Error{Message: "socket_receive_from: handleID must be an integer"}
+			}
+			bufferSize, ok := extractSocketInt(args[1])
+			if !ok {
+				return &object.Error{Message: "socket_receive_from: bufferSize must be an integer"}
+			}
+			socket, exists := getSocketHandle(handleID)
+			if !exists {
+				return &object.Error{Message: "socket_receive_from: invalid socket handle"}
+			}
+			return receiveDataFrom(socket, bufferSize)
+		},
+	},
 }
 
 // Implementation functions
@@ -606,8 +675,15 @@ func startTCPServer(address string, timeout time.Duration) object.Object {
 		return &object.Error{Message: fmt.Sprintf("failed to start TCP server: %v", err)}
 	}
 
-	// Store the listener directly instead of wrapping in TCPSocket
-	handleID := storeSocketHandle(listener)
+	// Wrap the listener in TCPListener for consistency with other socket types
+	tcpListener := &TCPListener{
+		Listener: listener,
+		Type:     "tcp_server",
+		Address:  allocatedAddress,
+		Timeout:  timeout,
+	}
+
+	handleID := storeSocketHandle(tcpListener)
 	
 	// Print message if port was incremented
 	if message != "" {
@@ -670,13 +746,26 @@ func startWebServer(address string, timeout time.Duration) object.Object {
 		Timeout: timeout,
 	}
 
+	// Create a channel to synchronize server startup
+	startupChan := make(chan error, 1)
+	
 	go func() {
 		err := server.ListenAndServe()
 		if err != nil && err != http.ErrServerClosed {
-			// If server failed to start, release the port
-			releasePort(allocatedAddress)
+			startupChan <- err
 		}
 	}()
+
+	// Give the server a moment to start and check for immediate errors
+	select {
+	case err := <-startupChan:
+		// Server failed to start
+		releasePort(allocatedAddress)
+		return &object.Error{Message: fmt.Sprintf("failed to start web server: %v", err)}
+	case <-time.After(100 * time.Millisecond):
+		// Server appears to have started successfully (no immediate error)
+		// The goroutine continues running in the background
+	}
 
 	handleID := storeSocketHandle(socket)
 	
@@ -806,9 +895,80 @@ func receiveData(socket interface{}, bufferSize int64) object.Object {
 	}
 }
 
+func sendDataTo(socket interface{}, data string, targetAddress string) object.Object {
+	switch s := socket.(type) {
+	case *UDPSocket:
+		if s.Conn == nil {
+			return &object.Error{Message: "UDP socket not connected"}
+		}
+		
+		// Parse target address
+		udpAddr, err := net.ResolveUDPAddr("udp", targetAddress)
+		if err != nil {
+			return &object.Error{Message: fmt.Sprintf("failed to resolve target address: %v", err)}
+		}
+		
+		// Send data to specific address
+		n, err := s.Conn.WriteTo([]byte(data), udpAddr)
+		if err != nil {
+			return &object.Error{Message: fmt.Sprintf("failed to send UDP data to %s: %v", targetAddress, err)}
+		}
+		return &object.Integer{Value: int64(n)}
+		
+	default:
+		return &object.Error{Message: "socket_send_to only supports UDP sockets"}
+	}
+}
+
+func receiveDataFrom(socket interface{}, bufferSize int64) object.Object {
+	switch s := socket.(type) {
+	case *UDPSocket:
+		if s.Conn == nil {
+			return &object.Error{Message: "UDP socket not connected"}
+		}
+		
+		buffer := make([]byte, bufferSize)
+		n, addr, err := s.Conn.ReadFrom(buffer)
+		if err != nil && err != io.EOF {
+			return &object.Error{Message: fmt.Sprintf("failed to receive UDP data: %v", err)}
+		}
+		
+		// Return a hash with data and sender address
+		result := &object.Hash{
+			Pairs: make(map[object.HashKey]object.HashPair),
+		}
+		
+		dataKey := &object.String{Value: "data"}
+		result.Pairs[dataKey.HashKey()] = object.HashPair{
+			Key:   dataKey,
+			Value: &object.String{Value: string(buffer[:n])},
+		}
+		
+		senderKey := &object.String{Value: "sender"}
+		result.Pairs[senderKey.HashKey()] = object.HashPair{
+			Key:   senderKey,
+			Value: &object.String{Value: addr.String()},
+		}
+		
+		return result
+		
+	default:
+		return &object.Error{Message: "socket_receive_from only supports UDP sockets"}
+	}
+}
+
 func closeSocket(socket interface{}) error {
+	// Check if socket is nil
+	if socket == nil {
+		return nil
+	}
+
 	switch s := socket.(type) {
 	case *TCPSocket:
+		// Check if socket struct is nil
+		if s == nil {
+			return nil
+		}
 		// Release port allocation
 		if s.Address != "" {
 			releasePort(s.Address)
@@ -817,6 +977,10 @@ func closeSocket(socket interface{}) error {
 			return s.Conn.Close()
 		}
 	case *UDPSocket:
+		// Check if socket struct is nil
+		if s == nil {
+			return nil
+		}
 		// Release port allocation
 		if s.Address != "" {
 			releasePort(s.Address)
@@ -825,6 +989,10 @@ func closeSocket(socket interface{}) error {
 			return s.Conn.Close()
 		}
 	case *WebSocket:
+		// Check if socket struct is nil
+		if s == nil {
+			return nil
+		}
 		// Release port allocation
 		if s.Address != "" {
 			releasePort(s.Address)
@@ -835,13 +1003,33 @@ func closeSocket(socket interface{}) error {
 			return s.Server.Shutdown(ctx)
 		}
 	case *UnixSocket:
+		// Check if socket struct is nil
+		if s == nil {
+			return nil
+		}
 		if s.Conn != nil {
 			return s.Conn.Close()
 		}
+	case *TCPListener:
+		// Check if socket struct is nil
+		if s == nil {
+			return nil
+		}
+		// Release port allocation for TCP listener
+		if s.Address != "" {
+			releasePort(s.Address)
+		}
+		if s.Listener != nil {
+			return s.Listener.Close()
+		}
 	case net.Listener:
+		// Check if listener interface is nil
+		if s == nil {
+			return nil
+		}
 		// For raw listeners (TCP/Unix servers), we need to get the address to release the port
 		addr := s.Addr()
-		if addr.Network() == "tcp" {
+		if addr != nil && addr.Network() == "tcp" {
 			releasePort(addr.String())
 		}
 		return s.Close()
@@ -851,6 +1039,10 @@ func closeSocket(socket interface{}) error {
 
 func listenForConnections(socket interface{}) object.Object {
 	switch s := socket.(type) {
+	case *TCPListener:
+		// Return the same handle since it's already a listener wrapper
+		handleID := storeSocketHandle(s)
+		return &object.Integer{Value: handleID}
 	case net.Listener:
 		// Return the same handle since it's already a listener
 		handleID := storeSocketHandle(s)
@@ -873,6 +1065,22 @@ func listenForConnections(socket interface{}) object.Object {
 
 func acceptConnection(socket interface{}) object.Object {
 	switch s := socket.(type) {
+	case *TCPListener:
+		conn, err := s.Listener.Accept()
+		if err != nil {
+			return &object.Error{Message: fmt.Sprintf("failed to accept connection: %v", err)}
+		}
+
+		newSocket := &TCPSocket{
+			Conn:    conn,
+			Type:    SocketTypeTCP,
+			Address: conn.RemoteAddr().String(),
+			Timeout: s.Timeout,
+		}
+
+		handleID := storeSocketHandle(newSocket)
+		return &object.Integer{Value: handleID}
+
 	case net.Listener:
 		conn, err := s.Accept()
 		if err != nil {
@@ -931,6 +1139,9 @@ func setSocketTimeout(socket interface{}, timeout time.Duration) object.Object {
 		if s.Conn != nil {
 			s.Conn.SetDeadline(time.Now().Add(timeout))
 		}
+	case *TCPListener:
+		s.Timeout = timeout
+		// Note: net.Listener doesn't have SetDeadline, timeout is used for accepted connections
 	default:
 		return &object.Error{Message: "unsupported socket type for timeout operation"}
 	}
@@ -960,6 +1171,10 @@ func getSocketInfo(socket interface{}) object.Object {
 		address = s.Address
 		timeout = s.Timeout
 	case *UnixSocket:
+		socketType = s.Type
+		address = s.Address
+		timeout = s.Timeout
+	case *TCPListener:
 		socketType = s.Type
 		address = s.Address
 		timeout = s.Timeout

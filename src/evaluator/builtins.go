@@ -921,6 +921,10 @@ func init() {
 	for name, builtin := range modules.SocketsModule {
 		builtins[name] = builtin
 	}
+	// Merge HTTP module functions into builtins
+	for name, builtin := range modules.HttpModule {
+		builtins[name] = builtin
+	}
 }
 
 // Global reference to the stdlib environment

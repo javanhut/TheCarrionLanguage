@@ -222,8 +222,8 @@ grim UnixServer(Server):
         
         # Clean up socket file
         attempt:
-            if file_exists(self.socket_path):
-                file_remove(self.socket_path)
+            if File.exists(self.socket_path):
+                osRemove(self.socket_path)
         ensnare:
             pass
         
@@ -404,17 +404,18 @@ grim WebServer(HTTPServer):
         Serve static file with appropriate MIME type.
         ```
         attempt:
-            if not file_exists(self.document_root + "/" + file_path):
+            if not File.exists(self.document_root + "/" + file_path):
                 return http_response(404, "File not found", {"Content-Type": "text/plain"})
             
             # Get file extension for MIME type
-            extension = file_path.split(".").last().lower()
+            parts = file_path.split(".")
+            extension = parts[-1]  # Note: MIME type lookup should handle case sensitivity
             mime_type = "application/octet-stream"
             if extension in self.mime_types:
                 mime_type = self.mime_types[extension]
             
             # Read and serve file
-            file_content = file_read(self.document_root + "/" + file_path)
+            file_content = File.read(self.document_root + "/" + file_path)
             headers = {"Content-Type": mime_type, "Content-Length": str(len(file_content))}
             return http_response(200, file_content, headers)
             
@@ -430,7 +431,7 @@ grim WebServer(HTTPServer):
         # Try to serve default pages first
         for default_page in self.default_pages:
             default_file = full_path + "/" + default_page
-            if file_exists(default_file):
+            if File.exists(default_file):
                 return self.serve_file(dir_path + "/" + default_page)
         
         # Generate directory listing

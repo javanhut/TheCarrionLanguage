@@ -115,8 +115,9 @@ func Start(in io.Reader, out io.Writer, env *object.Environment) {
 				"year", "month", "day", "hour", "minute", "second", "weekday", "yearday",
 			},
 			"socket": {
-				"new_socket", "client", "server", "send", "receive", "close", "listen", "accept",
-				"set_timeout", "get_info",
+				"new_socket", "client", "server", "socket_send", "socket_receive", "socket_close", 
+				"socket_listen", "socket_accept", "socket_set_timeout", "socket_get_info",
+				"socket_send_to", "socket_receive_from",
 			},
 		}
 
@@ -197,7 +198,7 @@ func Start(in io.Reader, out io.Writer, env *object.Environment) {
 						"is_integer", "is_positive", "is_negative", "is_zero", "to_int",
 						"negate", "and_with", "or_with", "xor_with",
 						"read", "write", "append", "exists", "close", "seek", "tell", "flush",
-						"cwd", "chdir", "listdir", "mkdir", "remove", "getenv", "setenv", "run", "sleep",
+						"cwd", "chdir", "list_dir", "mkdir", "remove", "getenv", "setenv", "run", "sleep",
 					}
 					for _, method := range allMethods {
 						if strings.HasPrefix(method, methodPrefix) {

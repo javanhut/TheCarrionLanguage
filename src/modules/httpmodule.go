@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -366,6 +367,82 @@ var HttpModule = map[string]*object.Builtin{
 			return &object.String{Value: strings.Join(queryParts, "&")}
 		},
 	},
+
+	"http_parse_request": {
+		Fn: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return &object.Error{Message: "http_parse_request requires 1 argument: request_data"}
+			}
+			
+			requestData, err := extractString(args[0], "request_data")
+			if err != nil {
+				return err
+			}
+			
+			return parseHTTPRequest(requestData)
+		},
+	},
+
+	"http_response": {
+		Fn: func(args ...object.Object) object.Object {
+			if len(args) < 2 || len(args) > 3 {
+				return &object.Error{Message: "http_response requires 2-3 arguments: status_code, body, [headers]"}
+			}
+			
+			statusCode, ok := args[0].(*object.Integer)
+			if !ok {
+				return &object.Error{Message: "http_response: status_code must be an integer"}
+			}
+			
+			body, err := extractString(args[1], "body")
+			if err != nil {
+				return err
+			}
+			
+			headers := make(map[string]string)
+			if len(args) == 3 {
+				if headerHash, ok := args[2].(*object.Hash); ok {
+					for _, pair := range headerHash.Pairs {
+						key := pair.Key.Inspect()
+						value := pair.Value.Inspect()
+						headers[key] = value
+					}
+				}
+			}
+			
+			return buildHTTPResponse(int(statusCode.Value), body, headers)
+		},
+	},
+
+	"serve_static_file": {
+		Fn: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return &object.Error{Message: "serve_static_file requires 1 argument: file_path"}
+			}
+			
+			filePath, err := extractString(args[0], "file_path")
+			if err != nil {
+				return err
+			}
+			
+			return serveStaticFile(filePath)
+		},
+	},
+
+	"list_directory": {
+		Fn: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return &object.Error{Message: "list_directory requires 1 argument: directory_path"}
+			}
+			
+			dirPath, err := extractString(args[0], "directory_path")
+			if err != nil {
+				return err
+			}
+			
+			return listDirectory(dirPath)
+		},
+	},
 }
 
 func extractString(obj object.Object, name string) (string, object.Object) {
@@ -542,4 +619,119 @@ func objectToInterface(obj object.Object) interface{} {
 	default:
 		return obj.Inspect()
 	}
+}
+
+// HTTP server helper functions
+func parseHTTPRequest(requestData string) object.Object {
+	lines := strings.Split(requestData, "\r\n")
+	if len(lines) == 0 {
+		return &object.Error{Message: "Empty request"}
+	}
+	
+	// Parse request line
+	requestLine := strings.Fields(lines[0])
+	if len(requestLine) < 3 {
+		return &object.Error{Message: "Invalid request line"}
+	}
+	
+	method := requestLine[0]
+	path := requestLine[1]
+	version := requestLine[2]
+	
+	// Parse headers
+	headers := make(map[object.HashKey]object.HashPair)
+	var bodyStart int
+	for i := 1; i < len(lines); i++ {
+		line := lines[i]
+		if line == "" {
+			bodyStart = i + 1
+			break
+		}
+		
+		parts := strings.SplitN(line, ":", 2)
+		if len(parts) == 2 {
+			key := &object.String{Value: strings.TrimSpace(parts[0])}
+			value := &object.String{Value: strings.TrimSpace(parts[1])}
+			headers[key.HashKey()] = object.HashPair{Key: key, Value: value}
+		}
+	}
+	
+	// Parse body
+	body := ""
+	if bodyStart < len(lines) {
+		body = strings.Join(lines[bodyStart:], "\r\n")
+	}
+	
+	// Create request hash
+	result := &object.Hash{Pairs: make(map[object.HashKey]object.HashPair)}
+	
+	methodKey := &object.String{Value: "method"}
+	result.Pairs[methodKey.HashKey()] = object.HashPair{Key: methodKey, Value: &object.String{Value: method}}
+	
+	pathKey := &object.String{Value: "path"}
+	result.Pairs[pathKey.HashKey()] = object.HashPair{Key: pathKey, Value: &object.String{Value: path}}
+	
+	versionKey := &object.String{Value: "version"}
+	result.Pairs[versionKey.HashKey()] = object.HashPair{Key: versionKey, Value: &object.String{Value: version}}
+	
+	headersKey := &object.String{Value: "headers"}
+	result.Pairs[headersKey.HashKey()] = object.HashPair{Key: headersKey, Value: &object.Hash{Pairs: headers}}
+	
+	bodyKey := &object.String{Value: "body"}
+	result.Pairs[bodyKey.HashKey()] = object.HashPair{Key: bodyKey, Value: &object.String{Value: body}}
+	
+	return result
+}
+
+func buildHTTPResponse(statusCode int, body string, headers map[string]string) object.Object {
+	response := fmt.Sprintf("HTTP/1.1 %d %s\r\n", statusCode, getStatusText(statusCode))
+	
+	// Add default headers
+	if headers["Content-Type"] == "" {
+		headers["Content-Type"] = "text/plain"
+	}
+	headers["Content-Length"] = fmt.Sprintf("%d", len(body))
+	
+	// Add headers
+	for key, value := range headers {
+		response += fmt.Sprintf("%s: %s\r\n", key, value)
+	}
+	
+	response += "\r\n" + body
+	
+	return &object.String{Value: response}
+}
+
+func getStatusText(code int) string {
+	switch code {
+	case 200:
+		return "OK"
+	case 404:
+		return "Not Found"
+	case 500:
+		return "Internal Server Error"
+	default:
+		return "Unknown"
+	}
+}
+
+func serveStaticFile(filePath string) object.Object {
+	// This function would typically read a file and return appropriate HTTP response
+	// For now, return a basic implementation
+	return &object.Error{Message: "serve_static_file not fully implemented - use serve_file method instead"}
+}
+
+func listDirectory(dirPath string) object.Object {
+	// Use os.ReadDir to list directory contents
+	entries, err := os.ReadDir(dirPath)
+	if err != nil {
+		return &object.Error{Message: fmt.Sprintf("Failed to list directory: %v", err)}
+	}
+	
+	var files []object.Object
+	for _, entry := range entries {
+		files = append(files, &object.String{Value: entry.Name()})
+	}
+	
+	return &object.Array{Elements: files}
 }
