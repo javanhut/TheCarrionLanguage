@@ -2,6 +2,41 @@
 
 The Carrion language supports optional type hints for function parameters, return values, and variable assignments. This system helps with code clarity and enables future type checking capabilities.
 
+## String Concatenation and Type Consistency
+
+Carrion's string concatenation operations now properly maintain type consistency. When performing string concatenation operations (using the `+` operator), the result will always be a properly wrapped String instance that has access to all String grimoire methods.
+
+### String Concatenation Behavior
+
+```carrion
+# Regular string concatenation
+greeting = "Hello" + " World"
+print(greeting.upper())  # Works correctly with String methods
+
+# Concatenation with converted types
+number = 42
+message = "The answer is: " + str(number)
+print(message.length())  # Access to String methods maintained
+
+# Triple-quoted strings in concatenation
+html_content = """<html>
+<body>
+    <h1>Hello World</h1>
+</body>
+</html>"""
+
+response = "HTTP/1.1 200 OK\r\n\r\n" + html_content
+# Result is a proper String instance with method access
+```
+
+### Previous Issues (Fixed)
+
+In earlier versions, long string concatenations or concatenations involving triple-quoted strings could result in BUILTIN type objects instead of proper String instances. This has been resolved, ensuring that:
+
+- All string concatenation operations return proper String instances
+- String methods remain accessible on concatenated results
+- Socket operations and other modules that expect string types work correctly
+
 ## Type Hint Syntax
 
 ### Function Parameters

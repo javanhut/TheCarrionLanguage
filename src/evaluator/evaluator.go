@@ -755,7 +755,7 @@ func Eval(node ast.Node, env *object.Environment, ctx *CallContext) object.Objec
 		if debugPrimitiveWrapping && node.Operator == "//" {
 			fmt.Fprintf(os.Stderr, "CALLING evalInfixExpression for %s in %s\n", node.Operator, getContextName(ctx))
 		}
-		result := evalInfixExpression(node.Operator, left, right, node, ctx)
+		result := evalInfixExpression(node.Operator, left, right, node, ctx, env)
 		return result
 
 	case *ast.PostfixExpression:
@@ -2763,13 +2763,13 @@ func evalIdentifier(node *ast.Identifier, env *object.Environment, ctx *CallCont
 		}
 	}
 
-	// First check builtins.
-	if builtin, ok := builtins[node.Value]; ok {
-		return builtin
-	}
-	// Then check the environment.
+	// First check the environment for user-defined variables.
 	if val, ok := env.Get(node.Value); ok {
 		return val
+	}
+	// Then check builtins.
+	if builtin, ok := builtins[node.Value]; ok {
+		return builtin
 	}
 	if node.Value == "None" {
 		return object.NONE
@@ -2972,6 +2972,7 @@ func evalInfixExpression(
 	left, right object.Object,
 	node ast.Node,
 	ctx *CallContext,
+	env *object.Environment,
 ) object.Object {
 	if debugPrimitiveWrapping && operator == "//" {
 		fmt.Fprintf(os.Stderr, "EVAL_INFIX: %s between %T and %T in %s\n", operator, left, right, getContextName(ctx))
@@ -3005,11 +3006,11 @@ func evalInfixExpression(
 	
 	switch {
 	case unwrappedLeft.Type() == object.INTEGER_OBJ && unwrappedRight.Type() == object.INTEGER_OBJ:
-		return evalIntegerInfixExpression(operator, unwrappedLeft, unwrappedRight, node, ctx)
+		return evalIntegerInfixExpression(operator, unwrappedLeft, unwrappedRight, node, ctx, env)
 	case unwrappedLeft.Type() == object.BOOLEAN_OBJ && unwrappedRight.Type() == object.BOOLEAN_OBJ:
 		return evalBooleanInfixExpression(operator, unwrappedLeft, unwrappedRight, node, ctx)
 	case unwrappedLeft.Type() == object.STRING_OBJ && unwrappedRight.Type() == object.STRING_OBJ:
-		return evalStringInfixExpression(operator, unwrappedLeft, unwrappedRight, node, ctx)
+		return evalStringInfixExpression(operator, unwrappedLeft, unwrappedRight, node, ctx, env)
 	case unwrappedLeft.Type() == object.STRING_OBJ && unwrappedRight.Type() == object.INTEGER_OBJ:
 		// String multiplication: "hello" * 3
 		if operator == "*" {
@@ -3019,7 +3020,8 @@ func evalInfixExpression(
 				return newErrorWithTrace("string multiplication count cannot be negative", node, ctx)
 			}
 			result := strings.Repeat(strVal, int(count))
-			return &object.String{Value: result}
+			primitive := &object.String{Value: result}
+			return wrapPrimitive(primitive, env, ctx)
 		}
 		return newErrorWithTrace("unsupported operation: %s %s %s", node, ctx, unwrappedLeft.Type(), operator, unwrappedRight.Type())
 	case unwrappedLeft.Type() == object.INTEGER_OBJ && unwrappedRight.Type() == object.STRING_OBJ:
@@ -3031,7 +3033,8 @@ func evalInfixExpression(
 				return newErrorWithTrace("string multiplication count cannot be negative", node, ctx)
 			}
 			result := strings.Repeat(strVal, int(count))
-			return &object.String{Value: result}
+			primitive := &object.String{Value: result}
+			return wrapPrimitive(primitive, env, ctx)
 		}
 		return newErrorWithTrace("unsupported operation: %s %s %s", node, ctx, unwrappedLeft.Type(), operator, unwrappedRight.Type())
 	case unwrappedLeft == object.NONE && unwrappedRight == object.NONE:
@@ -3150,18 +3153,23 @@ func evalInfixExpression(
 		rightVal := toFloat(unwrappedRight)
 		switch operator {
 		case "+":
-			return &object.Float{Value: leftVal + rightVal}
+			primitive := &object.Float{Value: leftVal + rightVal}
+			return wrapPrimitive(primitive, env, ctx)
 		case "-":
-			return &object.Float{Value: leftVal - rightVal}
+			primitive := &object.Float{Value: leftVal - rightVal}
+			return wrapPrimitive(primitive, env, ctx)
 		case "*":
-			return &object.Float{Value: leftVal * rightVal}
+			primitive := &object.Float{Value: leftVal * rightVal}
+			return wrapPrimitive(primitive, env, ctx)
 		case "/":
 			if rightVal == 0 {
 				return newErrorWithTrace("division by zero", node, ctx)
 			}
-			return &object.Float{Value: leftVal / rightVal}
+			primitive := &object.Float{Value: leftVal / rightVal}
+			return wrapPrimitive(primitive, env, ctx)
 		case "**":
-			return &object.Float{Value: math.Pow(leftVal, rightVal)}
+			primitive := &object.Float{Value: math.Pow(leftVal, rightVal)}
+			return wrapPrimitive(primitive, env, ctx)
 		case "<":
 			return nativeBoolToBooleanObject(leftVal < rightVal)
 		case ">":
@@ -3205,13 +3213,15 @@ func evalStringInfixExpression(
 	left, right object.Object,
 	node ast.Node,
 	ctx *CallContext,
+	env *object.Environment,
 ) object.Object {
 	leftVal := left.(*object.String).Value
 	rightVal := right.(*object.String).Value
 	
 	switch operator {
 	case "+":
-		return &object.String{Value: leftVal + rightVal}
+		primitive := &object.String{Value: leftVal + rightVal}
+		return wrapPrimitive(primitive, env, ctx)
 	case "==":
 		return nativeBoolToBooleanObject(leftVal == rightVal)
 	case "!=":
@@ -3407,6 +3417,7 @@ func evalIntegerInfixExpression(
 	left, right object.Object,
 	node ast.Node,
 	ctx *CallContext,
+	env *object.Environment,
 ) object.Object {
 	leftVal := left.(*object.Integer).Value
 	rightVal := right.(*object.Integer).Value
@@ -3416,27 +3427,33 @@ func evalIntegerInfixExpression(
 	}
 	switch operator {
 	case "+":
-		return &object.Integer{Value: leftVal + rightVal}
+		primitive := &object.Integer{Value: leftVal + rightVal}
+		return wrapPrimitive(primitive, env, ctx)
 	case "-":
-		return &object.Integer{Value: leftVal - rightVal}
+		primitive := &object.Integer{Value: leftVal - rightVal}
+		return wrapPrimitive(primitive, env, ctx)
 	case "*":
-		return &object.Integer{Value: leftVal * rightVal}
+		primitive := &object.Integer{Value: leftVal * rightVal}
+		return wrapPrimitive(primitive, env, ctx)
 	case "/":
 		if rightVal == 0 {
 			return newErrorWithTrace("division by zero", node, ctx)
 		}
-		return &object.Integer{Value: leftVal / rightVal}
+		primitive := &object.Integer{Value: leftVal / rightVal}
+		return wrapPrimitive(primitive, env, ctx)
 	case "%":
 		if rightVal == 0 {
 			return newErrorWithTrace("modulo by zero", node, ctx)
 		}
-		return &object.Integer{Value: leftVal % rightVal}
+		primitive := &object.Integer{Value: leftVal % rightVal}
+		return wrapPrimitive(primitive, env, ctx)
 	case "<":
 		return nativeBoolToBooleanObject(leftVal < rightVal)
 	case ">":
 		return nativeBoolToBooleanObject(leftVal > rightVal)
 	case "**":
-		return &object.Integer{Value: int64(math.Pow(float64(leftVal), float64(rightVal)))}
+		primitive := &object.Integer{Value: int64(math.Pow(float64(leftVal), float64(rightVal)))}
+		return wrapPrimitive(primitive, env, ctx)
 	case "==":
 		return nativeBoolToBooleanObject(leftVal == rightVal)
 	case "!=":
@@ -3446,20 +3463,26 @@ func evalIntegerInfixExpression(
 	case "<=":
 		return nativeBoolToBooleanObject(leftVal <= rightVal)
 	case "<<":
-		return &object.Integer{Value: leftVal << uint(rightVal)}
+		primitive := &object.Integer{Value: leftVal << uint(rightVal)}
+		return wrapPrimitive(primitive, env, ctx)
 	case ">>":
-		return &object.Integer{Value: leftVal >> uint(rightVal)}
+		primitive := &object.Integer{Value: leftVal >> uint(rightVal)}
+		return wrapPrimitive(primitive, env, ctx)
 	case "&":
-		return &object.Integer{Value: leftVal & rightVal}
+		primitive := &object.Integer{Value: leftVal & rightVal}
+		return wrapPrimitive(primitive, env, ctx)
 	case "^":
-		return &object.Integer{Value: leftVal ^ rightVal}
+		primitive := &object.Integer{Value: leftVal ^ rightVal}
+		return wrapPrimitive(primitive, env, ctx)
 	case "|":
-		return &object.Integer{Value: leftVal | rightVal}
+		primitive := &object.Integer{Value: leftVal | rightVal}
+		return wrapPrimitive(primitive, env, ctx)
 	case "//":
 		if rightVal == 0 {
 			return newErrorWithTrace("integer division by zero", node, ctx)
 		}
-		return &object.Integer{Value: leftVal / rightVal}
+		primitive := &object.Integer{Value: leftVal / rightVal}
+		return wrapPrimitive(primitive, env, ctx)
 	default:
 		return newErrorWithTrace("unknown operator: %s %s %s",
 			node, ctx, left.Type(), operator, right.Type())
@@ -3483,7 +3506,7 @@ func evalCompoundAssignment(
 			return newErrorWithTrace("undefined variable: %s", node, ctx, leftNode.Value)
 		}
 
-		newVal := applyCompoundOperator(node.Operator, currVal, rightVal, node, ctx)
+		newVal := applyCompoundOperator(node.Operator, currVal, rightVal, node, ctx, env)
 		if isError(newVal) {
 			return newVal
 		}
@@ -3508,6 +3531,7 @@ func applyCompoundOperator(
 	leftVal, rightVal object.Object,
 	node ast.Node,
 	ctx *CallContext,
+	env *object.Environment,
 ) object.Object {
 	// Helper function to extract the actual integer/float value from either direct objects or Instance wrappers
 	extractInteger := func(obj object.Object) (*object.Integer, bool) {
@@ -3551,16 +3575,20 @@ func applyCompoundOperator(
 		}
 		switch operator {
 		case "+=":
-			return &object.Integer{Value: lInt.Value + rInt.Value}
+			primitive := &object.Integer{Value: lInt.Value + rInt.Value}
+			return wrapPrimitive(primitive, env, ctx)
 		case "-=":
-			return &object.Integer{Value: lInt.Value - rInt.Value}
+			primitive := &object.Integer{Value: lInt.Value - rInt.Value}
+			return wrapPrimitive(primitive, env, ctx)
 		case "*=":
-			return &object.Integer{Value: lInt.Value * rInt.Value}
+			primitive := &object.Integer{Value: lInt.Value * rInt.Value}
+			return wrapPrimitive(primitive, env, ctx)
 		case "/=":
 			if rInt.Value == 0 {
 				return newErrorWithTrace("division by zero", node, ctx)
 			}
-			return &object.Integer{Value: lInt.Value / rInt.Value}
+			primitive := &object.Integer{Value: lInt.Value / rInt.Value}
+			return wrapPrimitive(primitive, env, ctx)
 		default:
 			return newErrorWithTrace("unknown operator: %s", node, ctx, operator)
 		}
@@ -3575,16 +3603,20 @@ func applyCompoundOperator(
 		}
 		switch operator {
 		case "+=":
-			return &object.Float{Value: lFloat.Value + rFloat.Value}
+			primitive := &object.Float{Value: lFloat.Value + rFloat.Value}
+			return wrapPrimitive(primitive, env, ctx)
 		case "-=":
-			return &object.Float{Value: lFloat.Value - rFloat.Value}
+			primitive := &object.Float{Value: lFloat.Value - rFloat.Value}
+			return wrapPrimitive(primitive, env, ctx)
 		case "*=":
-			return &object.Float{Value: lFloat.Value * rFloat.Value}
+			primitive := &object.Float{Value: lFloat.Value * rFloat.Value}
+			return wrapPrimitive(primitive, env, ctx)
 		case "/=":
 			if rFloat.Value == 0 {
 				return newErrorWithTrace("division by zero", node, ctx)
 			}
-			return &object.Float{Value: lFloat.Value / rFloat.Value}
+			primitive := &object.Float{Value: lFloat.Value / rFloat.Value}
+			return wrapPrimitive(primitive, env, ctx)
 		default:
 			return newErrorWithTrace("unknown operator: %s", node, ctx, operator)
 		}
@@ -3610,7 +3642,8 @@ func applyCompoundOperator(
 	if operator == "+=" {
 		if lStr, ok := extractString(leftVal); ok {
 			if rStr, ok := extractString(rightVal); ok {
-				return &object.String{Value: lStr.Value + rStr.Value}
+				primitive := &object.String{Value: lStr.Value + rStr.Value}
+				return wrapPrimitive(primitive, env, ctx)
 			}
 		}
 	}

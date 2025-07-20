@@ -13,8 +13,34 @@ print("📱 Open your browser and navigate to: http://localhost:8080")
 print("⏸️  Server will keep running - tell me when to stop!")
 print("")
 
-# Build HTTP response
-html_content = "<!DOCTYPE html><html><head><title>Carrion HTTP Server</title><style>body{font-family:Arial;margin:40px;background:#667eea;color:white}h1{text-align:center}div{background:rgba(255,255,255,0.1);padding:20px;border-radius:10px;margin:20px 0}</style></head><body><h1>Carrion Sockets HTTP Server</h1><div><h2>Success! Server is working!</h2><p><strong>Language:</strong> Carrion</p><p><strong>Module:</strong> Custom Sockets</p><p><strong>Port:</strong> 8080</p><p><strong>Status:</strong> Active</p></div><div><h3>Technical Details:</h3><p>This server uses Carrion's sockets module wrapping Go's net package.</p><p>Refresh to test multiple requests!</p></div></body></html>"
+# Build HTTP response using triple quotes for multi-line strings
+html_content = """<!DOCTYPE html>
+<html>
+<head>
+    <title>Carrion HTTP Server</title>
+    <style>
+        body { font-family: Arial; margin: 40px; background: #667eea; color: white; }
+        h1 { text-align: center; }
+        div { background: rgba(255,255,255,0.1); padding: 20px; border-radius: 10px; margin: 20px 0; }
+    </style>
+</head>
+<body>
+    <h1>Carrion Sockets HTTP Server</h1>
+    <div>
+        <h2>Success! Server is working!</h2>
+        <p><strong>Language:</strong> Carrion</p>
+        <p><strong>Module:</strong> Custom Sockets</p>
+        <p><strong>Port:</strong> 8080</p>
+        <p><strong>Status:</strong> Active</p>
+    </div>
+    <div>
+        <h3>Technical Details:</h3>
+        <p>This server uses Carrion's sockets module wrapping Go's net package.</p>
+        <p>Refresh to test multiple requests!</p>
+    </div>
+</body>
+</html>"""
+
 content_length = len(html_content)
 http_headers = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + str(content_length) + "\r\nConnection: close\r\n\r\n"
 http_response = http_headers + html_content
