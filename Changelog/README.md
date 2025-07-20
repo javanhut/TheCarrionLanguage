@@ -1,5 +1,79 @@
 # Carrion Language Changelog
 
+## Version 0.1.8 - String Concatenation Bug Fix
+
+### Critical Bug Fix
+
+#### Fixed String Concatenation Type Issues
+- **Fixed critical bug where string concatenation operations returned BUILTIN type objects instead of proper String instances**
+  - Previously, long string concatenations or concatenations involving triple-quoted strings could result in incorrect object types
+  - Socket operations and other modules expecting string types would fail with "data must be a string" errors
+  - Now all string concatenation operations return properly wrapped String instances with method access
+  - **Location**: `src/evaluator/evaluator.go`
+
+### Technical Implementation
+
+#### Enhanced Infix Expression Evaluation
+- **Updated `evalStringInfixExpression` to use `wrapPrimitive()` for string concatenation results**
+  - Ensures concatenated strings are properly wrapped String instances
+  - Maintains access to String grimoire methods like `.upper()`, `.lower()`, `.length()`
+  - **Location**: `src/evaluator/evaluator.go:3224`
+
+#### Fixed Variable Resolution Order
+- **Updated `evalIdentifier` to check environment variables before builtin functions**
+  - Prevents variable name conflicts with builtin function names
+  - Ensures user-defined variables take precedence over system functions
+  - **Location**: `src/evaluator/evaluator.go:2766-2773`
+
+#### Integer and Float Operations
+- **Applied same fix to `evalIntegerInfixExpression` and `evalFloatInfixExpression`**
+  - All arithmetic operations now return properly wrapped instances
+  - Maintains consistency across all primitive type operations
+  - **Locations**: Multiple in `src/evaluator/evaluator.go`
+
+### Verification & Testing
+
+#### Issues Resolved
+- **HTTP server socket operations** - `socket_send` now works correctly with concatenated strings
+- **Triple-quoted string concatenation** - Works properly with regular string concatenation
+- **Long string concatenations** - No longer result in BUILTIN type objects
+- **String method access** - Concatenated strings maintain access to String methods
+
+#### Example of Fixed Behavior
+```carrion
+# Previously failed with "socket_send: data must be a string"
+html_content = """<!DOCTYPE html>
+<html><body><h1>Hello World</h1></body></html>"""
+
+headers = "HTTP/1.1 200 OK\r\n\r\n"
+response = headers + html_content  # Now returns proper String instance
+
+# Works correctly with socket operations
+socket_send(client_id, response)
+
+# String methods now accessible on concatenated results
+print(response.length())  # Works correctly
+```
+
+### Documentation Updates
+
+#### Updated Type System Documentation
+- **Added String Concatenation and Type Consistency section** to `docs/Type-System.md`
+- **Documented concatenation behavior** with examples
+- **Explained previous issues and fixes** for reference
+
+### Performance Impact
+
+- **No performance regression** - Fix maintains existing operation speed
+- **Improved type safety** - Prevents runtime type errors
+- **Memory consistent** - Proper object lifecycle management
+
+### Migration Notes
+
+- **No breaking changes** - This is a bug fix that makes existing code work correctly
+- **Socket operations** - Code that failed due to string type issues will now work
+- **String methods** - Concatenated strings now have proper method access
+
 ## Version 0.1.8 - Multi-Level Inheritance Fix & File/OS Grimoire Refactoring
 
 ### Major Bug Fix
