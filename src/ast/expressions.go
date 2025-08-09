@@ -12,6 +12,7 @@ import (
 type Identifier struct {
 	Token token.Token
 	Value string
+	Sym   uint32 // interned symbol id
 }
 
 func (i *Identifier) expressionNode()      {}

@@ -50,27 +50,27 @@ func (e *Environment) GetOuter() *Environment {
 // Clone creates a deep copy of the environment to prevent shared references
 func (e *Environment) Clone() *Environment {
 	clone := NewEnvironment()
-	
+
 	// Copy all variables from this environment
 	for name, obj := range e.store {
 		clone.store[name] = obj
 	}
-	
+
 	// Copy global variable markers
 	for name, isGlobal := range e.globalVars {
 		clone.globalVars[name] = isGlobal
 	}
-	
+
 	// Recursively clone the outer environment if it exists
 	if e.outer != nil {
 		clone.outer = e.outer.Clone()
 	}
-	
+
 	// Copy debug config if present
 	if e.debugConfig != nil {
 		clone.debugConfig = e.debugConfig
 	}
-	
+
 	return clone
 }
 
@@ -129,4 +129,31 @@ func (e *Environment) GetStore() map[string]Object {
 		result[name] = obj
 	}
 	return result
+}
+
+// ---- Optional frame-like helpers (unused until you wire resolver results) ----
+
+type frame struct {
+	parent *frame
+	locals []Object
+}
+
+func newFrame(parent *frame, size int) *frame {
+	return &frame{parent: parent, locals: make([]Object, size)}
+}
+
+func (f *frame) load(depth, slot int) Object {
+	fr := f
+	for i := 0; i < depth; i++ {
+		fr = fr.parent
+	}
+	return fr.locals[slot]
+}
+
+func (f *frame) store(depth, slot int, v Object) {
+	fr := f
+	for i := 0; i < depth; i++ {
+		fr = fr.parent
+	}
+	fr.locals[slot] = v
 }

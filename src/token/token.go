@@ -9,6 +9,9 @@ type Token struct {
 	Filename string
 	Line     int
 	Column   int
+	// Optional end positions for better diagnostics. Call sites can leave zero.
+	EndLine   int
+	EndColumn int
 }
 
 const (
@@ -183,23 +186,27 @@ func LookupIndent(indent string) TokenType {
 	return ILLEGAL
 }
 
-func NewToken(tokenType TokenType, literal string, filename string, line int, column int) Token {
+func NewTokenWithPos(tokenType TokenType, literal string, filename string, line int, column int) Token {
 	return Token{
-		Type:     tokenType,
-		Literal:  literal,
-		Filename: filename,
-		Line:     line,
-		Column:   column,
+		Type:      tokenType,
+		Literal:   literal,
+		Filename:  filename,
+		Line:      line,
+		Column:    column,
+		EndLine:   line,
+		EndColumn: column + len(literal) - 1,
 	}
 }
 
 // For compatibility with existing code that creates tokens simply
 func SimpleToken(tokenType TokenType, ch byte) Token {
 	return Token{
-		Type:     tokenType,
-		Literal:  string(ch),
-		Filename: "",
-		Line:     0,
-		Column:   0,
+		Type:      tokenType,
+		Literal:   string(ch),
+		Filename:  "",
+		Line:      0,
+		Column:    0,
+		EndLine:   0,
+		EndColumn: 0,
 	}
 }
