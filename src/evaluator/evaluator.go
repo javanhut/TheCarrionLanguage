@@ -6,9 +6,11 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
+	"golang.org/x/mod/semver"
 
 	"github.com/javanhut/TheCarrionLanguage/src/ast"
 	"github.com/javanhut/TheCarrionLanguage/src/debug"
@@ -4339,15 +4341,26 @@ func getLatestPackageVersion(packagePath string) ([]string, error) {
 		return nil, err
 	}
 	
-	var versions []string
-	for _, entry := range entries {
-		if entry.IsDir() {
-			versions = append(versions, entry.Name())
-		}
-	}
-	
-	// TODO: Sort by semantic version - for now just return alphabetical
-	return versions, nil
+        var versions []string
+        for _, entry := range entries {
+                if entry.IsDir() {
+                        versions = append(versions, entry.Name())
+                }
+        }
+
+        sort.Slice(versions, func(i, j int) bool {
+                vi := versions[i]
+                vj := versions[j]
+                if !strings.HasPrefix(vi, "v") {
+                        vi = "v" + vi
+                }
+                if !strings.HasPrefix(vj, "v") {
+                        vj = "v" + vj
+                }
+                return semver.Compare(vi, vj) > 0
+        })
+
+        return versions, nil
 }
 
 func evalImportStatement(

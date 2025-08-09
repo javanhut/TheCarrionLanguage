@@ -3,6 +3,7 @@ package lexer
 import (
 	"strings"
 	"unicode"
+	"unicode/utf8"
 
 	"github.com/javanhut/TheCarrionLanguage/src/token"
 )
@@ -41,264 +42,246 @@ func NewWithFilename(input string, sourceFile string) *Lexer {
 }
 
 func (l *Lexer) NextToken() token.Token {
-   // First check if there are queued tokens to return
-   if len(l.tokenQueue) > 0 {
-       token := l.tokenQueue[0]
-       l.tokenQueue = l.tokenQueue[1:]
-       return token
-   }
-
-   if l.finished {
-       // At EOF, unwind any remaining indents
-       if len(l.indentStack) > 1 {
-           l.indentStack = l.indentStack[:len(l.indentStack)-1]
-           return l.newToken(token.DEDENT, "")
-       }
-       return l.newToken(token.EOF, "")
-   }
-
-   // Handle indentation changes at the start of a new line, skipping simple newlines/indents
-   // Skip blank or whitespace-only lines entirely
-   if l.charIndex == 0 && strings.TrimSpace(l.currLine) == "" {
-       l.advanceLine()
-       return l.NextToken()
-   }
-   // Handle indentation changes at the start of a new line, but be selective about tokens
-   if l.charIndex == 0 && !l.indentResolved {
-       l.indentResolved = true
-       newIndent := measureIndent(l.currLine)
-       tok := l.handleIndentChange(newIndent)
-       // Return all indentation-related tokens
-       if tok.Type == token.NEWLINE || tok.Type == token.INDENT || tok.Type == token.DEDENT {
-           return tok
-       }
-       // Continue to next token for other cases
-       return l.NextToken()
-   }
-
-   // Generate NEWLINE token at end of line
-   if l.charIndex >= len(l.currLine) {
-       l.advanceLine()
-       // Return NEWLINE token for explicit line break
-       return l.newToken(token.NEWLINE, "")
-   }
-
-	ch := l.currLine[l.charIndex]
-
-	if isHorizontalWhitespace(ch) {
-		l.charIndex++
-		return l.NextToken()
+	// 1) Flush queued tokens first
+	if n := len(l.tokenQueue); n > 0 {
+		t := l.tokenQueue[0]
+		l.tokenQueue = l.tokenQueue[1:]
+		return t
 	}
 
-	if ch == 'f' {
-		next := l.peekChar()
-		if next == '"' || next == '\'' {
+	// 2) EOF: unwind indentation stack
+	if l.finished || l.lineIndex >= len(l.lines) {
+		if len(l.indentStack) > 1 {
+			l.indentStack = l.indentStack[:len(l.indentStack)-1]
+			return l.newToken(token.DEDENT, "")
+		}
+		return l.newToken(token.EOF, "")
+	}
+
+	// 3) Beginning-of-line indentation handling
+	if !l.indentResolved {
+		l.handleBOL()
+		if n := len(l.tokenQueue); n > 0 {
+			t := l.tokenQueue[0]
+			l.tokenQueue = l.tokenQueue[1:]
+			return t
+		}
+	}
+
+	for {
+		if l.charIndex >= len(l.currLine) {
+			tok := l.newToken(token.NEWLINE, "")
+			l.advanceLine()
+			return tok
+		}
+
+		ch := l.currLine[l.charIndex]
+
+		if isHorizontalWhitespace(ch) {
 			l.charIndex++
-			return l.readFString()
+			continue
 		}
-		return l.readIdentifier()
-	}
-	if ch == 'i' {
-		next := l.peekChar()
-		if next == '"' || next == '\'' {
-			l.charIndex++
-			return l.readStringInterpolation()
-		}
-		return l.readIdentifier()
-	}
 
-	switch ch {
-	case '=':
-		if l.peekChar() == '=' {
-			l.charIndex += 2
-			return token.Token{Type: token.EQ, Literal: "=="}
+		if ch == '#' {
+			l.skipLineComment()
+			if l.charIndex >= len(l.currLine) {
+				tok := l.newToken(token.NEWLINE, "")
+				l.advanceLine()
+				return tok
+			}
+			continue
 		}
-		l.charIndex++
-		return l.newToken(token.ASSIGN, "=")
 
-	case '+':
-		nxt := l.peekChar()
-		if nxt == '+' {
-			l.charIndex += 2
-			return token.Token{Type: token.PLUS_INCREMENT, Literal: "++"}
-		} else if nxt == '=' {
-			l.charIndex += 2
-			return token.Token{Type: token.INCREMENT, Literal: "+="}
-		}
-		l.charIndex++
-		return l.newToken(token.PLUS, "+")
-
-	case '-':
-		nxt := l.peekChar()
-		if nxt == '-' {
-			l.charIndex += 2
-			return token.Token{Type: token.MINUS_DECREMENT, Literal: "--"}
-		} else if nxt == '=' {
-			l.charIndex += 2
-			return token.Token{Type: token.DECREMENT, Literal: "-="}
-		} else if nxt == '>' {
-			l.charIndex += 2
-			return token.Token{Type: token.ARROW, Literal: "->"}
-		}
-		l.charIndex++
-		return l.newToken(token.MINUS, "-")
-
-	case '*':
-		if l.peekChar() == '=' {
-			l.charIndex += 2
-			return token.Token{Type: token.MULTASSGN, Literal: "*="}
-		} else if l.peekChar() == '*' {
-			l.charIndex += 2
-			return token.Token{Type: token.EXPONENT, Literal: "**"}
-		}
-		l.charIndex++
-		return l.newToken(token.ASTERISK, "*")
-	case '_':
-		if l.peekCharIsLetterOrDigitOrUnderscore() {
+		if ch == 'f' {
+			next := l.peekChar()
+			if next == '"' || next == '\'' {
+				l.charIndex++
+				return l.readFString()
+			}
 			return l.readIdentifier()
-		} else {
-			l.charIndex++
-			return token.Token{Type: token.UNDERSCORE, Literal: "_"}
 		}
-	case '#':
-		l.skipLineComment()
-		return l.NextToken()
-	case '/':
-		next := l.peekChar()
-		if next == '=' {
-			l.charIndex += 2
-			return token.Token{Type: token.DIVASSGN, Literal: "/="}
-		} else if next == '/' {
-			// Always treat // as integer division operator
-			l.charIndex += 2
-			return token.Token{Type: token.INTDIV, Literal: "//"}
-		} else if next == '*' {
-			l.skipBlockComment()
-			return l.NextToken()
-		}
-		l.charIndex++
-		return l.newToken(token.SLASH, "/")
-
-	case '%':
-		l.charIndex++
-		return l.newToken(token.MOD, "%")
-
-	case '<':
-		if l.peekChar() == '<' { // check for left-shift
-			l.charIndex += 2
-			return token.Token{Type: token.LSHIFT, Literal: "<<"}
-		} else if l.peekChar() == '=' { // less than or equal
-			l.charIndex += 2
-			return token.Token{Type: token.LE, Literal: "<="}
-		} else if l.peekChar() == '-' { // unpack operator
-			l.charIndex += 2
-			return token.Token{Type: token.UNPACK, Literal: "<-"}
-		}
-		l.charIndex++
-		return l.newToken(token.LT, "<")
-
-	case '>':
-		if l.peekChar() == '>' { // check for right-shift
-			l.charIndex += 2
-			return token.Token{Type: token.RSHIFT, Literal: ">>"}
-		} else if l.peekChar() == '=' { // greater than or equal
-			l.charIndex += 2
-			return token.Token{Type: token.GE, Literal: ">="}
-		}
-		l.charIndex++
-		return l.newToken(token.GT, ">")
-
-	case '^':
-		l.charIndex++
-		return l.newToken(token.XOR, "^")
-
-	case '~':
-		l.charIndex++
-		return l.newToken(token.TILDE, "~")
-
-	case '!':
-		if l.peekChar() == '=' {
-			l.charIndex += 2
-			return token.Token{Type: token.NOT_EQ, Literal: "!="}
-		}
-		l.charIndex++
-		return l.newToken(token.BANG, "!")
-
-	case ',':
-		l.charIndex++
-		return l.newToken(token.COMMA, ",")
-
-	case ':':
-		l.charIndex++
-		return l.newToken(token.COLON, ":")
-
-	case ';':
-		l.charIndex++
-		return l.newToken(token.SEMICOLON, ";")
-	case '(':
-		l.charIndex++
-		return l.newToken(token.LPAREN, "(")
-
-	case ')':
-		l.charIndex++
-		return l.newToken(token.RPAREN, ")")
-
-	case '[':
-		l.charIndex++
-		return l.newToken(token.LBRACK, "[")
-
-	case ']':
-		l.charIndex++
-		return l.newToken(token.RBRACK, "]")
-
-	case '{':
-		l.charIndex++
-		return l.newToken(token.LBRACE, "{")
-
-	case '}':
-		l.charIndex++
-		return l.newToken(token.RBRACE, "}")
-
-	case '.':
-		l.charIndex++
-		return l.newToken(token.DOT, ".")
-
-
-	case '&':
-		l.charIndex++
-		return l.newToken(token.AMPERSAND, "&")
-
-	case '|':
-		l.charIndex++
-		return l.newToken(token.PIPE, "|")
-
-	case '@':
-		l.charIndex++
-		return l.newToken(token.AT, "@")
-
-	case '"':
-		return l.readString()
-	case '\'':
-		return l.readString()
-
-	case '`':
-		// Check for triple backtick multiline comments
-		if l.peekChar() == '`' && l.peekCharAt(2) == '`' {
-			l.skipTripleBacktickComment()
-			return l.NextToken()
-		}
-		// Single backtick is treated as illegal for now
-		l.charIndex++
-		return token.Token{Type: token.ILLEGAL, Literal: "`"}
-
-	default:
-		if isLetter(ch) {
+		if ch == 'i' {
+			next := l.peekChar()
+			if next == '"' || next == '\'' {
+				l.charIndex++
+				return l.readStringInterpolation()
+			}
 			return l.readIdentifier()
-		} else if isDigit(ch) {
-			return l.readNumber()
-		} else {
+		}
+
+		switch ch {
+		case '=':
+			if l.peekChar() == '=' {
+				l.charIndex += 2
+				return token.Token{Type: token.EQ, Literal: "=="}
+			}
 			l.charIndex++
-			return token.Token{Type: token.ILLEGAL, Literal: string(ch)}
+			return l.newToken(token.ASSIGN, "=")
+
+		case '+':
+			nxt := l.peekChar()
+			if nxt == '+' {
+				l.charIndex += 2
+				return token.Token{Type: token.PLUS_INCREMENT, Literal: "++"}
+			} else if nxt == '=' {
+				l.charIndex += 2
+				return token.Token{Type: token.INCREMENT, Literal: "+="}
+			}
+			l.charIndex++
+			return l.newToken(token.PLUS, "+")
+
+		case '-':
+			nxt := l.peekChar()
+			if nxt == '-' {
+				l.charIndex += 2
+				return token.Token{Type: token.MINUS_DECREMENT, Literal: "--"}
+			} else if nxt == '=' {
+				l.charIndex += 2
+				return token.Token{Type: token.DECREMENT, Literal: "-="}
+			} else if nxt == '>' {
+				l.charIndex += 2
+				return token.Token{Type: token.ARROW, Literal: "->"}
+			}
+			l.charIndex++
+			return l.newToken(token.MINUS, "-")
+
+		case '*':
+			if l.peekChar() == '=' {
+				l.charIndex += 2
+				return token.Token{Type: token.MULTASSGN, Literal: "*="}
+			} else if l.peekChar() == '*' {
+				l.charIndex += 2
+				return token.Token{Type: token.EXPONENT, Literal: "**"}
+			}
+			l.charIndex++
+			return l.newToken(token.ASTERISK, "*")
+		case '_':
+			if l.peekCharIsLetterOrDigitOrUnderscore() {
+				return l.readIdentifier()
+			} else {
+				l.charIndex++
+				return token.Token{Type: token.UNDERSCORE, Literal: "_"}
+			}
+		case '/':
+			next := l.peekChar()
+			if next == '=' {
+				l.charIndex += 2
+				return token.Token{Type: token.DIVASSGN, Literal: "/="}
+			} else if next == '/' {
+				l.charIndex += 2
+				return token.Token{Type: token.INTDIV, Literal: "//"}
+			} else if next == '*' {
+				l.skipBlockComment()
+				continue
+			}
+			l.charIndex++
+			return l.newToken(token.SLASH, "/")
+
+		case '%':
+			l.charIndex++
+			return l.newToken(token.MOD, "%")
+
+		case '<':
+			if l.peekChar() == '<' {
+				l.charIndex += 2
+				return token.Token{Type: token.LSHIFT, Literal: "<<"}
+			} else if l.peekChar() == '=' {
+				l.charIndex += 2
+				return token.Token{Type: token.LE, Literal: "<="}
+			} else if l.peekChar() == '-' {
+				l.charIndex += 2
+				return token.Token{Type: token.UNPACK, Literal: "<-"}
+			}
+			l.charIndex++
+			return l.newToken(token.LT, "<")
+
+		case '>':
+			if l.peekChar() == '>' {
+				l.charIndex += 2
+				return token.Token{Type: token.RSHIFT, Literal: ">>"}
+			} else if l.peekChar() == '=' {
+				l.charIndex += 2
+				return token.Token{Type: token.GE, Literal: ">="}
+			}
+			l.charIndex++
+			return l.newToken(token.GT, ">")
+
+		case '^':
+			l.charIndex++
+			return l.newToken(token.XOR, "^")
+
+		case '~':
+			l.charIndex++
+			return l.newToken(token.TILDE, "~")
+
+		case '!':
+			if l.peekChar() == '=' {
+				l.charIndex += 2
+				return token.Token{Type: token.NOT_EQ, Literal: "!="}
+			}
+			l.charIndex++
+			return l.newToken(token.BANG, "!")
+
+		case ',':
+			l.charIndex++
+			return l.newToken(token.COMMA, ",")
+
+		case ':':
+			l.charIndex++
+			return l.newToken(token.COLON, ":")
+
+		case ';':
+			l.charIndex++
+			return l.newToken(token.SEMICOLON, ";")
+
+		case '(':
+			l.charIndex++
+			return l.newToken(token.LPAREN, "(")
+
+		case ')':
+			l.charIndex++
+			return l.newToken(token.RPAREN, ")")
+
+		case '[':
+			l.charIndex++
+			return l.newToken(token.LBRACK, "[")
+
+		case ']':
+			l.charIndex++
+			return l.newToken(token.RBRACK, "]")
+
+		case '{':
+			l.charIndex++
+			return l.newToken(token.LBRACE, "{")
+
+		case '}':
+			l.charIndex++
+			return l.newToken(token.RBRACE, "}")
+
+		case '.':
+			l.charIndex++
+			return l.newToken(token.DOT, ".")
+
+		case '&':
+			l.charIndex++
+			return l.newToken(token.AMPERSAND, "&")
+
+		case '|':
+			l.charIndex++
+			return l.newToken(token.PIPE, "|")
+
+		case '@':
+			l.charIndex++
+			return l.newToken(token.AT, "@")
+
+		default:
+			if isLetter(ch) {
+				return l.readIdentifier()
+			} else if isDigit(ch) {
+				return l.readNumber()
+			}
+			l.charIndex++
+			return l.newToken(token.ILLEGAL, string(ch))
 		}
 	}
 }
@@ -505,15 +488,15 @@ func (l *Lexer) handleIndentChange(newIndent int) token.Token {
 		l.indentStack = l.indentStack[:len(l.indentStack)-1]
 		dedentCount++
 	}
-	
+
 	// Set charIndex to the new indentation level
 	l.charIndex = newIndent
-	
+
 	// Queue additional DEDENT tokens if needed
 	for i := 1; i < dedentCount; i++ {
 		l.tokenQueue = append(l.tokenQueue, l.newToken(token.DEDENT, ""))
 	}
-	
+
 	// Return the first DEDENT token
 	return l.newToken(token.DEDENT, "")
 }
@@ -736,13 +719,85 @@ func (l *Lexer) readNumber() token.Token {
 }
 
 func (l *Lexer) newToken(tokenType token.TokenType, literal string) token.Token {
-	return token.Token{
+	// Convert byte index to rune-based column so diagnostics align for UTF-8.
+	col := 1
+	if l.charIndex > 0 && l.charIndex <= len(l.currLine) {
+		col = utf8.RuneCountInString(l.currLine[:l.charIndex]) + 1
+	}
+	endCol := col
+	if literal != "" && l.charIndex <= len(l.currLine) {
+		endCol = col + utf8.RuneCountInString(literal) - 1
+		if endCol < col {
+			endCol = col
+		}
+	}
+	tok := token.Token{
 		Type:     tokenType,
 		Literal:  literal,
 		Filename: l.sourceFile,
-		Line:     l.lineIndex + 1, // Make line numbers 1-based for user-friendliness
-		Column:   l.charIndex + 1, // Make column numbers 1-based
+		Line:     l.lineIndex + 1,
+		Column:   col,
 	}
+	tok.EndLine, tok.EndColumn = tok.Line, endCol
+	return tok
+}
+
+// Treat tabs as 4 spaces for indent math. Change to 2 or 8 if you prefer.
+func computeIndentWidth(s string) int {
+	w := 0
+	for i := 0; i < len(s); i++ {
+		switch s[i] {
+		case ' ':
+			w++
+		case '\t':
+			w += 4
+		default:
+			return w
+		}
+	}
+	return w
+}
+
+// Run only at beginning-of-line. Emits INDENT/DEDENT into tokenQueue once.
+func (l *Lexer) handleBOL() {
+	if l.indentResolved {
+		return
+	}
+	// Count leading whitespace
+	lead := 0
+	for lead < len(l.currLine) {
+		if l.currLine[lead] == ' ' || l.currLine[lead] == '\t' {
+			lead++
+			continue
+		}
+		break
+	}
+	indent := computeIndentWidth(l.currLine[:lead])
+
+	// Blank line or comment-only line: do not change indentation.
+	rest := l.currLine[lead:]
+	if len(rest) == 0 || rest[0] == '#' {
+		l.indentResolved = true
+		l.charIndex = lead
+		return
+	}
+
+	// Compare vs top of indent stack
+	top := l.indentStack[len(l.indentStack)-1]
+	switch {
+	case indent > top:
+		l.indentStack = append(l.indentStack, indent)
+		l.tokenQueue = append(l.tokenQueue, l.newToken(token.INDENT, ""))
+	case indent < top:
+		for indent < l.indentStack[len(l.indentStack)-1] {
+			l.indentStack = l.indentStack[:len(l.indentStack)-1]
+			l.tokenQueue = append(l.tokenQueue, l.newToken(token.DEDENT, ""))
+		}
+		// If indent still mismatched here, you can queue ILLEGAL for nicer errors.
+	}
+
+	l.indentResolved = true
+	l.charIndex = lead
 }
 
 func isLetter(ch byte) bool {
