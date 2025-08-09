@@ -721,22 +721,25 @@ main:
 		}
 	})
 
-	t.Run("empty main block", func(t *testing.T) {
-		input := `x = 123
+		t.Run("empty main block", func(t *testing.T) {
+			input := `x = 123
 
 main:
     # Empty main block
 
 # This should not execute after main
 x`
-		evaluated := testEval(input)
-		// Empty main block should return nil
-		if evaluated != nil {
-			t.Errorf("expected nil from empty main block, got %T (%+v)", evaluated, evaluated)
-		}
-	})
+			evaluated := testEval(input)
+			errMsg, isError := getErrorMessage(evaluated)
+			if !isError {
+				t.Fatalf("expected error object, got %T", evaluated)
+			}
+                        if !strings.Contains(errMsg, "expected indented block") {
+                                t.Errorf("unexpected error message: %q", errMsg)
+                        }
+                })
 
-	t.Run("nested blocks within main", func(t *testing.T) {
+        t.Run("nested blocks within main", func(t *testing.T) {
 		input := `main:
     x = 10
     if x > 5:
