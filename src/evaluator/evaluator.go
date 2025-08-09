@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"golang.org/x/mod/semver"
 
 	"github.com/javanhut/TheCarrionLanguage/src/ast"
 	"github.com/javanhut/TheCarrionLanguage/src/debug"
