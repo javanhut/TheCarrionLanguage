@@ -285,7 +285,7 @@ The Carrion Language is implemented in Go and follows a traditional interpreter 
 - `resolveSimpleName()` - Simple name resolution
 - `getUserCarrionPackages()` - User package directory
 - `getSharedGlobalPackages()` - Global package directory
-- `getLatestPackageVersion()` - Version resolution
+- `getPackageVersions()` - Version resolution
 - `findCarrionFiles()` - File discovery
 - `findBifrostPackages()` - Package discovery
 

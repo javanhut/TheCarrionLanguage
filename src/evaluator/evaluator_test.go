@@ -1,6 +1,8 @@
 package evaluator
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -18,12 +20,12 @@ func TestEvalIntegerExpression(t *testing.T) {
 		{"10", 10},
 		{"-5", -5},
 		{"-10", -10},
-       {"x = 1; ++x", 2},
-       {"x = 5; ++x", 6},
-       {"x = 10; ++x", 11},
-       {"x = 1; --x", 0},
-       {"x = 0; --x", -1},
-       {"x = 10; --x", 9},
+		{"x = 1; ++x", 2},
+		{"x = 5; ++x", 6},
+		{"x = 10; ++x", 11},
+		{"x = 1; --x", 0},
+		{"x = 0; --x", -1},
+		{"x = 10; --x", 9},
 		{"5 + 5 + 5 + 5 - 10", 10},
 		{"2 * 2 * 2 * 2 * 2", 32},
 		{"-50 + 100 + -50", 0},
@@ -54,7 +56,7 @@ func testEval(input string) object.Object {
 		return &object.Error{Message: strings.Join(p.Errors(), ", ")}
 	}
 
-   // Evaluate AST with direct execution context for proper main statement handling
+	// Evaluate AST with direct execution context for proper main statement handling
 	ctx := &CallContext{
 		FunctionName:      "<program>",
 		Node:              program,
@@ -236,23 +238,23 @@ func TestErrorHandling(t *testing.T) {
 		{`"Hello" - "World"`, "unknown operator: STRING - STRING"},
 		//{`{"name": "Carrion"}[spell add(x,y): return x + y]`, "unusable as hash key: SPELL"},
 	}
-    for _, tt := range tests {
-        evaluated := testEval(tt.input)
-        // Extract error message from Error or ErrorWithTrace
-        var errMessage string
-        switch err := evaluated.(type) {
-        case *object.Error:
-            errMessage = err.Message
-        case *object.ErrorWithTrace:
-            errMessage = err.Message
-        default:
-            t.Errorf("no error object returned. got=%T (%+v)", evaluated, evaluated)
-            continue
-        }
-        if errMessage != tt.expectedMessage {
-            t.Errorf("wrong error message. expected=%q, got=%q", tt.expectedMessage, errMessage)
-        }
-    }
+	for _, tt := range tests {
+		evaluated := testEval(tt.input)
+		// Extract error message from Error or ErrorWithTrace
+		var errMessage string
+		switch err := evaluated.(type) {
+		case *object.Error:
+			errMessage = err.Message
+		case *object.ErrorWithTrace:
+			errMessage = err.Message
+		default:
+			t.Errorf("no error object returned. got=%T (%+v)", evaluated, evaluated)
+			continue
+		}
+		if errMessage != tt.expectedMessage {
+			t.Errorf("wrong error message. expected=%q, got=%q", tt.expectedMessage, errMessage)
+		}
+	}
 }
 
 func TestAssignmentStatements(t *testing.T) {
@@ -721,25 +723,25 @@ main:
 		}
 	})
 
-		t.Run("empty main block", func(t *testing.T) {
-			input := `x = 123
+	t.Run("empty main block", func(t *testing.T) {
+		input := `x = 123
 
 main:
     # Empty main block
 
 # This should not execute after main
 x`
-			evaluated := testEval(input)
-			errMsg, isError := getErrorMessage(evaluated)
-			if !isError {
-				t.Fatalf("expected error object, got %T", evaluated)
-			}
-                        if !strings.Contains(errMsg, "expected indented block") {
-                                t.Errorf("unexpected error message: %q", errMsg)
-                        }
-                })
+		evaluated := testEval(input)
+		errMsg, isError := getErrorMessage(evaluated)
+		if !isError {
+			t.Fatalf("expected error object, got %T", evaluated)
+		}
+		if !strings.Contains(errMsg, "expected indented block") {
+			t.Errorf("unexpected error message: %q", errMsg)
+		}
+	})
 
-        t.Run("nested blocks within main", func(t *testing.T) {
+	t.Run("nested blocks within main", func(t *testing.T) {
 		input := `main:
     x = 10
     if x > 5:
@@ -820,7 +822,7 @@ result = s[1]`
 			t.Errorf("string has wrong value. got=%q, wanted=%q", result.Value, "e")
 		}
 	})
-	
+
 	t.Run("string indexing bounds", func(t *testing.T) {
 		tests := []struct {
 			input    string
@@ -830,7 +832,7 @@ result = s[1]`
 			{`s = "hello"; s[0]`, "h", "first character"},
 			{`s = "hello"; s[4]`, "o", "last character"},
 		}
-		
+
 		for _, tt := range tests {
 			t.Run(tt.desc, func(t *testing.T) {
 				evaluated := testEval(tt.input)
@@ -844,7 +846,7 @@ result = s[1]`
 			})
 		}
 	})
-	
+
 	t.Run("array indexing should work correctly", func(t *testing.T) {
 		input := `arr = [1, 2, 3]
 result = arr[1]`
@@ -866,11 +868,37 @@ func TestIncrementDecrementOperators(t *testing.T) {
 		{"x = 1; ++x", 2, "pre-increment"},
 		{"x = 5; --x", 4, "pre-decrement"},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
 			evaluated := testEval(tt.input)
 			testIntegerObject(t, evaluated, tt.expected)
 		})
+	}
+}
+
+func TestGetPackageVersions(t *testing.T) {
+	dir := t.TempDir()
+	os.Mkdir(filepath.Join(dir, "v1.0.0"), 0o755)
+	os.Mkdir(filepath.Join(dir, "1.10.0"), 0o755)
+	os.Mkdir(filepath.Join(dir, "v2.0.0"), 0o755)
+
+	versions, err := getPackageVersions(dir)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	expected := []string{"v1.0.0", "1.10.0", "v2.0.0"}
+	if len(versions) != len(expected) {
+		t.Fatalf("expected %d versions, got %d", len(expected), len(versions))
+	}
+	for i, v := range expected {
+		if versions[i] != v {
+			t.Fatalf("expected versions[%d]=%q, got %q", i, v, versions[i])
+		}
+	}
+
+	if latest := versions[len(versions)-1]; latest != "v2.0.0" {
+		t.Fatalf("expected latest version v2.0.0, got %s", latest)
 	}
 }

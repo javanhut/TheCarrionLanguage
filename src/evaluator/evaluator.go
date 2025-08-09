@@ -2,6 +2,7 @@ package evaluator
 
 import (
 	"fmt"
+	"golang.org/x/mod/semver"
 	"math"
 	"os"
 	"path/filepath"
@@ -10,7 +11,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"golang.org/x/mod/semver"
 
 	"github.com/javanhut/TheCarrionLanguage/src/ast"
 	"github.com/javanhut/TheCarrionLanguage/src/debug"
@@ -34,13 +34,13 @@ var (
 
 // CallContext tracks function call state for better error reporting
 type CallContext struct {
-	FunctionName string
-	Node         ast.Node
-	Parent       *CallContext
-	env          *object.Environment
-	depth        int
-	IsDirectExecution bool  // True when file is run directly, false when imported
-	MethodGrimoire *object.Grimoire // The grimoire that owns the current method
+	FunctionName      string
+	Node              ast.Node
+	Parent            *CallContext
+	env               *object.Environment
+	depth             int
+	IsDirectExecution bool             // True when file is run directly, false when imported
+	MethodGrimoire    *object.Grimoire // The grimoire that owns the current method
 }
 
 // A map to track call stack depth for recursive functions
@@ -53,30 +53,30 @@ var recursionDepths = make(map[*ast.BlockStatement]int)
 func CleanupGlobalState() {
 	// Clear imported files
 	importedFiles = make(map[string]bool)
-	
+
 	// Clear call stack
 	for k := range callStack {
 		delete(callStack, k)
 	}
-	
+
 	// Clear recursion depths
 	for k := range recursionDepths {
 		delete(recursionDepths, k)
 	}
-	
+
 	// Reset current context
 	CurrentContext = nil
-	
+
 	// Cleanup goroutine manager
 	CleanupGoroutineManager()
 }
 
 // CleanupGoroutineManager waits for goroutines to finish and resets the manager
 func CleanupGoroutineManager() {
-	
+
 	// Create a channel to signal completion
 	done := make(chan bool, 1)
-	
+
 	go func() {
 		// Wait for all named goroutines to finish
 		namedGoroutines := globalGoroutineManager.GetAllNamedGoroutines()
@@ -90,7 +90,7 @@ func CleanupGoroutineManager() {
 				}
 			}
 		}
-		
+
 		// Wait for all anonymous goroutines to finish
 		anonymousGoroutines := globalGoroutineManager.GetAllAnonymousGoroutines()
 		for _, goroutine := range anonymousGoroutines {
@@ -103,10 +103,10 @@ func CleanupGoroutineManager() {
 				}
 			}
 		}
-		
+
 		done <- true
 	}()
-	
+
 	// Wait for completion or timeout after 5 seconds
 	select {
 	case <-done:
@@ -114,7 +114,7 @@ func CleanupGoroutineManager() {
 	case <-time.After(5 * time.Second):
 		// Global timeout reached
 	}
-	
+
 	// Reset the global goroutine manager to a fresh state
 	globalGoroutineManager.Reset()
 }
@@ -278,7 +278,7 @@ func newErrorWithTrace(
 	for currentCtx != nil {
 		if currentCtx.Node != nil {
 			nodePos := getSourcePosition(currentCtx.Node)
-			
+
 			// If current node has unknown filename, try to get it from parent context
 			if (nodePos.Filename == "unknown" || nodePos.Filename == "") && currentCtx.Parent != nil && currentCtx.Parent.Node != nil {
 				parentPos := getSourcePosition(currentCtx.Parent.Node)
@@ -286,23 +286,23 @@ func newErrorWithTrace(
 					nodePos.Filename = parentPos.Filename
 				}
 			}
-			
+
 			entry := object.StackTraceEntry{
 				FunctionName: currentCtx.FunctionName,
 				Position:     nodePos,
 			}
-			
+
 			// Skip duplicate consecutive entries with same function name and unknown location
 			shouldSkip := false
 			if len(err.Stack) > 0 {
 				lastEntry := err.Stack[len(err.Stack)-1]
-				if lastEntry.FunctionName == entry.FunctionName && 
-				   (entry.Position.Filename == "unknown" || entry.Position.Filename == "") &&
-				   (lastEntry.Position.Filename != "unknown" && lastEntry.Position.Filename != "") {
+				if lastEntry.FunctionName == entry.FunctionName &&
+					(entry.Position.Filename == "unknown" || entry.Position.Filename == "") &&
+					(lastEntry.Position.Filename != "unknown" && lastEntry.Position.Filename != "") {
 					shouldSkip = true
 				}
 			}
-			
+
 			if !shouldSkip {
 				err.Stack = append(err.Stack, entry)
 			}
@@ -329,7 +329,7 @@ func newCustomErrorWithTrace(
 		Stack:         []object.StackTraceEntry{},
 		CustomDetails: details,
 	}
-	
+
 	// Debug: ensure details is not nil
 	if err.CustomDetails == nil {
 		err.CustomDetails = make(map[string]object.Object)
@@ -401,7 +401,7 @@ func wrapPrimitive(obj object.Object, env *object.Environment, ctx *CallContext)
 	if debugPrimitiveWrapping {
 		fmt.Fprintf(os.Stderr, "WRAP: Evaluating %T, ctx=%s, hasSelf=%t\n", obj, getContextName(ctx), hasSelfInEnv(env))
 	}
-	
+
 	// Don't wrap if we're inside an instance method or initializer
 	// Check current environment and traverse up parent environments
 	if hasSelfInEnv(env) {
@@ -410,7 +410,7 @@ func wrapPrimitive(obj object.Object, env *object.Environment, ctx *CallContext)
 		}
 		return obj
 	}
-	
+
 	// Don't wrap if we're in a method context (check the call context chain)
 	if isInMethodContext(ctx) {
 		if debugPrimitiveWrapping {
@@ -418,7 +418,7 @@ func wrapPrimitive(obj object.Object, env *object.Environment, ctx *CallContext)
 		}
 		return obj
 	}
-	
+
 	// Don't wrap if this is in a function call context that expects primitives
 	if ctx != nil && ctx.FunctionName != "" {
 		// Don't wrap arguments to builtin functions (except for input functions that should return String instances and pairs() that should return Array instances)
@@ -436,11 +436,11 @@ func wrapPrimitive(obj object.Object, env *object.Environment, ctx *CallContext)
 			return obj
 		}
 	}
-	
+
 	if debugPrimitiveWrapping {
 		fmt.Fprintf(os.Stderr, "WRAP: Wrapping %T in context %s\n", obj, getContextName(ctx))
 	}
-	
+
 	var grimName string
 
 	switch obj.Type() {
@@ -469,7 +469,7 @@ func wrapPrimitive(obj object.Object, env *object.Environment, ctx *CallContext)
 
 			// Set self reference
 			instance.Env.Set("self", instance)
-			
+
 			// Handle different types appropriately
 			if grimName == "Array" {
 				// For arrays, set the elements directly
@@ -595,14 +595,14 @@ func Eval(node ast.Node, env *object.Environment, ctx *CallContext) object.Objec
 			env:          env,
 		}
 	}
-	
+
 	// Debug AST node types for // operations
 	if debugPrimitiveWrapping {
 		if infixNode, ok := node.(*ast.InfixExpression); ok && infixNode.Operator == "//" {
 			fmt.Fprintf(os.Stderr, "EVAL: InfixExpression // in %s\n", getContextName(ctx))
 		}
 	}
-	
+
 	oldContext := CurrentContext
 	CurrentContext = ctx
 	defer func() { CurrentContext = oldContext }()
@@ -616,10 +616,10 @@ func Eval(node ast.Node, env *object.Environment, ctx *CallContext) object.Objec
 		}
 
 		newCtx := &CallContext{
-			FunctionName: funcName,
-			Node:         node,
-			Parent:       ctx,
-			env:          env,
+			FunctionName:   funcName,
+			Node:           node,
+			Parent:         ctx,
+			env:            env,
 			MethodGrimoire: ctx.MethodGrimoire, // Inherit from parent
 		}
 		ctx = newCtx
@@ -650,14 +650,14 @@ func Eval(node ast.Node, env *object.Environment, ctx *CallContext) object.Objec
 		if isError(cond) {
 			return cond
 		}
-		
+
 		// Special handling for check(value, expected) pattern
 		if node.Message != nil {
 			expected := Eval(node.Message, env, ctx)
 			if isError(expected) {
 				return expected
 			}
-			
+
 			// Check if this looks like check(actual, expected)
 			if cond.Type() == expected.Type() {
 				if !areValuesEqual(cond, expected) {
@@ -677,7 +677,7 @@ func Eval(node ast.Node, env *object.Environment, ctx *CallContext) object.Objec
 				return newCustomErrorWithTrace("Assertion Check Failed", msg, node, ctx, details)
 			}
 		}
-		
+
 		// Standard boolean check
 		if !isTruthy(cond) {
 			msg := "Assertion failed: " + node.Condition.String()
@@ -812,7 +812,7 @@ func Eval(node ast.Node, env *object.Environment, ctx *CallContext) object.Objec
 		if len(elements) == 1 && isError(elements[0]) {
 			return elements[0]
 		}
-		
+
 		// Create Array instance if Array grimoire exists
 		if grimObj, ok := env.Get("Array"); ok {
 			if grimoire, isGrim := grimObj.(*object.Grimoire); isGrim {
@@ -825,7 +825,7 @@ func Eval(node ast.Node, env *object.Environment, ctx *CallContext) object.Objec
 				return instance
 			}
 		}
-		
+
 		// Fallback to regular array
 		return &object.Array{Elements: elements}
 
@@ -908,36 +908,36 @@ func EvalWithDebug(node ast.Node, env *object.Environment, ctx *CallContext, deb
 	// If no context provided, create one for direct execution
 	if ctx == nil {
 		ctx = &CallContext{
-			FunctionName: "main",
-			Node:         node,
-			Parent:       nil,
-			env:          env,
-			depth:        0,
+			FunctionName:      "main",
+			Node:              node,
+			Parent:            nil,
+			env:               env,
+			depth:             0,
 			IsDirectExecution: true,
 		}
 	}
-	
+
 	if debugConfig == nil || !debugConfig.ShouldDebugEvaluator() {
 		return Eval(node, env, ctx)
 	}
-	
+
 	// Log the node being evaluated
 	fmt.Fprintf(os.Stderr, "evaluator: Evaluating %T", node)
 	if n, ok := node.(ast.Node); ok && n != nil {
 		fmt.Fprintf(os.Stderr, " - %s", n.String())
 	}
 	fmt.Fprintf(os.Stderr, "\n")
-	
+
 	// Evaluate the node
 	result := Eval(node, env, ctx)
-	
+
 	// Log the result
 	if result != nil {
 		fmt.Fprintf(os.Stderr, "evaluator: Result: %s (type: %s)\n", result.Inspect(), result.Type())
 	} else {
 		fmt.Fprintf(os.Stderr, "evaluator: Result: nil\n")
 	}
-	
+
 	return result
 }
 
@@ -1101,7 +1101,7 @@ func evalRaiseStatement(
 				message = msgStr.Value
 			}
 		}
-		
+
 		// Check for String wrapper instances
 		if instance.Grimoire.Name == "String" {
 			if value, ok := instance.Env.Get("value"); ok {
@@ -1158,10 +1158,10 @@ func evalAttemptStatement(
 
 	// Create a new context for the try block
 	tryCtx := &CallContext{
-		FunctionName: "attempt",
-		Node:         node.TryBlock,
-		Parent:       ctx,
-		env:          env,
+		FunctionName:   "attempt",
+		Node:           node.TryBlock,
+		Parent:         ctx,
+		env:            env,
 		MethodGrimoire: ctx.MethodGrimoire, // Inherit from parent
 	}
 	tryResult := Eval(node.TryBlock, env, tryCtx)
@@ -1170,7 +1170,7 @@ func evalAttemptStatement(
 		for _, ensnare := range node.EnsnareClauses {
 			var shouldCatch bool
 			var ensnareEnv *object.Environment
-			
+
 			// Check if this ensnare clause should catch the error
 			if ensnare.Alias != nil {
 				// If there's an alias, catch all errors and bind the error to the alias
@@ -1251,7 +1251,7 @@ func evalAttemptStatement(
 				shouldCatch = true
 				ensnareEnv = env
 			}
-			
+
 			if shouldCatch {
 				ensnareCtx := &CallContext{
 					FunctionName: "ensnare",
@@ -1300,7 +1300,7 @@ func evalWithStatement(
 
 	// Create a new environment for the with block
 	withEnv := object.NewEnclosedEnvironment(env)
-	
+
 	// Bind the resource to the specified variable
 	if ws.Variable != nil {
 		withEnv.Set(ws.Variable.Value, resource)
@@ -1382,7 +1382,7 @@ func isEqual(obj1, obj2 object.Object) bool {
 	// Unwrap primitives if they are wrapped in instances
 	obj1 = unwrapPrimitive(obj1)
 	obj2 = unwrapPrimitive(obj2)
-	
+
 	switch obj1 := obj1.(type) {
 	case *object.Integer:
 		if obj2, ok := obj2.(*object.Integer); ok {
@@ -1629,7 +1629,6 @@ func getGlobalEnv(env *object.Environment, ctx *CallContext) *object.Environment
 	return env
 }
 
-
 func evalGrimoireDefinition(
 	node *ast.GrimoireDefinition,
 	env *object.Environment,
@@ -1740,16 +1739,16 @@ func evalStaticMethodCall(
 
 	// Create isolated method environment (no instance, no self)
 	methodEnv := object.NewEnclosedEnvironment(grimoire.Env)
-	
+
 	// Add the grimoire constructor to the environment for self-instantiation
 	methodEnv.Set(grimoire.Name, grimoire)
 
 	// Create method context
 	methodCtx := &CallContext{
-		FunctionName: grimoire.Name + "." + methodName,
-		Node:         ctx.Node,
-		Parent:       ctx,
-		env:          methodEnv,
+		FunctionName:   grimoire.Name + "." + methodName,
+		Node:           ctx.Node,
+		Parent:         ctx,
+		env:            methodEnv,
 		MethodGrimoire: grimoire,
 	}
 
@@ -1860,13 +1859,13 @@ func evalGrimoireMethodCall(
 	// Find which grimoire owns this method for proper super resolution
 	// This enables multi-level inheritance by tracking method ownership
 	methodOwner := findMethodOwner(instance, methodName, method)
-	
+
 	// Create method context
 	methodCtx := &CallContext{
-		FunctionName: methodOwner.Name + "." + methodName,
-		Node:         ctx.Node,
-		Parent:       ctx,
-		env:          methodEnv,
+		FunctionName:   methodOwner.Name + "." + methodName,
+		Node:           ctx.Node,
+		Parent:         ctx,
+		env:            methodEnv,
 		MethodGrimoire: methodOwner,
 	}
 
@@ -1919,15 +1918,14 @@ func evalBoundMethodCall(
 	// Find which grimoire owns this method for proper super resolution
 	// This enables multi-level inheritance by tracking method ownership
 	methodOwner := findMethodOwner(instance, methodName, method)
-	
-	
+
 	// Create method context
 	methodCtx := &CallContext{
-		FunctionName: methodOwner.Name + "." + methodName,
-		Node:         ctx.Node,
-		Parent:       ctx,
-		env:          methodEnv,
-		depth:        ctx.depth + 1,
+		FunctionName:   methodOwner.Name + "." + methodName,
+		Node:           ctx.Node,
+		Parent:         ctx,
+		env:            methodEnv,
+		depth:          ctx.depth + 1,
 		MethodGrimoire: methodOwner,
 	}
 
@@ -2004,7 +2002,7 @@ func evalCallExpression(
 		if typeErr := checkParameterTypes(fnTyped, args, ctx); typeErr != nil {
 			return typeErr
 		}
-		
+
 		// use the correctly typed value as the map key
 		fun := fnTyped // alias for brevity
 
@@ -2067,10 +2065,10 @@ func evalCallExpression(
 			extended.Set("self", instance)
 
 			initCtx := &CallContext{
-				FunctionName: fnTyped.Name + ".init",
-				Node:         fnTyped.InitMethod.Body,
-				Parent:       ctx,
-				env:          extended,
+				FunctionName:   fnTyped.Name + ".init",
+				Node:           fnTyped.InitMethod.Body,
+				Parent:         ctx,
+				env:            extended,
 				MethodGrimoire: fnTyped,
 			}
 			result := Eval(fnTyped.InitMethod.Body, extended, initCtx)
@@ -2139,7 +2137,6 @@ func evalDotExpression(
 				node.Right.Value,
 			)
 		}
-
 
 		return &object.BoundMethod{
 			Instance: superObj.Instance,
@@ -2371,7 +2368,7 @@ func evalIndexExpression(left, index object.Object, node ast.Node, ctx *CallCont
 	// Unwrap instances to get the underlying primitive values
 	unwrappedLeft := unwrapPrimitive(left)
 	unwrappedIndex := unwrapPrimitive(index)
-	
+
 	switch {
 	case unwrappedLeft.Type() == object.TUPLE_OBJ:
 		return evalTupleIndexExpression(unwrappedLeft, unwrappedIndex, node, ctx)
@@ -2436,7 +2433,7 @@ func evalTupleIndexExpression(
 	if !ok {
 		return newErrorWithTrace("not a tuple: %s", node, ctx, tuple.Type())
 	}
-	
+
 	indexObj, ok := index.(*object.Integer)
 	if !ok {
 		return newErrorWithTrace("tuple index must be INTEGER, got %s", node, ctx, index.Type())
@@ -2545,7 +2542,7 @@ func evalStringIndexExpression(
 func evalSliceExpression(left, start, end object.Object, node ast.Node, ctx *CallContext) object.Object {
 	// Unwrap instances to get the underlying primitive values
 	unwrappedLeft := unwrapPrimitive(left)
-	
+
 	switch {
 	case unwrappedLeft.Type() == object.STRING_OBJ:
 		result := evalStringSliceExpression(unwrappedLeft, start, end, node, ctx)
@@ -2572,10 +2569,10 @@ func evalStringSliceExpression(str, start, end object.Object, node ast.Node, ctx
 	if !ok {
 		return newErrorWithTrace("slice operation not supported on %s", node, ctx, str.Type())
 	}
-	
+
 	strLen := int64(len(stringObj.Value))
 	var startIdx, endIdx int64
-	
+
 	// Handle start index
 	if start != nil {
 		startInt, ok := start.(*object.Integer)
@@ -2589,7 +2586,7 @@ func evalStringSliceExpression(str, start, end object.Object, node ast.Node, ctx
 	} else {
 		startIdx = 0
 	}
-	
+
 	// Handle end index
 	if end != nil {
 		endInt, ok := end.(*object.Integer)
@@ -2603,7 +2600,7 @@ func evalStringSliceExpression(str, start, end object.Object, node ast.Node, ctx
 	} else {
 		endIdx = strLen
 	}
-	
+
 	// Bounds checking
 	if startIdx < 0 {
 		startIdx = 0
@@ -2614,7 +2611,7 @@ func evalStringSliceExpression(str, start, end object.Object, node ast.Node, ctx
 	if startIdx > endIdx {
 		startIdx = endIdx
 	}
-	
+
 	// Extract substring
 	return &object.String{Value: stringObj.Value[startIdx:endIdx]}
 }
@@ -2624,10 +2621,10 @@ func evalArraySliceExpression(arr, start, end object.Object, node ast.Node, ctx 
 	if !ok {
 		return newErrorWithTrace("slice operation not supported on %s", node, ctx, arr.Type())
 	}
-	
+
 	arrLen := int64(len(arrayObj.Elements))
 	var startIdx, endIdx int64
-	
+
 	// Handle start index
 	if start != nil {
 		startInt, ok := start.(*object.Integer)
@@ -2641,7 +2638,7 @@ func evalArraySliceExpression(arr, start, end object.Object, node ast.Node, ctx 
 	} else {
 		startIdx = 0
 	}
-	
+
 	// Handle end index
 	if end != nil {
 		endInt, ok := end.(*object.Integer)
@@ -2655,7 +2652,7 @@ func evalArraySliceExpression(arr, start, end object.Object, node ast.Node, ctx 
 	} else {
 		endIdx = arrLen
 	}
-	
+
 	// Bounds checking
 	if startIdx < 0 {
 		startIdx = 0
@@ -2666,7 +2663,7 @@ func evalArraySliceExpression(arr, start, end object.Object, node ast.Node, ctx 
 	if startIdx > endIdx {
 		startIdx = endIdx
 	}
-	
+
 	// Extract subarray
 	newElements := make([]object.Object, endIdx-startIdx)
 	copy(newElements, arrayObj.Elements[startIdx:endIdx])
@@ -2711,7 +2708,7 @@ func extendFunctionEnv(
 			} else {
 				env.Set(name, NONE)
 			}
-			
+
 			// Store type hint for parameter if present
 			if param.TypeHint != nil {
 				if typeHintIdent, ok := param.TypeHint.(*ast.Identifier); ok {
@@ -2753,7 +2750,7 @@ func evalIdentifier(node *ast.Identifier, env *object.Environment, ctx *CallCont
 		} else {
 			currentGrimoire = inst.Grimoire
 		}
-		
+
 		if currentGrimoire == nil || currentGrimoire.Inherits == nil {
 			return newErrorWithTrace("no parent class found for 'super'", node, ctx)
 		}
@@ -2782,7 +2779,7 @@ func evalIdentifier(node *ast.Identifier, env *object.Environment, ctx *CallCont
 func evalProgram(program *ast.Program, env *object.Environment, ctx *CallContext) object.Object {
 	var result object.Object
 	var mainStatement *ast.MainStatement
-	
+
 	// Create a proper program context if none exists
 	if ctx == nil {
 		ctx = &CallContext{
@@ -2793,7 +2790,7 @@ func evalProgram(program *ast.Program, env *object.Environment, ctx *CallContext
 			env:               env,
 		}
 	}
-	
+
 	// First pass: check if main statement exists
 	for _, statement := range program.Statements {
 		if mainStmt, ok := statement.(*ast.MainStatement); ok {
@@ -2801,14 +2798,14 @@ func evalProgram(program *ast.Program, env *object.Environment, ctx *CallContext
 			break
 		}
 	}
-	
+
 	// Second pass: process statements based on whether main exists
 	for _, statement := range program.Statements {
 		if _, ok := statement.(*ast.MainStatement); ok {
 			// Skip main statement for now
 			continue
 		}
-		
+
 		// If main exists, only execute function definitions, class definitions, and assignments
 		// Skip other top-level executable statements
 		if mainStatement != nil {
@@ -2832,7 +2829,7 @@ func evalProgram(program *ast.Program, env *object.Environment, ctx *CallContext
 			// No main block, execute everything normally (backward compatibility)
 			result = Eval(statement, env, ctx)
 		}
-		
+
 		switch result.(type) {
 		case *object.ReturnValue:
 			return result.(*object.ReturnValue).Value
@@ -2840,7 +2837,7 @@ func evalProgram(program *ast.Program, env *object.Environment, ctx *CallContext
 			return result
 		}
 	}
-	
+
 	// If main statement exists, execute it last (only for direct execution)
 	if mainStatement != nil && ctx != nil && ctx.IsDirectExecution {
 		mainCtx := &CallContext{
@@ -2851,7 +2848,7 @@ func evalProgram(program *ast.Program, env *object.Environment, ctx *CallContext
 			env:               env,
 		}
 		result = Eval(mainStatement, env, mainCtx)
-		
+
 		switch result.(type) {
 		case *object.ReturnValue:
 			return result.(*object.ReturnValue).Value
@@ -2859,7 +2856,7 @@ func evalProgram(program *ast.Program, env *object.Environment, ctx *CallContext
 			return result
 		}
 	}
-	
+
 	return result
 }
 
@@ -2982,10 +2979,10 @@ func evalInfixExpression(
 	// Unwrap primitive values from instances if needed
 	unwrappedLeft := unwrapPrimitive(left)
 	unwrappedRight := unwrapPrimitive(right)
-	
+
 	// Debug all arithmetic operations in method contexts
 	if debugPrimitiveWrapping && ctx != nil && strings.Contains(getContextName(ctx), ".") {
-		fmt.Fprintf(os.Stderr, "ARITH: %T %s %T -> unwrapped: %T %s %T in %s\n", 
+		fmt.Fprintf(os.Stderr, "ARITH: %T %s %T -> unwrapped: %T %s %T in %s\n",
 			left, operator, right, unwrappedLeft, operator, unwrappedRight, getContextName(ctx))
 		if leftInt, ok := unwrappedLeft.(*object.Integer); ok {
 			if rightInt, ok := unwrappedRight.(*object.Integer); ok {
@@ -2993,7 +2990,7 @@ func evalInfixExpression(
 			}
 		}
 	}
-	
+
 	// Handle "in" and "not in" operators before type-specific switches
 	if operator == "in" || operator == "not in" {
 		result := evalInOperator(unwrappedLeft, unwrappedRight, node, ctx)
@@ -3005,7 +3002,7 @@ func evalInfixExpression(
 		}
 		return result
 	}
-	
+
 	switch {
 	case unwrappedLeft.Type() == object.INTEGER_OBJ && unwrappedRight.Type() == object.INTEGER_OBJ:
 		return evalIntegerInfixExpression(operator, unwrappedLeft, unwrappedRight, node, ctx, env)
@@ -3059,14 +3056,14 @@ func evalInfixExpression(
 			if count < 0 {
 				return newErrorWithTrace("array multiplication count cannot be negative", node, ctx)
 			}
-			
+
 			totalElements := len(leftArr.Elements) * int(count)
 			result := make([]object.Object, totalElements)
-			
+
 			for i := 0; i < int(count); i++ {
 				copy(result[i*len(leftArr.Elements):], leftArr.Elements)
 			}
-			
+
 			return &object.Array{Elements: result}
 		}
 		return newErrorWithTrace("unsupported operation: %s %s %s", node, ctx, unwrappedLeft.Type(), operator, unwrappedRight.Type())
@@ -3078,14 +3075,14 @@ func evalInfixExpression(
 			if count < 0 {
 				return newErrorWithTrace("array multiplication count cannot be negative", node, ctx)
 			}
-			
+
 			totalElements := len(rightArr.Elements) * int(count)
 			result := make([]object.Object, totalElements)
-			
+
 			for i := 0; i < int(count); i++ {
 				copy(result[i*len(rightArr.Elements):], rightArr.Elements)
 			}
-			
+
 			return &object.Array{Elements: result}
 		}
 		return newErrorWithTrace("unsupported operation: %s %s %s", node, ctx, unwrappedLeft.Type(), operator, unwrappedRight.Type())
@@ -3100,12 +3097,12 @@ func evalInfixExpression(
 		// Handle instance operations specially
 		leftInstance := left.(*object.Instance)
 		rightInstance := right.(*object.Instance)
-		
+
 		// Check if both are Array instances and handle concatenation
 		if leftInstance.Grimoire.Name == "Array" && rightInstance.Grimoire.Name == "Array" && operator == "+" {
 			// Get the actual arrays from the instances
 			var leftArray, rightArray *object.Array
-			
+
 			if leftElements, exists := leftInstance.Env.Get("elements"); exists {
 				if arr, isArray := leftElements.(*object.Array); isArray {
 					leftArray = arr
@@ -3117,7 +3114,7 @@ func evalInfixExpression(
 					}
 				}
 			}
-			
+
 			if rightElements, exists := rightInstance.Env.Get("elements"); exists {
 				if arr, isArray := rightElements.(*object.Array); isArray {
 					rightArray = arr
@@ -3129,13 +3126,13 @@ func evalInfixExpression(
 					}
 				}
 			}
-			
+
 			if leftArray != nil && rightArray != nil {
 				combined := make([]object.Object, len(leftArray.Elements)+len(rightArray.Elements))
 				copy(combined, leftArray.Elements)
 				copy(combined[len(leftArray.Elements):], rightArray.Elements)
 				result := &object.Array{Elements: combined}
-				
+
 				// Wrap the result back as an Array instance if we're in an environment with Array grimoire
 				if ctx != nil && ctx.env != nil {
 					return wrapPrimitive(result, ctx.env, ctx)
@@ -3143,7 +3140,7 @@ func evalInfixExpression(
 				return result
 			}
 		}
-		
+
 		// If not handled above, fall through to type mismatch error
 		return newErrorWithTrace("type mismatch: %s %s %s", node, ctx,
 			left.Type(), operator, right.Type())
@@ -3219,7 +3216,7 @@ func evalStringInfixExpression(
 ) object.Object {
 	leftVal := left.(*object.String).Value
 	rightVal := right.(*object.String).Value
-	
+
 	switch operator {
 	case "+":
 		primitive := &object.String{Value: leftVal + rightVal}
@@ -3398,7 +3395,7 @@ func evalMinusPrefixOperatorExpression(
 ) object.Object {
 	// Unwrap primitive values from instances if needed
 	unwrapped := unwrapPrimitive(right)
-	
+
 	if unwrapped.Type() != object.INTEGER_OBJ && unwrapped.Type() != object.FLOAT_OBJ {
 		// Unknown operand type for prefix minus
 		return newError("unknown operator: -%s", right.Type())
@@ -3423,7 +3420,7 @@ func evalIntegerInfixExpression(
 ) object.Object {
 	leftVal := left.(*object.Integer).Value
 	rightVal := right.(*object.Integer).Value
-	
+
 	if debugPrimitiveWrapping && operator == "//" {
 		fmt.Fprintf(os.Stderr, "INTDIV: %d %s %d in %s\n", leftVal, operator, rightVal, getContextName(ctx))
 	}
@@ -3596,7 +3593,7 @@ func applyCompoundOperator(
 		}
 	}
 
-	// Try to extract floats 
+	// Try to extract floats
 	if lFloat, ok := extractFloat(leftVal); ok {
 		rFloat, ok := extractFloat(rightVal)
 		if !ok {
@@ -3640,7 +3637,7 @@ func applyCompoundOperator(
 		}
 		return nil, false
 	}
-	
+
 	if operator == "+=" {
 		if lStr, ok := extractString(leftVal); ok {
 			if rStr, ok := extractString(rightVal); ok {
@@ -3908,14 +3905,14 @@ func evalForStatement(
 			if isError(iteratorObj) {
 				return iteratorObj
 			}
-			
+
 			// Use the iterator to iterate
 			if iterator, ok := iteratorObj.(*object.Instance); ok {
 				// Process elements one at a time instead of collecting all first
 				for {
 					if _, hasNext := iterator.Grimoire.Methods["next"]; hasNext {
 						nextValue := evalGrimoireMethodCall(iterator, "next", []object.Object{}, env, forCtx)
-						
+
 						// Check if it's a StopIteration error
 						if isStopIterationError(nextValue) {
 							break
@@ -3923,7 +3920,7 @@ func evalForStatement(
 						if isError(nextValue) {
 							return nextValue
 						}
-						
+
 						// Process each element immediately
 						switch varExpr := fs.Variable.(type) {
 						case *ast.Identifier:
@@ -3950,7 +3947,7 @@ func evalForStatement(
 						default:
 							env.Set(fs.Variable.String(), nextValue)
 						}
-						
+
 						if fs.Body != nil {
 							loopResult := Eval(fs.Body, env, forCtx)
 							if loopResult != nil {
@@ -4023,7 +4020,7 @@ func evalInOperator(
 			return nativeBoolToBooleanObject(contains)
 		}
 		return newErrorWithTrace("'in' operator with string requires string on left side, got %s", node, ctx, left.Type())
-		
+
 	case *object.Array:
 		// Check if element exists in array
 		for _, elem := range container.Elements {
@@ -4032,7 +4029,7 @@ func evalInOperator(
 			}
 		}
 		return nativeBoolToBooleanObject(false)
-		
+
 	case *object.Hash:
 		// Check if key exists in hash
 		hashKey, ok := left.(object.Hashable)
@@ -4041,7 +4038,7 @@ func evalInOperator(
 		}
 		_, exists := container.Pairs[hashKey.HashKey()]
 		return nativeBoolToBooleanObject(exists)
-		
+
 	case *object.Instance:
 		// Handle wrapped containers
 		if container.Grimoire.Name == "String" {
@@ -4067,7 +4064,7 @@ func evalInOperator(
 			}
 		}
 		return newErrorWithTrace("'in' operator not supported for %s instance", node, ctx, container.Grimoire.Name)
-		
+
 	default:
 		return newErrorWithTrace("'in' operator not supported for %s", node, ctx, right.Type())
 	}
@@ -4078,11 +4075,11 @@ func isObjectEqual(left, right object.Object) bool {
 	// Unwrap primitives to handle instances
 	unwrappedLeft := unwrapPrimitive(left)
 	unwrappedRight := unwrapPrimitive(right)
-	
+
 	if unwrappedLeft.Type() != unwrappedRight.Type() {
 		return false
 	}
-	
+
 	switch leftObj := unwrappedLeft.(type) {
 	case *object.Integer:
 		rightObj := unwrappedRight.(*object.Integer)
@@ -4166,18 +4163,18 @@ func resolveImportPath(importPath string) (string, error) {
 	if err != nil {
 		currentDir = "."
 	}
-	
+
 	// Handle relative imports explicitly (starts with . or ..)
 	if strings.HasPrefix(importPath, "./") || strings.HasPrefix(importPath, "../") {
 		return resolveRelativeImport(importPath, currentDir)
 	}
-	
+
 	// Check if this looks like a package import
 	// Pattern analysis:
 	// - "packagename.filename" -> package import (look in carrion_modules)
 	// - "filename" -> local file (look in current dir first)
 	// - "path/filename" -> explicit path
-	
+
 	return resolvePackageOrFileImport(importPath, currentDir)
 }
 
@@ -4185,18 +4182,18 @@ func resolveImportPath(importPath string) (string, error) {
 func resolveRelativeImport(importPath, currentDir string) (string, error) {
 	// Remove any .crl extension if provided
 	cleanPath := strings.TrimSuffix(importPath, ".crl")
-	
+
 	// Resolve the relative path
 	fullPath := filepath.Join(currentDir, cleanPath+".crl")
 	absPath, err := filepath.Abs(fullPath)
 	if err != nil {
 		return "", fmt.Errorf("could not resolve relative path %s: %v", importPath, err)
 	}
-	
+
 	if _, err := os.Stat(absPath); err == nil {
 		return absPath, nil
 	}
-	
+
 	return "", fmt.Errorf("relative import not found: %s", importPath)
 }
 
@@ -4206,7 +4203,7 @@ func resolvePackageOrFileImport(importPath, currentDir string) (string, error) {
 	searchPaths := []string{
 		// 1. Current directory (for local files)
 		currentDir,
-		// 2. Local project modules 
+		// 2. Local project modules
 		filepath.Join(currentDir, "carrion_modules"),
 		// 3. Global bifrost modules
 		"/usr/bin/carrion_modules",
@@ -4215,7 +4212,7 @@ func resolvePackageOrFileImport(importPath, currentDir string) (string, error) {
 		// 5. Shared global packages (/usr/local/share/carrion/lib)
 		getSharedGlobalPackages(),
 	}
-	
+
 	// Smart import resolution logic
 	if strings.Contains(importPath, "/") {
 		// Explicit path provided - try as package/file structure
@@ -4232,33 +4229,33 @@ func resolveExplicitPath(importPath string, searchPaths []string) (string, error
 	if len(parts) < 2 {
 		return "", fmt.Errorf("invalid explicit path: %s", importPath)
 	}
-	
+
 	packageName := parts[0]
 	subPath := strings.Join(parts[1:], "/")
-	
+
 	// Try each search path for package structure
 	for _, basePath := range searchPaths {
 		if basePath == "" {
 			continue
 		}
-		
+
 		// Try versioned package structure: basePath/package/version/src/file.crl
 		packagePath := filepath.Join(basePath, packageName)
-		if versions, err := getLatestPackageVersion(packagePath); err == nil && len(versions) > 0 {
+		if versions, err := getPackageVersions(packagePath); err == nil && len(versions) > 0 {
 			latestVersion := versions[len(versions)-1]
 			versionedPath := filepath.Join(packagePath, latestVersion, "src", subPath+".crl")
 			if _, err := os.Stat(versionedPath); err == nil {
 				return versionedPath, nil
 			}
 		}
-		
+
 		// Try direct path: basePath/package/file.crl
 		directPath := filepath.Join(basePath, importPath+".crl")
 		if _, err := os.Stat(directPath); err == nil {
 			return directPath, nil
 		}
 	}
-	
+
 	return "", fmt.Errorf("explicit path import not found: %s", importPath)
 }
 
@@ -4269,44 +4266,44 @@ func resolveSimpleName(importPath string, searchPaths []string, currentDir strin
 	if _, err := os.Stat(localPath); err == nil {
 		return localPath, nil
 	}
-	
+
 	// Then try as a package name in each search location
 	for i, basePath := range searchPaths {
 		if basePath == "" {
 			continue
 		}
-		
+
 		// Skip current directory since we already tried it
 		if i == 0 {
 			continue
 		}
-		
+
 		// Look for package with this name
 		packagePath := filepath.Join(basePath, importPath)
-		if versions, err := getLatestPackageVersion(packagePath); err == nil && len(versions) > 0 {
+		if versions, err := getPackageVersions(packagePath); err == nil && len(versions) > 0 {
 			latestVersion := versions[len(versions)-1]
-			
+
 			// Try common entry points in package
 			possibleEntries := []string{
 				filepath.Join(packagePath, latestVersion, "src", importPath+".crl"),
 				filepath.Join(packagePath, latestVersion, "src", "main.crl"),
 				filepath.Join(packagePath, latestVersion, "src", "index.crl"),
 			}
-			
+
 			for _, entryPath := range possibleEntries {
 				if _, err := os.Stat(entryPath); err == nil {
 					return entryPath, nil
 				}
 			}
 		}
-		
+
 		// Try direct file path as fallback
 		directPath := filepath.Join(basePath, importPath+".crl")
 		if _, err := os.Stat(directPath); err == nil {
 			return directPath, nil
 		}
 	}
-	
+
 	return "", fmt.Errorf("import not found: %s", importPath)
 }
 
@@ -4315,7 +4312,7 @@ func getUserCarrionPackages() string {
 	if home := os.Getenv("CARRION_HOME"); home != "" {
 		return filepath.Join(home, "packages")
 	}
-	
+
 	userHome, err := os.UserHomeDir()
 	if err != nil {
 		return ""
@@ -4334,33 +4331,33 @@ func getSharedGlobalPackages() string {
 	return "/usr/local/share/carrion/lib"
 }
 
-// getLatestPackageVersion returns sorted list of versions for a package
-func getLatestPackageVersion(packagePath string) ([]string, error) {
+// getPackageVersions returns all versions sorted by semantic version
+func getPackageVersions(packagePath string) ([]string, error) {
 	entries, err := os.ReadDir(packagePath)
 	if err != nil {
 		return nil, err
 	}
-	
-        var versions []string
-        for _, entry := range entries {
-                if entry.IsDir() {
-                        versions = append(versions, entry.Name())
-                }
-        }
 
-        sort.Slice(versions, func(i, j int) bool {
-                vi := versions[i]
-                vj := versions[j]
-                if !strings.HasPrefix(vi, "v") {
-                        vi = "v" + vi
-                }
-                if !strings.HasPrefix(vj, "v") {
-                        vj = "v" + vj
-                }
-                return semver.Compare(vi, vj) > 0
-        })
+	var versions []string
+	for _, entry := range entries {
+		if entry.IsDir() {
+			versions = append(versions, entry.Name())
+		}
+	}
 
-        return versions, nil
+	sort.Slice(versions, func(i, j int) bool {
+		vi := versions[i]
+		vj := versions[j]
+		if !strings.HasPrefix(vi, "v") {
+			vi = "v" + vi
+		}
+		if !strings.HasPrefix(vj, "v") {
+			vj = "v" + vj
+		}
+		return semver.Compare(vi, vj) < 0
+	})
+
+	return versions, nil
 }
 
 func evalImportStatement(
@@ -4372,9 +4369,9 @@ func evalImportStatement(
 	if node.FilePath.Value == "" && node.ClassName != nil {
 		return evalGrimoireImport(node, env, ctx)
 	}
-	
+
 	importPath := node.FilePath.Value
-	
+
 	// Check if already imported using the import path as key
 	if importedFiles[importPath] {
 		return object.NONE
@@ -4406,11 +4403,11 @@ func evalImportStatement(
 
 	importEnv := object.NewEnclosedEnvironment(env)
 	importCtx := &CallContext{
-		FunctionName: "import_" + importPath,
-		Node:         program,
-		Parent:       ctx,
-		env:          importEnv,
-		IsDirectExecution: false,  // This is an import, not direct execution
+		FunctionName:      "import_" + importPath,
+		Node:              program,
+		Parent:            ctx,
+		env:               importEnv,
+		IsDirectExecution: false, // This is an import, not direct execution
 	}
 
 	evalResult := Eval(program, importEnv, importCtx)
@@ -4426,14 +4423,14 @@ func evalImportStatement(
 		className := node.ClassName.Value
 		val, exists := importEnv.Get(className)
 		if !exists {
-			return newErrorWithTrace("grimoire '%s' not found in module '%s'", 
+			return newErrorWithTrace("grimoire '%s' not found in module '%s'",
 				node, ctx, className, importPath)
 		}
 		if val.Type() != object.GRIMOIRE_OBJ {
-			return newErrorWithTrace("'%s' is not a grimoire in module '%s'", 
+			return newErrorWithTrace("'%s' is not a grimoire in module '%s'",
 				node, ctx, className, importPath)
 		}
-		
+
 		if node.Alias != nil {
 			// Selective import with alias: bind the specific grimoire to the alias
 			env.Set(node.Alias.Value, val)
@@ -4464,18 +4461,18 @@ func evalGrimoireImport(
 	ctx *CallContext,
 ) object.Object {
 	grimoireName := node.ClassName.Value
-	
+
 	// Get current working directory
 	currentDir, err := os.Getwd()
 	if err != nil {
 		currentDir = "."
 	}
-	
+
 	// Define search paths for grimoire files
 	searchPaths := []string{
 		// 1. Current directory
 		currentDir,
-		// 2. Local project modules 
+		// 2. Local project modules
 		filepath.Join(currentDir, "carrion_modules"),
 		// 3. Global carrion modules
 		"/usr/bin/carrion_modules",
@@ -4484,58 +4481,58 @@ func evalGrimoireImport(
 		// 5. Shared global packages
 		getSharedGlobalPackages(),
 	}
-	
+
 	// Search for files containing the grimoire
 	var foundGrimoire object.Object
 	var foundInFile string
-	
+
 	for _, searchPath := range searchPaths {
 		if searchPath == "" {
 			continue
 		}
-		
+
 		// Look for .crl files in the search path
 		files, err := findCarrionFiles(searchPath)
 		if err != nil {
 			continue
 		}
-		
+
 		// Check each file for the grimoire
 		for _, filePath := range files {
 			// Skip if already imported
 			if importedFiles[filePath] {
 				continue
 			}
-			
+
 			// Read and parse the file
 			fileContent, err := os.ReadFile(filePath)
 			if err != nil {
 				continue
 			}
-			
+
 			l := lexer.NewWithFilename(string(fileContent), filePath)
 			p := parser.New(l)
 			program := p.ParseProgram()
-			
+
 			if len(p.Errors()) > 0 {
 				continue
 			}
-			
+
 			// Evaluate the file in a temporary environment
 			tempEnv := object.NewEnclosedEnvironment(env)
 			tempCtx := &CallContext{
-				FunctionName: "import_search",
-				Node:         program,
-				Parent:       ctx,
-				env:          tempEnv,
+				FunctionName:      "import_search",
+				Node:              program,
+				Parent:            ctx,
+				env:               tempEnv,
 				IsDirectExecution: false,
 			}
-			
+
 			evalResult := Eval(program, tempEnv, tempCtx)
 			if isError(evalResult) {
 				continue
 			}
-			
+
 			// Check if the grimoire exists in this file
 			if val, exists := tempEnv.Get(grimoireName); exists && val.Type() == object.GRIMOIRE_OBJ {
 				foundGrimoire = val
@@ -4543,11 +4540,11 @@ func evalGrimoireImport(
 				break
 			}
 		}
-		
+
 		if foundGrimoire != nil {
 			break
 		}
-		
+
 		// Also check in bifrost package structure
 		packagePaths, _ := findBifrostPackages(searchPath)
 		for _, pkgPath := range packagePaths {
@@ -4555,73 +4552,73 @@ func evalGrimoireImport(
 			if _, err := os.Stat(mainFile); err != nil {
 				continue
 			}
-			
+
 			// Skip if already imported
 			if importedFiles[mainFile] {
 				continue
 			}
-			
+
 			fileContent, err := os.ReadFile(mainFile)
 			if err != nil {
 				continue
 			}
-			
+
 			l := lexer.NewWithFilename(string(fileContent), mainFile)
 			p := parser.New(l)
 			program := p.ParseProgram()
-			
+
 			if len(p.Errors()) > 0 {
 				continue
 			}
-			
+
 			tempEnv := object.NewEnclosedEnvironment(env)
 			tempCtx := &CallContext{
-				FunctionName: "import_search",
-				Node:         program,
-				Parent:       ctx,
-				env:          tempEnv,
+				FunctionName:      "import_search",
+				Node:              program,
+				Parent:            ctx,
+				env:               tempEnv,
 				IsDirectExecution: false,
 			}
-			
+
 			evalResult := Eval(program, tempEnv, tempCtx)
 			if isError(evalResult) {
 				continue
 			}
-			
+
 			if val, exists := tempEnv.Get(grimoireName); exists && val.Type() == object.GRIMOIRE_OBJ {
 				foundGrimoire = val
 				foundInFile = mainFile
 				break
 			}
 		}
-		
+
 		if foundGrimoire != nil {
 			break
 		}
 	}
-	
+
 	if foundGrimoire == nil {
-		return newErrorWithTrace("grimoire '%s' not found in any available module", 
+		return newErrorWithTrace("grimoire '%s' not found in any available module",
 			node, ctx, grimoireName)
 	}
-	
+
 	// Mark the file as imported
 	importedFiles[foundInFile] = true
-	
+
 	// Bind the grimoire to the environment
 	if node.Alias != nil {
 		env.Set(node.Alias.Value, foundGrimoire)
 	} else {
 		env.Set(grimoireName, foundGrimoire)
 	}
-	
+
 	return object.NONE
 }
 
 // findCarrionFiles finds all .crl files in a directory (non-recursive for current dir, limited recursion for modules)
 func findCarrionFiles(dir string) ([]string, error) {
 	var files []string
-	
+
 	// For current directory, only check top level
 	currentDir, _ := os.Getwd()
 	if dir == currentDir {
@@ -4629,7 +4626,7 @@ func findCarrionFiles(dir string) ([]string, error) {
 		if err != nil {
 			return nil, err
 		}
-		
+
 		for _, entry := range entries {
 			if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".crl") {
 				files = append(files, filepath.Join(dir, entry.Name()))
@@ -4637,53 +4634,53 @@ func findCarrionFiles(dir string) ([]string, error) {
 		}
 		return files, nil
 	}
-	
+
 	// For other directories, do limited recursive search
 	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return nil // Skip errors
 		}
-		
+
 		// Skip hidden directories
 		if info.IsDir() && strings.HasPrefix(filepath.Base(path), ".") && path != dir {
 			return filepath.SkipDir
 		}
-		
+
 		if !info.IsDir() && strings.HasSuffix(path, ".crl") {
 			files = append(files, path)
 		}
-		
+
 		// Don't recurse too deep
-		if info.IsDir() && strings.Count(path, string(os.PathSeparator)) - strings.Count(dir, string(os.PathSeparator)) > 2 {
+		if info.IsDir() && strings.Count(path, string(os.PathSeparator))-strings.Count(dir, string(os.PathSeparator)) > 2 {
 			return filepath.SkipDir
 		}
-		
+
 		return nil
 	})
-	
+
 	return files, err
 }
 
 // findBifrostPackages finds all bifrost package directories (pattern: package/version)
 func findBifrostPackages(basePath string) ([]string, error) {
 	var packages []string
-	
+
 	entries, err := os.ReadDir(basePath)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	for _, entry := range entries {
 		if !entry.IsDir() {
 			continue
 		}
-		
+
 		packagePath := filepath.Join(basePath, entry.Name())
 		versions, err := os.ReadDir(packagePath)
 		if err != nil {
 			continue
 		}
-		
+
 		for _, version := range versions {
 			if version.IsDir() {
 				versionPath := filepath.Join(packagePath, version.Name())
@@ -4694,7 +4691,7 @@ func findBifrostPackages(basePath string) ([]string, error) {
 			}
 		}
 	}
-	
+
 	return packages, nil
 }
 
@@ -4720,7 +4717,7 @@ func evalUnpackStatement(
 	if isError(val) {
 		return val
 	}
-	
+
 	// Handle different types of unpacking
 	switch value := val.(type) {
 	case *object.Instance:
@@ -4778,13 +4775,13 @@ func unpackArray(
 	if len(variables) == 2 && len(arr.Elements) > 2 {
 		// Special case: k, v <- [10, 20, 30]
 		// k gets indices [0, 1, 2], v gets values [10, 20, 30]
-		
+
 		// Create indices array
 		indices := &object.Array{Elements: []object.Object{}}
 		for i := range arr.Elements {
 			indices.Elements = append(indices.Elements, &object.Integer{Value: int64(i)})
 		}
-		
+
 		// Assign to variables
 		if ident, ok := variables[0].(*ast.Identifier); ok {
 			env.Set(ident.Value, indices)
@@ -4792,23 +4789,23 @@ func unpackArray(
 		if ident, ok := variables[1].(*ast.Identifier); ok {
 			env.Set(ident.Value, arr)
 		}
-		
+
 		return object.NONE
 	}
-	
+
 	// Regular unpacking: a, b, c <- [1, 2, 3]
 	if len(variables) != len(arr.Elements) {
 		return newErrorWithTrace(
 			"cannot unpack %d values into %d variables",
 			node, ctx, len(arr.Elements), len(variables))
 	}
-	
+
 	for i, variable := range variables {
 		if ident, ok := variable.(*ast.Identifier); ok {
 			env.Set(ident.Value, arr.Elements[i])
 		}
 	}
-	
+
 	return object.NONE
 }
 
@@ -4825,13 +4822,13 @@ func unpackTuple(
 			"cannot unpack %d values into %d variables",
 			node, ctx, len(tuple.Elements), len(variables))
 	}
-	
+
 	for i, variable := range variables {
 		if ident, ok := variable.(*ast.Identifier); ok {
 			env.Set(ident.Value, tuple.Elements[i])
 		}
 	}
-	
+
 	return object.NONE
 }
 
@@ -4847,16 +4844,16 @@ func unpackMap(
 			"map unpacking requires exactly 2 variables (keys, values)",
 			node, ctx)
 	}
-	
+
 	// Extract keys and values
 	keys := &object.Array{Elements: []object.Object{}}
 	values := &object.Array{Elements: []object.Object{}}
-	
+
 	for _, pair := range hash.Pairs {
 		keys.Elements = append(keys.Elements, pair.Key)
 		values.Elements = append(values.Elements, pair.Value)
 	}
-	
+
 	// Assign to variables
 	if ident, ok := variables[0].(*ast.Identifier); ok {
 		env.Set(ident.Value, keys)
@@ -4864,7 +4861,7 @@ func unpackMap(
 	if ident, ok := variables[1].(*ast.Identifier); ok {
 		env.Set(ident.Value, values)
 	}
-	
+
 	return object.NONE
 }
 
@@ -4909,26 +4906,26 @@ func isTypeCompatible(expected, actual string) bool {
 	if expected == actual {
 		return true
 	}
-	
+
 	// Handle type hint aliases (int -> Integer, str -> String, etc.)
 	expectedNormalized := normalizeTypeName(expected)
 	actualNormalized := normalizeTypeName(actual)
-	
+
 	if expectedNormalized == actualNormalized {
 		return true
 	}
-	
+
 	// Special cases for numeric types
-	if (expectedNormalized == "Integer" && actualNormalized == "Float") || 
-	   (expectedNormalized == "Float" && actualNormalized == "Integer") {
+	if (expectedNormalized == "Integer" && actualNormalized == "Float") ||
+		(expectedNormalized == "Float" && actualNormalized == "Integer") {
 		return true
 	}
-	
+
 	// None can be assigned to any type
 	if actualNormalized == "None" {
 		return true
 	}
-	
+
 	return false
 }
 
@@ -4982,7 +4979,7 @@ func evalDivergeStatement(
 		Done:      make(chan bool, 1),
 		IsRunning: true,
 	}
-	
+
 	// Set name if provided
 	if node.Name != nil {
 		goroutine.Name = node.Name.Value
@@ -4990,7 +4987,7 @@ func evalDivergeStatement(
 	} else {
 		globalGoroutineManager.AddAnonymousGoroutine(goroutine)
 	}
-	
+
 	// Start the goroutine
 	go func() {
 		defer func() {
@@ -5001,15 +4998,15 @@ func evalDivergeStatement(
 					Message: fmt.Sprintf("Goroutine panic: %v", r),
 				}
 			}
-			
+
 			// Always ensure Done channel receives a value
 			goroutine.IsRunning = false
 			goroutine.Done <- true
 		}()
-		
+
 		// Create a new environment for the goroutine
 		goroutineEnv := object.NewEnclosedEnvironment(env)
-		
+
 		// Create a new context for the goroutine
 		goroutineCtx := &CallContext{
 			FunctionName: "diverge",
@@ -5017,10 +5014,10 @@ func evalDivergeStatement(
 			Parent:       ctx,
 			env:          goroutineEnv,
 		}
-		
+
 		// Execute the body
 		result := Eval(node.Body, goroutineEnv, goroutineCtx)
-		
+
 		// Store the result or error
 		if isError(result) {
 			goroutine.Error = result
@@ -5028,7 +5025,7 @@ func evalDivergeStatement(
 			goroutine.Result = result
 		}
 	}()
-	
+
 	return goroutine
 }
 
@@ -5039,7 +5036,7 @@ func evalConvergeStatement(
 ) object.Object {
 	if len(node.Names) == 0 {
 		// Wait for all goroutines
-		
+
 		// Wait for named goroutines
 		namedGoroutines := globalGoroutineManager.GetAllNamedGoroutines()
 		for _, goroutine := range namedGoroutines {
@@ -5054,7 +5051,7 @@ func evalConvergeStatement(
 				}
 			}
 		}
-		
+
 		// Wait for anonymous goroutines
 		anonymousGoroutines := globalGoroutineManager.GetAllAnonymousGoroutines()
 		for _, goroutine := range anonymousGoroutines {
@@ -5069,10 +5066,10 @@ func evalConvergeStatement(
 				}
 			}
 		}
-		
+
 		// Clear all goroutines
 		globalGoroutineManager.ClearAll()
-		
+
 	} else {
 		// Wait for specific named goroutines
 		for _, nameExpr := range node.Names {
@@ -5080,12 +5077,12 @@ func evalConvergeStatement(
 			if !ok {
 				return newErrorWithTrace("converge expects goroutine names", node, ctx)
 			}
-			
+
 			goroutine, exists := globalGoroutineManager.GetNamedGoroutine(nameIdent.Value)
 			if !exists {
 				return newErrorWithTrace("goroutine '%s' not found", node, ctx, nameIdent.Value)
 			}
-			
+
 			// Wait for goroutine completion regardless of IsRunning state
 			// to handle race conditions where IsRunning might have changed
 			select {
@@ -5097,11 +5094,11 @@ func evalConvergeStatement(
 					<-goroutine.Done
 				}
 			}
-			
+
 			// Remove from manager with proper cleanup
 			globalGoroutineManager.RemoveAndCleanupNamed(nameIdent.Value)
 		}
 	}
-	
+
 	return object.NONE
 }
