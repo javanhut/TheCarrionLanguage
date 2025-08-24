@@ -363,7 +363,10 @@ func Start(in io.Reader, out io.Writer, env *object.Environment) {
 						if strings.TrimSpace(input) != "" {
 							evaluated, complete := tryParseAndEval(input, out, env)
 							if complete {
-								if evaluated != nil && evaluated.Type() != object.NONE_OBJ {
+								// Only print if it's not a function, grimoire, or builtin identifier without call
+								if evaluated != nil && evaluated.Type() != object.NONE_OBJ &&
+									evaluated.Type() != object.FUNCTION_OBJ && evaluated.Type() != object.GRIMOIRE_OBJ &&
+									evaluated.Type() != object.BUILTIN_OBJ {
 									fmt.Fprintf(out, "%s\n", evaluated.Inspect())
 								}
 							}
@@ -424,7 +427,10 @@ func Start(in io.Reader, out io.Writer, env *object.Environment) {
 
 			evaluated, complete := tryParseAndEval(input, out, env)
 			if complete {
-				if evaluated != nil && evaluated.Type() != object.NONE_OBJ {
+				// Only print if it's not a function, grimoire, or builtin identifier without call
+				if evaluated != nil && evaluated.Type() != object.NONE_OBJ &&
+					evaluated.Type() != object.FUNCTION_OBJ && evaluated.Type() != object.GRIMOIRE_OBJ &&
+					evaluated.Type() != object.BUILTIN_OBJ {
 					fmt.Fprintf(out, "%s\n", evaluated.Inspect())
 				}
 				inputBuffer.Reset()
