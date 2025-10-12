@@ -1977,14 +1977,7 @@ func evalCallExpression(
 	env *object.Environment,
 	ctx *CallContext,
 ) object.Object {
-	// ── 1.  Flatten a single‑tuple argument safely ────────────────────────────
-	if len(args) == 1 && args[0] != nil {
-		if tup, ok := args[0].(*object.Tuple); ok {
-			args = tup.Elements
-		}
-	}
-
-	// ── 2.  Propagate existing errors, don’t try to “call” them ───────────────
+	// ── 1.  Propagate existing errors, don't try to "call" them ───────────────
 	if isError(fn) {
 		return fn
 	}
@@ -1994,7 +1987,7 @@ func evalCallExpression(
 		}
 	}
 
-	// ── 3.  Normal dispatch ───────────────────────────────────────────────────
+	// ── 2.  Normal dispatch ───────────────────────────────────────────────────
 	switch fnTyped := fn.(type) {
 
 	case *object.Function:
