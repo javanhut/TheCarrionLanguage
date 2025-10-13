@@ -25,7 +25,7 @@ var (
 	NONE                        = &object.None{Value: "None"}
 	TRUE                        = &object.Boolean{Value: true}
 	FALSE                       = &object.Boolean{Value: false}
-	importedFiles               = map[string]bool{}
+	importedFiles               = map[string]interface{}{}
 	MAX_CALL_DEPTH              = 1000
 	CurrentContext *CallContext = nil
 )
@@ -50,7 +50,7 @@ var recursionDepths = make(map[*ast.BlockStatement]int)
 // CleanupGlobalState clears all global state maps to prevent memory leaks
 func CleanupGlobalState() {
 	// Clear imported files
-	importedFiles = make(map[string]bool)
+	importedFiles = make(map[string]interface{})
 	
 	// Clear call stack
 	for k := range callStack {
@@ -4354,12 +4354,6 @@ func evalImportStatement(
 	}
 	
 	importPath := node.FilePath.Value
-	
-	// Check if already imported using the import path as key
-	if importedFiles[importPath] {
-		return object.NONE
-	}
-	importedFiles[importPath] = true
 
 	// Resolve the import path to an actual file
 	resolvedPath, err := resolveImportPath(importPath)
@@ -4367,68 +4361,86 @@ func evalImportStatement(
 		return newErrorWithTrace("could not resolve import: %s", node, ctx, err)
 	}
 
-	fileContent, err := os.ReadFile(resolvedPath)
-	if err != nil {
-		return newErrorWithTrace("could not read import file: %s", node, ctx, err)
-	}
-
-	l := lexer.NewWithFilename(string(fileContent), resolvedPath)
-	p := parser.New(l)
-	program := p.ParseProgram()
-
-	if len(p.Errors()) > 0 {
-		errorDetails := fmt.Sprintf("parsing errors in imported file %s:\n", resolvedPath)
-		for _, err := range p.Errors() {
-			errorDetails += fmt.Sprintf("- %s\n", err)
+	// Check if file has already been parsed/evaluated
+	// Use resolved path as the cache key to handle relative vs absolute paths correctly
+	var importEnv *object.Environment
+	if cachedEnv, alreadyImported := importedFiles[resolvedPath]; alreadyImported {
+		// File already imported, reuse the cached environment
+		// This allows multiple selective imports from the same file
+		if envObj, ok := cachedEnv.(*object.Environment); ok {
+			importEnv = envObj
+		} else {
+			// Shouldn't happen, but handle gracefully
+			return newErrorWithTrace("internal error: cached import is not an environment", node, ctx)
 		}
-		return newErrorWithTrace(errorDetails, node, ctx)
-	}
+	} else {
+		// First time importing this file, parse and evaluate it
+		fileContent, err := os.ReadFile(resolvedPath)
+		if err != nil {
+			return newErrorWithTrace("could not read import file: %s", node, ctx, err)
+		}
 
-	importEnv := object.NewEnclosedEnvironment(env)
-	importCtx := &CallContext{
-		FunctionName: "import_" + importPath,
-		Node:         program,
-		Parent:       ctx,
-		env:          importEnv,
-		IsDirectExecution: false,  // This is an import, not direct execution
-	}
+		l := lexer.NewWithFilename(string(fileContent), resolvedPath)
+		p := parser.New(l)
+		program := p.ParseProgram()
 
-	evalResult := Eval(program, importEnv, importCtx)
-	if isError(evalResult) {
-		return newErrorWithTrace("error evaluating imported file %s: %s",
-			node, ctx, resolvedPath, evalResult.Inspect())
+		if len(p.Errors()) > 0 {
+			errorDetails := fmt.Sprintf("parsing errors in imported file %s:\n", resolvedPath)
+			for _, err := range p.Errors() {
+				errorDetails += fmt.Sprintf("- %s\n", err)
+			}
+			return newErrorWithTrace(errorDetails, node, ctx)
+		}
+
+		importEnv = object.NewEnclosedEnvironment(env)
+		importCtx := &CallContext{
+			FunctionName: "import_" + importPath,
+			Node:         program,
+			Parent:       ctx,
+			env:          importEnv,
+			IsDirectExecution: false,  // This is an import, not direct execution
+		}
+
+		evalResult := Eval(program, importEnv, importCtx)
+		if isError(evalResult) {
+			return newErrorWithTrace("error evaluating imported file %s: %s",
+				node, ctx, resolvedPath, evalResult.Inspect())
+		}
+
+		// Cache the environment for future imports from this file
+		importedFiles[resolvedPath] = importEnv
 	}
 
 	namespace := &object.Namespace{Env: importEnv}
 
 	if node.ClassName != nil {
-		// Selective import: import only the specified grimoire
-		className := node.ClassName.Value
-		val, exists := importEnv.Get(className)
+		// Selective import: import only the specified grimoire or spell
+		itemName := node.ClassName.Value
+		val, exists := importEnv.Get(itemName)
 		if !exists {
-			return newErrorWithTrace("grimoire '%s' not found in module '%s'", 
-				node, ctx, className, importPath)
+			return newErrorWithTrace("'%s' not found in module '%s'",
+				node, ctx, itemName, importPath)
 		}
-		if val.Type() != object.GRIMOIRE_OBJ {
-			return newErrorWithTrace("'%s' is not a grimoire in module '%s'", 
-				node, ctx, className, importPath)
-		}
-		
+		// Allow importing grimoires, functions, or any other defined object
+		// No type restriction - users can import whatever they define
+
 		if node.Alias != nil {
-			// Selective import with alias: bind the specific grimoire to the alias
+			// Selective import with alias: bind the specific item to the alias
 			env.Set(node.Alias.Value, val)
 		} else {
 			// Selective import without alias: bind to original name
-			env.Set(className, val)
+			env.Set(itemName, val)
 		}
 	} else if node.Alias != nil {
 		// Module import with alias: create a namespace
 		env.Set(node.Alias.Value, namespace)
 	} else {
-		// Import all grimoires from the module
+		// Import all top-level definitions from the module
+		// This includes grimoires, spells, and any other defined objects
 		for _, name := range importEnv.GetNames() {
-			val, _ := importEnv.Get(name)
-			if val.Type() == object.GRIMOIRE_OBJ {
+			// Skip internal/private names (those starting with double underscore)
+			if !strings.HasPrefix(name, "__") {
+				val, _ := importEnv.Get(name)
 				env.Set(name, val)
 			}
 		}
@@ -4483,7 +4495,7 @@ func evalGrimoireImport(
 		// Check each file for the grimoire
 		for _, filePath := range files {
 			// Skip if already imported
-			if importedFiles[filePath] {
+			if _, alreadyImported := importedFiles[filePath]; alreadyImported {
 				continue
 			}
 			
@@ -4537,7 +4549,7 @@ func evalGrimoireImport(
 			}
 			
 			// Skip if already imported
-			if importedFiles[mainFile] {
+			if _, alreadyImported := importedFiles[mainFile]; alreadyImported {
 				continue
 			}
 			

@@ -2271,21 +2271,45 @@ func (p *Parser) parseImportStatement() ast.Statement {
 		}
 	} else {
 		// Check if the import path ends with a dot notation for selective imports
-		// We need to check if the LAST dot represents a grimoire selection
+		// We need to check if the LAST dot represents a grimoire/spell selection
 		lastDotIndex := strings.LastIndex(importPath, ".")
 		if lastDotIndex != -1 && lastDotIndex < len(importPath)-1 {
-			// Check if the part after the last dot looks like a grimoire name (starts with uppercase)
-			potentialGrimoire := importPath[lastDotIndex+1:]
-			if len(potentialGrimoire) > 0 && potentialGrimoire[0] >= 'A' && potentialGrimoire[0] <= 'Z' {
-				// This looks like a selective import: "module/path.GrimoireName"
-				modulePath := importPath[:lastDotIndex]
-				stmt.FilePath = &ast.StringLiteral{
-					Token: p.currToken,
-					Value: modulePath, // The module path without the grimoire name
+			potentialName := importPath[lastDotIndex+1:]
+			// Check if the part after the last dot is a valid identifier (grimoire or spell name)
+			// It should start with a letter and contain only alphanumeric characters and underscores
+			isValidIdentifier := len(potentialName) > 0 &&
+				((potentialName[0] >= 'A' && potentialName[0] <= 'Z') ||
+				 (potentialName[0] >= 'a' && potentialName[0] <= 'z') ||
+				 potentialName[0] == '_')
+
+			if isValidIdentifier {
+				// Check if it's a valid identifier throughout
+				allValidChars := true
+				for _, ch := range potentialName {
+					if !((ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') ||
+						(ch >= '0' && ch <= '9') || ch == '_') {
+						allValidChars = false
+						break
+					}
 				}
-				stmt.ClassName = &ast.Identifier{
-					Token: p.currToken,
-					Value: potentialGrimoire, // The specific grimoire name
+
+				if allValidChars {
+					// This looks like a selective import: "module/path.Name" or "module/path.spell_name"
+					modulePath := importPath[:lastDotIndex]
+					stmt.FilePath = &ast.StringLiteral{
+						Token: p.currToken,
+						Value: modulePath, // The module path without the name
+					}
+					stmt.ClassName = &ast.Identifier{
+						Token: p.currToken,
+						Value: potentialName, // The specific grimoire or spell name
+					}
+				} else {
+					// Regular import path with non-identifier after dot (like file.crl)
+					stmt.FilePath = &ast.StringLiteral{
+						Token: p.currToken,
+						Value: importPath,
+					}
 				}
 			} else {
 				// Regular import path that happens to have dots
