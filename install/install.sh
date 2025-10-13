@@ -45,7 +45,17 @@ case "$TARGET_OS" in
     cd cmd/mimir
     GOOS=linux GOARCH=amd64 go build -o mimir .
     cd ../..
-    
+
+    echo "Building Bifrost Package Manager for Linux..."
+    if [ -d "bifrost" ]; then
+      cd bifrost
+      make build
+      cd ..
+    else
+      echo "Warning: Bifrost submodule not found. Skipping Bifrost installation."
+      echo "Run 'git submodule update --init --recursive' to get Bifrost."
+    fi
+
     echo "Moving binaries to /usr/local/bin..."
     sudo mv carrion /usr/local/bin/carrion
     sudo chmod +x /usr/local/bin/carrion
@@ -53,12 +63,23 @@ case "$TARGET_OS" in
     sudo chmod +x /usr/local/bin/sindri
     sudo mv cmd/mimir/mimir /usr/local/bin/mimir
     sudo chmod +x /usr/local/bin/mimir
-    
-    echo "The Carrion Programming Language, Sindri Testing Framework, and Mimir Documentation Tool have been installed successfully on Linux!"
-    echo "You can now run:"
-    echo "  - Interactive REPL: carrion"
-    echo "  - Test runner: sindri appraise test_file.crl"
-    echo "  - Documentation: mimir"
+
+    if [ -f "bifrost/build/bifrost" ]; then
+      sudo mv bifrost/build/bifrost /usr/local/bin/bifrost
+      sudo chmod +x /usr/local/bin/bifrost
+      echo "The Carrion Programming Language, Sindri Testing Framework, Mimir Documentation Tool, and Bifrost Package Manager have been installed successfully on Linux!"
+      echo "You can now run:"
+      echo "  - Interactive REPL: carrion"
+      echo "  - Test runner: sindri appraise test_file.crl"
+      echo "  - Documentation: mimir"
+      echo "  - Package manager: bifrost"
+    else
+      echo "The Carrion Programming Language, Sindri Testing Framework, and Mimir Documentation Tool have been installed successfully on Linux!"
+      echo "You can now run:"
+      echo "  - Interactive REPL: carrion"
+      echo "  - Test runner: sindri appraise test_file.crl"
+      echo "  - Documentation: mimir"
+    fi
     ;;
 
   windows)
@@ -75,13 +96,33 @@ case "$TARGET_OS" in
     cd cmd/mimir
     GOOS=windows GOARCH=amd64 go build -o mimir.exe .
     cd ../..
-    
-    echo "Binaries 'carrion.exe', 'sindri.exe', and 'mimir.exe' have been created."
-    echo "On Windows, place all files in a directory on your PATH (e.g., C:\\Windows\\System32)"
-    echo "or simply run them directly in your terminal:"
-    echo "  .\\carrion.exe"
-    echo "  .\\sindri.exe appraise test_file.crl"
-    echo "  .\\mimir.exe"
+
+    echo "Building Bifrost Package Manager for Windows..."
+    if [ -d "bifrost" ]; then
+      cd bifrost
+      GOOS=windows GOARCH=amd64 go build -o build/bifrost.exe ./cmd/bifrost
+      cd ..
+    else
+      echo "Warning: Bifrost submodule not found. Skipping Bifrost build."
+      echo "Run 'git submodule update --init --recursive' to get Bifrost."
+    fi
+
+    if [ -f "bifrost/build/bifrost.exe" ]; then
+      echo "Binaries 'carrion.exe', 'sindri.exe', 'mimir.exe', and 'bifrost.exe' have been created."
+      echo "On Windows, place all files in a directory on your PATH (e.g., C:\\Windows\\System32)"
+      echo "or simply run them directly in your terminal:"
+      echo "  .\\carrion.exe"
+      echo "  .\\sindri.exe appraise test_file.crl"
+      echo "  .\\mimir.exe"
+      echo "  .\\bifrost.exe"
+    else
+      echo "Binaries 'carrion.exe', 'sindri.exe', and 'mimir.exe' have been created."
+      echo "On Windows, place all files in a directory on your PATH (e.g., C:\\Windows\\System32)"
+      echo "or simply run them directly in your terminal:"
+      echo "  .\\carrion.exe"
+      echo "  .\\sindri.exe appraise test_file.crl"
+      echo "  .\\mimir.exe"
+    fi
     ;;
 
   mac)
@@ -98,7 +139,17 @@ case "$TARGET_OS" in
     cd cmd/mimir
     GOOS=darwin GOARCH=amd64 go build -o mimir .
     cd ../..
-    
+
+    echo "Building Bifrost Package Manager for macOS..."
+    if [ -d "bifrost" ]; then
+      cd bifrost
+      make build
+      cd ..
+    else
+      echo "Warning: Bifrost submodule not found. Skipping Bifrost installation."
+      echo "Run 'git submodule update --init --recursive' to get Bifrost."
+    fi
+
     echo "Moving binaries to /usr/local/bin..."
     sudo mv carrion /usr/local/bin/carrion
     sudo chmod +x /usr/local/bin/carrion
@@ -106,12 +157,23 @@ case "$TARGET_OS" in
     sudo chmod +x /usr/local/bin/sindri
     sudo mv cmd/mimir/mimir /usr/local/bin/mimir
     sudo chmod +x /usr/local/bin/mimir
-    
-    echo "The Carrion Programming Language, Sindri Testing Framework, and Mimir Documentation Tool have been installed successfully on macOS!"
-    echo "You can now run:"
-    echo "  - Interactive REPL: carrion"
-    echo "  - Test runner: sindri appraise test_file.crl"
-    echo "  - Documentation: mimir"
+
+    if [ -f "bifrost/build/bifrost" ]; then
+      sudo mv bifrost/build/bifrost /usr/local/bin/bifrost
+      sudo chmod +x /usr/local/bin/bifrost
+      echo "The Carrion Programming Language, Sindri Testing Framework, Mimir Documentation Tool, and Bifrost Package Manager have been installed successfully on macOS!"
+      echo "You can now run:"
+      echo "  - Interactive REPL: carrion"
+      echo "  - Test runner: sindri appraise test_file.crl"
+      echo "  - Documentation: mimir"
+      echo "  - Package manager: bifrost"
+    else
+      echo "The Carrion Programming Language, Sindri Testing Framework, and Mimir Documentation Tool have been installed successfully on macOS!"
+      echo "You can now run:"
+      echo "  - Interactive REPL: carrion"
+      echo "  - Test runner: sindri appraise test_file.crl"
+      echo "  - Documentation: mimir"
+    fi
     ;;
 
   *)
