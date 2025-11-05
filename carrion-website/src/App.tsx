@@ -20,6 +20,7 @@ import Community from './pages/Community';
 import GettingStarted from './pages/docs/GettingStarted';
 import Installation from './pages/docs/Installation';
 import QuickStart from './pages/docs/QuickStart';
+import REPLGuide from './pages/docs/REPLGuide';
 import LanguageReference from './pages/docs/LanguageReference';
 import StandardLibrary from './pages/docs/StandardLibrary';
 import Grimoires from './pages/docs/Grimoires';
@@ -47,6 +48,7 @@ function App() {
           <Route path="/docs/getting-started" element={<GettingStarted />} />
           <Route path="/docs/installation" element={<Installation />} />
           <Route path="/docs/quick-start" element={<QuickStart />} />
+          <Route path="/docs/repl-guide" element={<REPLGuide />} />
           <Route path="/docs/language-reference" element={<LanguageReference />} />
           <Route path="/docs/standard-library" element={<StandardLibrary />} />
           <Route path="/docs/grimoires" element={<Grimoires />} />
