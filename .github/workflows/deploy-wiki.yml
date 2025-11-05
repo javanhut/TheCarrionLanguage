@@ -43,6 +43,10 @@ jobs:
         run: npm run build
         working-directory: ./carrion-website
 
+      - name: Generate sitemap
+        run: node generate-sitemap.js
+        working-directory: ./carrion-website
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
