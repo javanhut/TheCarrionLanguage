@@ -191,14 +191,16 @@ interface VersionInfo {
 }
 
 const Download: React.FC = () => {
-  const [selectedVersion, setSelectedVersion] = useState('v0.1.6');
+  const [selectedVersion, setSelectedVersion] = useState('v0.1.8');
   const [selectedOS, setSelectedOS] = useState('');
   const [detectedOS, setDetectedOS] = useState('');
   const [downloadUrl, setDownloadUrl] = useState('');
   const [installCommand, setInstallCommand] = useState('');
 
   const versions: VersionInfo[] = [
-    { version: 'v0.1.6', isLatest: true, releaseDate: '2024-01-15', changelog: 'Latest features and bug fixes' },
+    { version: 'v0.1.8', isLatest: true, releaseDate: '2025-07-20', changelog: 'Sindri Testing Framework, Mimir Documentation System, Bifrost Package Manager, Static Methods, Critical Bug Fixes' },
+    { version: 'v0.1.7', isLatest: false, releaseDate: '2025-06-15', changelog: 'Multi-level inheritance fixes and API improvements' },
+    { version: 'v0.1.6', isLatest: false, releaseDate: '2024-01-15', changelog: 'String indexing and standard library enhancements' },
     { version: 'v0.1.5', isLatest: false, releaseDate: '2024-01-10', changelog: 'Stable release with core features' },
     { version: 'v0.1.4', isLatest: false, releaseDate: '2024-01-05', changelog: 'Bug fixes and improvements' },
     { version: 'v0.1.3', isLatest: false, releaseDate: '2024-01-01', changelog: 'Performance improvements' },

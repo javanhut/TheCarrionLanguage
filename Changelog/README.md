@@ -1,5 +1,164 @@
 # Carrion Language Changelog
 
+## Version 0.1.8 - Complete Tooling Ecosystem
+
+### Release Date: July 20, 2025
+
+### Overview
+Carrion Language v0.1.8 introduces a comprehensive tooling ecosystem that transforms the development experience with three major new tools: **Sindri Testing Framework**, **Mimir Documentation System**, and **Bifrost Package Manager**. This release focuses on developer productivity, testing capabilities, and documentation accessibility while maintaining full backward compatibility.
+
+### Major Features
+
+#### Sindri Testing Framework
+- **Automatic Test Discovery**: Finds test functions using the "appraise" naming convention
+- **Colored Terminal Output**: Green for passed tests, red for failures
+- **Flexible Assertions**: Support for both boolean and value comparison assertions
+- **Multiple Output Modes**: Summary and detailed reporting modes
+- **Directory Testing**: Run all tests in a directory or specific files
+- **Built-in `check()` function**: Core assertion mechanism for all tests
+
+#### Mimir Documentation System
+- **Interactive Documentation Browser**: Menu-driven exploration of language features
+- **Command-Line Lookup**: Quick help for specific functions (`mimir scry <function>`)
+- **Comprehensive Coverage**: Built-in functions, standard library, language features
+- **Search Functionality**: Find functions by name or purpose
+- **REPL Integration**: Seamless integration with the Carrion REPL
+- **Category Browsing**: Organized documentation by topic
+
+#### Bifrost Package Manager
+- **Git Submodule Integration**: Integrated directly into the Carrion repository
+- **Package Management**: Install, manage, and distribute Carrion packages
+- **Build System Updates**: Enhanced Makefile and installation scripts
+- **Future-Ready**: Foundation for growing Carrion ecosystem
+
+### Build System Improvements
+- New Makefile targets: `make sindri`, `make mimir`, `make install`
+- Updated installation scripts with Sindri support
+- Enhanced setup with complete development environment
+- Clean uninstall support for all tools
+
+### Documentation Updates
+- **Sindri.md**: Complete testing framework guide with examples
+- **Mimir.md**: Documentation system reference and usage
+- **Updated Module Documentation**: Enhanced for new tooling ecosystem
+- **README Updates**: Tool ecosystem overview
+- **Installation Guides**: Updated for new tool installation
+
+### Backward Compatibility
+- **Zero Breaking Changes**: All existing Carrion code continues to work unchanged
+- **Optional Tooling**: New tools enhance but don't replace existing workflows
+- **Existing APIs**: All functions and modules remain the same
+
+### API Improvements & Breaking Changes
+
+#### Static Method Support for Grimoires
+- **Implemented static method calls on grimoire classes**
+  - Added support for `Grimoire.method()` syntax
+  - Created `StaticMethod` object type for handling static calls
+  - **Location**: `src/evaluator/evaluator.go`, `src/object/static_method.go`
+
+#### File & OS API Unification (Breaking Change)
+- **Refactored file and OS operations to use consistent grimoire API**
+
+**New File grimoire static methods**:
+- `File.read(path)` - Read entire file content
+- `File.write(path, content)` - Write content to file (overwrites)
+- `File.append(path, content)` - Append content to file
+- `File.exists(path)` - Check if file exists
+- `File.open(path, mode)` - Create File object for complex operations
+
+**New OS grimoire static methods**:
+- `OS.cwd()` - Get current working directory
+- `OS.chdir(path)` - Change directory
+- `OS.listdir(path)` - List directory contents
+- `OS.getenv(key)` - Get environment variable
+- `OS.setenv(key, value)` - Set environment variable
+- `OS.remove(path)` - Remove file/directory
+- `OS.mkdir(path, perm)` - Create directory
+- `OS.run(cmd, args, capture)` - Execute system commands
+- `OS.sleep(seconds)` - Sleep for specified time
+- `OS.expandEnv(string)` - Expand environment variables
+
+### Critical Bug Fixes
+
+#### String Concatenation Type Fix
+- **Fixed critical bug where string concatenation operations returned BUILTIN type objects instead of proper String instances**
+  - Previously, long string concatenations or concatenations involving triple-quoted strings could result in incorrect object types
+  - Socket operations and other modules expecting string types would fail with "data must be a string" errors
+  - Now all string concatenation operations return properly wrapped String instances with method access
+  - **Location**: `src/evaluator/evaluator.go`
+
+#### Multi-Level Inheritance Fix
+- **Fixed critical bug where `super.init()` caused infinite recursion in 3+ level inheritance chains**
+  - Previously, Level2's `super.init()` would call itself instead of Level1's init
+  - Now correctly resolves to immediate parent class at each level
+  - Supports inheritance hierarchies of any depth
+  - Added `MethodGrimoire` field to `CallContext` to track which class owns the current method
+  - **Location**: `src/evaluator/evaluator.go`
+
+#### Fixed Variable Resolution Order
+- **Updated `evalIdentifier` to check environment variables before builtin functions**
+  - Prevents variable name conflicts with builtin function names
+  - Ensures user-defined variables take precedence over system functions
+  - **Location**: `src/evaluator/evaluator.go:2766-2773`
+
+### Migration Guide
+
+#### Updating File/OS Operations
+```python
+# Old API (deprecated)
+content = fileRead("data.txt")
+fileWrite("output.txt", "hello")
+current_dir = osGetCwd()
+
+# New API (v0.1.8+)
+content = File.read("data.txt")
+File.write("output.txt", "hello")
+current_dir = OS.cwd()
+```
+
+### Enhanced Import System
+
+#### Selective Imports
+- **Added support for selective grimoire and spell imports**
+  - Import specific grimoires: `import "module.GrimoireName"`
+  - Import specific spells: `import "module.spell_name"`
+  - Enhanced parser to validate identifiers in import paths
+  - Supports both uppercase (grimoires) and lowercase (spells) selective imports
+  - **Location**: `src/parser/parser.go`, `src/evaluator/evaluator.go`
+
+### REPL Improvements
+
+#### Cleaner Output Display
+- **REPL no longer displays output for assignments and definitions**
+  - Assignment statements don't print values
+  - Function/grimoire definitions don't clutter output
+  - Only expression results and function call returns are displayed
+  - Function, grimoire, and builtin identifiers without calls are not printed
+  - **Location**: `src/repl/repl.go`
+
+### Tuple Handling Fix
+
+#### Removed Automatic Tuple Unpacking
+- **Fixed tuple handling in function calls**
+  - Removed automatic single-tuple argument unpacking
+  - More predictable tuple behavior in function parameters
+  - Prevents unexpected function signature mismatches
+  - **Location**: `src/evaluator/evaluator.go`
+
+### Files Changed
+- Core evaluator: Added `check()` builtin function, fixed inheritance, fixed string concatenation, tuple handling
+- REPL: Enhanced output display logic, cleaner interactive experience
+- Parser: Improved import statement parsing for selective imports
+- Build system: Updated Makefile, setup.sh, install scripts
+- New tools: cmd/sindri/, cmd/mimir/, bifrost/ submodule
+- Module system: src/modules/file.go, src/modules/os.go refactored
+- Documentation: Added Sindri.md, Mimir.md, Modules.md enhanced, Grimoires.md enhanced, updated guides
+
+See [RELEASE_NOTES_0.1.8.md](RELEASE_NOTES_0.1.8.md) for complete details.
+
+---
+
 ## Version 0.1.6 - String Indexing & Standard Library Enhancement
 
 ### 🎉 Major Features

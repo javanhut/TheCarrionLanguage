@@ -210,6 +210,19 @@ print(greet("Fellow Mage"))`;
           >
             The Mystical Programming Language with a Crow's Wisdom
           </HeroSubtitle>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.3 }}
+            style={{
+              fontSize: '1.1rem',
+              color: '#00cc99',
+              marginBottom: '1rem',
+              fontWeight: '600'
+            }}
+          >
+            ✨ Now with Sindri Testing Framework, Mimir Documentation System & Bifrost Package Manager - v0.1.8
+          </motion.div>
           <HeroAscii
             initial={{ opacity: 0 }}
             animate={{ opacity: 0.8 }}

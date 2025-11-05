@@ -246,8 +246,8 @@ resolve:
             <FeatureIcon>🧙‍♂️</FeatureIcon>
             <FeatureTitle>Magical Syntax</FeatureTitle>
             <FeatureDescription>
-              Transform mundane programming concepts into magical terminology. 
-              Classes become "grimoires", methods become "spells", and error handling 
+              Transform mundane programming concepts into magical terminology.
+              Classes become "grimoires", methods become "spells", and error handling
               uses mystical keywords like "attempt" and "ensnare".
             </FeatureDescription>
           </FeatureCard>
@@ -256,7 +256,7 @@ resolve:
             <FeatureIcon>🏗️</FeatureIcon>
             <FeatureTitle>Object-Oriented Programming</FeatureTitle>
             <FeatureDescription>
-              Full OOP support with classes, inheritance, encapsulation, polymorphism, 
+              Full OOP support with classes, inheritance, encapsulation, polymorphism,
               and abstraction. Create complex hierarchies with clean, readable syntax.
             </FeatureDescription>
           </FeatureCard>
@@ -265,7 +265,7 @@ resolve:
             <FeatureIcon>🔥</FeatureIcon>
             <FeatureTitle>Dynamic Typing</FeatureTitle>
             <FeatureDescription>
-              Write code faster with dynamic typing while maintaining type safety 
+              Write code faster with dynamic typing while maintaining type safety
               through runtime checks and comprehensive error reporting.
             </FeatureDescription>
           </FeatureCard>
@@ -274,7 +274,7 @@ resolve:
             <FeatureIcon>⚡</FeatureIcon>
             <FeatureTitle>Built in Go</FeatureTitle>
             <FeatureDescription>
-              Leverages Go's performance and reliability for the interpreter, 
+              Leverages Go's performance and reliability for the interpreter,
               providing fast execution and excellent concurrency capabilities.
             </FeatureDescription>
           </FeatureCard>
@@ -283,7 +283,7 @@ resolve:
             <FeatureIcon>📚</FeatureIcon>
             <FeatureTitle>Rich Standard Library</FeatureTitle>
             <FeatureDescription>
-              "Munin" standard library provides enhanced collections, file I/O, 
+              "Munin" standard library provides enhanced collections, file I/O,
               math functions, OS interface, and debugging utilities out of the box.
             </FeatureDescription>
           </FeatureCard>
@@ -292,8 +292,103 @@ resolve:
             <FeatureIcon>🛡️</FeatureIcon>
             <FeatureTitle>Robust Error Handling</FeatureTitle>
             <FeatureDescription>
-              Comprehensive error handling with magical keywords and detailed 
+              Comprehensive error handling with magical keywords and detailed
               error reporting that pinpoints issues with file and line information.
+            </FeatureDescription>
+          </FeatureCard>
+        </FeatureGrid>
+      </Section>
+
+      <Section>
+        <SectionTitle>Developer Tooling Ecosystem (v0.1.8)</SectionTitle>
+        <FeatureGrid>
+          <FeatureCard>
+            <FeatureIcon>🧪</FeatureIcon>
+            <FeatureTitle>Sindri Testing Framework</FeatureTitle>
+            <FeatureDescription>
+              Comprehensive testing with automatic test discovery, colored terminal output,
+              and flexible assertions. Write tests using the "appraise" naming convention
+              and the built-in <code>check()</code> function for validating code behavior.
+            </FeatureDescription>
+          </FeatureCard>
+
+          <FeatureCard>
+            <FeatureIcon>📖</FeatureIcon>
+            <FeatureTitle>Mimir Documentation System</FeatureTitle>
+            <FeatureDescription>
+              Interactive documentation browser and command-line help system. Access
+              comprehensive documentation for built-in functions, standard library modules,
+              and language features with instant lookup via <code>mimir scry</code>.
+            </FeatureDescription>
+          </FeatureCard>
+
+          <FeatureCard>
+            <FeatureIcon>🌉</FeatureIcon>
+            <FeatureTitle>Bifrost Package Manager</FeatureTitle>
+            <FeatureDescription>
+              Integrated package management for the growing Carrion ecosystem. Install,
+              manage, and distribute packages seamlessly with Git submodule integration
+              and comprehensive dependency resolution.
+            </FeatureDescription>
+          </FeatureCard>
+
+          <FeatureCard>
+            <FeatureIcon>🔧</FeatureIcon>
+            <FeatureTitle>Static Method Support</FeatureTitle>
+            <FeatureDescription>
+              Grimoires now support static method calls for cleaner APIs. Access File and
+              OS operations through unified grimoire interfaces like <code>File.read()</code>
+              and <code>OS.cwd()</code> for more intuitive code organization.
+            </FeatureDescription>
+          </FeatureCard>
+
+          <FeatureCard>
+            <FeatureIcon>🐛</FeatureIcon>
+            <FeatureTitle>Critical Bug Fixes</FeatureTitle>
+            <FeatureDescription>
+              Fixed multi-level inheritance infinite recursion, string concatenation type
+              issues, and variable resolution precedence. Ensures stable, reliable code
+              execution across complex inheritance hierarchies.
+            </FeatureDescription>
+          </FeatureCard>
+
+          <FeatureCard>
+            <FeatureIcon>📦</FeatureIcon>
+            <FeatureTitle>Enhanced Module System</FeatureTitle>
+            <FeatureDescription>
+              Improved import resolution with support for local files, project packages,
+              user packages, global packages, and the standard library. Seamless integration
+              with Bifrost for external dependencies.
+            </FeatureDescription>
+          </FeatureCard>
+
+          <FeatureCard>
+            <FeatureIcon>🎯</FeatureIcon>
+            <FeatureTitle>Selective Imports</FeatureTitle>
+            <FeatureDescription>
+              Import specific grimoires or spells from modules using dot notation:
+              <code>import "module.GrimoireName"</code> or <code>import "module.spell_name"</code>.
+              Supports both class and function selective imports for cleaner namespace management.
+            </FeatureDescription>
+          </FeatureCard>
+
+          <FeatureCard>
+            <FeatureIcon>✨</FeatureIcon>
+            <FeatureTitle>Improved REPL Experience</FeatureTitle>
+            <FeatureDescription>
+              Enhanced REPL with smarter output display - assignment statements and function
+              definitions don't clutter your screen. Only expression results and function call
+              outputs are displayed for a cleaner interactive experience.
+            </FeatureDescription>
+          </FeatureCard>
+
+          <FeatureCard>
+            <FeatureIcon>🔧</FeatureIcon>
+            <FeatureTitle>Tuple Handling Refinements</FeatureTitle>
+            <FeatureDescription>
+              More predictable tuple behavior in function calls and assignments. Removed
+              automatic tuple unpacking to prevent unexpected behavior and provide more
+              explicit control over tuple operations.
             </FeatureDescription>
           </FeatureCard>
         </FeatureGrid>
