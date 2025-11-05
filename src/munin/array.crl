@@ -312,7 +312,7 @@ grim Array:
         ```
         result = []
         for element in self.elements:
-            if type(element) == "TUPLE":
+            if type(element) == "Tuple":
                 result = result + [element[0]]
             else:
                 result = result + [element]
@@ -330,7 +330,7 @@ grim Array:
         ```
         result = []
         for element in self.elements:
-            if type(element) == "TUPLE":
+            if type(element) == "Tuple":
                 result = result + [element[1]]
             else:
                 result = result + [element]

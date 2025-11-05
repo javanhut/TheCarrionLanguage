@@ -1479,6 +1479,61 @@ func evalAssignStatement(
 			values = v.Elements
 		case *object.Array:
 			values = v.Elements
+		case *object.Instance:
+			// Handle Array instance unpacking
+			if v.Grimoire.Name == "Array" {
+				if elements, ok := v.Env.Get("elements"); ok {
+					if arr, ok := elements.(*object.Array); ok {
+						// Check if this is a pairs() result (array of tuples) being unpacked into 2 variables
+						if len(target.Elements) == 2 {
+							// Check if all elements are tuples (or empty array)
+							allTuples := len(arr.Elements) == 0 // Empty array counts as "all tuples"
+							if !allTuples {
+								allTuples = true
+								for _, elem := range arr.Elements {
+									if _, ok := elem.(*object.Tuple); !ok {
+										allTuples = false
+										break
+									}
+								}
+							}
+
+							if allTuples {
+								// Extract keys and values from tuples
+								keys := &object.Array{Elements: []object.Object{}}
+								vals := &object.Array{Elements: []object.Object{}}
+
+								for _, elem := range arr.Elements {
+									if tuple, ok := elem.(*object.Tuple); ok && len(tuple.Elements) == 2 {
+										keys.Elements = append(keys.Elements, tuple.Elements[0])
+										vals.Elements = append(vals.Elements, tuple.Elements[1])
+									}
+								}
+
+								// Assign to variables
+								for i, expr := range target.Elements {
+									ident, ok := expr.(*ast.Identifier)
+									if !ok {
+										return newErrorWithTrace("invalid assignment target in tuple assignment", node, ctx)
+									}
+									if i == 0 {
+										env.Set(ident.Value, keys)
+									} else {
+										env.Set(ident.Value, vals)
+									}
+								}
+								return val
+							}
+						}
+
+						// Regular array unpacking
+						values = arr.Elements
+					}
+				}
+			}
+			if values == nil {
+				return newErrorWithTrace("cannot unpack instance of %s", node, ctx, v.Grimoire.Name)
+			}
 		default:
 			return newErrorWithTrace("cannot unpack non-iterable type: %s", node, ctx, val.Type())
 		}
@@ -4775,25 +4830,63 @@ func unpackArray(
 	ctx *CallContext,
 	node ast.Node,
 ) object.Object {
-	if len(variables) == 2 && len(arr.Elements) > 2 {
-		// Special case: k, v <- [10, 20, 30]
-		// k gets indices [0, 1, 2], v gets values [10, 20, 30]
-
-		// Create indices array
-		indices := &object.Array{Elements: []object.Object{}}
-		for i := range arr.Elements {
-			indices.Elements = append(indices.Elements, &object.Integer{Value: int64(i)})
+	if len(variables) == 2 {
+		// Check if all elements are tuples - if so, this is pairs() unpacking
+		allTuples := len(arr.Elements) == 0 // Empty array counts as "all tuples"
+		if !allTuples && len(arr.Elements) > 0 {
+			allTuples = true
+			for _, elem := range arr.Elements {
+				if _, ok := elem.(*object.Tuple); !ok {
+					allTuples = false
+					break
+				}
+			}
 		}
 
-		// Assign to variables
-		if ident, ok := variables[0].(*ast.Identifier); ok {
-			env.Set(ident.Value, indices)
-		}
-		if ident, ok := variables[1].(*ast.Identifier); ok {
-			env.Set(ident.Value, arr)
+		if allTuples {
+			// Special case: k, v = pairs(map) - extract keys and values from tuples
+			keys := &object.Array{Elements: []object.Object{}}
+			values := &object.Array{Elements: []object.Object{}}
+
+			for _, elem := range arr.Elements {
+				if tuple, ok := elem.(*object.Tuple); ok && len(tuple.Elements) == 2 {
+					keys.Elements = append(keys.Elements, tuple.Elements[0])
+					values.Elements = append(values.Elements, tuple.Elements[1])
+				}
+			}
+
+			// Assign to variables
+			if ident, ok := variables[0].(*ast.Identifier); ok {
+				env.Set(ident.Value, keys)
+			}
+			if ident, ok := variables[1].(*ast.Identifier); ok {
+				env.Set(ident.Value, values)
+			}
+
+			return object.NONE
 		}
 
-		return object.NONE
+		// Only apply index unpacking if we have more than 2 elements
+		if len(arr.Elements) > 2 {
+			// Special case: k, v <- [10, 20, 30]
+			// k gets indices [0, 1, 2], v gets values [10, 20, 30]
+
+			// Create indices array
+			indices := &object.Array{Elements: []object.Object{}}
+			for i := range arr.Elements {
+				indices.Elements = append(indices.Elements, &object.Integer{Value: int64(i)})
+			}
+
+			// Assign to variables
+			if ident, ok := variables[0].(*ast.Identifier); ok {
+				env.Set(ident.Value, indices)
+			}
+			if ident, ok := variables[1].(*ast.Identifier); ok {
+				env.Set(ident.Value, arr)
+			}
+
+			return object.NONE
+		}
 	}
 
 	// Regular unpacking: a, b, c <- [1, 2, 3]
