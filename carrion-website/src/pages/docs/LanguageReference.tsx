@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import styled from 'styled-components';
 import { Light as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomOneDark } from 'react-syntax-highlighter/dist/esm/styles/hljs';
@@ -173,13 +173,10 @@ const List = styled.ul`
 `;
 
 const LanguageReference: React.FC = () => {
-  const [activeSection, setActiveSection] = useState('');
-
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
     if (element) {
       element.scrollIntoView({ behavior: 'smooth' });
-      setActiveSection(id);
     }
   };
 
@@ -505,7 +502,7 @@ if type(value) == "INTEGER":
             <tr><td><code>-</code></td><td>Subtraction</td><td><code>5 - 3</code></td><td><code>2</code></td></tr>
             <tr><td><code>*</code></td><td>Multiplication</td><td><code>5 * 3</code></td><td><code>15</code></td></tr>
             <tr><td><code>/</code></td><td>Division</td><td><code>15 / 3</code></td><td><code>5.0</code></td></tr>
-            <tr><td><code>//</code></td><td>Integer Division</td><td><code>17 // 3</code></td><td><code>5</code></td></tr>
+            <tr><td><code>{'//'}</code></td><td>Integer Division</td><td><code>17 {'//'} 3</code></td><td><code>5</code></td></tr>
             <tr><td><code>%</code></td><td>Modulo</td><td><code>17 % 3</code></td><td><code>2</code></td></tr>
             <tr><td><code>**</code></td><td>Exponentiation</td><td><code>2 ** 3</code></td><td><code>8</code></td></tr>
           </tbody>
@@ -1449,7 +1446,7 @@ main:
           </thead>
           <tbody>
             <tr><td><code>enumerate(array)</code></td><td>Get indexed pairs</td><td><code>enumerate(["a","b"])</code> → <code>[(0,"a"),(1,"b")]</code></td></tr>
-            <tr><td><code>pairs(hash, filter)</code></td><td>Get key-value pairs</td><td><code>pairs({"a":1})</code></td></tr>
+            <tr><td><code>pairs(hash, filter)</code></td><td>Get key-value pairs</td><td><code>pairs({'{'}&#34;a&#34;:1{'}'})</code></td></tr>
             <tr><td><code>is_sametype(obj1, obj2)</code></td><td>Compare types</td><td><code>is_sametype(1, 2)</code> → <code>True</code></td></tr>
           </tbody>
         </Table>
