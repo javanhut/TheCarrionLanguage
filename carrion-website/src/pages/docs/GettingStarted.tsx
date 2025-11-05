@@ -430,7 +430,7 @@ docker run -it javanhut/carrionlanguage:latest`}
         </div>
 
         <WarningBox>
-          <p><strong>Note:</strong> Carrion is currently in active development (v0.1.6). Some features may be unstable. Please report any issues on our <a href="https://github.com/javanhut/TheCarrionLanguage/issues" target="_blank" rel="noopener noreferrer">GitHub repository</a>.</p>
+          <p><strong>Note:</strong> Carrion is currently in active development (v0.1.8). Some features may be unstable. Please report any issues on our <a href="https://github.com/javanhut/TheCarrionLanguage/issues" target="_blank" rel="noopener noreferrer">GitHub repository</a>.</p>
         </WarningBox>
       </Section>
 
