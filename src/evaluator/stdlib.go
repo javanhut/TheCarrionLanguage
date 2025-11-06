@@ -77,5 +77,28 @@ func LoadMuninStdlib(env *object.Environment) error {
 	// Set the global reference to the stdlib environment for builtin functions
 	SetStdlibEnv(env)
 
+	// Set up the HTTP evaluator callback for handling HTTP requests
+	modules.SetHTTPEvaluator(func(fn *object.Function, args []object.Object) object.Object {
+		// Get the global environment to use for function calls
+		global := getGlobalEnv(env, nil)
+
+		// Create an extended environment with the function's closure + args
+		extended := extendFunctionEnv(fn, args, global, nil)
+
+		// Create a call context for the handler
+		ctx := &CallContext{
+			FunctionName: "http_handler",
+			Node:         fn.Body,
+			Parent:       nil,
+			env:          extended,
+		}
+
+		// Evaluate the function body
+		result := Eval(fn.Body, extended, ctx)
+
+		// Unwrap return values
+		return unwrapReturnValue(result)
+	})
+
 	return nil
 }

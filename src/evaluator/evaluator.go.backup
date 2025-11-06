@@ -2286,63 +2286,6 @@ func evalDotExpression(
 		}
 	}
 
-	// Wrap primitives to allow method access (e.g., self.some_string.upper())
-	// This enables calling methods on primitives stored in instance variables
-	switch leftObj.Type() {
-	case object.INTEGER_OBJ, object.FLOAT_OBJ, object.STRING_OBJ, object.BOOLEAN_OBJ, object.ARRAY_OBJ:
-		// Determine the grimoire name based on the primitive type
-		var grimName string
-		switch leftObj.Type() {
-		case object.INTEGER_OBJ:
-			grimName = "Integer"
-		case object.FLOAT_OBJ:
-			grimName = "Float"
-		case object.STRING_OBJ:
-			grimName = "String"
-		case object.BOOLEAN_OBJ:
-			grimName = "Boolean"
-		case object.ARRAY_OBJ:
-			grimName = "Array"
-		}
-
-		// Find the grimoire in the stdlib environment (not local env)
-		// We need to use stdlibEnv to access primitive grimoires that are globally available
-
-		// Try stdlib environment first (where String, Integer, etc. grimoires are defined)
-		var grimObj object.Object
-		var ok bool
-		if stdlibEnv != nil {
-			grimObj, ok = stdlibEnv.Get(grimName)
-		}
-
-		// Fallback to local environment if not found in stdlib
-		if !ok {
-			grimObj, ok = env.Get(grimName)
-		}
-
-		if ok {
-			if grimoire, isGrim := grimObj.(*object.Grimoire); isGrim {
-				// Create an instance wrapping the primitive
-				instance := &object.Instance{
-					Grimoire: grimoire,
-					Env:      object.NewEnclosedEnvironment(grimoire.Env),
-				}
-				instance.Env.Set("self", instance)
-
-				// Set the primitive value
-				if grimName == "Array" {
-					if arrayObj, isArray := leftObj.(*object.Array); isArray {
-						instance.Env.Set("elements", arrayObj)
-					}
-				} else {
-					instance.Env.Set("value", leftObj)
-				}
-
-				leftObj = instance
-			}
-		}
-	}
-
 	instance, ok := leftObj.(*object.Instance)
 	if !ok {
 		return newErrorWithTrace("type error: %s is not an instance or namespace", node, ctx, getObjectTypeString(leftObj))
