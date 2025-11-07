@@ -720,6 +720,8 @@ grim BTree(Iterable):
         Returns:
             The root node of the tree
         ```
+        if value == None:
+          skip
         if self.node == None:
             self.node = TreeNode(value)
             return self.node
