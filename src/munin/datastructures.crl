@@ -873,9 +873,48 @@ grim BTree(Iterable):
     spell iter():
         ```
         Return an iterator for this binary tree.
-        
+
         Returns:
             BTreeIterator instance for iterating through elements in sorted order
         ```
         return BTreeIterator(self)
-        
+
+    spell display_tree():
+        ```
+        Display the binary tree structure with visual representation.
+
+        Shows tree structure using indentation and branch characters.
+        Displays the tree in a readable hierarchical format.
+        ```
+        if self.node == None:
+            print("Empty tree")
+            return
+
+        spell _display_helper(node, prefix, is_tail):
+            if node == None:
+                return
+
+            print(prefix + "|-- " + str(node.value))
+
+            children = []
+            if node.left != None:
+                children = children + [node.left]
+            if node.right != None:
+                children = children + [node.right]
+
+            for i in range(0, len(children)):
+                is_last = i == len(children) - 1
+                extension = ""
+                if is_tail:
+                    extension = "    "
+                else:
+                    extension = "|   "
+                _display_helper(children[i], prefix + extension, is_last)
+
+        print(str(self.node.value))
+        if self.node.left != None or self.node.right != None:
+            if self.node.left != None:
+                _display_helper(self.node.left, "", self.node.right == None)
+            if self.node.right != None:
+                _display_helper(self.node.right, "", True)
+
