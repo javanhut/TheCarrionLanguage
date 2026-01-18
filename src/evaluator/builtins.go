@@ -185,8 +185,8 @@ var builtins = map[string]*object.Builtin{
 		Fn: func(args ...object.Object) object.Object {
 			prompt := ""
 			if len(args) > 0 {
-				if str, ok := args[0].(*object.String); ok {
-					prompt = str.Value
+				if str, ok := extractStringBuiltin(args[0]); ok {
+					prompt = str
 				}
 			}
 
@@ -203,6 +203,7 @@ var builtins = map[string]*object.Builtin{
 			}
 
 			fmt.Print(prompt)
+			os.Stdout.Sync() // Flush stdout to ensure prompt displays before blocking
 			reader := bufio.NewReader(os.Stdin)
 			input, err := reader.ReadString('\n')
 			if err != nil {

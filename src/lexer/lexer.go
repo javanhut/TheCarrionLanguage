@@ -18,6 +18,10 @@ type Lexer struct {
 
 	indentResolved bool
 	tokenQueue     []token.Token // Queue for pending DEDENT tokens
+
+	// Indentation style tracking for strict enforcement
+	indentStyle byte // 0 = unset, ' ' = spaces, '\t' = tabs
+	indentError string // Non-empty if an indentation error was detected
 }
 
 func New(input string) *Lexer {
@@ -66,7 +70,16 @@ func (l *Lexer) NextToken() token.Token {
    // Handle indentation changes at the start of a new line, but be selective about tokens
    if l.charIndex == 0 && !l.indentResolved {
        l.indentResolved = true
-       newIndent := measureIndent(l.currLine)
+       newIndent, indentErr := l.measureIndent(l.currLine)
+       if indentErr != "" {
+           return token.Token{
+               Type:     token.INDENT_ERROR,
+               Literal:  indentErr,
+               Filename: l.sourceFile,
+               Line:     l.lineIndex + 1,
+               Column:   1,
+           }
+       }
        tok := l.handleIndentChange(newIndent)
        // Return all indentation-related tokens
        if tok.Type == token.NEWLINE || tok.Type == token.INDENT || tok.Type == token.DEDENT {
@@ -544,18 +557,58 @@ func (l *Lexer) peekCharAt(offset int) byte {
 	return l.currLine[l.charIndex+offset]
 }
 
-func measureIndent(line string) int {
+// measureIndent counts the indentation level and enforces consistent style.
+// It returns the indent count and an error message (empty string if no error).
+// The first indented line sets the style (tabs or spaces) for the file.
+func (l *Lexer) measureIndent(line string) (int, string) {
 	count := 0
+	hasSpaces := false
+	hasTabs := false
+
 	for _, ch := range line {
 		if ch == ' ' {
+			hasSpaces = true
 			count++
 		} else if ch == '\t' {
-			count += 4
+			hasTabs = true
+			count += 4 // Tab counts as 4 spaces for indent level
 		} else {
 			break
 		}
 	}
-	return count
+
+	// Detect mixed indentation within this line
+	if hasSpaces && hasTabs {
+		return 0, "mixed tabs and spaces in indentation"
+	}
+
+	// If this line has indentation, check/set the file's style
+	if count > 0 {
+		var lineStyle byte
+		if hasTabs {
+			lineStyle = '\t'
+		} else {
+			lineStyle = ' '
+		}
+
+		if l.indentStyle == 0 {
+			// First indented line - set the style
+			l.indentStyle = lineStyle
+		} else if l.indentStyle != lineStyle {
+			// Style mismatch
+			expected := "spaces"
+			if l.indentStyle == '\t' {
+				expected = "tabs"
+			}
+			got := "spaces"
+			if lineStyle == '\t' {
+				got = "tabs"
+			}
+			return 0, "inconsistent indentation: expected " + expected + ", got " + got
+		}
+	}
+
+	return count, ""
 }
 
 func (l *Lexer) readString() token.Token {

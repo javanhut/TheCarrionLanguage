@@ -141,6 +141,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.INDENT, func() ast.Expression { return nil })
 	p.registerPrefix(token.DEDENT, func() ast.Expression { return nil })
 	p.registerPrefix(token.EOF, func() ast.Expression { return nil })
+	p.registerPrefix(token.INDENT_ERROR, func() ast.Expression { return nil })
 	// OTHERWISE is handled as part of if-statement parsing, not as a prefix expression
 	p.registerPrefix(token.ENSNARE, func() ast.Expression { return nil })
 	p.registerPrefix(token.AS, func() ast.Expression { return nil })
@@ -1232,6 +1233,13 @@ func (p *Parser) ParseProgram() *ast.Program {
 	program.Statements = []ast.Statement{}
 
 	for p.currToken.Type != token.EOF {
+		// Handle indentation errors immediately
+		if p.currToken.Type == token.INDENT_ERROR {
+			p.addErrorWithToken(p.currToken.Literal, p.currToken)
+			p.nextToken()
+			continue
+		}
+
 		// Skip blank lines, indentation dedents, and semicolons
 		for p.currToken.Type == token.NEWLINE ||
 			p.currToken.Type == token.INDENT ||
@@ -1255,6 +1263,11 @@ func (p *Parser) ParseProgram() *ast.Program {
 func (p *Parser) parseStatement() ast.Statement {
 	if p.currToken.Type == token.NEWLINE || p.currToken.Type == token.EOF ||
 		p.currToken.Type == token.INDENT || p.currToken.Type == token.DEDENT {
+		return nil
+	}
+	// Handle indentation errors from the lexer
+	if p.currToken.Type == token.INDENT_ERROR {
+		p.addErrorWithToken(p.currToken.Literal, p.currToken)
 		return nil
 	}
 	switch p.currToken.Type {

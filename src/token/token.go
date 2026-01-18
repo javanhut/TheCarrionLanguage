@@ -12,11 +12,12 @@ type Token struct {
 }
 
 const (
-	ILLEGAL TokenType = "ILLEGAL"
-	EOF     TokenType = "EOF"
-	NEWLINE TokenType = "NEWLINE"
-	INDENT  TokenType = "INDENT"
-	DEDENT  TokenType = "DEDENT"
+	ILLEGAL      TokenType = "ILLEGAL"
+	EOF          TokenType = "EOF"
+	NEWLINE      TokenType = "NEWLINE"
+	INDENT       TokenType = "INDENT"
+	DEDENT       TokenType = "DEDENT"
+	INDENT_ERROR TokenType = "INDENT_ERROR"
 
 	// Identifiers and Literals
 	IDENT     TokenType = "IDENT"

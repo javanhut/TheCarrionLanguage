@@ -2,9 +2,34 @@
 
 Carrion uses indentation‐sensitive syntax similar to Python, so both the lexer and parser cooperate to track block boundaries. This note documents the mechanics so it is easier to reason about future changes.
 
+## Indentation Style
+
+Carrion requires consistent indentation throughout each file:
+
+- **Spaces**: Use spaces (recommended: 4 spaces per level)
+- **Tabs**: Use tabs (displayed as 4 spaces)
+
+**You cannot mix tabs and spaces in the same file.** The first indented line determines the style for the entire file. Mixing styles produces an error:
+
+```
+Error: inconsistent indentation: expected spaces, got tabs
+```
+
+Or if you mix within the same line:
+
+```
+Error: mixed tabs and spaces in indentation
+```
+
+### Why This Restriction?
+
+Mixed indentation causes unpredictable behavior because tabs display differently across editors. Enforcing consistency ensures code looks and behaves the same everywhere.
+
 ## Lexer responsibilities
 
-The lexer (`src/lexer/lexer.go`) measures the number of leading spaces on each physical line. When the indent level increases or decreases it emits synthetic `INDENT`/`DEDENT` tokens before the next real token (blank lines are ignored). These tokens carry the column where the first non‑space character appears; the parser uses that column number to understand how far the dedent walked back.
+The lexer (`src/lexer/lexer.go`) measures the number of leading spaces or tabs on each physical line. When the indent level increases or decreases it emits synthetic `INDENT`/`DEDENT` tokens before the next real token (blank lines are ignored). These tokens carry the column where the first non‑space character appears; the parser uses that column number to understand how far the dedent walked back.
+
+The lexer also tracks the indentation style (`indentStyle` field) starting from the first indented line. If a subsequent line uses a different style, or mixes tabs and spaces, the lexer emits an `INDENT_ERROR` token with a descriptive error message.
 
 ## Parser bookkeeping
 
