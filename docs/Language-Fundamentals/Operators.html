@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Operators and Expressions - Carrion Language</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#x1F426;</text></svg>">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+    <style>
+        :root {
+            --bg-primary: #0f0f23;
+            --bg-secondary: #1a1a2e;
+            --bg-tertiary: #16213e;
+            --text-primary: #e0e0e0;
+            --text-secondary: #b0b0b0;
+            --accent-primary: #00cc99;
+            --border-color: #333355;
+            --code-bg: #0f0f1a;
+            --link-color: #66ccff;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg-primary); color: var(--text-primary); line-height: 1.6; padding: 40px 20px; }
+        .container { max-width: 900px; margin: 0 auto; }
+        h1 { color: var(--accent-primary); margin-bottom: 30px; padding-bottom: 15px; border-bottom: 2px solid var(--accent-primary); }
+        h2 { color: var(--accent-primary); margin: 40px 0 20px; font-size: 1.5rem; }
+        p { margin-bottom: 15px; color: var(--text-secondary); }
+        pre { background: var(--code-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 20px; overflow-x: auto; margin: 15px 0; }
+        code { font-family: 'Fira Code', 'Courier New', monospace; font-size: 14px; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid var(--border-color); }
+        th { background: var(--bg-tertiary); color: var(--accent-primary); }
+        tr:hover { background: var(--bg-secondary); }
+        .op { font-family: monospace; background: var(--code-bg); padding: 2px 8px; border-radius: 4px; color: var(--accent-primary); }
+        .back-link { display: inline-block; color: var(--link-color); text-decoration: none; margin-bottom: 20px; }
+        .back-link:hover { text-decoration: underline; }
+        @media (max-width: 768px) { body { padding: 20px 15px; } h1 { font-size: 1.8rem; } pre { padding: 15px; font-size: 12px; } table { font-size: 14px; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="../index.html" class="back-link">&larr; Back to Documentation</a>
+
+        <h1>Operators and Expressions</h1>
+
+        <p>Carrion supports a variety of operators for arithmetic, comparison, logical operations, and more.</p>
+
+        <h2>Arithmetic Operators</h2>
+
+        <table>
+            <tr><th>Operator</th><th>Name</th><th>Example</th><th>Result</th></tr>
+            <tr><td><span class="op">+</span></td><td>Addition</td><td>5 + 3</td><td>8</td></tr>
+            <tr><td><span class="op">-</span></td><td>Subtraction</td><td>10 - 4</td><td>6</td></tr>
+            <tr><td><span class="op">*</span></td><td>Multiplication</td><td>6 * 7</td><td>42</td></tr>
+            <tr><td><span class="op">/</span></td><td>Division</td><td>15 / 3</td><td>5.0</td></tr>
+            <tr><td><span class="op">%</span></td><td>Modulo</td><td>17 % 5</td><td>2</td></tr>
+            <tr><td><span class="op">**</span></td><td>Exponentiation</td><td>2 ** 10</td><td>1024</td></tr>
+        </table>
+
+        <pre><code class="language-python">// Arithmetic examples
+sum = 10 + 5           // 15
+difference = 20 - 8     // 12
+product = 4 * 5         // 20
+quotient = 15 / 4       // 3.75
+remainder = 17 % 5      // 2
+power = 2 ** 8          // 256
+
+// Integer division (floor)
+whole = int(17 / 5)     // 3</code></pre>
+
+        <h2>Comparison Operators</h2>
+
+        <table>
+            <tr><th>Operator</th><th>Name</th><th>Example</th><th>Result</th></tr>
+            <tr><td><span class="op">==</span></td><td>Equal</td><td>5 == 5</td><td>True</td></tr>
+            <tr><td><span class="op">!=</span></td><td>Not equal</td><td>5 != 3</td><td>True</td></tr>
+            <tr><td><span class="op">&lt;</span></td><td>Less than</td><td>3 &lt; 5</td><td>True</td></tr>
+            <tr><td><span class="op">&gt;</span></td><td>Greater than</td><td>5 &gt; 3</td><td>True</td></tr>
+            <tr><td><span class="op">&lt;=</span></td><td>Less than or equal</td><td>5 &lt;= 5</td><td>True</td></tr>
+            <tr><td><span class="op">&gt;=</span></td><td>Greater than or equal</td><td>5 &gt;= 3</td><td>True</td></tr>
+        </table>
+
+        <pre><code class="language-python">// Comparison examples
+is_equal = 10 == 10      // True
+not_equal = 10 != 5      // True
+less_than = 3 < 5        // True
+greater = 10 > 5         // True
+
+// Chained comparisons
+x = 5
+in_range = 1 < x < 10    // True (equivalent to: 1 < x and x < 10)
+
+// String comparison (lexicographic)
+"apple" < "banana"       // True
+"abc" == "abc"           // True</code></pre>
+
+        <h2>Logical Operators</h2>
+
+        <table>
+            <tr><th>Operator</th><th>Name</th><th>Description</th></tr>
+            <tr><td><span class="op">and</span></td><td>Logical AND</td><td>True if both operands are true</td></tr>
+            <tr><td><span class="op">or</span></td><td>Logical OR</td><td>True if at least one operand is true</td></tr>
+            <tr><td><span class="op">not</span></td><td>Logical NOT</td><td>Inverts the boolean value</td></tr>
+        </table>
+
+        <pre><code class="language-python">// Logical AND
+True and True    // True
+True and False   // False
+False and True   // False
+False and False  // False
+
+// Logical OR
+True or True     // True
+True or False    // True
+False or True    // True
+False or False   // False
+
+// Logical NOT
+not True         // False
+not False        // True
+
+// Practical examples
+age = 25
+has_license = True
+
+can_drive = age >= 18 and has_license  // True
+
+is_weekend = False
+is_holiday = True
+day_off = is_weekend or is_holiday      // True
+
+is_working = not day_off                // False</code></pre>
+
+        <h2>Membership Operators</h2>
+
+        <table>
+            <tr><th>Operator</th><th>Description</th><th>Example</th></tr>
+            <tr><td><span class="op">in</span></td><td>True if value is in sequence</td><td>"a" in "apple"</td></tr>
+            <tr><td><span class="op">not in</span></td><td>True if value is not in sequence</td><td>5 not in [1, 2, 3]</td></tr>
+        </table>
+
+        <pre><code class="language-python">// String membership
+"car" in "Carrion"         // True
+"xyz" not in "Carrion"     // True
+
+// List membership
+fruits = ["apple", "banana", "cherry"]
+"apple" in fruits          // True
+"grape" in fruits          // False
+"grape" not in fruits      // True
+
+// Hash key membership
+person = {"name": "Merlin", "age": 150}
+"name" in person           // True (checks keys)
+"address" not in person    // True</code></pre>
+
+        <h2>Assignment Operators</h2>
+
+        <table>
+            <tr><th>Operator</th><th>Example</th><th>Equivalent</th></tr>
+            <tr><td><span class="op">=</span></td><td>x = 5</td><td>Assign 5 to x</td></tr>
+            <tr><td><span class="op">+=</span></td><td>x += 3</td><td>x = x + 3</td></tr>
+            <tr><td><span class="op">-=</span></td><td>x -= 2</td><td>x = x - 2</td></tr>
+            <tr><td><span class="op">*=</span></td><td>x *= 4</td><td>x = x * 4</td></tr>
+            <tr><td><span class="op">/=</span></td><td>x /= 2</td><td>x = x / 2</td></tr>
+            <tr><td><span class="op">%=</span></td><td>x %= 3</td><td>x = x % 3</td></tr>
+        </table>
+
+        <pre><code class="language-python">x = 10
+x += 5    // x is now 15
+x -= 3    // x is now 12
+x *= 2    // x is now 24
+x /= 4    // x is now 6.0
+x %= 4    // x is now 2.0</code></pre>
+
+        <h2>String Operators</h2>
+
+        <pre><code class="language-python">// Concatenation
+greeting = "Hello, " + "World!"  // "Hello, World!"
+
+// Repetition
+line = "-" * 20                  // "--------------------"
+
+// Membership
+has_at = "@" in "user@email.com" // True
+
+// Indexing
+text = "Carrion"
+first = text[0]     // "C"
+last = text[-1]     // "n"
+
+// Slicing
+sub = text[0:3]     // "Car"
+sub = text[3:]      // "rion"
+sub = text[:3]      // "Car"</code></pre>
+
+        <h2>Operator Precedence</h2>
+
+        <p>From highest to lowest precedence:</p>
+
+        <table>
+            <tr><th>Precedence</th><th>Operators</th></tr>
+            <tr><td>1 (Highest)</td><td><span class="op">**</span> (exponentiation)</td></tr>
+            <tr><td>2</td><td><span class="op">not</span></td></tr>
+            <tr><td>3</td><td><span class="op">*</span>, <span class="op">/</span>, <span class="op">%</span></td></tr>
+            <tr><td>4</td><td><span class="op">+</span>, <span class="op">-</span></td></tr>
+            <tr><td>5</td><td><span class="op">&lt;</span>, <span class="op">&lt;=</span>, <span class="op">&gt;</span>, <span class="op">&gt;=</span></td></tr>
+            <tr><td>6</td><td><span class="op">==</span>, <span class="op">!=</span></td></tr>
+            <tr><td>7</td><td><span class="op">in</span>, <span class="op">not in</span></td></tr>
+            <tr><td>8</td><td><span class="op">and</span></td></tr>
+            <tr><td>9 (Lowest)</td><td><span class="op">or</span></td></tr>
+        </table>
+
+        <pre><code class="language-python">// Precedence examples
+result = 2 + 3 * 4      // 14 (not 20)
+result = (2 + 3) * 4    // 20 (parentheses override)
+
+result = 2 ** 3 ** 2    // 512 (right-to-left for **)
+result = (2 ** 3) ** 2  // 64
+
+// Logical precedence
+x = True or False and False  // True (and evaluates first)
+x = (True or False) and False // False</code></pre>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+</body>
+</html>

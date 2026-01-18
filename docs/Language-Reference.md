@@ -35,9 +35,9 @@ Carrion source files use the `.crl` extension.
 
 ### Comments
 ```python
-// Single-line comment
-/* Multi-line
-   comment */
+"/#" Single-line comment
+``` Multi-line
+   comment```
 ```
 
 ### Identifiers
@@ -58,17 +58,17 @@ not          while       skip        stop        return
 match        case        and         or          True
 False        None        grim        spell       init
 self         super       arcane      arcanespell import
-as           var         ignore
+as           var         ignore      autoclose
 ```
 
 ### Literals
 
 #### Integer Literals
 ```python
-42          // Decimal
-0b1010      // Binary (not in source, but supported in display)
-0o52        // Octal (not in source, but supported in display)
-0x2A        // Hexadecimal (not in source, but supported in display)
+42          # Decimal
+0b1010      # Binary (not in source, but supported in display)
+0o52        # Octal (not in source, but supported in display)
+0x2A        # Hexadecimal (not in source, but supported in display)
 ```
 
 #### Float Literals
@@ -76,8 +76,8 @@ as           var         ignore
 3.14
 2.718
 1.0
-.5          // 0.5
-2e10        // Scientific notation (if supported)
+.5          # 0.5
+2e10        # Scientific notation (if supported)
 ```
 
 #### String Literals
@@ -86,8 +86,8 @@ as           var         ignore
 'single quotes'
 """triple quotes for 
    multi-line strings"""
-f"formatted {variable}"      // F-strings
-i"interpolated {expression}" // Interpolated strings
+f"formatted {variable}"      # F-strings
+i"interpolated {expression}" # Interpolated strings
 ```
 
 #### Boolean Literals
@@ -154,26 +154,33 @@ mixed = [1, "hello", True, 3.14]
 empty = []
 ```
 
-#### Hash
-Key-value mappings (dictionaries):
+#### Map
+Key-value mappings (dictionaries) with support for multiple key types:
 ```python
-person = {"name": "Alice", "age": 30}
-config = {"debug": True, "timeout": 30}
-empty_hash = {}
+person = {"name": "Alice", "age": 30}  # String keys
+config = {"debug": True, "timeout": 30}  # String keys
+mixed_map = {"name": "Alice", 42: "answer", 3.14: "pi", True: "enabled"}  # Mixed key types
+empty_map = {}
 ```
+
+**Supported Key Types:**
+- **String**: `"key"`, `'key'`
+- **Integer**: `42`, `-17`
+- **Float**: `3.14`, `-2.5`
+- **Boolean**: `True`, `False`
 
 #### Tuple
 Immutable ordered sequences:
 ```python
 coordinates = (10, 20)
 rgb = (255, 128, 0)
-single = (42,)  // Single-element tuple
+single = (42,)  # Single-element tuple
 ```
 
 ### Type Checking
 ```python
 value = 42
-print(type(value))  // → "INTEGER"
+print(type(value))  # → "INTEGER"
 
 if type(value) == "INTEGER":
     print("It's an integer")
@@ -242,7 +249,7 @@ if type(value) == "INTEGER":
 1. Parentheses: `()`
 2. Exponentiation: `**`
 3. Unary: `+`, `-`, `not`, `~`
-4. Multiplicative: `*`, `/`, `//`, `%`
+4. Multiplicative: `*`, `/`, `#`, `%`
 5. Additive: `+`, `-`
 6. Shift: `<<`, `>>`
 7. Bitwise AND: `&`
@@ -256,46 +263,46 @@ if type(value) == "INTEGER":
 
 ### Expression Examples
 ```python
-// Arithmetic expressions
-result = 2 + 3 * 4        // → 14
-result = (2 + 3) * 4      // → 20
+# Arithmetic expressions
+result = 2 + 3 * 4        # → 14
+result = (2 + 3) * 4      # → 20
 
-// Boolean expressions
+# Boolean expressions
 valid = age >= 18 and has_license
 can_proceed = user.is_admin() or user.has_permission("write")
 
-// String expressions
+# String expressions
 full_name = first_name + " " + last_name
 greeting = f"Hello, {name}!"
 
-// Collection expressions
-squares = [x ** 2 for x in range(5)]  // If list comprehension is supported
+# Collection expressions
+squares = [x ** 2 for x in range(5)]  # If list comprehension is supported
 ```
 
 ## Statements
 
 ### Assignment Statements
 ```python
-// Simple assignment
+# Simple assignment
 x = 42
 name = "Alice"
 
-// Multiple assignment (tuple unpacking)
+# Multiple assignment (tuple unpacking)
 x, y = (10, 20)
 a, b, c = [1, 2, 3]
 
-// Compound assignment
+# Compound assignment
 x += 5
 count *= 2
 ```
 
 ### Expression Statements
 ```python
-// Function calls
+# Function calls
 print("Hello")
 result = calculate(10, 20)
 
-// Method calls
+# Method calls
 text.upper()
 array.append(item)
 ```
@@ -305,48 +312,79 @@ array.append(item)
 #### If Statements
 ```python
 if condition:
-    // code
+    # code
 otherwise another_condition:
-    // code
+    # code
 else:
-    // code
+    # code
 ```
 
 #### For Loops
 ```python
 for item in iterable:
-    // code
+    # code
 else:
-    // optional else clause
+    # optional else clause
 ```
 
 #### While Loops
 ```python
 while condition:
-    // code
+    # code
 ```
 
 #### Match Statements
 ```python
 match value:
     case pattern1:
-        // code
+        # code
     case pattern2:
-        // code
+        # code
     _:
-        // default case
+        # default case
 ```
 
 #### Loop Control
 ```python
-skip  // Continue to next iteration
-stop  // Break from loop
+skip  # Continue to next iteration
+stop  # Break from loop
 ```
 
 #### Return Statements
 ```python
-return            // Return None
-return value      // Return specific value
+return            # Return None
+return value      # Return specific value
+```
+
+#### Autoclose Statements
+Automatic resource management for objects that need cleanup:
+```python
+autoclose expression as variable:
+    # code block
+    # variable.close() is called automatically
+```
+
+The `autoclose` statement ensures that resources are properly cleaned up when the block exits, even if an error occurs. It works with any object that has a `close()` method.
+
+Examples:
+```python
+# File operations with File grimoire (recommended)
+autoclose File.open("data.txt", "r") as file:
+    content = file.read_content()
+    print(content)
+
+# Writing files with File grimoire
+autoclose File.open("output.txt", "w") as file:
+    file.write_content("Hello, World!")
+
+# Appending to files with File grimoire
+autoclose File.open("log.txt", "a") as file:
+    file.write_content("New entry\n")
+
+# Alternative: using open() builtin (less preferred)
+autoclose open("data.txt", "r") as file:
+    content = file.read_content()
+    print(content)
 ```
 
 ## Functions (Spells)
@@ -354,21 +392,21 @@ return value      // Return specific value
 ### Function Definition
 ```python
 spell function_name(parameters):
-    // function body
-    return value  // optional
+    # function body
+    return value  # optional
 ```
 
 ### Parameters
 ```python
-// Basic parameters
+# Basic parameters
 spell greet(name):
     return f"Hello, {name}!"
 
-// Default parameters
+# Default parameters
 spell power(base, exponent = 2):
     return base ** exponent
 
-// Variable arguments (if supported)
+# Variable arguments (if supported)
 spell sum_all(*numbers):
     total = 0
     for num in numbers:
@@ -398,10 +436,10 @@ spell is_prime(number):
 ```python
 grim ClassName:
     init(parameters):
-        // constructor
+        # constructor
     
     spell method_name(parameters):
-        // method implementation
+        # method implementation
 ```
 
 ### Inheritance
@@ -409,10 +447,10 @@ grim ClassName:
 grim Child(Parent):
     init(parameters):
         super.init(parent_parameters)
-        // child-specific initialization
+        # child-specific initialization
     
     spell method_name(parameters):
-        // override or new method
+        # override or new method
 ```
 
 ### Abstract Classes
@@ -420,7 +458,7 @@ grim Child(Parent):
 arcane grim AbstractClass:
     @arcanespell
     spell abstract_method():
-        ignore  // no implementation
+        ignore  # no implementation
 ```
 
 ### Access Modifiers
@@ -433,13 +471,13 @@ arcane grim AbstractClass:
 ### Basic Syntax
 ```python
 attempt:
-    // risky code
+    # risky code
 ensnare (ErrorType):
-    // handle specific error
+    # handle specific error
 ensnare:
-    // handle any error
+    # handle any error
 resolve:
-    // finally block
+    # finally block
 ```
 
 ### Raising Errors
@@ -456,14 +494,28 @@ check(condition, "Error message")
 
 ### Import Syntax
 ```python
-import "module_name"
-import "path/to/module"
-import "module.ClassName"
-import "module" as alias
+# Smart import patterns
+import "GrimoireName"                # NEW: Grimoire-based import (searches all locations)
+import "GrimoireName" as alias       # NEW: Grimoire import with alias
+import "filename"                    # Local file
+import "filename.ClassName"          # Selective import
+import "package/module"              # Simplified package import
+import "package/module.ClassName"    # Package selective import
+import "./filename"                  # Relative current directory
+import "../filename"                 # Relative parent directory
+import "module" as alias             # Import with alias
+import "module.ClassName" as alias   # Selective import with alias
 ```
 
 ### Module Structure
-Each `.crl` file is a module that can export functions and classes.
+Each `.crl` file is a module that can export functions and grimoires (classes). The import system automatically resolves packages with version management and searches appropriate directories.
+
+### Grimoire-Based Imports
+The enhanced import system allows importing grimoires (classes) directly by name:
+- Searches current directory, project modules, global bifrost modules, and system packages
+- Automatically locates grimoire definitions without requiring file paths
+- Supports aliasing for convenient naming
+- Works with both local files and installed packages
 
 ## Built-in Functions
 
@@ -488,25 +540,143 @@ Each `.crl` file is a module that can export functions and classes.
 
 ### Collection Functions
 - `enumerate(array)` - Get indexed pairs
-- `pairs(hash, filter)` - Get key-value pairs
+- `pairs(map, filter)` - Get key-value pairs (enhanced: supports "key"/"k" and "value"/"v" filters)
 - `is_sametype(obj1, obj2)` - Compare types
+
+### JSON Parsing Functions
+- `parseHash(jsonString)` - Parse JSON object string into a Carrion map (dictionaries only)
+  - Only accepts valid JSON objects `{...}`
+  - Returns an error for arrays, primitives, or invalid JSON
+  - Example: `parseHash('{"name": "Alice", "age": 30}')`
+
+### Iteration Support
+All collection types support the `in` operator and iteration with `for` loops:
+- **Strings**: Character-by-character iteration and substring checking
+- **Arrays**: Element iteration and membership testing  
+- **Maps**: Key iteration by default, key membership testing
+- **Ranges**: Number sequence iteration
 
 ## Standard Library (Munin)
 
 ### Core Modules
-- **Array** - Enhanced array operations
-- **String** - String manipulation
-- **Integer** - Integer utilities and conversions
-- **Float** - Floating-point operations
-- **Boolean** - Boolean logic operations
-- **File** - File I/O operations
-- **OS** - Operating system interface
-- **Math** - Mathematical functions
+- **Array** - Enhanced array operations with methods like `append()`, `sort()`, `reverse()`
+- **String** - String manipulation with methods like `upper()`, `lower()`, `find()`
+- **Integer** - Integer utilities and conversions with methods like `to_bin()`, `is_prime()`, `gcd()`
+- **Float** - Floating-point operations with methods like `round()`, `sqrt()`, `sin()`, `cos()`
+- **Boolean** - Boolean logic operations with methods like `to_int()`, `negate()`
+- **File** - File I/O operations using static methods like `File.read()`, `File.write()`, `File.open()`
+- **OS** - Operating system interface using static methods like `OS.cwd()`, `OS.listdir()`, `OS.run()`
+- **HTTP** - HTTP client operations with JSON support:
+  - `httpGet(url, headers)` - Make GET request
+  - `httpPost(url, body, headers)` - Make POST request
+  - `httpParseJSON(jsonString)` - Parse any JSON string into Carrion objects
+  - `httpStringifyJSON(object)` - Convert Carrion objects to JSON strings
 
 ### Standard Functions
 - `help()` - Get help information
 - `version()` - Version information
 - `modules()` - List available modules
+
+### File and OS Operations
+The File and OS grimoires provide comprehensive system operations:
+
+```python
+# File operations with static methods (recommended)
+content = File.read("config.txt")
+File.write("output.txt", "Hello")
+File.append("log.txt", "New entry\n")
+exists = File.exists("data.txt")
+
+# OS operations with static methods
+current_dir = OS.cwd()
+OS.chdir("/home/user")
+files = OS.listdir(".")
+OS.mkdir("new_folder")
+home = OS.getenv("HOME")
+OS.run("ls", ["-la"], False)
+```
+
+### JSON Handling
+
+Carrion provides comprehensive JSON support for parsing and stringifying data:
+
+#### JSON to Carrion Type Conversion
+- `null` → `None`
+- `true/false` → `Boolean`
+- Numbers → `Integer` (whole) or `Float` (decimal)
+- Strings → `String`
+- Arrays → `Array`
+- Objects → `Map` (with string keys)
+
+#### Parsing JSON
+```python
+# Parse JSON objects with parseHash (built-in)
+data = parseHash('{"name": "Alice", "age": 30, "active": true}')
+print(data["name"])   # → "Alice"
+print(data["age"])    # → 30
+print(data["active"]) # → True
+
+# Parse any JSON with httpParseJSON (more flexible)
+# Arrays
+array_data = httpParseJSON('[1, 2, 3, "hello", true, null]')
+print(array_data[3])  # → "hello"
+print(array_data[5])  # → None
+
+# Nested structures
+complex_data = httpParseJSON('{"users": [{"id": 1, "name": "Bob"}, {"id": 2, "name": "Carol"}]}')
+print(complex_data["users"][0]["name"])  # → "Bob"
+
+# Error handling
+attempt:
+    invalid = parseHash('[1, 2, 3]')  # Error: parseHash only accepts objects
+ensnare:
+    print("parseHash requires a JSON object, not an array")
+```
+
+#### Converting to JSON
+```python
+# Convert Carrion objects to JSON strings
+user = {
+    "name": "Alice",
+    "age": 30,
+    "skills": ["Python", "Carrion", "Go"],
+    "active": True,
+    "metadata": None
+}
+
+json_string = httpStringifyJSON(user)
+print(json_string)
+# → '{"name":"Alice","age":30,"skills":["Python","Carrion","Go"],"active":true,"metadata":null}'
+
+# Works with arrays too
+numbers = [1, 2.5, 3]
+json_array = httpStringifyJSON(numbers)
+print(json_array)  # → '[1,2.5,3]'
+```
+
+#### Practical JSON Examples
+```python
+# API Integration
+response = httpGet("https:#api.example.com/users/123")
+user_data = httpParseJSON(response)
+print(f"User: {user_data['name']}, Email: {user_data['email']}")
+
+# Configuration files
+config_json = File.read("config.json")
+config = httpParseJSON(config_json)
+debug_mode = config.get("debug", False)
+
+# Creating API requests
+request_data = {
+    "action": "create_user",
+    "params": {
+        "username": "newuser",
+        "email": "user@example.com"
+    }
+}
+json_body = httpStringifyJSON(request_data)
+response = httpPost("https:#api.example.com/users", json_body)
+```
 
 ## Language Grammar (Simplified)
 
@@ -526,6 +696,7 @@ statement       := assignment_stmt
                 |  return_stmt
                 |  skip_stmt
                 |  stop_stmt
+                |  autoclose_stmt
 
 assignment_stmt := identifier '=' expression
                 |  identifier compound_op expression
@@ -542,7 +713,7 @@ bitwise_xor     := bitwise_and ('^' bitwise_and)*
 bitwise_and     := shift ('&' shift)*
 shift           := addition (('<<' | '>>') addition)*
 addition        := multiplication (('+' | '-') multiplication)*
-multiplication  := exponentiation (('*' | '/' | '//' | '%') exponentiation)*
+multiplication  := exponentiation (('*' | '/' | '#' | '%') exponentiation)*
 exponentiation  := unary ('**' unary)*
 unary           := ('not' | '-' | '+' | '~') unary | postfix
 postfix         := primary ('++' | '--')*
@@ -561,6 +732,7 @@ while_stmt      := 'while' expression ':' block
 match_stmt      := 'match' expression ':' case_stmt*
 
 error_stmt      := 'attempt' ':' block ('ensnare' '(' identifier ')' ':' block)* ('ensnare' ':' block)? ('resolve' ':' block)?
+autoclose_stmt  := 'autoclose' expression 'as' identifier ':' block
 
 literal         := INTEGER | FLOAT | STRING | BOOLEAN | NONE | array_literal | hash_literal | tuple_literal
 ```
@@ -598,6 +770,9 @@ literal         := INTEGER | FLOAT | STRING | BOOLEAN | NONE | array_literal | h
 ### Module System
 - `import` - Import statement
 - `as` - Import alias
+
+### Resource Management
+- `autoclose` - Automatic resource cleanup
 
 ### Miscellaneous
 - `var` - Variable declaration (optional)

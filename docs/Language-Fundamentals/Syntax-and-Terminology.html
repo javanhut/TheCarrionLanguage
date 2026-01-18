@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Syntax and Terminology - Carrion Language</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#x1F426;</text></svg>">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+    <style>
+        :root {
+            --bg-primary: #0f0f23;
+            --bg-secondary: #1a1a2e;
+            --bg-tertiary: #16213e;
+            --text-primary: #e0e0e0;
+            --text-secondary: #b0b0b0;
+            --accent-primary: #00cc99;
+            --border-color: #333355;
+            --code-bg: #0f0f1a;
+            --link-color: #66ccff;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            padding: 40px 20px;
+        }
+        .container { max-width: 900px; margin: 0 auto; }
+        h1 {
+            color: var(--accent-primary);
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--accent-primary);
+        }
+        h2 {
+            color: var(--accent-primary);
+            margin: 40px 0 20px;
+            font-size: 1.5rem;
+        }
+        h3 {
+            color: var(--text-primary);
+            margin: 25px 0 15px;
+        }
+        p { margin-bottom: 15px; color: var(--text-secondary); }
+        pre {
+            background: var(--code-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+        code {
+            font-family: 'Fira Code', 'Courier New', monospace;
+            font-size: 14px;
+        }
+        .term-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        .term-table th, .term-table td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .term-table th {
+            background: var(--bg-tertiary);
+            color: var(--accent-primary);
+        }
+        .term-table tr:hover {
+            background: var(--bg-secondary);
+        }
+        .keyword {
+            font-family: monospace;
+            background: var(--code-bg);
+            padding: 3px 8px;
+            border-radius: 4px;
+            color: var(--accent-primary);
+        }
+        .note {
+            background: var(--bg-tertiary);
+            border-left: 4px solid var(--accent-primary);
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .back-link {
+            display: inline-block;
+            color: var(--link-color);
+            text-decoration: none;
+            margin-bottom: 20px;
+        }
+        .back-link:hover { text-decoration: underline; }
+        @media (max-width: 768px) {
+            body { padding: 20px 15px; }
+            h1 { font-size: 1.8rem; }
+            pre { padding: 15px; font-size: 12px; }
+            .term-table { font-size: 14px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="../index.html" class="back-link">&larr; Back to Documentation</a>
+
+        <h1>Syntax and Terminology</h1>
+
+        <p>Carrion uses mystical terminology inspired by magic and Norse mythology. This guide explains the language's unique vocabulary and Python-inspired syntax.</p>
+
+        <h2>Magical Terminology</h2>
+
+        <table class="term-table">
+            <tr>
+                <th>Carrion Term</th>
+                <th>Traditional Term</th>
+                <th>Description</th>
+            </tr>
+            <tr>
+                <td><span class="keyword">spell</span></td>
+                <td>function</td>
+                <td>A reusable block of code that performs a specific task</td>
+            </tr>
+            <tr>
+                <td><span class="keyword">grim</span></td>
+                <td>class</td>
+                <td>A grimoire (spellbook) that defines a blueprint for objects</td>
+            </tr>
+            <tr>
+                <td><span class="keyword">init</span></td>
+                <td>constructor</td>
+                <td>The initialization spell called when creating a new grimoire instance</td>
+            </tr>
+            <tr>
+                <td><span class="keyword">attempt</span></td>
+                <td>try</td>
+                <td>Begin a block that may encounter errors</td>
+            </tr>
+            <tr>
+                <td><span class="keyword">ensnare</span></td>
+                <td>catch/except</td>
+                <td>Capture and handle an error</td>
+            </tr>
+            <tr>
+                <td><span class="keyword">resolve</span></td>
+                <td>finally</td>
+                <td>Always execute cleanup code</td>
+            </tr>
+            <tr>
+                <td><span class="keyword">repeat</span></td>
+                <td>for i in range(n)</td>
+                <td>Execute a block a specific number of times</td>
+            </tr>
+            <tr>
+                <td>Munin</td>
+                <td>standard library</td>
+                <td>Named after Odin's raven of memory</td>
+            </tr>
+        </table>
+
+        <h2>Basic Syntax</h2>
+
+        <h3>Comments</h3>
+        <pre><code class="language-python">// Single-line comment
+
+/*
+   Multi-line
+   comment
+*/</code></pre>
+
+        <h3>Indentation</h3>
+        <p>Carrion uses indentation (4 spaces recommended) to define code blocks:</p>
+        <pre><code class="language-python">spell greet(name):
+    message = f"Hello, {name}!"    // Inside the spell
+    print(message)                  // Still inside
+
+print("Outside the spell")          // Outside</code></pre>
+
+        <div class="note">
+            <strong>Important:</strong> Use consistent indentation throughout your code. Mixing tabs and spaces will cause errors.
+        </div>
+
+        <h3>Statements</h3>
+        <p>Statements end at the end of the line (no semicolons needed):</p>
+        <pre><code class="language-python">x = 10
+y = 20
+result = x + y</code></pre>
+
+        <h2>Defining Spells (Functions)</h2>
+
+        <pre><code class="language-python">// Basic spell
+spell greet():
+    print("Hello, World!")
+
+// Spell with parameters
+spell add(a, b):
+    return a + b
+
+// Spell with default parameter
+spell greet(name="Stranger"):
+    print(f"Hello, {name}!")
+
+// Call spells
+greet()              // Hello, World!
+result = add(5, 3)   // 8
+greet("Mage")        // Hello, Mage!</code></pre>
+
+        <h2>Defining Grimoires (Classes)</h2>
+
+        <pre><code class="language-python">grim MagicalCreature:
+    // Constructor
+    init(name, power):
+        self.name = name
+        self.power = power
+
+    // Method (spell)
+    spell describe():
+        return f"{self.name} has power level {self.power}"
+
+    // Method with parameters
+    spell attack(target):
+        print(f"{self.name} attacks {target}!")
+
+// Create an instance
+dragon = MagicalCreature("Fafnir", 100)
+print(dragon.describe())
+dragon.attack("the castle")</code></pre>
+
+        <h2>Control Flow Syntax</h2>
+
+        <h3>If/Elif/Else</h3>
+        <pre><code class="language-python">if condition:
+    // code when true
+elif other_condition:
+    // code when elif is true
+else:
+    // code when all conditions are false</code></pre>
+
+        <h3>For Loops</h3>
+        <pre><code class="language-python">// Iterate over a list
+for item in items:
+    print(item)
+
+// Iterate with index using range
+for i in range(5):
+    print(i)  // 0, 1, 2, 3, 4
+
+// Range with start and end
+for i in range(1, 10):
+    print(i)  // 1 through 9</code></pre>
+
+        <h3>While Loops</h3>
+        <pre><code class="language-python">count = 0
+while count < 5:
+    print(count)
+    count = count + 1</code></pre>
+
+        <h3>Repeat Loops</h3>
+        <pre><code class="language-python">// Carrion's unique repeat construct
+repeat 5:
+    print("Hello!")  // Prints 5 times</code></pre>
+
+        <h2>String Formatting</h2>
+
+        <pre><code class="language-python">name = "Carrion"
+version = 0.19
+
+// F-strings (interpolation)
+message = f"Welcome to {name} version {version}"
+
+// Concatenation
+greeting = "Hello, " + name + "!"
+
+// Multi-line strings
+story = """
+Once upon a time,
+in a land of magic,
+there lived a crow...
+"""</code></pre>
+
+        <h2>Operators</h2>
+
+        <h3>Arithmetic</h3>
+        <pre><code class="language-python">a + b    // Addition
+a - b    // Subtraction
+a * b    // Multiplication
+a / b    // Division
+a % b    // Modulo (remainder)
+a ** b   // Exponentiation</code></pre>
+
+        <h3>Comparison</h3>
+        <pre><code class="language-python">a == b   // Equal
+a != b   // Not equal
+a < b    // Less than
+a > b    // Greater than
+a <= b   // Less than or equal
+a >= b   // Greater than or equal</code></pre>
+
+        <h3>Logical</h3>
+        <pre><code class="language-python">a and b  // Both true
+a or b   // Either true
+not a    // Negation
+x in y   // Membership test</code></pre>
+
+        <h2>Error Handling Syntax</h2>
+
+        <pre><code class="language-python">attempt:
+    // Code that might fail
+    result = risky_operation()
+ensnare SpecificError as e:
+    // Handle specific error
+    print(f"Caught: {e}")
+ensnare:
+    // Handle any other error
+    print("Something went wrong")
+resolve:
+    // Always runs (cleanup)
+    cleanup()</code></pre>
+
+        <h2>Import Syntax</h2>
+
+        <pre><code class="language-python">// Import a module
+import "mymodule"
+
+// Import specific item
+import "mymodule.MyGrimoire"
+import "mymodule.my_spell"
+
+// Use imported items
+mymodule.function()
+obj = MyGrimoire()</code></pre>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+</body>
+</html>

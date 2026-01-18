@@ -55,7 +55,7 @@
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠉⠙⠛⠋⠉⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
                 </div>
                 <div class="hero-actions">
-                    <a href="#download" class="btn btn-primary">Download v0.1.8</a>
+                    <a href="#download" class="btn btn-primary">Download v0.1.9</a>
                     <a href="#docs" class="btn btn-secondary">Get Started</a>
                 </div>
                 <div class="hero-code">
@@ -126,56 +126,71 @@ print(greet("Fellow Mage"))</code></pre>
     <!-- What's New Section -->
     <section class="whats-new">
         <div class="container">
-            <h2 class="section-title">What's New in v0.1.8</h2>
+            <h2 class="section-title">What's New in v0.1.9</h2>
             <div class="release-highlights">
                 <div class="highlight-card">
-                    <h3>🧪 Sindri Testing Framework</h3>
-                    <p>Comprehensive testing with automatic test discovery, colored output, and flexible assertions</p>
-                    <pre><code class="language-python">spell appraise_arithmetic():
-    check(2 + 2 == 4)
-    check(10 - 3, 7)  # Value comparison</code></pre>
+                    <h3>🎯 Intelligent Error Suggestions</h3>
+                    <p>"Did you mean?" system with Levenshtein distance matching for typos and context-aware suggestions</p>
+                    <pre><code class="language-python">name = "Carrion"
+print(nme)  # Typo!
+
+# Error now shows:
+# error: identifier not found: nme
+# help: Did you mean 'name'?</code></pre>
                 </div>
                 <div class="highlight-card">
-                    <h3>📚 Mimir Documentation System</h3>
-                    <p>Interactive documentation browser and command-line help</p>
-                    <pre><code class="language-bash">mimir scry print    # Get help for print
-mimir list          # List all functions
-mimir               # Interactive mode</code></pre>
+                    <h3>🌐 HTTP Server Enhancements</h3>
+                    <p>Build complete REST APIs with full request/response handling</p>
+                    <pre><code class="language-python">spell handler(request):
+    method = request["method"]
+    headers = request["headers"]
+    query = request["query"]
+    body = request["body"]
+
+    return http_response(200, "OK", {
+        "Content-Type": "application/json"
+    })</code></pre>
                 </div>
                 <div class="highlight-card">
-                    <h3>🏗️ Static Methods & Grimoire Refactoring</h3>
-                    <p>New unified API for File and OS operations with static method support</p>
-                    <pre><code class="language-python"># New unified grimoire API
-content = File.read("data.txt")
-File.write("output.txt", "hello")
-current_dir = OS.cwd()
-OS.listdir(".")</code></pre>
+                    <h3>🖥️ Cleaner REPL Experience</h3>
+                    <p>Silent assignments and no noise from function references</p>
+                    <pre><code class="language-python"># Cleaner REPL behavior
+>>> x = 42
+>>>          # Silent assignment
+
+>>> x        # Explicit reference shows value
+42</code></pre>
                 </div>
                 <div class="highlight-card">
-                    <h3>🔧 Critical Bug Fixes</h3>
+                    <h3>🌳 BTree Enhancements</h3>
+                    <p>New visual tree display and consistent method naming</p>
+                    <pre><code class="language-python">bst = BTree()
+bst.insert(10)
+bst.insert(5)
+bst.insert(15)
+
+bst.display_tree()
+# 10
+# |-- 5
+# |-- 15</code></pre>
+                </div>
+                <div class="highlight-card">
+                    <h3>🔧 Bug Fixes</h3>
                     <ul>
-                        <li><strong>Multi-Level Inheritance</strong> - Fixed infinite recursion in 3+ level inheritance chains</li>
-                        <li><strong>String Concatenation</strong> - Fixed type issues with concatenated strings</li>
-                        <li><strong>Variable Resolution</strong> - Fixed environment variable precedence over builtins</li>
+                        <li><strong>Indentation Handling</strong> - Fixed nested block indentation issues</li>
+                        <li><strong>Float Instance Wrapping</strong> - Fixed instance wrapping for float values</li>
+                        <li><strong>Import Logic</strong> - Fixed module import resolution</li>
+                        <li><strong>Tuple Handling</strong> - Fixed tuple operations and unpacking</li>
                     </ul>
                 </div>
                 <div class="highlight-card">
-                    <h3>📦 Bifrost Package Manager</h3>
-                    <p>Integrated package management for the growing Carrion ecosystem</p>
-                    <pre><code class="language-bash">bifrost init
-bifrost install json-utils
-import "json-utils/parser"</code></pre>
-                </div>
-                <div class="highlight-card">
-                    <h3>🎯 Selective Imports & REPL Improvements</h3>
-                    <p>Enhanced import system with selective grimoire/spell imports and cleaner REPL output</p>
-                    <pre><code class="language-python"># Selective imports
-import "module.GrimoireName"
-import "utils.helper_spell"
-
-# Cleaner REPL - no output for assignments
-x = 10  # No output printed
-x + 5   # 15 (expression results shown)</code></pre>
+                    <h3>📖 Enhanced Documentation</h3>
+                    <p>New comprehensive guides and updated references</p>
+                    <ul>
+                        <li><strong>HTTP Server Guide</strong> - Complete web application tutorial</li>
+                        <li><strong>Indentation Guide</strong> - Best practices for code structure</li>
+                        <li><strong>Enhanced Error System</strong> - Understanding suggestions</li>
+                    </ul>
                 </div>
             </div>
         </div>
@@ -321,19 +336,19 @@ repeat 5:
             <div class="download-options">
                 <div class="download-card featured">
                     <h3>Latest Release</h3>
-                    <div class="version-tag">v0.1.8</div>
-                    <p>The newest version featuring Sindri Testing Framework, Mimir Documentation Tool, and Bifrost Package Manager</p>
+                    <div class="version-tag">v0.1.9</div>
+                    <p>Developer experience improvements with intelligent error suggestions, enhanced HTTP server, and cleaner REPL</p>
                     <div class="download-buttons">
-                        <a href="https://github.com/javanhut/TheCarrionLanguage/releases/download/v0.1.8/carrion-linux-amd64" class="btn-download">
+                        <a href="https://github.com/javanhut/TheCarrionLanguage/releases/download/v0.1.9/carrion-linux-amd64" class="btn-download">
                             <span class="os-icon">🐧</span> Linux (AMD64)
                         </a>
-                        <a href="https://github.com/javanhut/TheCarrionLanguage/releases/download/v0.1.8/carrion-darwin-amd64" class="btn-download">
+                        <a href="https://github.com/javanhut/TheCarrionLanguage/releases/download/v0.1.9/carrion-darwin-amd64" class="btn-download">
                             <span class="os-icon">🍎</span> macOS (Intel)
                         </a>
-                        <a href="https://github.com/javanhut/TheCarrionLanguage/releases/download/v0.1.8/carrion-darwin-arm64" class="btn-download">
+                        <a href="https://github.com/javanhut/TheCarrionLanguage/releases/download/v0.1.9/carrion-darwin-arm64" class="btn-download">
                             <span class="os-icon">🍎</span> macOS (M1/M2)
                         </a>
-                        <a href="https://github.com/javanhut/TheCarrionLanguage/releases/download/v0.1.8/carrion-windows-amd64.exe" class="btn-download">
+                        <a href="https://github.com/javanhut/TheCarrionLanguage/releases/download/v0.1.9/carrion-windows-amd64.exe" class="btn-download">
                             <span class="os-icon">🪟</span> Windows (64-bit)
                         </a>
                     </div>
@@ -362,8 +377,9 @@ wget -qO- https://raw.githubusercontent.com/javanhut/TheCarrionLanguage/main/ins
             <div class="version-history">
                 <h3>Previous Versions</h3>
                 <ul>
+                    <li><a href="https://github.com/javanhut/TheCarrionLanguage/releases/tag/v0.1.8">v0.1.8</a> - Sindri Testing Framework, Mimir Documentation Tool, Bifrost Package Manager</li>
+                    <li><a href="https://github.com/javanhut/TheCarrionLanguage/releases/tag/v0.1.7">v0.1.7</a> - Static methods, improved grimoire refactoring</li>
                     <li><a href="https://github.com/javanhut/TheCarrionLanguage/releases/tag/v0.1.6">v0.1.6</a> - Interactive help system and enhanced REPL</li>
-                    <li><a href="https://github.com/javanhut/TheCarrionLanguage/releases/tag/v0.1.5">v0.1.5</a> - Stable release with core features</li>
                     <li><a href="https://github.com/javanhut/TheCarrionLanguage/releases/">All releases</a></li>
                 </ul>
             </div>
@@ -436,7 +452,7 @@ wget -qO- https://raw.githubusercontent.com/javanhut/TheCarrionLanguage/main/ins
                 </div>
             </div>
             <div class="footer-bottom">
-                <p>&copy; 2024 Carrion Programming Language. Licensed under MIT License.</p>
+                <p>&copy; 2024-2026 Carrion Programming Language. Licensed under MIT License.</p>
                 <p>Built with magic by the Carrion community</p>
             </div>
         </div>

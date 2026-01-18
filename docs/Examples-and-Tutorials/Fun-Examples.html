@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fun Examples - Carrion Language</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#x1F426;</text></svg>">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+    <style>
+        :root {
+            --bg-primary: #0f0f23;
+            --bg-secondary: #1a1a2e;
+            --bg-tertiary: #16213e;
+            --text-primary: #e0e0e0;
+            --text-secondary: #b0b0b0;
+            --accent-primary: #00cc99;
+            --border-color: #333355;
+            --code-bg: #0f0f1a;
+            --link-color: #66ccff;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            padding: 40px 20px;
+        }
+        .container { max-width: 900px; margin: 0 auto; }
+        h1 {
+            color: var(--accent-primary);
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--accent-primary);
+        }
+        h2 {
+            color: var(--accent-primary);
+            margin: 40px 0 20px;
+            font-size: 1.5rem;
+        }
+        p { margin-bottom: 15px; color: var(--text-secondary); }
+        pre {
+            background: var(--code-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+        code {
+            font-family: 'Fira Code', 'Courier New', monospace;
+            font-size: 14px;
+        }
+        .example-section {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 25px;
+            margin: 25px 0;
+        }
+        .example-section h3 {
+            color: var(--accent-primary);
+            margin-bottom: 15px;
+        }
+        .output {
+            background: #1a1a1a;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 15px;
+            font-family: monospace;
+            color: #00ff00;
+        }
+        .output-label {
+            color: var(--text-secondary);
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+        .back-link {
+            display: inline-block;
+            color: var(--link-color);
+            text-decoration: none;
+            margin-bottom: 20px;
+        }
+        .back-link:hover { text-decoration: underline; }
+        @media (max-width: 768px) {
+            body { padding: 20px 15px; }
+            h1 { font-size: 1.8rem; }
+            pre { padding: 15px; font-size: 12px; }
+            .example-section { padding: 15px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="../index.html" class="back-link">&larr; Back to Documentation</a>
+
+        <h1>Fun Examples</h1>
+
+        <p>Explore the magical world of Carrion through these entertaining code examples. Each demonstrates different language features in creative ways.</p>
+
+        <div class="example-section">
+            <h3>FizzBuzz Spell</h3>
+            <p>The classic programming challenge with a magical twist.</p>
+            <pre><code class="language-python">spell fizzbuzz(n):
+    for i in range(1, n + 1):
+        if i % 15 == 0:
+            print("FizzBuzz")
+        elif i % 3 == 0:
+            print("Fizz")
+        elif i % 5 == 0:
+            print("Buzz")
+        else:
+            print(i)
+
+fizzbuzz(20)</code></pre>
+            <div class="output-label">Output:</div>
+            <div class="output">1<br>2<br>Fizz<br>4<br>Buzz<br>Fizz<br>7<br>8<br>Fizz<br>Buzz<br>11<br>Fizz<br>13<br>14<br>FizzBuzz<br>...</div>
+        </div>
+
+        <div class="example-section">
+            <h3>Fibonacci Sequence Generator</h3>
+            <p>Generate the mystical Fibonacci sequence.</p>
+            <pre><code class="language-python">spell fibonacci(n):
+    if n <= 1:
+        return n
+    return fibonacci(n - 1) + fibonacci(n - 2)
+
+// Generate first 10 Fibonacci numbers
+print("The Fibonacci Sequence:")
+for i in range(10):
+    print(f"F({i}) = {fibonacci(i)}")</code></pre>
+            <div class="output-label">Output:</div>
+            <div class="output">The Fibonacci Sequence:<br>F(0) = 0<br>F(1) = 1<br>F(2) = 1<br>F(3) = 2<br>F(4) = 3<br>F(5) = 5<br>F(6) = 8<br>F(7) = 13<br>F(8) = 21<br>F(9) = 34</div>
+        </div>
+
+        <div class="example-section">
+            <h3>Magic 8-Ball</h3>
+            <p>Ask the mystical 8-ball for guidance!</p>
+            <pre><code class="language-python">import "random"
+
+grim Magic8Ball:
+    init():
+        self.responses = [
+            "It is certain",
+            "Without a doubt",
+            "Yes, definitely",
+            "Reply hazy, try again",
+            "Ask again later",
+            "Cannot predict now",
+            "Don't count on it",
+            "My sources say no",
+            "Outlook not so good",
+            "Very doubtful"
+        ]
+
+    spell shake():
+        index = random.randint(0, len(self.responses) - 1)
+        return self.responses[index]
+
+ball = Magic8Ball()
+question = input("Ask the Magic 8-Ball a question: ")
+print(f"The 8-Ball says: {ball.shake()}")</code></pre>
+        </div>
+
+        <div class="example-section">
+            <h3>Simple Calculator Grimoire</h3>
+            <p>A calculator with magical operations.</p>
+            <pre><code class="language-python">grim Calculator:
+    init():
+        self.result = 0
+
+    spell add(x, y):
+        self.result = x + y
+        return self.result
+
+    spell subtract(x, y):
+        self.result = x - y
+        return self.result
+
+    spell multiply(x, y):
+        self.result = x * y
+        return self.result
+
+    spell divide(x, y):
+        if y == 0:
+            return "Cannot divide by zero!"
+        self.result = x / y
+        return self.result
+
+    spell power(base, exp):
+        self.result = base ** exp
+        return self.result
+
+calc = Calculator()
+print(f"10 + 5 = {calc.add(10, 5)}")
+print(f"10 - 5 = {calc.subtract(10, 5)}")
+print(f"10 * 5 = {calc.multiply(10, 5)}")
+print(f"10 / 5 = {calc.divide(10, 5)}")
+print(f"2 ^ 10 = {calc.power(2, 10)}")</code></pre>
+            <div class="output-label">Output:</div>
+            <div class="output">10 + 5 = 15<br>10 - 5 = 5<br>10 * 5 = 50<br>10 / 5 = 2.0<br>2 ^ 10 = 1024</div>
+        </div>
+
+        <div class="example-section">
+            <h3>Text Adventure Game</h3>
+            <p>A simple text-based adventure in Carrion.</p>
+            <pre><code class="language-python">grim Room:
+    init(name, description):
+        self.name = name
+        self.description = description
+        self.exits = {}
+        self.items = []
+
+    spell add_exit(direction, room):
+        self.exits[direction] = room
+
+    spell add_item(item):
+        self.items = append(self.items, item)
+
+    spell describe():
+        print(f"\n=== {self.name} ===")
+        print(self.description)
+        if len(self.items) > 0:
+            print(f"Items here: {self.items}")
+        print(f"Exits: {keys(self.exits)}")
+
+// Create rooms
+hall = Room("Great Hall", "A grand hall with torches on the walls.")
+library = Room("Library", "Dusty books line the shelves.")
+garden = Room("Garden", "A peaceful garden with magical herbs.")
+
+// Connect rooms
+hall.add_exit("north", library)
+hall.add_exit("east", garden)
+library.add_exit("south", hall)
+garden.add_exit("west", hall)
+
+// Add items
+library.add_item("Ancient Spellbook")
+garden.add_item("Healing Herb")
+
+// Game loop
+current_room = hall
+print("Welcome to the Mystical Manor!")
+
+while True:
+    current_room.describe()
+    command = input("\nWhat do you do? ").lower()
+
+    if command == "quit":
+        print("Thanks for playing!")
+        break
+    elif command in current_room.exits:
+        current_room = current_room.exits[command]
+    else:
+        print("You can't go that way!")</code></pre>
+        </div>
+
+        <div class="example-section">
+            <h3>Number Guessing Game</h3>
+            <p>Can you guess the mystical number?</p>
+            <pre><code class="language-python">import "random"
+
+spell play_game():
+    secret = random.randint(1, 100)
+    attempts = 0
+    max_attempts = 7
+
+    print("I'm thinking of a number between 1 and 100.")
+    print(f"You have {max_attempts} attempts to guess it!")
+
+    while attempts < max_attempts:
+        guess = int(input("Your guess: "))
+        attempts = attempts + 1
+
+        if guess == secret:
+            print(f"Congratulations! You got it in {attempts} attempts!")
+            return True
+        elif guess < secret:
+            print("Too low! Try higher.")
+        else:
+            print("Too high! Try lower.")
+
+        remaining = max_attempts - attempts
+        if remaining > 0:
+            print(f"Attempts remaining: {remaining}")
+
+    print(f"Game over! The number was {secret}")
+    return False
+
+play_game()</code></pre>
+        </div>
+
+        <div class="example-section">
+            <h3>ASCII Art Generator</h3>
+            <p>Create simple ASCII art patterns.</p>
+            <pre><code class="language-python">spell draw_triangle(height):
+    for i in range(1, height + 1):
+        spaces = " " * (height - i)
+        stars = "*" * (2 * i - 1)
+        print(spaces + stars)
+
+spell draw_rectangle(width, height):
+    for row in range(height):
+        if row == 0 or row == height - 1:
+            print("*" * width)
+        else:
+            print("*" + " " * (width - 2) + "*")
+
+spell draw_diamond(size):
+    // Top half
+    for i in range(1, size + 1):
+        spaces = " " * (size - i)
+        stars = "*" * (2 * i - 1)
+        print(spaces + stars)
+    // Bottom half
+    for i in range(size - 1, 0, -1):
+        spaces = " " * (size - i)
+        stars = "*" * (2 * i - 1)
+        print(spaces + stars)
+
+print("Triangle:")
+draw_triangle(5)
+
+print("\nRectangle:")
+draw_rectangle(10, 4)
+
+print("\nDiamond:")
+draw_diamond(5)</code></pre>
+            <div class="output-label">Output:</div>
+            <div class="output" style="font-family: monospace; white-space: pre;">Triangle:
+    *
+   ***
+  *****
+ *******
+*********
+
+Rectangle:
+**********
+*        *
+*        *
+**********
+
+Diamond:
+    *
+   ***
+  *****
+ *******
+*********
+ *******
+  *****
+   ***
+    *</div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+</body>
+</html>

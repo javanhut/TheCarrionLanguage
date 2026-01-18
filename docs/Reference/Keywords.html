@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Keywords Reference - Carrion Language</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#x1F426;</text></svg>">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+    <style>
+        :root {
+            --bg-primary: #0f0f23;
+            --bg-secondary: #1a1a2e;
+            --bg-tertiary: #16213e;
+            --text-primary: #e0e0e0;
+            --text-secondary: #b0b0b0;
+            --accent-primary: #00cc99;
+            --border-color: #333355;
+            --code-bg: #0f0f1a;
+            --link-color: #66ccff;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            padding: 40px 20px;
+        }
+        .container { max-width: 900px; margin: 0 auto; }
+        h1 {
+            color: var(--accent-primary);
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--accent-primary);
+        }
+        h2 {
+            color: var(--accent-primary);
+            margin: 40px 0 20px;
+            font-size: 1.5rem;
+        }
+        p { margin-bottom: 15px; color: var(--text-secondary); }
+        pre {
+            background: var(--code-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+        code {
+            font-family: 'Fira Code', 'Courier New', monospace;
+            font-size: 14px;
+        }
+        .keyword-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        .keyword-table th, .keyword-table td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .keyword-table th {
+            background: var(--bg-tertiary);
+            color: var(--accent-primary);
+        }
+        .keyword-table tr:hover {
+            background: var(--bg-secondary);
+        }
+        .keyword {
+            font-family: monospace;
+            background: var(--code-bg);
+            padding: 3px 8px;
+            border-radius: 4px;
+            color: var(--accent-primary);
+        }
+        .back-link {
+            display: inline-block;
+            color: var(--link-color);
+            text-decoration: none;
+            margin-bottom: 20px;
+        }
+        .back-link:hover { text-decoration: underline; }
+        @media (max-width: 768px) {
+            body { padding: 20px 15px; }
+            h1 { font-size: 1.8rem; }
+            .keyword-table { font-size: 14px; }
+            .keyword-table th, .keyword-table td { padding: 10px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="../index.html" class="back-link">&larr; Back to Documentation</a>
+
+        <h1>Keywords Reference</h1>
+
+        <p>Carrion uses mystical terminology for many of its keywords, making code read like magical incantations. Here's a complete reference of all reserved keywords.</p>
+
+        <h2>Definitions</h2>
+
+        <table class="keyword-table">
+            <tr>
+                <th>Keyword</th>
+                <th>Traditional Equivalent</th>
+                <th>Description</th>
+            </tr>
+            <tr>
+                <td><span class="keyword">spell</span></td>
+                <td>def / function</td>
+                <td>Defines a function (spell)</td>
+            </tr>
+            <tr>
+                <td><span class="keyword">grim</span></td>
+                <td>class</td>
+                <td>Defines a class (grimoire)</td>
+            </tr>
+            <tr>
+                <td><span class="keyword">init</span></td>
+                <td>__init__ / constructor</td>
+                <td>Constructor method for grimoires</td>
+            </tr>
+            <tr>
+                <td><span class="keyword">self</span></td>
+                <td>this</td>
+                <td>Reference to the current instance</td>
+            </tr>
+            <tr>
+                <td><span class="keyword">super</span></td>
+                <td>super</td>
+                <td>Reference to parent class</td>
+            </tr>
+        </table>
+
+        <h2>Control Flow</h2>
+
+        <table class="keyword-table">
+            <tr>
+                <th>Keyword</th>
+                <th>Traditional Equivalent</th>
+                <th>Description</th>
+            </tr>
+            <tr>
+                <td><span class="keyword">if</span></td>
+                <td>if</td>
+                <td>Conditional statement</td>
+            </tr>
+            <tr>
+                <td><span class="keyword">elif</span></td>
+                <td>else if</td>
+                <td>Else-if branch</td>
+            </tr>
+            <tr>
+                <td><span class="keyword">else</span></td>
+                <td>else</td>
+                <td>Default branch</td>
+            </tr>
+            <tr>
+                <td><span class="keyword">for</span></td>
+                <td>for</td>
+                <td>For loop iteration</td>
+            </tr>
+            <tr>
+                <td><span class="keyword">while</span></td>
+                <td>while</td>
+                <td>While loop</td>
+            </tr>
+            <tr>
+                <td><span class="keyword">repeat</span></td>
+                <td>for i in range(n)</td>
+                <td>Repeat a block n times</td>
+            </tr>
+            <tr>
+                <td><span class="keyword">break</span></td>
+                <td>break</td>
+                <td>Exit a loop</td>
+            </tr>
+            <tr>
+                <td><span class="keyword">continue</span></td>
+                <td>continue</td>
+                <td>Skip to next iteration</td>
+            </tr>
+            <tr>
+                <td><span class="keyword">return</span></td>
+                <td>return</td>
+                <td>Return a value from a spell</td>
+            </tr>
+        </table>
+
+        <h2>Error Handling</h2>
+
+        <table class="keyword-table">
+            <tr>
+                <th>Keyword</th>
+                <th>Traditional Equivalent</th>
+                <th>Description</th>
+            </tr>
+            <tr>
+                <td><span class="keyword">attempt</span></td>
+                <td>try</td>
+                <td>Begin error handling block</td>
+            </tr>
+            <tr>
+                <td><span class="keyword">ensnare</span></td>
+                <td>catch / except</td>
+                <td>Catch an error</td>
+            </tr>
+            <tr>
+                <td><span class="keyword">resolve</span></td>
+                <td>finally</td>
+                <td>Always execute cleanup</td>
+            </tr>
+            <tr>
+                <td><span class="keyword">raise</span></td>
+                <td>throw / raise</td>
+                <td>Throw an error</td>
+            </tr>
+        </table>
+
+        <h2>Logical Operators</h2>
+
+        <table class="keyword-table">
+            <tr>
+                <th>Keyword</th>
+                <th>Description</th>
+            </tr>
+            <tr>
+                <td><span class="keyword">and</span></td>
+                <td>Logical AND</td>
+            </tr>
+            <tr>
+                <td><span class="keyword">or</span></td>
+                <td>Logical OR</td>
+            </tr>
+            <tr>
+                <td><span class="keyword">not</span></td>
+                <td>Logical NOT</td>
+            </tr>
+            <tr>
+                <td><span class="keyword">in</span></td>
+                <td>Membership test</td>
+            </tr>
+        </table>
+
+        <h2>Values</h2>
+
+        <table class="keyword-table">
+            <tr>
+                <th>Keyword</th>
+                <th>Description</th>
+            </tr>
+            <tr>
+                <td><span class="keyword">True</span></td>
+                <td>Boolean true value</td>
+            </tr>
+            <tr>
+                <td><span class="keyword">False</span></td>
+                <td>Boolean false value</td>
+            </tr>
+            <tr>
+                <td><span class="keyword">None</span></td>
+                <td>Null/nil value</td>
+            </tr>
+        </table>
+
+        <h2>Modules</h2>
+
+        <table class="keyword-table">
+            <tr>
+                <th>Keyword</th>
+                <th>Description</th>
+            </tr>
+            <tr>
+                <td><span class="keyword">import</span></td>
+                <td>Import a module or grimoire</td>
+            </tr>
+            <tr>
+                <td><span class="keyword">from</span></td>
+                <td>Selective import</td>
+            </tr>
+            <tr>
+                <td><span class="keyword">as</span></td>
+                <td>Import alias</td>
+            </tr>
+        </table>
+
+        <h2>Usage Examples</h2>
+
+        <pre><code class="language-python">// Defining a spell (function)
+spell calculate_power(base, multiplier):
+    return base * multiplier
+
+// Defining a grimoire (class)
+grim Wizard:
+    init(name, level):
+        self.name = name
+        self.level = level
+
+    spell cast_fireball():
+        return f"{self.name} casts Fireball!"
+
+// Error handling
+attempt:
+    risky_operation()
+ensnare MagicError as e:
+    print(f"Error: {e}")
+resolve:
+    cleanup()
+
+// Control flow
+for item in items:
+    if item == target:
+        break
+
+repeat 5:
+    print("Casting spell...")</code></pre>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+</body>
+</html>

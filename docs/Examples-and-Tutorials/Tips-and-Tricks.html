@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tips and Tricks - Carrion Language</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#x1F426;</text></svg>">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+    <style>
+        :root {
+            --bg-primary: #0f0f23;
+            --bg-secondary: #1a1a2e;
+            --bg-tertiary: #16213e;
+            --text-primary: #e0e0e0;
+            --text-secondary: #b0b0b0;
+            --accent-primary: #00cc99;
+            --border-color: #333355;
+            --code-bg: #0f0f1a;
+            --link-color: #66ccff;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            padding: 40px 20px;
+        }
+        .container { max-width: 900px; margin: 0 auto; }
+        h1 {
+            color: var(--accent-primary);
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--accent-primary);
+        }
+        h2 {
+            color: var(--accent-primary);
+            margin: 40px 0 20px;
+            font-size: 1.5rem;
+        }
+        p { margin-bottom: 15px; color: var(--text-secondary); }
+        pre {
+            background: var(--code-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+        code {
+            font-family: 'Fira Code', 'Courier New', monospace;
+            font-size: 14px;
+        }
+        .tip-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-left: 4px solid var(--accent-primary);
+            border-radius: 0 10px 10px 0;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .tip-card h3 {
+            color: var(--accent-primary);
+            margin-bottom: 10px;
+        }
+        .tip-number {
+            display: inline-block;
+            background: var(--accent-primary);
+            color: var(--bg-primary);
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 28px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        .warning {
+            background: #2a2a1a;
+            border-left-color: #ffcc00;
+        }
+        .back-link {
+            display: inline-block;
+            color: var(--link-color);
+            text-decoration: none;
+            margin-bottom: 20px;
+        }
+        .back-link:hover { text-decoration: underline; }
+        @media (max-width: 768px) {
+            body { padding: 20px 15px; }
+            h1 { font-size: 1.8rem; }
+            pre { padding: 15px; font-size: 12px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="../index.html" class="back-link">&larr; Back to Documentation</a>
+
+        <h1>Tips and Tricks</h1>
+
+        <p>Master the art of Carrion programming with these expert tips and techniques.</p>
+
+        <h2>REPL Tips</h2>
+
+        <div class="tip-card">
+            <h3><span class="tip-number">1</span>Use Mimir for Help</h3>
+            <p>Access the built-in documentation system for instant help:</p>
+            <pre><code class="language-bash"># In REPL or terminal
+mimir                    # Interactive mode
+mimir scry print         # Get help for specific function
+mimir list               # List all functions</code></pre>
+        </div>
+
+        <div class="tip-card">
+            <h3><span class="tip-number">2</span>Tab Completion</h3>
+            <p>Use Tab for autocompletion of keywords, function names, and variables in the REPL.</p>
+            <pre><code class="language-python">>>> pri&lt;TAB&gt;
+print
+
+>>> my_var.upp&lt;TAB&gt;
+my_var.upper()</code></pre>
+        </div>
+
+        <div class="tip-card">
+            <h3><span class="tip-number">3</span>Multiline Input</h3>
+            <p>The REPL automatically handles multiline input for blocks:</p>
+            <pre><code class="language-python">>>> spell greet(name):
+...     return f"Hello, {name}!"
+...
+>>> greet("World")
+Hello, World!</code></pre>
+        </div>
+
+        <h2>Code Organization Tips</h2>
+
+        <div class="tip-card">
+            <h3><span class="tip-number">4</span>Use Meaningful Names</h3>
+            <p>Carrion's magical terminology encourages descriptive naming:</p>
+            <pre><code class="language-python">// Good - descriptive names
+grim UserAuthentication:
+    spell validate_credentials(username, password):
+        ...
+
+// Avoid - cryptic names
+grim UA:
+    spell vc(u, p):
+        ...</code></pre>
+        </div>
+
+        <div class="tip-card">
+            <h3><span class="tip-number">5</span>Organize with Modules</h3>
+            <p>Split large projects into logical modules:</p>
+            <pre><code class="language-python">// utils.crl
+spell format_date(date):
+    ...
+
+spell validate_email(email):
+    ...
+
+// main.crl
+import "utils"
+
+email = input("Enter email: ")
+if utils.validate_email(email):
+    print("Valid!")</code></pre>
+        </div>
+
+        <div class="tip-card">
+            <h3><span class="tip-number">6</span>Use Selective Imports</h3>
+            <p>Import only what you need:</p>
+            <pre><code class="language-python">// Import specific grimoire
+import "module.SpecificGrimoire"
+
+// Import specific spell
+import "utils.helper_function"</code></pre>
+        </div>
+
+        <h2>Performance Tips</h2>
+
+        <div class="tip-card">
+            <h3><span class="tip-number">7</span>Cache Computed Values</h3>
+            <p>Avoid recalculating values in loops:</p>
+            <pre><code class="language-python">// Slow - len() called every iteration
+for i in range(len(items)):
+    process(items[i])
+
+// Fast - len() called once
+count = len(items)
+for i in range(count):
+    process(items[i])</code></pre>
+        </div>
+
+        <div class="tip-card">
+            <h3><span class="tip-number">8</span>Use Appropriate Data Structures</h3>
+            <p>Choose the right data structure for your needs:</p>
+            <pre><code class="language-python">// Hash for fast lookups
+user_cache = {}
+user_cache[user_id] = user_data
+
+// List for ordered collections
+queue = []
+queue = append(queue, item)
+
+// BTree for sorted data
+sorted_data = BTree()
+sorted_data.insert(value)</code></pre>
+        </div>
+
+        <h2>Error Handling Tips</h2>
+
+        <div class="tip-card">
+            <h3><span class="tip-number">9</span>Be Specific with Errors</h3>
+            <p>Catch specific error types when possible:</p>
+            <pre><code class="language-python">attempt:
+    data = File.read(filename)
+    parsed = parse_json(data)
+ensnare FileNotFoundError:
+    print(f"File not found: {filename}")
+ensnare ParseError as e:
+    print(f"Invalid JSON: {e}")
+ensnare:
+    print("Unexpected error occurred")</code></pre>
+        </div>
+
+        <div class="tip-card">
+            <h3><span class="tip-number">10</span>Use resolve for Cleanup</h3>
+            <p>Always clean up resources in the resolve block:</p>
+            <pre><code class="language-python">file = None
+attempt:
+    file = File.open("data.txt", "r")
+    content = file.read()
+    process(content)
+ensnare:
+    print("Error processing file")
+resolve:
+    if file != None:
+        file.close()</code></pre>
+        </div>
+
+        <h2>Testing Tips</h2>
+
+        <div class="tip-card">
+            <h3><span class="tip-number">11</span>Use Sindri for Testing</h3>
+            <p>Write tests using the Sindri testing framework:</p>
+            <pre><code class="language-python">// test_math.crl
+spell appraise_addition():
+    check(2 + 2 == 4)
+    check(add(5, 3), 8)
+
+spell appraise_division():
+    check(10 / 2 == 5)
+    check(divide(9, 3), 3)
+
+// Run with: sindri appraise test_math.crl</code></pre>
+        </div>
+
+        <div class="tip-card">
+            <h3><span class="tip-number">12</span>Test Edge Cases</h3>
+            <p>Always test boundary conditions:</p>
+            <pre><code class="language-python">spell appraise_edge_cases():
+    // Empty inputs
+    check(len("") == 0)
+    check(len([]) == 0)
+
+    // Negative numbers
+    check(abs(-5), 5)
+
+    // Zero division handled
+    check(safe_divide(10, 0), None)</code></pre>
+        </div>
+
+        <h2>Common Gotchas</h2>
+
+        <div class="tip-card warning">
+            <h3><span class="tip-number">!</span>String vs Integer Comparison</h3>
+            <p>Be careful when comparing user input:</p>
+            <pre><code class="language-python">// input() returns a string!
+age = input("Enter age: ")
+
+// Wrong - comparing string to int
+if age > 18:  // Error!
+    print("Adult")
+
+// Correct - convert first
+if int(age) > 18:
+    print("Adult")</code></pre>
+        </div>
+
+        <div class="tip-card warning">
+            <h3><span class="tip-number">!</span>Mutable Default Arguments</h3>
+            <p>Avoid using mutable objects as default arguments:</p>
+            <pre><code class="language-python">// Problematic - shared list
+spell add_item(item, items=[]):
+    items = append(items, item)
+    return items
+
+// Better - use None as default
+spell add_item(item, items=None):
+    if items == None:
+        items = []
+    items = append(items, item)
+    return items</code></pre>
+        </div>
+
+        <div class="tip-card warning">
+            <h3><span class="tip-number">!</span>BTree Method Name Change</h3>
+            <p>In v0.1.9, <code>size()</code> was renamed to <code>get_size()</code>:</p>
+            <pre><code class="language-python">// Old (v0.1.8)
+count = my_tree.size()
+
+// New (v0.1.9+)
+count = my_tree.get_size()</code></pre>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+</body>
+</html>

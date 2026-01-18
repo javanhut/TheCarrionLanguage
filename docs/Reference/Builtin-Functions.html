@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Built-in Functions - Carrion Language Reference</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#x1F426;</text></svg>">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+    <style>
+        :root {
+            --bg-primary: #0f0f23;
+            --bg-secondary: #1a1a2e;
+            --bg-tertiary: #16213e;
+            --text-primary: #e0e0e0;
+            --text-secondary: #b0b0b0;
+            --accent-primary: #00cc99;
+            --accent-secondary: #9900cc;
+            --border-color: #333355;
+            --code-bg: #0f0f1a;
+            --link-color: #66ccff;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            padding: 40px 20px;
+        }
+        .container { max-width: 900px; margin: 0 auto; }
+        h1 {
+            color: var(--accent-primary);
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--accent-primary);
+        }
+        h2 {
+            color: var(--accent-primary);
+            margin: 40px 0 20px;
+            font-size: 1.5rem;
+        }
+        h3 {
+            color: var(--text-primary);
+            margin: 25px 0 15px;
+            font-size: 1.2rem;
+        }
+        p { margin-bottom: 15px; color: var(--text-secondary); }
+        pre {
+            background: var(--code-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+        code {
+            font-family: 'Fira Code', 'Courier New', monospace;
+            font-size: 14px;
+        }
+        .function-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .function-card h3 {
+            color: var(--accent-primary);
+            margin-top: 0;
+        }
+        .function-signature {
+            background: var(--code-bg);
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            margin: 10px 0;
+            color: var(--accent-primary);
+        }
+        .back-link {
+            display: inline-block;
+            color: var(--link-color);
+            text-decoration: none;
+            margin-bottom: 20px;
+        }
+        .back-link:hover { text-decoration: underline; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+        th {
+            background: var(--bg-tertiary);
+            color: var(--accent-primary);
+        }
+        @media (max-width: 768px) {
+            body { padding: 20px 15px; }
+            h1 { font-size: 1.8rem; }
+            pre { padding: 15px; font-size: 12px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="../index.html" class="back-link">&larr; Back to Documentation</a>
+
+        <h1>Built-in Functions Reference</h1>
+
+        <p>Carrion provides a rich set of built-in functions for common operations. These functions are available globally without any imports.</p>
+
+        <h2>I/O Functions</h2>
+
+        <div class="function-card">
+            <h3>print()</h3>
+            <div class="function-signature">print(value1, value2, ...)</div>
+            <p>Outputs values to the console. Multiple values are separated by spaces.</p>
+            <pre><code class="language-python">print("Hello, World!")
+print("Name:", name, "Age:", age)
+print(f"The answer is {42}")</code></pre>
+        </div>
+
+        <div class="function-card">
+            <h3>input()</h3>
+            <div class="function-signature">input(prompt) -> String</div>
+            <p>Reads a line of input from the user, displaying an optional prompt.</p>
+            <pre><code class="language-python">name = input("Enter your name: ")
+age = int(input("Enter your age: "))</code></pre>
+        </div>
+
+        <h2>Type Conversion Functions</h2>
+
+        <div class="function-card">
+            <h3>int()</h3>
+            <div class="function-signature">int(value) -> Integer</div>
+            <p>Converts a value to an integer. Works with strings and floats.</p>
+            <pre><code class="language-python">x = int("42")      // 42
+y = int(3.14)      // 3
+z = int("10", 16)  // 16 (hex conversion)</code></pre>
+        </div>
+
+        <div class="function-card">
+            <h3>float()</h3>
+            <div class="function-signature">float(value) -> Float</div>
+            <p>Converts a value to a floating-point number.</p>
+            <pre><code class="language-python">x = float("3.14")  // 3.14
+y = float(42)      // 42.0</code></pre>
+        </div>
+
+        <div class="function-card">
+            <h3>str()</h3>
+            <div class="function-signature">str(value) -> String</div>
+            <p>Converts any value to its string representation.</p>
+            <pre><code class="language-python">s = str(42)        // "42"
+s = str([1, 2, 3]) // "[1, 2, 3]"</code></pre>
+        </div>
+
+        <div class="function-card">
+            <h3>bool()</h3>
+            <div class="function-signature">bool(value) -> Boolean</div>
+            <p>Converts a value to boolean. Empty strings, 0, None, and empty collections are False.</p>
+            <pre><code class="language-python">bool(1)       // True
+bool(0)       // False
+bool("hello") // True
+bool("")      // False</code></pre>
+        </div>
+
+        <h2>Collection Functions</h2>
+
+        <div class="function-card">
+            <h3>len()</h3>
+            <div class="function-signature">len(collection) -> Integer</div>
+            <p>Returns the length of a string, list, or hash.</p>
+            <pre><code class="language-python">len("hello")     // 5
+len([1, 2, 3])   // 3
+len({"a": 1})    // 1</code></pre>
+        </div>
+
+        <div class="function-card">
+            <h3>range()</h3>
+            <div class="function-signature">range(start, end, step) -> List</div>
+            <p>Generates a list of numbers from start to end (exclusive).</p>
+            <pre><code class="language-python">range(5)         // [0, 1, 2, 3, 4]
+range(1, 5)      // [1, 2, 3, 4]
+range(0, 10, 2)  // [0, 2, 4, 6, 8]</code></pre>
+        </div>
+
+        <div class="function-card">
+            <h3>append()</h3>
+            <div class="function-signature">append(list, value) -> List</div>
+            <p>Adds an element to the end of a list and returns the modified list.</p>
+            <pre><code class="language-python">items = [1, 2, 3]
+items = append(items, 4)  // [1, 2, 3, 4]</code></pre>
+        </div>
+
+        <div class="function-card">
+            <h3>keys()</h3>
+            <div class="function-signature">keys(hash) -> List</div>
+            <p>Returns a list of all keys in a hash.</p>
+            <pre><code class="language-python">data = {"name": "Carrion", "version": "0.1.9"}
+keys(data)  // ["name", "version"]</code></pre>
+        </div>
+
+        <div class="function-card">
+            <h3>values()</h3>
+            <div class="function-signature">values(hash) -> List</div>
+            <p>Returns a list of all values in a hash.</p>
+            <pre><code class="language-python">data = {"a": 1, "b": 2}
+values(data)  // [1, 2]</code></pre>
+        </div>
+
+        <h2>Character Functions</h2>
+
+        <div class="function-card">
+            <h3>ord()</h3>
+            <div class="function-signature">ord(char) -> Integer</div>
+            <p>Returns the ASCII/Unicode code point of a character.</p>
+            <pre><code class="language-python">ord("A")   // 65
+ord("a")   // 97
+ord("\n")  // 10</code></pre>
+        </div>
+
+        <div class="function-card">
+            <h3>chr()</h3>
+            <div class="function-signature">chr(code) -> String</div>
+            <p>Returns the character for an ASCII/Unicode code point.</p>
+            <pre><code class="language-python">chr(65)   // "A"
+chr(97)   // "a"
+chr(10)   // "\n"</code></pre>
+        </div>
+
+        <h2>Type Checking Functions</h2>
+
+        <div class="function-card">
+            <h3>type()</h3>
+            <div class="function-signature">type(value) -> String</div>
+            <p>Returns the type name of a value.</p>
+            <pre><code class="language-python">type(42)        // "INTEGER"
+type("hello")   // "STRING"
+type([1, 2])    // "ARRAY"
+type({"a": 1})  // "HASH"</code></pre>
+        </div>
+
+        <h2>Math Functions</h2>
+
+        <div class="function-card">
+            <h3>abs()</h3>
+            <div class="function-signature">abs(number) -> Number</div>
+            <p>Returns the absolute value of a number.</p>
+            <pre><code class="language-python">abs(-5)    // 5
+abs(3.14)  // 3.14
+abs(-2.5)  // 2.5</code></pre>
+        </div>
+
+        <div class="function-card">
+            <h3>min() / max()</h3>
+            <div class="function-signature">min(a, b, ...) -> Number<br>max(a, b, ...) -> Number</div>
+            <p>Returns the minimum or maximum value from the arguments.</p>
+            <pre><code class="language-python">min(1, 5, 3)     // 1
+max(1, 5, 3)     // 5
+min([1, 2, 3])   // 1 (with list)</code></pre>
+        </div>
+
+        <h2>Utility Functions</h2>
+
+        <div class="function-card">
+            <h3>sleep()</h3>
+            <div class="function-signature">sleep(seconds)</div>
+            <p>Pauses execution for the specified number of seconds.</p>
+            <pre><code class="language-python">print("Starting...")
+sleep(2)
+print("Done after 2 seconds")</code></pre>
+        </div>
+
+        <div class="function-card">
+            <h3>exit()</h3>
+            <div class="function-signature">exit(code)</div>
+            <p>Terminates the program with the specified exit code.</p>
+            <pre><code class="language-python">if error:
+    exit(1)
+exit(0)  // Success</code></pre>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+</body>
+</html>

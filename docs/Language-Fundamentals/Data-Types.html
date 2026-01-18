@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Types and Variables - Carrion Language</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#x1F426;</text></svg>">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+    <style>
+        :root {
+            --bg-primary: #0f0f23;
+            --bg-secondary: #1a1a2e;
+            --bg-tertiary: #16213e;
+            --text-primary: #e0e0e0;
+            --text-secondary: #b0b0b0;
+            --accent-primary: #00cc99;
+            --border-color: #333355;
+            --code-bg: #0f0f1a;
+            --link-color: #66ccff;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            padding: 40px 20px;
+        }
+        .container { max-width: 900px; margin: 0 auto; }
+        h1 {
+            color: var(--accent-primary);
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--accent-primary);
+        }
+        h2 { color: var(--accent-primary); margin: 40px 0 20px; font-size: 1.5rem; }
+        h3 { color: var(--text-primary); margin: 25px 0 15px; }
+        p { margin-bottom: 15px; color: var(--text-secondary); }
+        pre {
+            background: var(--code-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+        code { font-family: 'Fira Code', 'Courier New', monospace; font-size: 14px; }
+        .type-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 25px;
+            margin: 20px 0;
+        }
+        .type-card h3 {
+            color: var(--accent-primary);
+            margin-top: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .type-badge {
+            background: var(--accent-primary);
+            color: var(--bg-primary);
+            padding: 3px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .back-link {
+            display: inline-block;
+            color: var(--link-color);
+            text-decoration: none;
+            margin-bottom: 20px;
+        }
+        .back-link:hover { text-decoration: underline; }
+        @media (max-width: 768px) {
+            body { padding: 20px 15px; }
+            h1 { font-size: 1.8rem; }
+            pre { padding: 15px; font-size: 12px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="../index.html" class="back-link">&larr; Back to Documentation</a>
+
+        <h1>Data Types and Variables</h1>
+
+        <p>Carrion is dynamically typed, meaning variables don't have fixed types. This guide covers all the data types available in Carrion.</p>
+
+        <h2>Primitive Types</h2>
+
+        <div class="type-card">
+            <h3>Integer <span class="type-badge">INTEGER</span></h3>
+            <p>Whole numbers, positive or negative, without decimals.</p>
+            <pre><code class="language-python">age = 25
+negative = -100
+big_number = 1000000
+
+// Arithmetic operations
+sum = 10 + 5      // 15
+diff = 10 - 3     // 7
+product = 4 * 5   // 20
+quotient = 20 / 4 // 5
+power = 2 ** 10   // 1024
+remainder = 17 % 5 // 2</code></pre>
+        </div>
+
+        <div class="type-card">
+            <h3>Float <span class="type-badge">FLOAT</span></h3>
+            <p>Numbers with decimal points.</p>
+            <pre><code class="language-python">pi = 3.14159
+temperature = -40.5
+scientific = 1.5e10  // 15000000000.0
+
+// Float arithmetic
+result = 3.14 * 2    // 6.28
+division = 10 / 3    // 3.333...</code></pre>
+        </div>
+
+        <div class="type-card">
+            <h3>String <span class="type-badge">STRING</span></h3>
+            <p>Text data enclosed in quotes.</p>
+            <pre><code class="language-python">// Single or double quotes
+name = "Carrion"
+greeting = 'Hello, World!'
+
+// Multi-line strings
+poem = """
+Roses are red,
+Violets are blue,
+Carrion is magical,
+And so are you!
+"""
+
+// String operations
+upper = name.upper()           // "CARRION"
+lower = name.lower()           // "carrion"
+length = len(name)             // 7
+char = name[0]                 // "C"
+last = name[-1]                // "n"
+contains = "arr" in name       // True
+
+// String formatting
+message = f"Welcome to {name}!"
+concat = "Hello, " + name + "!"</code></pre>
+        </div>
+
+        <div class="type-card">
+            <h3>Boolean <span class="type-badge">BOOLEAN</span></h3>
+            <p>True or False values.</p>
+            <pre><code class="language-python">is_active = True
+is_complete = False
+
+// Boolean operations
+result = True and False   // False
+result = True or False    // True
+result = not True         // False
+
+// Comparisons return booleans
+is_equal = 5 == 5         // True
+is_greater = 10 > 5       // True</code></pre>
+        </div>
+
+        <div class="type-card">
+            <h3>None <span class="type-badge">NULL</span></h3>
+            <p>Represents the absence of a value.</p>
+            <pre><code class="language-python">value = None
+
+// Check for None
+if value == None:
+    print("No value set")
+
+// Common use: default return
+spell find_item(items, target):
+    for item in items:
+        if item == target:
+            return item
+    return None  // Not found</code></pre>
+        </div>
+
+        <h2>Collection Types</h2>
+
+        <div class="type-card">
+            <h3>Array (List) <span class="type-badge">ARRAY</span></h3>
+            <p>Ordered, mutable collection of items.</p>
+            <pre><code class="language-python">// Creating arrays
+numbers = [1, 2, 3, 4, 5]
+mixed = [1, "two", 3.0, True]
+empty = []
+
+// Accessing elements
+first = numbers[0]      // 1
+last = numbers[-1]      // 5
+slice = numbers[1:3]    // [2, 3]
+
+// Modifying arrays
+numbers[0] = 10
+numbers = append(numbers, 6)
+
+// Array operations
+length = len(numbers)
+contains = 3 in numbers
+combined = [1, 2] + [3, 4]  // [1, 2, 3, 4]
+
+// Iteration
+for num in numbers:
+    print(num)</code></pre>
+        </div>
+
+        <div class="type-card">
+            <h3>Hash (Dictionary) <span class="type-badge">HASH</span></h3>
+            <p>Key-value pairs for structured data.</p>
+            <pre><code class="language-python">// Creating hashes
+person = {
+    "name": "Merlin",
+    "age": 150,
+    "magic": True
+}
+
+// Accessing values
+name = person["name"]
+
+// Modifying hashes
+person["age"] = 151
+person["title"] = "Wizard"
+
+// Hash operations
+all_keys = keys(person)     // ["name", "age", "magic", "title"]
+all_values = values(person)
+has_key = "name" in person  // True
+
+// Iteration
+for key in keys(person):
+    print(f"{key}: {person[key]}")</code></pre>
+        </div>
+
+        <div class="type-card">
+            <h3>Tuple <span class="type-badge">TUPLE</span></h3>
+            <p>Immutable ordered collection.</p>
+            <pre><code class="language-python">// Creating tuples
+coordinates = (10, 20)
+rgb = (255, 128, 0)
+
+// Accessing elements
+x = coordinates[0]  // 10
+y = coordinates[1]  // 20
+
+// Tuple unpacking
+x, y = coordinates
+
+// Use in functions for multiple returns
+spell get_min_max(numbers):
+    return (min(numbers), max(numbers))
+
+minimum, maximum = get_min_max([3, 1, 4, 1, 5])</code></pre>
+        </div>
+
+        <h2>Advanced Data Structures</h2>
+
+        <div class="type-card">
+            <h3>BTree <span class="type-badge">BTREE</span></h3>
+            <p>Binary search tree for sorted data.</p>
+            <pre><code class="language-python">// Create and populate
+tree = BTree()
+tree.insert(10)
+tree.insert(5)
+tree.insert(15)
+
+// Operations
+size = tree.get_size()    // 3 (renamed from size() in v0.1.9)
+found = tree.search(10)   // True
+tree.display_tree()       // Visual tree display (new in v0.1.9)
+
+// Traversals
+inorder = tree.inorder()  // Sorted order</code></pre>
+        </div>
+
+        <div class="type-card">
+            <h3>Stack <span class="type-badge">STACK</span></h3>
+            <p>Last-In-First-Out (LIFO) data structure.</p>
+            <pre><code class="language-python">stack = Stack()
+stack.push(1)
+stack.push(2)
+stack.push(3)
+
+top = stack.peek()    // 3
+item = stack.pop()    // 3
+size = stack.get_size()   // 2
+empty = stack.is_empty()  // False</code></pre>
+        </div>
+
+        <div class="type-card">
+            <h3>Queue <span class="type-badge">QUEUE</span></h3>
+            <p>First-In-First-Out (FIFO) data structure.</p>
+            <pre><code class="language-python">queue = Queue()
+queue.enqueue("first")
+queue.enqueue("second")
+queue.enqueue("third")
+
+front = queue.peek()      // "first"
+item = queue.dequeue()    // "first"
+size = queue.get_size()   // 2</code></pre>
+        </div>
+
+        <h2>Type Conversion</h2>
+
+        <pre><code class="language-python">// String to number
+num = int("42")       // 42
+decimal = float("3.14")  // 3.14
+
+// Number to string
+text = str(42)        // "42"
+text = str(3.14)      // "3.14"
+
+// To boolean
+bool(1)        // True
+bool(0)        // False
+bool("")       // False
+bool("hello")  // True
+
+// Check type
+type(42)       // "INTEGER"
+type("hello")  // "STRING"
+type([1, 2])   // "ARRAY"</code></pre>
+
+        <h2>Variables</h2>
+
+        <pre><code class="language-python">// Variable assignment
+name = "Carrion"
+count = 0
+
+// Multiple assignment
+x, y, z = 1, 2, 3
+
+// Reassignment (dynamic typing)
+value = 42        // Integer
+value = "forty-two"  // Now a string
+
+// Naming conventions
+my_variable = 1        // snake_case (recommended)
+myVariable = 2         // camelCase (also valid)
+MY_CONSTANT = 3.14     // UPPER_CASE for constants</code></pre>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+</body>
+</html>

@@ -1,5 +1,67 @@
 # Carrion Language Changelog
 
+## Version 0.1.9 - Developer Experience Improvements
+
+### Release Date: January 2026
+
+### Overview
+Carrion Language v0.1.9 focuses on **developer experience improvements** with intelligent error suggestions, enhanced HTTP server capabilities for building web applications, improved REPL behavior, and data structure refinements.
+
+### Major Features
+
+#### Intelligent Error Suggestions
+- **"Did You Mean?" System**: Provides suggestions when you mistype variable names, method calls, or function names
+- **Levenshtein Distance Matching**: Finds similar names based on edit distance
+- **Context-Aware Suggestions**: Suggests from available methods, variables, and builtins in scope
+- **Type-Specific Guidance**: Different suggestions for string/number mismatches, boolean operations, and type hint violations
+
+#### HTTP Server Enhancements
+- **Full Request Object Fields**: Access method, path, headers, query parameters, and body
+- **Request Headers Access**: All incoming HTTP headers are captured and accessible
+- **Query Parameter Parsing**: Automatic URL query string parsing
+- **Request Body Support**: Full request body capture for POST/PUT/PATCH requests
+- **Response Headers**: Set custom headers via `http_response()` third parameter
+
+#### Cleaner REPL Experience
+- **Silent Assignments**: Assignment statements no longer echo values
+- **No Function Reference Noise**: Function/grimoire references without calls don't print
+- **Unified Error Handling**: All error types use consistent formatting with suggestions
+- **Non-Fatal Warnings**: History file errors log warnings instead of crashing
+
+#### BTree Enhancements
+- **New `display_tree()` Method**: Visualize binary search tree structure
+- **Renamed `size()` to `get_size()`**: Consistent naming with Stack, Queue, and Heap
+- **None Value Handling**: `insert()` now gracefully skips `None` values
+
+### Bug Fixes
+- Fixed indentation handling for nested blocks
+- Fixed `input()` function behavior in various contexts
+- Fixed float instance wrapping
+- Fixed module import resolution
+- Fixed tuple operations and unpacking
+- Fixed HTTP server socket operations
+- Fixed response headers to be set before status code (HTTP spec compliance)
+
+### Documentation Updates
+- **HTTP Server Enhancement Guide**: Complete guide to building web applications
+- **Indentation Guide**: Indentation rules and best practices
+- **Enhanced Error System**: Understanding the new suggestion system
+- **Updated Data Structures**: Documentation for `get_size()` and `display_tree()`
+
+### Migration Guide
+```python
+# BTree method rename:
+# Old:
+count = my_tree.size()
+
+# New:
+count = my_tree.get_size()
+```
+
+See [RELEASE_NOTES_0.1.9.md](../RELEASE_NOTES_0.1.9.md) for complete details.
+
+---
+
 ## Version 0.1.8 - Complete Tooling Ecosystem
 
 ### Release Date: July 20, 2025

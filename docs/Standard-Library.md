@@ -2,7 +2,7 @@
 
 The Munin standard library is the core collection of modules and functions for the Carrion programming language. Named after Odin's ravens Huginn and Munin (representing thought and memory), it provides computational capabilities and data management features.
 
-**Current Version**: Carrion 0.1.6, Munin Standard Library 0.1.0
+**Current Version**: Carrion 0.1.7, Munin Standard Library 0.1.0
 
 ## Core Library Functions
 
@@ -15,7 +15,7 @@ help()  // Shows language help and available functions
 ### `version()`
 Returns version information for Carrion and Munin.
 ```python
-version()  // "Carrion 0.1.6, Munin Standard Library 0.1.0"
+version()  // "Carrion 0.1.7, Munin Standard Library 0.1.0"
 ```
 
 ### `modules()`
@@ -196,52 +196,343 @@ b.is_false()        // → False
 
 ## File Module
 
-The File grimoire provides file system operations.
+The File grimoire provides comprehensive file system operations with both static methods for simple operations and file objects for complex scenarios.
 
-### File Operations
+### Static File Operations (Recommended for Simple Tasks)
+
+The File grimoire provides static methods that are the preferred way to perform basic file operations:
+
 ```python
-f = File()
+// Read entire file content
+content = File.read("data.txt")
+print(f"File contains: {content}")
 
-// Read and write operations
-content = f.read("input.txt")
-f.write("output.txt", "Hello World")  // Overwrites file
-f.append("log.txt", "New entry\n")    // Appends to file
+// Write content to file (overwrites existing content)
+File.write("output.txt", "Hello from Carrion!")
 
-// File existence check
-if f.exists("config.txt"):
-    config = f.read("config.txt")
+// Append content to existing file
+File.append("log.txt", "New log entry\n")
+
+// Check if file exists
+if File.exists("config.txt"):
+    config = File.read("config.txt")
+    print("Config loaded")
+else:
+    print("Config file not found")
+```
+
+**Available Static Methods:**
+- `File.read(path)` - Read entire file content as string
+- `File.write(path, content)` - Write content to file (overwrites)
+- `File.append(path, content)` - Append content to file
+- `File.exists(path)` - Check if file exists (returns boolean)
+- `File.open(path, mode="r")` - Create File object for complex operations
+
+### File Objects for Complex Operations
+
+When you need more control over file operations, use File objects with the `autoclose` statement:
+
+```python
+// Reading files with File objects
+autoclose File.open("data.txt", "r") as file:
+    content = file.read_content()
+    print(f"Read: {content}")
+    // file.close() called automatically
+
+// Writing files with File objects
+autoclose File.open("output.txt", "w") as file:
+    file.write_content("Line 1\n")
+    file.write_content("Line 2\n")
+    file.write_content("Line 3\n")
+
+// Appending to files with File objects
+autoclose File.open("log.txt", "a") as file:
+    file.write_content("New log entry\n")
+    file.write_content("Another entry\n")
+```
+
+**File Object Methods:**
+- `read_content()` - Read entire file content (for files opened in "r" mode)
+- `write_content(content)` - Write content to file (for files opened in "w" or "a" mode)
+- `close()` - Close the file handle (automatically called with `autoclose`)
+
+### File Modes
+- `"r"` - **Read mode** (default): Opens file for reading. File must exist.
+- `"w"` - **Write mode**: Creates new file or overwrites existing file completely.
+- `"a"` - **Append mode**: Opens file for appending. Creates file if it doesn't exist.
+
+### When to Use Which Approach
+
+**Use Static Methods for:**
+- Simple read/write operations
+- One-time file operations
+- Quick file existence checks
+- Scripts and small programs
+
+**Use File Objects for:**
+- Multiple operations on the same file
+- When you need precise control over file handles
+- Complex file processing workflows
+- When using with error handling blocks
+
+### Complete Example
+
+```python
+// Static methods for simple operations
+if not File.exists("users.txt"):
+    File.write("users.txt", "admin\nguest\n")
+
+// File objects for complex operations
+autoclose File.open("users.txt", "a") as userfile:
+    userfile.write_content("newuser\n")
+    userfile.write_content("testuser\n")
+
+// Read and process
+users = File.read("users.txt")
+for user in users.split("\n"):
+    if user.strip():
+        print(f"User: {user}")
+```
+
+### Error Handling with Files
+
+```python
+// Error handling with static methods
+attempt:
+    content = File.read("missing_file.txt")
+    print(content)
+ensnare:
+    print("Could not read file")
+
+// Error handling with file objects
+attempt:
+    autoclose File.open("sensitive_file.txt", "r") as file:
+        data = file.read_content()
+        print(f"Data: {data}")
+ensnare:
+    print("File access error")
 ```
 
 ## OS Module
 
-The OS grimoire provides operating system interface.
+The OS grimoire provides a comprehensive interface to operating system services through static methods, offering clean and consistent access to system operations.
 
-### Constructor and Methods
+### Directory Operations
+
 ```python
-os = OS()
+// Get current working directory
+current_dir = OS.cwd()
+print(f"Working in: {current_dir}")
 
-// Directory operations
-current_dir = os.cwd()              // Get current directory
-os.chdir("/path/to/directory")      // Change directory
-files = os.listdir(".")             // List directory contents
-os.mkdir("new_folder", 0755)        // Create directory
-os.remove("file_or_folder")         // Remove file/directory
+// Change to different directory
+OS.chdir("/home/user/projects")
+print(f"Now in: {OS.cwd()}")
 
-// Environment variables
-home = os.getenv("HOME")            // Get environment variable
-os.setenv("MY_VAR", "value")        // Set environment variable
-expanded = os.expandEnv("$HOME/docs") // Expand variables
+// List directory contents
+files = OS.listdir(".")                   // List current directory
+files = OS.listdir("/home/user")          // List specific directory
+print(f"Found {len(files)} items")
 
-// Process management
-os.run("ls", ["-la"], False)        // Execute command
-os.sleep(2)                         // Sleep for 2 seconds
+for filename in files:
+    print(f"File: {filename}")
+
+// Create new directory
+OS.mkdir("new_project")                   // Default permissions (0755)
+OS.mkdir("secure_dir", 0700)              // Custom permissions
+
+// Remove files and directories  
+OS.remove("old_file.txt")                 // Remove file
+OS.remove("empty_directory")              // Remove empty directory
+```
+
+### Environment Variables
+
+```python
+// Get environment variables
+home = OS.getenv("HOME")
+path = OS.getenv("PATH")
+user = OS.getenv("USER")
+
+print(f"Home directory: {home}")
+print(f"Current user: {user}")
+
+// Set environment variables (for current process)
+// Note: All arguments must be strings
+OS.setenv("MY_APP_CONFIG", "/etc/myapp")
+OS.setenv("DEBUG_MODE", "true")
+OS.setenv("PORT_NUMBER", "8080")  // Numbers must be converted to strings
+
+// Expand environment variables in strings
+config_path = OS.expandEnv("$HOME/.config/myapp")
+log_path = OS.expandEnv("$MY_APP_CONFIG/logs")
+print(f"Config will be at: {config_path}")
+
+// Error handling for environment variables
+attempt:
+    OS.setenv("VALID_KEY", "valid_value")
+    print("Environment variable set successfully")
+ensnare:
+    print("Failed to set environment variable")
+```
+
+### Process Management
+
+```python
+// Execute system commands
+OS.run("ls", ["-la"], False)              // Run and show output directly
+OS.run("mkdir", ["temp_folder"], False)   // Create directory via command
+
+// Capture command output
+output = OS.run("ls", ["-1"], True)       // Capture output as string
+lines = output.split("\n")
+print(f"Directory has {len(lines)} items")
+
+// Simple commands with no arguments
+OS.run("pwd", [], True)                   // Print working directory
+
+// Sleep/delay execution
+print("Starting process...")
+OS.sleep(2)                               // Wait 2 seconds
+print("Process complete")
+
+OS.sleep(0.5)                             // Wait 500 milliseconds
+```
+
+**Available OS Methods:**
+- `OS.cwd()` - Get current working directory
+- `OS.chdir(path)` - Change to specified directory
+- `OS.listdir(path=".")` - List directory contents (defaults to current dir)
+- `OS.mkdir(path, perm=0755)` - Create directory with optional permissions
+- `OS.remove(path)` - Remove file or empty directory
+- `OS.getenv(key)` - Get environment variable value
+- `OS.setenv(key, value)` - Set environment variable for current process (both arguments must be strings)
+- `OS.expandEnv(string)` - Expand environment variables in string
+- `OS.run(command, args=[], capture=False)` - Execute system command
+- `OS.sleep(seconds)` - Sleep for specified time (supports decimals)
+
+### Complete OS Example
+
+```python
+// System information gathering
+print("=== System Information ===")
+print(f"Current directory: {OS.cwd()}")
+print(f"Home directory: {OS.getenv('HOME')}")
+print(f"Current user: {OS.getenv('USER')}")
+
+// Directory management
+print("\n=== Directory Operations ===")
+if not File.exists("temp_work"):
+    OS.mkdir("temp_work")
+    print("Created temp_work directory")
+
+OS.chdir("temp_work")
+print(f"Changed to: {OS.cwd()}")
+
+// File operations in new directory
+File.write("status.txt", "Working in temporary directory")
+File.write("config.txt", "debug=true\nverbose=false")
+
+// List and display contents
+files = OS.listdir(".")
+print(f"\nCreated {len(files)} files:")
+for file in files:
+    if File.exists(file):
+        content = File.read(file)
+        print(f"{file}: {content}")
+
+// Cleanup
+OS.chdir("..")
+for file in ["temp_work/status.txt", "temp_work/config.txt"]:
+    OS.remove(file)
+OS.remove("temp_work")
+print("Cleanup complete")
+```
+
+## Type Casting Functions
+
+Carrion provides built-in type casting functions that work with both primitive values and grimoire instances:
+
+### Core Type Casting Functions
+
+```carrion
+// String to numeric conversions
+str_num = "42"
+int_val = int(str_num)       // → 42 (INTEGER)
+float_val = float(str_num)   // → 42.0 (FLOAT)
+
+// Numeric to string conversions
+number = 123
+str_val = str(number)        // → "123" (STRING instance)
+
+// Numeric conversions
+float_num = 3.14
+int_from_float = int(float_num)  // → 3 (INTEGER)
+```
+
+### Grimoire Instance Support
+
+Type casting functions work seamlessly with primitive grimoires:
+
+```carrion
+// String grimoire casting
+string_grim = String("456")
+int_result = int(string_grim)    // → 456 (INTEGER)
+float_result = float(string_grim) // → 456.0 (FLOAT)
+
+// Integer grimoire casting
+int_grim = Integer(789)
+str_result = str(int_grim)       // → "789" (STRING instance)
+float_result = float(int_grim)   // → 789.0 (FLOAT)
+
+// Float grimoire casting
+float_grim = Float(2.718)
+int_result = int(float_grim)     // → 2 (INTEGER)
+str_result = str(float_grim)     // → "2.718" (STRING instance)
+```
+
+### Available Type Casting Functions
+
+- **`int(value)`**: Converts to integer
+  - Supports: STRING, FLOAT, INTEGER, STRING instances, INTEGER instances, FLOAT instances
+  - Returns: INTEGER primitive
+  
+- **`float(value)`**: Converts to float
+  - Supports: STRING, INTEGER, FLOAT, STRING instances, INTEGER instances, FLOAT instances
+  - Returns: FLOAT primitive
+  
+- **`str(value)`**: Converts to string
+  - Supports: Any object type (uses object's string representation)
+  - Returns: STRING instance (with grimoire methods)
+
+### Chain Casting
+
+Type casting functions can be chained for complex conversions:
+
+```carrion
+// Chain multiple conversions
+original = "123"
+step1 = int(original)       // → 123 (INTEGER)
+step2 = float(step1)        // → 123.0 (FLOAT)
+step3 = str(step2)          // → "123.0" (STRING instance)
+```
+
+### Error Handling
+
+Type casting functions provide clear error messages for invalid conversions:
+
+```carrion
+// Invalid string to number conversion
+attempt:
+    result = int("not_a_number")
+ensnare e:
+    print("Error:", e)  // "cannot convert string to int: ..."
 ```
 
 ## Automatic Primitive Wrapping
 
 Carrion automatically wraps primitive types with their corresponding grimoire objects, allowing method calls directly on basic values:
 
-```python
+```carrion
 // These work automatically due to primitive wrapping:
 print(10.to_bin())        // "0b1010"
 print("Hello".upper())    // "HELLO"
@@ -272,12 +563,20 @@ print("Sorted:", sorted_copy.to_string())
 ```
 
 ### String Processing
-```python
+```carrion
 text = String("Hello, World!")
 print("Length:", text.length())
 print("Uppercase:", text.upper())
 print("Contains 'World':", text.contains("World"))
 print("Reversed:", text.reverse())
+
+// Type conversions (newly added)
+numeric_str = String("123")
+print("To integer:", numeric_str.to_int())        // 123 (INTEGER)
+print("To string:", numeric_str.to_string())      // "123" (STRING)
+
+float_str = String("3.14")
+print("To float:", float_str.to_float())          // 3.14 (FLOAT)
 ```
 
 ### Mathematical Operations
@@ -296,19 +595,41 @@ print("Square root:", pi.sqrt())
 
 ### File and System Operations
 ```python
-// File operations
-file = File()
-if file.exists("data.txt"):
-    content = file.read("data.txt")
-    processed = content.upper()
-    file.write("output.txt", processed)
+// Modern file operations with static methods (recommended)
+content = File.read("data.txt")
+processed = content.upper()
+File.write("output.txt", processed)
 
-// System operations
-os = OS()
-print("Current directory:", os.cwd())
-files = os.listdir(".")
+// File operations with autoclose for complex scenarios
+autoclose File.open("data.txt", "r") as input_file:
+    content = input_file.read_content()
+    processed = content.upper()
+    
+    autoclose File.open("output.txt", "w") as output_file:
+        output_file.write_content(processed)
+
+// System operations with static methods
+print("Current directory:", OS.cwd())
+files = OS.listdir(".")
 for filename in files:
     print("Found file:", filename)
+
+// Complete file processing workflow
+if File.exists("config.txt"):
+    config = File.read("config.txt")
+    print("Configuration loaded")
+else:
+    File.write("config.txt", "default_setting=true\n")
+    print("Created default configuration")
+
+// Environment-aware file operations
+backup_dir = OS.expandEnv("$HOME/backups")
+if not File.exists(backup_dir):
+    OS.mkdir(backup_dir)
+
+backup_file = f"{backup_dir}/data_backup.txt"
+File.write(backup_file, File.read("data.txt"))
+print(f"Backup created at: {backup_file}")
 ```
 
 ## Module Organization

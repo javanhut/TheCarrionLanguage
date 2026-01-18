@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control Flow - Carrion Language</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#x1F426;</text></svg>">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+    <style>
+        :root {
+            --bg-primary: #0f0f23;
+            --bg-secondary: #1a1a2e;
+            --bg-tertiary: #16213e;
+            --text-primary: #e0e0e0;
+            --text-secondary: #b0b0b0;
+            --accent-primary: #00cc99;
+            --border-color: #333355;
+            --code-bg: #0f0f1a;
+            --link-color: #66ccff;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            padding: 40px 20px;
+        }
+        .container { max-width: 900px; margin: 0 auto; }
+        h1 { color: var(--accent-primary); margin-bottom: 30px; padding-bottom: 15px; border-bottom: 2px solid var(--accent-primary); }
+        h2 { color: var(--accent-primary); margin: 40px 0 20px; font-size: 1.5rem; }
+        h3 { color: var(--text-primary); margin: 25px 0 15px; }
+        p { margin-bottom: 15px; color: var(--text-secondary); }
+        pre { background: var(--code-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 20px; overflow-x: auto; margin: 15px 0; }
+        code { font-family: 'Fira Code', 'Courier New', monospace; font-size: 14px; }
+        .section { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 10px; padding: 25px; margin: 20px 0; }
+        .section h3 { color: var(--accent-primary); margin-top: 0; }
+        .note { background: var(--bg-tertiary); border-left: 4px solid var(--accent-primary); padding: 15px; margin: 20px 0; border-radius: 0 8px 8px 0; }
+        .back-link { display: inline-block; color: var(--link-color); text-decoration: none; margin-bottom: 20px; }
+        .back-link:hover { text-decoration: underline; }
+        @media (max-width: 768px) { body { padding: 20px 15px; } h1 { font-size: 1.8rem; } pre { padding: 15px; font-size: 12px; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="../index.html" class="back-link">&larr; Back to Documentation</a>
+
+        <h1>Control Flow</h1>
+
+        <p>Control flow statements determine the order in which code is executed. Carrion provides familiar constructs with some magical twists.</p>
+
+        <h2>Conditional Statements</h2>
+
+        <div class="section">
+            <h3>If / Elif / Else</h3>
+            <p>Execute code based on conditions:</p>
+            <pre><code class="language-python">// Basic if
+if temperature > 30:
+    print("It's hot!")
+
+// If-else
+if is_raining:
+    print("Take an umbrella")
+else:
+    print("Enjoy the sun")
+
+// If-elif-else chain
+score = 85
+
+if score >= 90:
+    grade = "A"
+elif score >= 80:
+    grade = "B"
+elif score >= 70:
+    grade = "C"
+elif score >= 60:
+    grade = "D"
+else:
+    grade = "F"
+
+print(f"Your grade: {grade}")</code></pre>
+        </div>
+
+        <div class="section">
+            <h3>Nested Conditions</h3>
+            <pre><code class="language-python">if user.is_logged_in:
+    if user.is_admin:
+        print("Welcome, Administrator!")
+    else:
+        print(f"Welcome, {user.name}!")
+else:
+    print("Please log in")</code></pre>
+        </div>
+
+        <div class="section">
+            <h3>Compound Conditions</h3>
+            <pre><code class="language-python">// Using 'and'
+if age >= 18 and has_license:
+    print("You can drive")
+
+// Using 'or'
+if is_weekend or is_holiday:
+    print("No work today!")
+
+// Using 'not'
+if not is_complete:
+    print("Still working...")
+
+// Membership test with 'in'
+if "admin" in user.roles:
+    print("Admin access granted")</code></pre>
+        </div>
+
+        <h2>Loops</h2>
+
+        <div class="section">
+            <h3>For Loops</h3>
+            <p>Iterate over sequences:</p>
+            <pre><code class="language-python">// Iterate over a list
+fruits = ["apple", "banana", "cherry"]
+for fruit in fruits:
+    print(fruit)
+
+// Iterate with range
+for i in range(5):
+    print(i)  // 0, 1, 2, 3, 4
+
+// Range with start and end
+for i in range(1, 6):
+    print(i)  // 1, 2, 3, 4, 5
+
+// Range with step
+for i in range(0, 10, 2):
+    print(i)  // 0, 2, 4, 6, 8
+
+// Iterate over hash keys
+person = {"name": "Merlin", "age": 150}
+for key in keys(person):
+    print(f"{key}: {person[key]}")</code></pre>
+        </div>
+
+        <div class="section">
+            <h3>While Loops</h3>
+            <p>Loop while a condition is true:</p>
+            <pre><code class="language-python">// Basic while loop
+count = 0
+while count < 5:
+    print(count)
+    count = count + 1
+
+// With user input
+password = ""
+while password != "secret":
+    password = input("Enter password: ")
+print("Access granted!")
+
+// Infinite loop with break
+while True:
+    command = input("Enter command: ")
+    if command == "quit":
+        break
+    process(command)</code></pre>
+        </div>
+
+        <div class="section">
+            <h3>Repeat Loops (Carrion Special)</h3>
+            <p>Carrion's unique way to repeat code a specific number of times:</p>
+            <pre><code class="language-python">// Repeat 5 times
+repeat 5:
+    print("Hello!")
+
+// Useful for simple repetition
+repeat 3:
+    print("Hip hip hooray!")
+
+// Nested repeat
+repeat 3:
+    repeat 4:
+        print("*", end="")
+    print()
+// Output:
+// ****
+// ****
+// ****</code></pre>
+
+            <div class="note">
+                <strong>Tip:</strong> Use <code>repeat</code> when you just need to execute something N times without needing the loop counter.
+            </div>
+        </div>
+
+        <h2>Loop Control</h2>
+
+        <div class="section">
+            <h3>Break</h3>
+            <p>Exit a loop immediately:</p>
+            <pre><code class="language-python">// Find first even number
+numbers = [1, 3, 5, 4, 7, 9]
+for num in numbers:
+    if num % 2 == 0:
+        print(f"Found even: {num}")
+        break
+
+// Exit nested loops (breaks innermost)
+for i in range(10):
+    for j in range(10):
+        if i * j > 25:
+            print(f"Breaking at {i}, {j}")
+            break</code></pre>
+        </div>
+
+        <div class="section">
+            <h3>Continue</h3>
+            <p>Skip to the next iteration:</p>
+            <pre><code class="language-python">// Skip odd numbers
+for i in range(10):
+    if i % 2 != 0:
+        continue
+    print(i)  // 0, 2, 4, 6, 8
+
+// Skip invalid entries
+for item in items:
+    if item == None:
+        continue
+    process(item)</code></pre>
+        </div>
+
+        <h2>Error Handling Flow</h2>
+
+        <div class="section">
+            <h3>Attempt / Ensnare / Resolve</h3>
+            <p>Handle errors gracefully:</p>
+            <pre><code class="language-python">attempt:
+    // Code that might fail
+    file = File.open("data.txt", "r")
+    content = file.read()
+    process(content)
+
+ensnare FileNotFoundError:
+    print("File not found!")
+
+ensnare PermissionError:
+    print("Permission denied!")
+
+ensnare as e:
+    // Catch any other error
+    print(f"Error: {e}")
+
+resolve:
+    // Always runs, even if there was an error
+    print("Cleanup complete")</code></pre>
+        </div>
+
+        <div class="section">
+            <h3>Raising Errors</h3>
+            <pre><code class="language-python">spell divide(a, b):
+    if b == 0:
+        raise ValueError("Cannot divide by zero!")
+    return a / b
+
+attempt:
+    result = divide(10, 0)
+ensnare ValueError as e:
+    print(e)</code></pre>
+        </div>
+
+        <h2>Pattern Examples</h2>
+
+        <div class="section">
+            <h3>Guard Clauses</h3>
+            <p>Return early for cleaner code:</p>
+            <pre><code class="language-python">spell process_user(user):
+    if user == None:
+        return "No user provided"
+
+    if not user.is_active:
+        return "User is inactive"
+
+    if not user.has_permission:
+        return "Permission denied"
+
+    // Main logic here
+    return do_processing(user)</code></pre>
+        </div>
+
+        <div class="section">
+            <h3>Accumulator Pattern</h3>
+            <pre><code class="language-python">// Sum all numbers
+numbers = [1, 2, 3, 4, 5]
+total = 0
+for num in numbers:
+    total = total + num
+print(total)  // 15
+
+// Build a string
+words = ["Hello", "World"]
+sentence = ""
+for word in words:
+    sentence = sentence + word + " "
+print(sentence.strip())  // "Hello World"</code></pre>
+        </div>
+
+        <div class="section">
+            <h3>Search Pattern</h3>
+            <pre><code class="language-python">spell find_item(items, target):
+    for i in range(len(items)):
+        if items[i] == target:
+            return i
+    return -1  // Not found
+
+index = find_item(["a", "b", "c"], "b")
+print(index)  // 1</code></pre>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+</body>
+</html>

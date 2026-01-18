@@ -1,7 +1,7 @@
 <meta name="google-site-verification" content="7L-IkFjwJUUVamMg0bj1PwYOVcpowQyomYVhYM4e6lk" />
 <meta name="description" content="Carrion Programming Language is a modern, dynamically typed, interpreted language inspired by Python and built in Go. Discover its fun crow theme, unique syntax, and powerful features for fast development and learning." />The Carrion Programming Language
 
-Latest Version: 0.1.8 [![Release](https://img.shields.io/badge/version-0.1.8-blue.svg)](https://github.com/javanhut/TheCarrionLanguage/releases)
+Latest Version: {{VERSION}} [![Release](https://img.shields.io/badge/version-{{VERSION}}-blue.svg)](https://github.com/javanhut/TheCarrionLanguage/releases)
 
 ```bash
 
@@ -11,9 +11,8 @@ Latest Version: 0.1.8 [![Release](https://img.shields.io/badge/version-0.1.8-blu
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣤⣾⣿⣷⣿⣿⣿⣿⣿⣶⣾⣿⣿⠿⠿⠿⠶⠄⠀
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⠉⠀⠀⠀⠀⠀⠀⠀
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡟⠀⠀⠀⠀⠀⠀⠀⠀
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠃⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠃⠀⠀⠀⠀⠀⠀⠀⠀
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⣿⣿⣿⣿⣿⣿⣿⣿⡟⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⣿⣿⣿⣿⣿⣿⠟⠻⣧⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⣼⣿⣿⣿⣿⣿⣿⣆⣤⠿⢶⣦⡀⠀⠀⠀⠀⠀⠀⠀⠀
@@ -26,158 +25,6 @@ Latest Version: 0.1.8 [![Release](https://img.shields.io/badge/version-0.1.8-blu
 ## Overview
 
 Carrion Programming Language is a modern, dynamically typed, interpreted language designed for both beginners and experienced developers. Inspired by Python and built in Go, Carrion offers a unique combination of readability, flexibility, and performance. Its engaging crow-themed aesthetic and innovative syntax enhancements set it apart as a fun, educational, and efficient language for rapid prototyping and software development.
-
-## What's New in v0.1.8
-
-### Comprehensive Tooling Ecosystem
-
-Carrion v0.1.8 introduces a complete development toolchain that transforms how you write, test, and document code:
-
-#### Sindri Testing Framework
-- Automatic test discovery using "appraise" naming convention
-- Colored terminal output (green for pass, red for fail)
-- Flexible assertions with `check()` function
-- Support for both boolean and value comparison assertions
-- Multiple output modes (summary and detailed)
-- Directory and file-based testing
-
-#### Mimir Documentation System
-- Interactive documentation browser with menu navigation
-- Command-line function lookup (`mimir scry <function>`)
-- Comprehensive coverage of built-in functions and standard library
-- Category-based browsing and search functionality
-- Seamless REPL integration
-
-#### Bifrost Package Manager
-- Git submodule integration for package management
-- Install, manage, and distribute Carrion packages
-- Foundation for growing Carrion ecosystem
-
-### API Improvements
-
-#### Static Method Support
-Grimoires now support static method calls for cleaner, more organized APIs:
-
-```python
-# New unified grimoire API
-content = File.read("data.txt")
-File.write("output.txt", "hello")
-current_dir = OS.cwd()
-files = OS.listdir(".")
-```
-
-#### File Operations
-- `File.read(path)` - Read file content
-- `File.write(path, content)` - Write to file
-- `File.append(path, content)` - Append to file
-- `File.exists(path)` - Check if file exists
-- `File.open(path, mode)` - Open file for complex operations
-
-#### OS Operations
-- `OS.cwd()` - Get current directory
-- `OS.chdir(path)` - Change directory
-- `OS.listdir(path)` - List directory contents
-- `OS.getenv(key)` - Get environment variable
-- `OS.setenv(key, value)` - Set environment variable
-- `OS.remove(path)` - Remove file/directory
-- `OS.mkdir(path, perm)` - Create directory
-- `OS.run(cmd, args, capture)` - Execute system commands
-- `OS.sleep(seconds)` - Sleep for specified time
-
-### Critical Bug Fixes
-
-#### Multi-Level Inheritance
-Fixed infinite recursion bug in 3+ level inheritance chains. Now supports deep inheritance hierarchies:
-
-```python
-grim Level1:
-    init(x):
-        self.l1 = x
-
-grim Level2(Level1):
-    init(x):
-        super.init(x)  # Now correctly calls Level1.init()
-        self.l2 = x
-
-grim Level3(Level2):
-    init(x):
-        super.init(x)  # Correctly calls Level2.init()
-        self.l3 = x
-```
-
-#### String Concatenation
-Fixed critical bug where string concatenation returned incorrect types, affecting socket operations and other string-heavy code:
-
-```python
-# Now works correctly
-headers = "HTTP/1.1 200 OK\r\n\r\n"
-html = """<!DOCTYPE html><html></html>"""
-response = headers + html  # Returns proper String instance
-print(response.length())   # String methods work correctly
-```
-
-#### Variable Resolution
-Fixed environment variable precedence - user-defined variables now correctly override builtin function names.
-
-### Enhanced Import System
-
-#### Selective Imports
-Import specific grimoires or spells from modules using dot notation:
-
-```python
-# Import specific grimoire from a module
-import "utils.StringHelper"
-helper = StringHelper()
-
-# Import specific spell/function from a module
-import "math.advanced_calc"
-result = advanced_calc(10, 20)
-
-# Traditional full module import still works
-import "utils"
-```
-
-This feature allows for cleaner namespace management and more explicit dependencies in your code.
-
-### REPL Improvements
-
-#### Cleaner Output Display
-The REPL now provides a more streamlined experience:
-
-```python
-# Assignment statements don't print output
-x = 10                    # (no output)
-y = "hello"               # (no output)
-
-# Function/grimoire definitions don't print
-spell test():             # (no output)
-    return 42
-
-grim MyClass:             # (no output)
-    init():
-        self.value = 0
-
-# Only expression results are shown
-x + 5                     # 15
-len("hello")              # 5
-test()                    # 42
-```
-
-This reduces clutter and makes the REPL feel more intuitive for interactive development.
-
-### Tuple Handling Refinements
-
-Improved tuple behavior in function calls and assignments for more predictable operations:
-
-```python
-# Tuples are now handled more explicitly
-coords = (10, 20, 30)
-spell process_coords(point):
-    # point is the tuple itself, not auto-unpacked
-    return point
-
-result = process_coords(coords)  # Returns the tuple as-is
-```
 
 ## Key Features
 
@@ -286,8 +133,11 @@ See **[Modules Documentation](Modules.md)** for detailed import and package mana
 
 - **[Control Flow](Control-Flow.md)** - Loops, conditionals, and flow control structures
 - **[Error Handling](Error-Handling.md)** - Exception handling with attempt/ensnare/resolve
+- **[Enhanced Error System](ENHANCED_ERROR_SYSTEM.md)** - Detailed error messages with suggestions
 - **[Operators](Operators.md)** - Arithmetic, logical, and comparison operators
 - **[Modules](Modules.md)** - Import system and module organization
+- **[Type System](Type-System.md)** - Type hints and static type checking
+- **[Indentation](Indentation.md)** - Indentation rules and best practices
 
 ### Object-Oriented Programming
 
@@ -297,6 +147,10 @@ See **[Modules Documentation](Modules.md)** for detailed import and package mana
 
 - **[Standard Library (Munin)](Standard-Library.md)** - Built-in functions and modules
 - **[Builtin Functions](Builtin-Functions.md)** - Core functions available in every program
+- **[Data Structures](Data-Structures.md)** - Stack, Queue, Heap, and Binary Search Tree
+- **[Concurrency](Concurrency.md)** - Goroutines with converge/diverge patterns
+- **[HTTP Server](HTTP-Server-Enhancement.md)** - Building web applications and REST APIs
+- **[Time Functions](TimeFunctions.md)** - Date, time, and duration operations
 
 ### Tools & Interactive Features
 
@@ -350,7 +204,7 @@ Carrion is an evolving language with exciting future updates planned:
 
 ## Build and Release Status
 
-- Current Version: 0.1.8
+- Current Version: {{VERSION}}
 - Standard Library (Munin): 0.1.0
 - Status: Active Development
 

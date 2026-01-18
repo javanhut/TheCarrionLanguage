@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error Reference - Carrion Language</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#x1F426;</text></svg>">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+    <style>
+        :root {
+            --bg-primary: #0f0f23;
+            --bg-secondary: #1a1a2e;
+            --bg-tertiary: #16213e;
+            --text-primary: #e0e0e0;
+            --text-secondary: #b0b0b0;
+            --accent-primary: #00cc99;
+            --accent-error: #ff6b6b;
+            --border-color: #333355;
+            --code-bg: #0f0f1a;
+            --link-color: #66ccff;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            padding: 40px 20px;
+        }
+        .container { max-width: 900px; margin: 0 auto; }
+        h1 {
+            color: var(--accent-primary);
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--accent-primary);
+        }
+        h2 {
+            color: var(--accent-primary);
+            margin: 40px 0 20px;
+            font-size: 1.5rem;
+        }
+        p { margin-bottom: 15px; color: var(--text-secondary); }
+        pre {
+            background: var(--code-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+        code {
+            font-family: 'Fira Code', 'Courier New', monospace;
+            font-size: 14px;
+        }
+        .error-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-left: 4px solid var(--accent-error);
+            border-radius: 0 10px 10px 0;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .error-card h3 {
+            color: var(--accent-error);
+            margin-bottom: 10px;
+        }
+        .error-code {
+            display: inline-block;
+            background: var(--accent-error);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+        .suggestion {
+            background: var(--bg-tertiary);
+            border-left: 3px solid var(--accent-primary);
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .suggestion strong {
+            color: var(--accent-primary);
+        }
+        .back-link {
+            display: inline-block;
+            color: var(--link-color);
+            text-decoration: none;
+            margin-bottom: 20px;
+        }
+        .back-link:hover { text-decoration: underline; }
+        @media (max-width: 768px) {
+            body { padding: 20px 15px; }
+            h1 { font-size: 1.8rem; }
+            pre { padding: 15px; font-size: 12px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="../index.html" class="back-link">&larr; Back to Documentation</a>
+
+        <h1>Error Reference</h1>
+
+        <p>Carrion v0.1.9 features an enhanced error system with intelligent suggestions and detailed context. This guide explains common errors and how to fix them.</p>
+
+        <h2>Syntax Errors</h2>
+
+        <div class="error-card">
+            <h3>Unexpected Token <span class="error-code">E0001</span></h3>
+            <p>The parser encountered a token it wasn't expecting at that location.</p>
+            <pre><code class="language-python">// Error
+spell greet(name)    // Missing colon
+    print(name)
+
+// Correct
+spell greet(name):
+    print(name)</code></pre>
+            <div class="suggestion">
+                <strong>Tip:</strong> Check for missing colons after spell/grim/if/for/while declarations.
+            </div>
+        </div>
+
+        <div class="error-card">
+            <h3>Indentation Error <span class="error-code">E0002</span></h3>
+            <p>Inconsistent indentation in a code block.</p>
+            <pre><code class="language-python">// Error
+spell example():
+    x = 1
+  y = 2    // Inconsistent indentation
+
+// Correct
+spell example():
+    x = 1
+    y = 2</code></pre>
+            <div class="suggestion">
+                <strong>Tip:</strong> Use consistent 4-space indentation throughout your code.
+            </div>
+        </div>
+
+        <h2>Type Errors</h2>
+
+        <div class="error-card">
+            <h3>Type Mismatch <span class="error-code">E0101</span></h3>
+            <p>An operation was attempted on incompatible types.</p>
+            <pre><code class="language-python">// Error
+result = "42" + 10   // String + Integer
+
+// Error message (v0.1.9):
+// error: String/Number type mismatch
+// help:
+//   - Convert string to number: int("42")
+//   - Convert number to string: str(10)
+
+// Correct
+result = int("42") + 10   // 52
+result = "42" + str(10)   // "4210"</code></pre>
+        </div>
+
+        <div class="error-card">
+            <h3>Unsupported Operand Types <span class="error-code">E0102</span></h3>
+            <p>An operator doesn't support the given operand types.</p>
+            <pre><code class="language-python">// Error
+result = [1, 2] - [3]   // Lists don't support subtraction
+
+// Correct - use appropriate list operations
+result = [1, 2]
+result.remove(1)</code></pre>
+        </div>
+
+        <h2>Name Errors</h2>
+
+        <div class="error-card">
+            <h3>Identifier Not Found <span class="error-code">E0201</span></h3>
+            <p>A variable or function name was used that hasn't been defined.</p>
+            <pre><code class="language-python">// Error
+name = "Carrion"
+print(nme)   // Typo!
+
+// Error message (v0.1.9):
+// error: identifier not found: nme
+//   --> example.crl:2:7
+// help: Did you mean 'name'?
+
+// Correct
+print(name)</code></pre>
+            <div class="suggestion">
+                <strong>New in v0.1.9:</strong> The error system now suggests similar variable names when you make typos!
+            </div>
+        </div>
+
+        <div class="error-card">
+            <h3>Undefined Method <span class="error-code">E0202</span></h3>
+            <p>A method was called that doesn't exist on the object.</p>
+            <pre><code class="language-python">// Error
+text = "hello"
+text.uppercase()   // Method doesn't exist
+
+// Error message (v0.1.9):
+// error: undefined method 'uppercase' for String
+// help: Did you mean 'upper'?
+
+// Correct
+text.upper()</code></pre>
+        </div>
+
+        <h2>Runtime Errors</h2>
+
+        <div class="error-card">
+            <h3>Index Out of Bounds <span class="error-code">E0301</span></h3>
+            <p>Attempted to access an index that doesn't exist.</p>
+            <pre><code class="language-python">// Error
+items = [1, 2, 3]
+print(items[10])   // Only indices 0-2 exist
+
+// Error message:
+// error: index out of bounds: 10 (length: 3)
+
+// Correct
+if len(items) > 10:
+    print(items[10])</code></pre>
+        </div>
+
+        <div class="error-card">
+            <h3>Key Not Found <span class="error-code">E0302</span></h3>
+            <p>Attempted to access a hash key that doesn't exist.</p>
+            <pre><code class="language-python">// Error
+data = {"name": "Carrion"}
+print(data["version"])   // Key doesn't exist
+
+// Correct - check first or use get with default
+if "version" in data:
+    print(data["version"])
+else:
+    print("No version")</code></pre>
+        </div>
+
+        <div class="error-card">
+            <h3>Division by Zero <span class="error-code">E0303</span></h3>
+            <p>Attempted to divide by zero.</p>
+            <pre><code class="language-python">// Error
+result = 10 / 0
+
+// Correct
+divisor = get_divisor()
+if divisor != 0:
+    result = 10 / divisor
+else:
+    print("Cannot divide by zero")</code></pre>
+        </div>
+
+        <h2>Import Errors</h2>
+
+        <div class="error-card">
+            <h3>Module Not Found <span class="error-code">E0401</span></h3>
+            <p>The specified module could not be found.</p>
+            <pre><code class="language-python">// Error
+import "nonexistent_module"
+
+// Correct - ensure the module exists in your path
+import "existing_module"</code></pre>
+            <div class="suggestion">
+                <strong>Tip:</strong> Check that the module file exists and the path is correct.
+            </div>
+        </div>
+
+        <h2>Error Handling Best Practices</h2>
+
+        <pre><code class="language-python">// Always handle potential errors
+attempt:
+    result = risky_operation()
+ensnare ValueError as e:
+    print(f"Invalid value: {e}")
+ensnare IOError as e:
+    print(f"File error: {e}")
+ensnare:
+    print("An unexpected error occurred")
+resolve:
+    cleanup_resources()</code></pre>
+
+        <h2>Understanding Error Messages</h2>
+
+        <p>Carrion v0.1.9 provides detailed error messages with:</p>
+        <ul style="margin-left: 20px; margin-bottom: 20px; color: var(--text-secondary);">
+            <li><strong>Location:</strong> File name, line number, and column</li>
+            <li><strong>Context:</strong> The relevant source code line</li>
+            <li><strong>Pointer:</strong> Caret indicating the exact error position</li>
+            <li><strong>Suggestion:</strong> "Did you mean?" recommendations</li>
+            <li><strong>Help:</strong> Guidance on how to fix the error</li>
+        </ul>
+
+        <pre><code>error: identifier not found: prnt
+  --> example.crl:5:1
+   |
+ 5 | prnt("Hello")
+   | ^^^^ unknown identifier
+   |
+help: Did you mean 'print'?</code></pre>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+</body>
+</html>
