@@ -1,6 +1,7 @@
 package lexer
 
 import (
+	"fmt"
 	"strings"
 	"unicode"
 
@@ -20,8 +21,9 @@ type Lexer struct {
 	tokenQueue     []token.Token // Queue for pending DEDENT tokens
 
 	// Indentation style tracking for strict enforcement
-	indentStyle byte // 0 = unset, ' ' = spaces, '\t' = tabs
-	indentError string // Non-empty if an indentation error was detected
+	indentStyle     byte // 0 = unset, ' ' = spaces, '\t' = tabs
+	indentStyleLine int  // Line number (1-indexed) where indentation style was first set
+	indentError     string // Non-empty if an indentation error was detected
 }
 
 func New(input string) *Lexer {
@@ -592,8 +594,9 @@ func (l *Lexer) measureIndent(line string) (int, string) {
 		}
 
 		if l.indentStyle == 0 {
-			// First indented line - set the style
+			// First indented line - set the style and record the line number
 			l.indentStyle = lineStyle
+			l.indentStyleLine = l.lineIndex + 1 // 1-indexed line number
 		} else if l.indentStyle != lineStyle {
 			// Style mismatch
 			expected := "spaces"
@@ -604,7 +607,7 @@ func (l *Lexer) measureIndent(line string) (int, string) {
 			if lineStyle == '\t' {
 				got = "tabs"
 			}
-			return 0, "inconsistent indentation: expected " + expected + ", got " + got
+			return 0, fmt.Sprintf("inconsistent indentation: expected %s, got %s (file uses %s since line %d)", expected, got, expected, l.indentStyleLine)
 		}
 	}
 

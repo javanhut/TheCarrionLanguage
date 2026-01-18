@@ -201,11 +201,11 @@ func TestErrorHandling(t *testing.T) {
 	}{
 		{
 			"5 + True",
-			"type mismatch: INTEGER + BOOLEAN",
+			"type mismatch: INTEGER + BOOLEAN. Use int() to convert (True=1, False=0)",
 		},
 		{
 			"5 + True 5",
-			"type mismatch: INTEGER + BOOLEAN",
+			"type mismatch: INTEGER + BOOLEAN. Use int() to convert (True=1, False=0)",
 		},
 		{
 			"-True",
@@ -232,7 +232,7 @@ func TestErrorHandling(t *testing.T) {
       `,
 			"unknown operator: BOOLEAN + BOOLEAN",
 		},
-		{"foobar", "identifier not found: foobar"},
+		{"foobar", "identifier not found: foobar. Did you mean one of: 'float', 'floor'?"},
 		{`"Hello" - "World"`, "unknown operator: STRING - STRING"},
 		//{`{"name": "Carrion"}[spell add(x,y): return x + y]`, "unusable as hash key: SPELL"},
 	}
@@ -399,7 +399,7 @@ func TestArrayIndexExpressions(t *testing.T) {
 		},
 		{
 			"[1, 2, 3][3]",
-			"index out of bounds: 3 (array length: 3)",
+			"index out of bounds: 3 (array length: 3, valid indices: 0-2)",
 		},
 		{
 			"[1, 2, 3][-1]",

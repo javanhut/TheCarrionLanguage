@@ -744,10 +744,10 @@ grim BTree(Iterable):
         _insert_recursive(self.node, value)
         return self.node
 
-    spell size():
+    spell get_size():
         ```
         Get the number of nodes in the binary tree.
-        
+
         Returns:
             Integer representing the total number of nodes
         ```
