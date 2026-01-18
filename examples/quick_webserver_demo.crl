@@ -1,0 +1,61 @@
+# Quick WebServer Demo - Simple web server in seconds!
+# This shows how easy it is to start a web server in Carrion
+
+print("=== Quick WebServer Demo ===")
+print("")
+print("Starting a web server with just start() and stop()!")
+print("Like uvicorn or FastAPI - runs in seconds, stays up until Ctrl+C")
+print("")
+print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+print("")
+
+# Example 1: Minimal WebServer (all in 3 lines!)
+print("Example 1: Minimal usage - 3 lines of code")
+print("")
+print("  server = WebServer('0.0.0.0', 8080, 30, './public')")
+print("  server.start()")
+print("  server.wait_for_shutdown()")
+print("")
+print("Uncomment to run:")
+print("# server = WebServer('0.0.0.0', 8080, 30, './public')")
+print("# server.start()")
+print("# server.wait_for_shutdown()")
+print("")
+
+# Example 2: Custom port and document root
+print("Example 2: Custom configuration")
+print("")
+print("  server = WebServer('127.0.0.1', 3000, 60, './www')")
+print("  server.start()")
+print("  server.wait_for_shutdown()")
+print("")
+
+# Example 3: Full example with routes (ACTIVE)
+print("Example 3: Full example with custom routes")
+print("Running now...")
+print("")
+
+# Create the server
+server = WebServer("0.0.0.0", 8080, 30, "./test_www")
+
+# Add a custom route before starting
+server.add_route("GET", "/hello", spell (request):
+    return http_response(200, "Hello from Carrion!", {"Content-Type": "text/plain"})
+)
+
+# Start the server (like uvicorn)
+server.start()
+
+print("")
+print("Try these URLs:")
+print("  → http://localhost:8080/")
+print("  → http://localhost:8080/hello")
+print("")
+print("Press Ctrl+C to stop...")
+print("")
+
+# Keep it running until Ctrl+C
+server.wait_for_shutdown()
+
+print("")
+print("Server stopped!")

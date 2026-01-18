@@ -6,6 +6,8 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -16,22 +18,25 @@ import (
 
 // Global socket handle registry
 var (
-	socketHandles = make(map[int64]interface{})
-	nextSocketHandle int64 = 1
+	socketHandles           = make(map[int64]interface{})
+	nextSocketHandle  int64 = 1
 	socketHandleMutex sync.RWMutex
 )
+
+// Global HTTP handler evaluator callback
+var globalHTTPEvaluator EvalCallback
 
 // Global port allocation mutex and tracking
 var (
 	portAllocationMutex sync.Mutex
-	allocatedPorts = make(map[string]bool) // Track allocated ports by "host:port"
+	allocatedPorts      = make(map[string]bool) // Track allocated ports by "host:port"
 )
 
 // Socket types
 const (
-	SocketTypeTCP = "tcp"
-	SocketTypeUDP = "udp"
-	SocketTypeWeb = "web"
+	SocketTypeTCP  = "tcp"
+	SocketTypeUDP  = "udp"
+	SocketTypeWeb  = "web"
 	SocketTypeUnix = "unix"
 )
 
@@ -125,13 +130,13 @@ func allocatePort(address string) (string, string) {
 		}
 
 		testAddress := net.JoinHostPort(host, strconv.Itoa(portNum))
-		
+
 		// Resolve the address to canonical form for consistent tracking
 		canonicalAddress, err := resolveToCanonical(testAddress)
 		if err != nil {
 			canonicalAddress = testAddress // fallback to original if resolution fails
 		}
-		
+
 		// Check if port is already tracked as allocated
 		if !allocatedPorts[canonicalAddress] {
 			// Attempt to bind directly to eliminate TOCTOU race condition
@@ -140,19 +145,19 @@ func allocatePort(address string) (string, string) {
 				// Successfully bound - mark as allocated and close listener
 				listener.Close()
 				allocatedPorts[canonicalAddress] = true
-				
+
 				if portNum != originalPort {
 					message = fmt.Sprintf("Port %d already allocated, incremented to port %d", originalPort, portNum)
 				}
-				
+
 				return testAddress, message
 			}
-			
+
 			// Binding failed, implement exponential backoff for retries
 			backoffDuration := time.Duration(1<<uint(attempts%5)) * time.Millisecond
 			time.Sleep(backoffDuration)
 		}
-		
+
 		// Port is in use, try next port
 		portNum++
 	}
@@ -200,12 +205,20 @@ type UDPSocket struct {
 	Timeout time.Duration
 }
 
+// EvalCallback is a function type that can execute a Carrion function
+type EvalCallback func(fn *object.Function, args []object.Object) object.Object
+
 type WebSocket struct {
-	Server  *http.Server
-	Mux     *http.ServeMux
-	Type    string
-	Address string
-	Timeout time.Duration
+	Server       *http.Server
+	Mux          *http.ServeMux
+	Type         string
+	Address      string
+	Timeout      time.Duration
+	Routes       map[string]*object.Function // Map of "METHOD:PATH" to handler function
+	ShutdownChan chan bool                   // Channel to signal shutdown
+	Running      bool                        // Track if server is running
+	EvalFunc     EvalCallback                // Function to evaluate Carrion functions
+	DocumentRoot string                      // Root directory for static files
 }
 
 type UnixSocket struct {
@@ -213,6 +226,91 @@ type UnixSocket struct {
 	Type    string
 	Address string
 	Timeout time.Duration
+}
+
+// getMimeType returns the MIME type for a given file extension
+func getMimeType(filePath string) string {
+	ext := strings.ToLower(filepath.Ext(filePath))
+	mimeTypes := map[string]string{
+		".html":  "text/html",
+		".htm":   "text/html",
+		".css":   "text/css",
+		".js":    "application/javascript",
+		".json":  "application/json",
+		".png":   "image/png",
+		".jpg":   "image/jpeg",
+		".jpeg":  "image/jpeg",
+		".gif":   "image/gif",
+		".svg":   "image/svg+xml",
+		".txt":   "text/plain",
+		".xml":   "application/xml",
+		".pdf":   "application/pdf",
+		".zip":   "application/zip",
+		".woff":  "font/woff",
+		".woff2": "font/woff2",
+		".ttf":   "font/ttf",
+		".ico":   "image/x-icon",
+	}
+
+	if mimeType, ok := mimeTypes[ext]; ok {
+		return mimeType
+	}
+	return "application/octet-stream"
+}
+
+// tryServeStaticFile attempts to serve a static file from the document root
+func tryServeStaticFile(w http.ResponseWriter, r *http.Request, documentRoot string) bool {
+	if documentRoot == "" {
+		return false
+	}
+
+	// Clean the path to prevent directory traversal attacks
+	cleanPath := filepath.Clean(r.URL.Path)
+	if strings.Contains(cleanPath, "..") {
+		return false
+	}
+
+	// Build the full file path
+	filePath := filepath.Join(documentRoot, cleanPath)
+
+	// Check if path is a directory
+	fileInfo, err := os.Stat(filePath)
+	if err != nil {
+		return false
+	}
+
+	// If it's a directory, try to serve index files
+	if fileInfo.IsDir() {
+		indexFiles := []string{"index.html", "index.htm", "default.html"}
+		for _, indexFile := range indexFiles {
+			indexPath := filepath.Join(filePath, indexFile)
+			if _, err := os.Stat(indexPath); err == nil {
+				filePath = indexPath
+				fileInfo, _ = os.Stat(filePath)
+				break
+			}
+		}
+
+		// If still a directory (no index file found), return false
+		if fileInfo.IsDir() {
+			return false
+		}
+	}
+
+	// Read the file
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		return false
+	}
+
+	// Set MIME type and serve
+	mimeType := getMimeType(filePath)
+	w.Header().Set("Content-Type", mimeType)
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(content)))
+	w.WriteHeader(http.StatusOK)
+	w.Write(content)
+
+	return true
 }
 
 var SocketsModule = map[string]*object.Builtin{
@@ -551,6 +649,133 @@ var SocketsModule = map[string]*object.Builtin{
 			return receiveDataFrom(socket, bufferSize)
 		},
 	},
+
+	"http_register_route": {
+		Fn: func(args ...object.Object) object.Object {
+			if len(args) != 4 {
+				return &object.Error{Message: "http_register_route requires 4 arguments: handleID, method, path, handler_func"}
+			}
+
+			handleID, ok := extractSocketInt(args[0])
+			if !ok {
+				return &object.Error{Message: "http_register_route: handleID must be an integer"}
+			}
+
+			method, ok := extractSocketString(args[1])
+			if !ok {
+				return &object.Error{Message: "http_register_route: method must be a string"}
+			}
+
+			path, ok := extractSocketString(args[2])
+			if !ok {
+				return &object.Error{Message: "http_register_route: path must be a string"}
+			}
+
+			handler, ok := args[3].(*object.Function)
+			if !ok {
+				return &object.Error{Message: "http_register_route: handler_func must be a function"}
+			}
+
+			socket, exists := getSocketHandle(handleID)
+			if !exists {
+				return &object.Error{Message: "http_register_route: invalid socket handle"}
+			}
+
+			webSocket, ok := socket.(*WebSocket)
+			if !ok {
+				return &object.Error{Message: "http_register_route: handle is not a web socket"}
+			}
+
+			routeKey := strings.ToUpper(method) + ":" + path
+			webSocket.Routes[routeKey] = handler
+
+			return &object.None{}
+		},
+	},
+
+	"http_wait_for_shutdown": {
+		Fn: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return &object.Error{Message: "http_wait_for_shutdown requires 1 argument: handleID"}
+			}
+
+			handleID, ok := extractSocketInt(args[0])
+			if !ok {
+				return &object.Error{Message: "http_wait_for_shutdown: handleID must be an integer"}
+			}
+
+			socket, exists := getSocketHandle(handleID)
+			if !exists {
+				return &object.Error{Message: "http_wait_for_shutdown: invalid socket handle"}
+			}
+
+			webSocket, ok := socket.(*WebSocket)
+			if !ok {
+				return &object.Error{Message: "http_wait_for_shutdown: handle is not a web socket"}
+			}
+
+			// Block until server shuts down
+			<-webSocket.ShutdownChan
+
+			return &object.None{}
+		},
+	},
+
+	"http_set_document_root": {
+		Fn: func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return &object.Error{Message: "http_set_document_root requires 2 arguments: handleID, document_root"}
+			}
+
+			handleID, ok := extractSocketInt(args[0])
+			if !ok {
+				return &object.Error{Message: "http_set_document_root: handleID must be an integer"}
+			}
+
+			documentRoot, ok := extractSocketString(args[1])
+			if !ok {
+				return &object.Error{Message: "http_set_document_root: document_root must be a string"}
+			}
+
+			socket, exists := getSocketHandle(handleID)
+			if !exists {
+				return &object.Error{Message: "http_set_document_root: invalid socket handle"}
+			}
+
+			webSocket, ok := socket.(*WebSocket)
+			if !ok {
+				return &object.Error{Message: "http_set_document_root: handle is not a web socket"}
+			}
+
+			// Set the document root
+			webSocket.DocumentRoot = documentRoot
+
+			return &object.None{}
+		},
+	},
+}
+
+// SetHTTPEvaluator sets the global HTTP evaluator callback
+// This is called from the evaluator package during initialization
+func SetHTTPEvaluator(callback EvalCallback) {
+	globalHTTPEvaluator = callback
+}
+
+// SetWebSocketEvalCallback sets the eval callback for a web socket
+// This is called from the evaluator package
+func SetWebSocketEvalCallback(handleID int64, callback EvalCallback) error {
+	socket, exists := getSocketHandle(handleID)
+	if !exists {
+		return fmt.Errorf("invalid socket handle")
+	}
+
+	webSocket, ok := socket.(*WebSocket)
+	if !ok {
+		return fmt.Errorf("handle is not a web socket")
+	}
+
+	webSocket.EvalFunc = callback
+	return nil
 }
 
 // Implementation functions
@@ -667,7 +892,7 @@ func connectUnixClient(address string, timeout time.Duration) object.Object {
 func startTCPServer(address string, timeout time.Duration) object.Object {
 	// Allocate port with automatic incrementing
 	allocatedAddress, message := allocatePort(address)
-	
+
 	listener, err := net.Listen("tcp", allocatedAddress)
 	if err != nil {
 		// Release the allocated port if binding failed
@@ -684,19 +909,19 @@ func startTCPServer(address string, timeout time.Duration) object.Object {
 	}
 
 	handleID := storeSocketHandle(tcpListener)
-	
+
 	// Print message if port was incremented
 	if message != "" {
 		fmt.Println(message)
 	}
-	
+
 	return &object.Integer{Value: handleID}
 }
 
 func startUDPServer(address string, timeout time.Duration) object.Object {
 	// Allocate port with automatic incrementing
 	allocatedAddress, message := allocatePort(address)
-	
+
 	udpAddr, err := net.ResolveUDPAddr("udp", allocatedAddress)
 	if err != nil {
 		releasePort(allocatedAddress)
@@ -717,19 +942,19 @@ func startUDPServer(address string, timeout time.Duration) object.Object {
 	}
 
 	handleID := storeSocketHandle(socket)
-	
+
 	// Print message if port was incremented
 	if message != "" {
 		fmt.Println(message)
 	}
-	
+
 	return &object.Integer{Value: handleID}
 }
 
 func startWebServer(address string, timeout time.Duration) object.Object {
 	// Allocate port with automatic incrementing
 	allocatedAddress, message := allocatePort(address)
-	
+
 	mux := http.NewServeMux()
 	server := &http.Server{
 		Addr:         allocatedAddress,
@@ -739,21 +964,180 @@ func startWebServer(address string, timeout time.Duration) object.Object {
 	}
 
 	socket := &WebSocket{
-		Server:  server,
-		Mux:     mux,
-		Type:    SocketTypeWeb,
-		Address: allocatedAddress,
-		Timeout: timeout,
+		Server:       server,
+		Mux:          mux,
+		Type:         SocketTypeWeb,
+		Address:      allocatedAddress,
+		Timeout:      timeout,
+		Routes:       make(map[string]*object.Function),
+		ShutdownChan: make(chan bool, 1),
+		Running:      false,
+		EvalFunc:     globalHTTPEvaluator,
 	}
+
+	// Add catch-all handler that routes to Carrion functions
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		routeKey := r.Method + ":" + r.URL.Path
+
+		// Look up the handler function
+		handler, exists := socket.Routes[routeKey]
+		if !exists {
+			// Try without trailing slash
+			if r.URL.Path != "/" && r.URL.Path[len(r.URL.Path)-1] == '/' {
+				routeKey = r.Method + ":" + r.URL.Path[:len(r.URL.Path)-1]
+				handler, exists = socket.Routes[routeKey]
+			}
+
+			if !exists {
+				// Try to serve static file if document root is set
+				if socket.DocumentRoot != "" && tryServeStaticFile(w, r, socket.DocumentRoot) {
+					return
+				}
+
+				// No route and no static file found
+				w.WriteHeader(http.StatusNotFound)
+				w.Write([]byte("404 Not Found"))
+				return
+			}
+		}
+
+		// Build request object to pass to Carrion handler
+		requestHash := &object.Hash{
+			Pairs: make(map[object.HashKey]object.HashPair),
+		}
+
+		// Add method
+		methodKey := &object.String{Value: "method"}
+		requestHash.Pairs[methodKey.HashKey()] = object.HashPair{
+			Key:   methodKey,
+			Value: &object.String{Value: r.Method},
+		}
+
+		// Add path
+		pathKey := &object.String{Value: "path"}
+		requestHash.Pairs[pathKey.HashKey()] = object.HashPair{
+			Key:   pathKey,
+			Value: &object.String{Value: r.URL.Path},
+		}
+
+		// Add headers
+		headersHash := &object.Hash{
+			Pairs: make(map[object.HashKey]object.HashPair),
+		}
+		for headerName, headerValues := range r.Header {
+			headerKey := &object.String{Value: headerName}
+			// Join multiple header values with comma (HTTP spec)
+			headerValue := &object.String{Value: strings.Join(headerValues, ", ")}
+			headersHash.Pairs[headerKey.HashKey()] = object.HashPair{
+				Key:   headerKey,
+				Value: headerValue,
+			}
+		}
+		headersKey := &object.String{Value: "headers"}
+		requestHash.Pairs[headersKey.HashKey()] = object.HashPair{
+			Key:   headersKey,
+			Value: headersHash,
+		}
+
+		// Add query parameters
+		queryHash := &object.Hash{
+			Pairs: make(map[object.HashKey]object.HashPair),
+		}
+		queryParams := r.URL.Query()
+		for paramName, paramValues := range queryParams {
+			paramKey := &object.String{Value: paramName}
+			// Join multiple parameter values with comma
+			paramValue := &object.String{Value: strings.Join(paramValues, ", ")}
+			queryHash.Pairs[paramKey.HashKey()] = object.HashPair{
+				Key:   paramKey,
+				Value: paramValue,
+			}
+		}
+		queryKey := &object.String{Value: "query"}
+		requestHash.Pairs[queryKey.HashKey()] = object.HashPair{
+			Key:   queryKey,
+			Value: queryHash,
+		}
+
+		// Add request body
+		bodyBytes, err := io.ReadAll(r.Body)
+		if err == nil && len(bodyBytes) > 0 {
+			bodyKey := &object.String{Value: "body"}
+			requestHash.Pairs[bodyKey.HashKey()] = object.HashPair{
+				Key:   bodyKey,
+				Value: &object.String{Value: string(bodyBytes)},
+			}
+		}
+		r.Body.Close()
+
+		// Check if eval callback is set
+		if socket.EvalFunc == nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("Internal Server Error: No evaluator callback set"))
+			return
+		}
+
+		// Call the Carrion handler function via the eval callback
+		result := socket.EvalFunc(handler, []object.Object{requestHash})
+
+		// Process the result
+		if errObj, ok := result.(*object.Error); ok {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("Handler Error: " + errObj.Message))
+			return
+		}
+
+		// Check if result is an http_response hash
+		if responseHash, ok := result.(*object.Hash); ok {
+			// Extract and set headers first (before WriteHeader)
+			headersKey := &object.String{Value: "headers"}
+			if headersPair, exists := responseHash.Pairs[headersKey.HashKey()]; exists {
+				if headersHash, ok := headersPair.Value.(*object.Hash); ok {
+					for _, pair := range headersHash.Pairs {
+						if keyStr, ok := pair.Key.(*object.String); ok {
+							if valStr, ok := pair.Value.(*object.String); ok {
+								w.Header().Set(keyStr.Value, valStr.Value)
+							}
+						}
+					}
+				}
+			}
+
+			// Extract and set status code
+			statusCode := 200 // default
+			statusKey := &object.String{Value: "status"}
+			if statusPair, exists := responseHash.Pairs[statusKey.HashKey()]; exists {
+				if statusInt, ok := statusPair.Value.(*object.Integer); ok {
+					statusCode = int(statusInt.Value)
+				}
+			}
+			w.WriteHeader(statusCode)
+
+			// Extract and write body
+			bodyKey := &object.String{Value: "body"}
+			if bodyPair, exists := responseHash.Pairs[bodyKey.HashKey()]; exists {
+				if bodyStr, ok := bodyPair.Value.(*object.String); ok {
+					w.Write([]byte(bodyStr.Value))
+				}
+			}
+		} else {
+			// If not a hash, convert to string and return
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(result.Inspect()))
+		}
+	})
 
 	// Create a channel to synchronize server startup
 	startupChan := make(chan error, 1)
-	
+
 	go func() {
+		socket.Running = true
 		err := server.ListenAndServe()
+		socket.Running = false
 		if err != nil && err != http.ErrServerClosed {
 			startupChan <- err
 		}
+		socket.ShutdownChan <- true
 	}()
 
 	// Give the server a moment to start and check for immediate errors
@@ -768,12 +1152,12 @@ func startWebServer(address string, timeout time.Duration) object.Object {
 	}
 
 	handleID := storeSocketHandle(socket)
-	
+
 	// Print message if port was incremented
 	if message != "" {
 		fmt.Println(message)
 	}
-	
+
 	return &object.Integer{Value: handleID}
 }
 
@@ -782,7 +1166,7 @@ func startUnixServer(address string, timeout time.Duration) object.Object {
 	// But we can still check if the socket file already exists and increment the filename
 	originalAddress := address
 	var message string
-	
+
 	// Try up to 100 different socket file names
 	for attempts := 0; attempts < 100; attempts++ {
 		listener, err := net.Listen("unix", address)
@@ -806,12 +1190,12 @@ func startUnixServer(address string, timeout time.Duration) object.Object {
 
 		// Successfully bound to the socket
 		handleID := storeSocketHandle(listener)
-		
+
 		// Print message if socket path was incremented
 		if message != "" {
 			fmt.Println(message)
 		}
-		
+
 		return &object.Integer{Value: handleID}
 	}
 
@@ -901,20 +1285,20 @@ func sendDataTo(socket interface{}, data string, targetAddress string) object.Ob
 		if s.Conn == nil {
 			return &object.Error{Message: "UDP socket not connected"}
 		}
-		
+
 		// Parse target address
 		udpAddr, err := net.ResolveUDPAddr("udp", targetAddress)
 		if err != nil {
 			return &object.Error{Message: fmt.Sprintf("failed to resolve target address: %v", err)}
 		}
-		
+
 		// Send data to specific address
 		n, err := s.Conn.WriteTo([]byte(data), udpAddr)
 		if err != nil {
 			return &object.Error{Message: fmt.Sprintf("failed to send UDP data to %s: %v", targetAddress, err)}
 		}
 		return &object.Integer{Value: int64(n)}
-		
+
 	default:
 		return &object.Error{Message: "socket_send_to only supports UDP sockets"}
 	}
@@ -926,32 +1310,32 @@ func receiveDataFrom(socket interface{}, bufferSize int64) object.Object {
 		if s.Conn == nil {
 			return &object.Error{Message: "UDP socket not connected"}
 		}
-		
+
 		buffer := make([]byte, bufferSize)
 		n, addr, err := s.Conn.ReadFrom(buffer)
 		if err != nil && err != io.EOF {
 			return &object.Error{Message: fmt.Sprintf("failed to receive UDP data: %v", err)}
 		}
-		
+
 		// Return a hash with data and sender address
 		result := &object.Hash{
 			Pairs: make(map[object.HashKey]object.HashPair),
 		}
-		
+
 		dataKey := &object.String{Value: "data"}
 		result.Pairs[dataKey.HashKey()] = object.HashPair{
 			Key:   dataKey,
 			Value: &object.String{Value: string(buffer[:n])},
 		}
-		
+
 		senderKey := &object.String{Value: "sender"}
 		result.Pairs[senderKey.HashKey()] = object.HashPair{
 			Key:   senderKey,
 			Value: &object.String{Value: addr.String()},
 		}
-		
+
 		return result
-		
+
 	default:
 		return &object.Error{Message: "socket_receive_from only supports UDP sockets"}
 	}

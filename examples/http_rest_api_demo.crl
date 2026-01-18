@@ -1,0 +1,231 @@
+# Simple REST API Demo - Task Management
+# Demonstrates: Enhanced HTTP request/response with headers, query params, body
+
+print("Starting Task Management REST API...")
+
+# Simple in-memory storage (using a hash as a workaround)
+storage = {"tasks": {}, "next_id": 1}
+
+# Helper to build JSON response
+spell json_response(status, data):
+    return http_response(status, data, {"Content-Type": "application/json"})
+
+# GET /tasks - List all tasks
+spell list_tasks(request):
+    tasks = storage["tasks"]
+    result = "["
+    first = True
+    
+    # Check for status filter in query params
+    filter_status = None
+    if "query" in request:
+        if "status" in request["query"]:
+            filter_status = request["query"]["status"]
+            print("Filtering tasks by status: " + filter_status)
+    
+    for id_key in tasks:
+        task = tasks[id_key]
+        
+        # Apply filter if specified
+        if filter_status != None:
+            if task["status"] != filter_status:
+                continue
+        
+        if not first:
+            result = result + ","
+        first = False
+        
+        result = result + "{\"id\":" + id_key + ","
+        result = result + "\"title\":\"" + task["title"] + "\","
+        result = result + "\"status\":\"" + task["status"] + "\"}"
+    
+    result = result + "]"
+    return json_response(200, result)
+
+# POST /tasks - Create new task
+spell create_task(request):
+    if "body" not in request:
+        return json_response(400, "{\"error\":\"Request body required\"}")
+    
+    # Simple JSON parsing (extract title)
+    body = request["body"]
+    print("Creating task with body: " + body)
+    
+    # Extract title from JSON (simple string search)
+    title_start = body.find("\"title\":")
+    if title_start == -1:
+        return json_response(400, "{\"error\":\"Missing title field\"}")
+    
+    # Find the value after "title":
+    value_start = body.find("\"", title_start + 8)
+    value_end = body.find("\"", value_start + 1)
+    
+    if value_start == -1 or value_end == -1:
+        return json_response(400, "{\"error\":\"Invalid title format\"}")
+    
+    title = body[value_start + 1:value_end]
+    
+    # Create new task
+    task_id = storage["next_id"]
+    storage["next_id"] = task_id + 1
+    
+    id_str = str(task_id)
+    storage["tasks"][id_str] = {
+        "title": title,
+        "status": "pending"
+    }
+    
+    response = "{\"id\":" + id_str + ","
+    response = response + "\"title\":\"" + title + "\","
+    response = response + "\"status\":\"pending\"}"
+    
+    print("Created task #" + id_str + ": " + title)
+    return json_response(201, response)
+
+# GET /tasks/:id - Get single task
+spell get_task(request):
+    # Extract ID from path (e.g., /tasks/1)
+    path = request["path"]
+    parts = path.split("/")
+    
+    if len(parts) < 3:
+        return json_response(400, "{\"error\":\"Task ID required\"}")
+    
+    task_id = parts[2]
+    tasks = storage["tasks"]
+    
+    if task_id not in tasks:
+        return json_response(404, "{\"error\":\"Task not found\"}")
+    
+    task = tasks[task_id]
+    response = "{\"id\":" + task_id + ","
+    response = response + "\"title\":\"" + task["title"] + "\","
+    response = response + "\"status\":\"" + task["status"] + "\"}"
+    
+    return json_response(200, response)
+
+# PUT /tasks/:id - Update task status
+spell update_task(request):
+    path = request["path"]
+    parts = path.split("/")
+    
+    if len(parts) < 3:
+        return json_response(400, "{\"error\":\"Task ID required\"}")
+    
+    task_id = parts[2]
+    tasks = storage["tasks"]
+    
+    if task_id not in tasks:
+        return json_response(404, "{\"error\":\"Task not found\"}")
+    
+    if "body" not in request:
+        return json_response(400, "{\"error\":\"Request body required\"}")
+    
+    body = request["body"]
+    print("Updating task #" + task_id + " with body: " + body)
+    
+    # Extract status from JSON
+    status_start = body.find("\"status\":")
+    if status_start != -1:
+        value_start = body.find("\"", status_start + 9)
+        value_end = body.find("\"", value_start + 1)
+        
+        if value_start != -1 and value_end != -1:
+            new_status = body[value_start + 1:value_end]
+            tasks[task_id]["status"] = new_status
+            
+            print("Updated task #" + task_id + " status to: " + new_status)
+    
+    task = tasks[task_id]
+    response = "{\"id\":" + task_id + ","
+    response = response + "\"title\":\"" + task["title"] + "\","
+    response = response + "\"status\":\"" + task["status"] + "\"}"
+    
+    return json_response(200, response)
+
+# DELETE /tasks/:id - Delete task
+spell delete_task(request):
+    path = request["path"]
+    parts = path.split("/")
+    
+    if len(parts) < 3:
+        return json_response(400, "{\"error\":\"Task ID required\"}")
+    
+    task_id = parts[2]
+    tasks = storage["tasks"]
+    
+    if task_id not in tasks:
+        return json_response(404, "{\"error\":\"Task not found\"}")
+    
+    title = tasks[task_id]["title"]
+    tasks.remove(task_id)
+    
+    print("Deleted task #" + task_id + ": " + title)
+    return json_response(200, "{\"message\":\"Task deleted\"}")
+
+# API documentation endpoint
+spell api_docs(request):
+    docs = "Task Management API\n"
+    docs = docs + "===================\n\n"
+    docs = docs + "Endpoints:\n"
+    docs = docs + "  GET    /tasks           - List all tasks (optional ?status=pending)\n"
+    docs = docs + "  POST   /tasks           - Create task {\"title\":\"...\"}\n"
+    docs = docs + "  GET    /tasks/:id       - Get task by ID\n"
+    docs = docs + "  PUT    /tasks/:id       - Update task {\"status\":\"...\"}\n"
+    docs = docs + "  DELETE /tasks/:id       - Delete task\n"
+    docs = docs + "  GET    /                - This documentation\n"
+    
+    return http_response(200, docs, {"Content-Type": "text/plain"})
+
+# Handler for task-by-id routes
+spell tasks_by_id_handler(request):
+    method = request["method"]
+    
+    if method == "GET":
+        return get_task(request)
+    
+    if method == "PUT":
+        return update_task(request)
+    
+    if method == "DELETE":
+        return delete_task(request)
+    
+    return json_response(405, "{\"error\":\"Method not allowed\"}")
+
+# Create and configure server
+server = HTTPServer("0.0.0.0", 8080, 60)
+
+# Register routes
+server.add_route("GET", "/", api_docs)
+server.add_route("GET", "/tasks", list_tasks)
+server.add_route("POST", "/tasks", create_task)
+
+# Register ID-based routes (for demonstration, we'll register a few)
+server.add_route("GET", "/tasks/1", tasks_by_id_handler)
+server.add_route("PUT", "/tasks/1", tasks_by_id_handler)
+server.add_route("DELETE", "/tasks/1", tasks_by_id_handler)
+server.add_route("GET", "/tasks/2", tasks_by_id_handler)
+server.add_route("PUT", "/tasks/2", tasks_by_id_handler)
+server.add_route("DELETE", "/tasks/2", tasks_by_id_handler)
+server.add_route("GET", "/tasks/3", tasks_by_id_handler)
+server.add_route("PUT", "/tasks/3", tasks_by_id_handler)
+server.add_route("DELETE", "/tasks/3", tasks_by_id_handler)
+
+# Start server
+result = server.start()
+
+if result:
+    print("\n✓ Task API started on http://0.0.0.0:8080")
+    print("\nTry these commands:")
+    print("  curl http://localhost:8080/")
+    print("  curl -X POST http://localhost:8080/tasks -d '{\"title\":\"Learn Carrion\"}'")
+    print("  curl http://localhost:8080/tasks")
+    print("  curl http://localhost:8080/tasks/1")
+    print("  curl -X PUT http://localhost:8080/tasks/1 -d '{\"status\":\"completed\"}'")
+    print("  curl http://localhost:8080/tasks?status=pending")
+    print("\nPress Ctrl+C to stop...")
+    
+    server.wait_for_shutdown()
+    print("\nServer shut down")
+else:
+    print("Failed to start server")

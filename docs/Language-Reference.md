@@ -65,10 +65,10 @@ as           var         ignore      autoclose
 
 #### Integer Literals
 ```python
-42          // Decimal
-0b1010      // Binary (not in source, but supported in display)
-0o52        // Octal (not in source, but supported in display)
-0x2A        // Hexadecimal (not in source, but supported in display)
+42          # Decimal
+0b1010      # Binary (not in source, but supported in display)
+0o52        # Octal (not in source, but supported in display)
+0x2A        # Hexadecimal (not in source, but supported in display)
 ```
 
 #### Float Literals
@@ -76,8 +76,8 @@ as           var         ignore      autoclose
 3.14
 2.718
 1.0
-.5          // 0.5
-2e10        // Scientific notation (if supported)
+.5          # 0.5
+2e10        # Scientific notation (if supported)
 ```
 
 #### String Literals
@@ -86,8 +86,8 @@ as           var         ignore      autoclose
 'single quotes'
 """triple quotes for 
    multi-line strings"""
-f"formatted {variable}"      // F-strings
-i"interpolated {expression}" // Interpolated strings
+f"formatted {variable}"      # F-strings
+i"interpolated {expression}" # Interpolated strings
 ```
 
 #### Boolean Literals
@@ -157,9 +157,9 @@ empty = []
 #### Map
 Key-value mappings (dictionaries) with support for multiple key types:
 ```python
-person = {"name": "Alice", "age": 30}  // String keys
-config = {"debug": True, "timeout": 30}  // String keys
-mixed_map = {"name": "Alice", 42: "answer", 3.14: "pi", True: "enabled"}  // Mixed key types
+person = {"name": "Alice", "age": 30}  # String keys
+config = {"debug": True, "timeout": 30}  # String keys
+mixed_map = {"name": "Alice", 42: "answer", 3.14: "pi", True: "enabled"}  # Mixed key types
 empty_map = {}
 ```
 
@@ -174,13 +174,13 @@ Immutable ordered sequences:
 ```python
 coordinates = (10, 20)
 rgb = (255, 128, 0)
-single = (42,)  // Single-element tuple
+single = (42,)  # Single-element tuple
 ```
 
 ### Type Checking
 ```python
 value = 42
-print(type(value))  // → "INTEGER"
+print(type(value))  # → "INTEGER"
 
 if type(value) == "INTEGER":
     print("It's an integer")
@@ -249,7 +249,7 @@ if type(value) == "INTEGER":
 1. Parentheses: `()`
 2. Exponentiation: `**`
 3. Unary: `+`, `-`, `not`, `~`
-4. Multiplicative: `*`, `/`, `//`, `%`
+4. Multiplicative: `*`, `/`, `#`, `%`
 5. Additive: `+`, `-`
 6. Shift: `<<`, `>>`
 7. Bitwise AND: `&`
@@ -263,46 +263,46 @@ if type(value) == "INTEGER":
 
 ### Expression Examples
 ```python
-// Arithmetic expressions
-result = 2 + 3 * 4        // → 14
-result = (2 + 3) * 4      // → 20
+# Arithmetic expressions
+result = 2 + 3 * 4        # → 14
+result = (2 + 3) * 4      # → 20
 
-// Boolean expressions
+# Boolean expressions
 valid = age >= 18 and has_license
 can_proceed = user.is_admin() or user.has_permission("write")
 
-// String expressions
+# String expressions
 full_name = first_name + " " + last_name
 greeting = f"Hello, {name}!"
 
-// Collection expressions
-squares = [x ** 2 for x in range(5)]  // If list comprehension is supported
+# Collection expressions
+squares = [x ** 2 for x in range(5)]  # If list comprehension is supported
 ```
 
 ## Statements
 
 ### Assignment Statements
 ```python
-// Simple assignment
+# Simple assignment
 x = 42
 name = "Alice"
 
-// Multiple assignment (tuple unpacking)
+# Multiple assignment (tuple unpacking)
 x, y = (10, 20)
 a, b, c = [1, 2, 3]
 
-// Compound assignment
+# Compound assignment
 x += 5
 count *= 2
 ```
 
 ### Expression Statements
 ```python
-// Function calls
+# Function calls
 print("Hello")
 result = calculate(10, 20)
 
-// Method calls
+# Method calls
 text.upper()
 array.append(item)
 ```
@@ -312,76 +312,76 @@ array.append(item)
 #### If Statements
 ```python
 if condition:
-    // code
+    # code
 otherwise another_condition:
-    // code
+    # code
 else:
-    // code
+    # code
 ```
 
 #### For Loops
 ```python
 for item in iterable:
-    // code
+    # code
 else:
-    // optional else clause
+    # optional else clause
 ```
 
 #### While Loops
 ```python
 while condition:
-    // code
+    # code
 ```
 
 #### Match Statements
 ```python
 match value:
     case pattern1:
-        // code
+        # code
     case pattern2:
-        // code
+        # code
     _:
-        // default case
+        # default case
 ```
 
 #### Loop Control
 ```python
-skip  // Continue to next iteration
-stop  // Break from loop
+skip  # Continue to next iteration
+stop  # Break from loop
 ```
 
 #### Return Statements
 ```python
-return            // Return None
-return value      // Return specific value
+return            # Return None
+return value      # Return specific value
 ```
 
 #### Autoclose Statements
 Automatic resource management for objects that need cleanup:
 ```python
 autoclose expression as variable:
-    // code block
-    // variable.close() is called automatically
+    # code block
+    # variable.close() is called automatically
 ```
 
 The `autoclose` statement ensures that resources are properly cleaned up when the block exits, even if an error occurs. It works with any object that has a `close()` method.
 
 Examples:
 ```python
-// File operations with File grimoire (recommended)
+# File operations with File grimoire (recommended)
 autoclose File.open("data.txt", "r") as file:
     content = file.read_content()
     print(content)
 
-// Writing files with File grimoire
+# Writing files with File grimoire
 autoclose File.open("output.txt", "w") as file:
     file.write_content("Hello, World!")
 
-// Appending to files with File grimoire
+# Appending to files with File grimoire
 autoclose File.open("log.txt", "a") as file:
     file.write_content("New entry\n")
 
-// Alternative: using open() builtin (less preferred)
+# Alternative: using open() builtin (less preferred)
 autoclose open("data.txt", "r") as file:
     content = file.read_content()
     print(content)
@@ -392,21 +392,21 @@ autoclose open("data.txt", "r") as file:
 ### Function Definition
 ```python
 spell function_name(parameters):
-    // function body
-    return value  // optional
+    # function body
+    return value  # optional
 ```
 
 ### Parameters
 ```python
-// Basic parameters
+# Basic parameters
 spell greet(name):
     return f"Hello, {name}!"
 
-// Default parameters
+# Default parameters
 spell power(base, exponent = 2):
     return base ** exponent
 
-// Variable arguments (if supported)
+# Variable arguments (if supported)
 spell sum_all(*numbers):
     total = 0
     for num in numbers:
@@ -436,10 +436,10 @@ spell is_prime(number):
 ```python
 grim ClassName:
     init(parameters):
-        // constructor
+        # constructor
     
     spell method_name(parameters):
-        // method implementation
+        # method implementation
 ```
 
 ### Inheritance
@@ -447,10 +447,10 @@ grim ClassName:
 grim Child(Parent):
     init(parameters):
         super.init(parent_parameters)
-        // child-specific initialization
+        # child-specific initialization
     
     spell method_name(parameters):
-        // override or new method
+        # override or new method
 ```
 
 ### Abstract Classes
@@ -458,7 +458,7 @@ grim Child(Parent):
 arcane grim AbstractClass:
     @arcanespell
     spell abstract_method():
-        ignore  // no implementation
+        ignore  # no implementation
 ```
 
 ### Access Modifiers
@@ -471,13 +471,13 @@ arcane grim AbstractClass:
 ### Basic Syntax
 ```python
 attempt:
-    // risky code
+    # risky code
 ensnare (ErrorType):
-    // handle specific error
+    # handle specific error
 ensnare:
-    // handle any error
+    # handle any error
 resolve:
-    // finally block
+    # finally block
 ```
 
 ### Raising Errors
@@ -581,13 +581,13 @@ All collection types support the `in` operator and iteration with `for` loops:
 The File and OS grimoires provide comprehensive system operations:
 
 ```python
-// File operations with static methods (recommended)
+# File operations with static methods (recommended)
 content = File.read("config.txt")
 File.write("output.txt", "Hello")
 File.append("log.txt", "New entry\n")
 exists = File.exists("data.txt")
 
-// OS operations with static methods
+# OS operations with static methods
 current_dir = OS.cwd()
 OS.chdir("/home/user")
 files = OS.listdir(".")
@@ -610,32 +610,32 @@ Carrion provides comprehensive JSON support for parsing and stringifying data:
 
 #### Parsing JSON
 ```python
-// Parse JSON objects with parseHash (built-in)
+# Parse JSON objects with parseHash (built-in)
 data = parseHash('{"name": "Alice", "age": 30, "active": true}')
-print(data["name"])   // → "Alice"
-print(data["age"])    // → 30
-print(data["active"]) // → True
+print(data["name"])   # → "Alice"
+print(data["age"])    # → 30
+print(data["active"]) # → True
 
-// Parse any JSON with httpParseJSON (more flexible)
-// Arrays
+# Parse any JSON with httpParseJSON (more flexible)
+# Arrays
 array_data = httpParseJSON('[1, 2, 3, "hello", true, null]')
-print(array_data[3])  // → "hello"
-print(array_data[5])  // → None
+print(array_data[3])  # → "hello"
+print(array_data[5])  # → None
 
-// Nested structures
+# Nested structures
 complex_data = httpParseJSON('{"users": [{"id": 1, "name": "Bob"}, {"id": 2, "name": "Carol"}]}')
-print(complex_data["users"][0]["name"])  // → "Bob"
+print(complex_data["users"][0]["name"])  # → "Bob"
 
-// Error handling
+# Error handling
 attempt:
-    invalid = parseHash('[1, 2, 3]')  // Error: parseHash only accepts objects
+    invalid = parseHash('[1, 2, 3]')  # Error: parseHash only accepts objects
 ensnare:
     print("parseHash requires a JSON object, not an array")
 ```
 
 #### Converting to JSON
 ```python
-// Convert Carrion objects to JSON strings
+# Convert Carrion objects to JSON strings
 user = {
     "name": "Alice",
     "age": 30,
@@ -646,27 +646,27 @@ user = {
 
 json_string = httpStringifyJSON(user)
 print(json_string)
-// → '{"name":"Alice","age":30,"skills":["Python","Carrion","Go"],"active":true,"metadata":null}'
+# → '{"name":"Alice","age":30,"skills":["Python","Carrion","Go"],"active":true,"metadata":null}'
 
-// Works with arrays too
+# Works with arrays too
 numbers = [1, 2.5, 3]
 json_array = httpStringifyJSON(numbers)
-print(json_array)  // → '[1,2.5,3]'
+print(json_array)  # → '[1,2.5,3]'
 ```
 
 #### Practical JSON Examples
 ```python
-// API Integration
-response = httpGet("https://api.example.com/users/123")
+# API Integration
+response = httpGet("https:#api.example.com/users/123")
 user_data = httpParseJSON(response)
 print(f"User: {user_data['name']}, Email: {user_data['email']}")
 
-// Configuration files
+# Configuration files
 config_json = File.read("config.json")
 config = httpParseJSON(config_json)
 debug_mode = config.get("debug", False)
 
-// Creating API requests
+# Creating API requests
 request_data = {
     "action": "create_user",
     "params": {
@@ -675,7 +675,7 @@ request_data = {
     }
 }
 json_body = httpStringifyJSON(request_data)
-response = httpPost("https://api.example.com/users", json_body)
+response = httpPost("https:#api.example.com/users", json_body)
 ```
 
 ## Language Grammar (Simplified)
@@ -713,7 +713,7 @@ bitwise_xor     := bitwise_and ('^' bitwise_and)*
 bitwise_and     := shift ('&' shift)*
 shift           := addition (('<<' | '>>') addition)*
 addition        := multiplication (('+' | '-') multiplication)*
-multiplication  := exponentiation (('*' | '/' | '//' | '%') exponentiation)*
+multiplication  := exponentiation (('*' | '/' | '#' | '%') exponentiation)*
 exponentiation  := unary ('**' unary)*
 unary           := ('not' | '-' | '+' | '~') unary | postfix
 postfix         := primary ('++' | '--')*

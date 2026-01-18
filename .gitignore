@@ -26,6 +26,7 @@ go.work.sum
 debug_*.go
 # Carrion History for build code
 .carrion_history
+*.carrion_history
 .claude
 CLAUDE.md
 
@@ -33,3 +34,4 @@ CLAUDE.md
 carrion
 sindri
 main
+.planning

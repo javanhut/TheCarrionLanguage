@@ -76,6 +76,7 @@ type Parser struct {
 	peekToken         token.Token
 	errors            []string
 	contextStack      []string
+	indentStack       []int
 	parsingParameters bool
 	inTypeHintContext bool
 	prefixParseFns    map[token.TokenType]prefixParseFn
@@ -99,7 +100,10 @@ func (p *Parser) isInsideGrimoire() bool {
 
 func New(l *lexer.Lexer) *Parser {
 	p := &Parser{
-		l: l, errors: []string{},
+		l:            l,
+		errors:       []string{},
+		contextStack: []string{},
+		indentStack:  []int{0},
 		controlStack: []struct {
 			Type        string
 			IndentLevel int
@@ -137,6 +141,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.INDENT, func() ast.Expression { return nil })
 	p.registerPrefix(token.DEDENT, func() ast.Expression { return nil })
 	p.registerPrefix(token.EOF, func() ast.Expression { return nil })
+	p.registerPrefix(token.INDENT_ERROR, func() ast.Expression { return nil })
 	// OTHERWISE is handled as part of if-statement parsing, not as a prefix expression
 	p.registerPrefix(token.ENSNARE, func() ast.Expression { return nil })
 	p.registerPrefix(token.AS, func() ast.Expression { return nil })
@@ -346,25 +351,25 @@ func (p *Parser) parseDivergeStatement() ast.Statement {
 		HasElse:     false,
 		Token:       p.currToken,
 	})
-	
+
 	stmt := &ast.DivergeStatement{Token: p.currToken}
-	
+
 	// Check if there's an optional name
 	if p.peekTokenIs(token.IDENT) {
 		p.nextToken()
 		stmt.Name = &ast.Identifier{Token: p.currToken, Value: p.currToken.Literal}
 	}
-	
+
 	// Expect colon
 	if !p.expectPeek(token.COLON) {
 		return nil
 	}
-	
+
 	// Skip newlines after colon
 	for p.peekTokenIs(token.NEWLINE) {
 		p.nextToken()
 	}
-	
+
 	// Handle indentation and parse body
 	if p.peekTokenIs(token.INDENT) {
 		p.nextToken() // Move to INDENT token
@@ -373,23 +378,23 @@ func (p *Parser) parseDivergeStatement() ast.Statement {
 	} else {
 		stmt.Body = p.parseBlockStatement()
 	}
-	
+
 	// Pop control stack
 	if len(p.controlStack) > 0 {
 		p.controlStack = p.controlStack[:len(p.controlStack)-1]
 	}
-	
+
 	return stmt
 }
 
 func (p *Parser) parseConvergeStatement() ast.Statement {
 	stmt := &ast.ConvergeStatement{Token: p.currToken}
-	
+
 	// Check if there are names to wait for
 	if p.peekTokenIs(token.IDENT) {
 		p.nextToken()
 		stmt.Names = append(stmt.Names, &ast.Identifier{Token: p.currToken, Value: p.currToken.Literal})
-		
+
 		// Parse additional names separated by commas
 		for p.peekTokenIs(token.COMMA) {
 			p.nextToken() // consume comma
@@ -399,25 +404,25 @@ func (p *Parser) parseConvergeStatement() ast.Statement {
 			stmt.Names = append(stmt.Names, &ast.Identifier{Token: p.currToken, Value: p.currToken.Literal})
 		}
 	}
-	
+
 	// Check for optional timeout keyword
 	if p.peekTokenIs(token.IDENT) && p.peekToken.Literal == "timeout" {
 		p.nextToken() // consume "timeout" identifier
-		
+
 		// Parse the timeout value expression
 		if !p.expectPeek(token.INT) {
 			return nil
 		}
-		
+
 		// Convert string to int64
 		timeoutValue, err := strconv.ParseInt(p.currToken.Literal, 0, 64)
 		if err != nil {
 			return nil
 		}
-		
+
 		stmt.Timeout = &ast.IntegerLiteral{Token: p.currToken, Value: timeoutValue}
 	}
-	
+
 	return stmt
 }
 
@@ -872,6 +877,14 @@ func (p *Parser) parseMatchStatement() ast.Statement {
 		stmt.Cases = append(stmt.Cases, caseClause)
 	}
 
+	// After parsing all cases, we may be positioned at a DEDENT token
+	// that closed the last case block. We need to consume it before
+	// checking for a default case, otherwise it will be interpreted
+	// as closing the parent block (method/grimoire body).
+	if p.currTokenIs(token.DEDENT) {
+		p.nextToken() // Consume the DEDENT
+	}
+
 	if p.peekTokenIs(token.UNDERSCORE) {
 		p.nextToken()
 		defaultClause := &ast.CaseClause{Token: p.currToken}
@@ -949,7 +962,7 @@ func (p *Parser) expectPeekMethodName() bool {
 		p.nextToken()
 		return true
 	}
-	
+
 	p.peekError(token.IDENT)
 	return false
 }
@@ -1011,7 +1024,7 @@ func (p *Parser) parseHashLiteral() ast.Expression {
 	for !p.peekTokenIs(token.RBRACE) {
 		// Skip any newlines before key
 		p.skipNewlines()
-		
+
 		// Check for DEDENT which might precede closing brace
 		if p.peekTokenIs(token.DEDENT) {
 			p.nextToken()
@@ -1021,7 +1034,7 @@ func (p *Parser) parseHashLiteral() ast.Expression {
 				break
 			}
 		}
-		
+
 		// Check again for closing brace after handling dedent/newlines
 		if p.peekTokenIs(token.RBRACE) {
 			break
@@ -1054,7 +1067,7 @@ func (p *Parser) parseHashLiteral() ast.Expression {
 
 		// Check what comes after the value
 		if p.peekTokenIs(token.COMMA) {
-			p.nextToken() // consume comma
+			p.nextToken()    // consume comma
 			p.skipNewlines() // skip any newlines after comma
 		} else if p.peekTokenIs(token.NEWLINE) || p.peekTokenIs(token.DEDENT) || p.peekTokenIs(token.RBRACE) {
 			// These are all valid separators/terminators
@@ -1093,7 +1106,7 @@ func (p *Parser) parseFloatLiteral() ast.Expression {
 func (p *Parser) parseIndexExpression(left ast.Expression) ast.Expression {
 	tok := p.currToken
 	p.nextToken()
-	
+
 	// Check if this is a slice expression by looking for colon
 	if p.currTokenIs(token.COLON) {
 		// This is a slice starting with :
@@ -1109,10 +1122,10 @@ func (p *Parser) parseIndexExpression(left ast.Expression) ast.Expression {
 		}
 		return sliceExp
 	}
-	
+
 	// Parse the first expression
 	firstExp := p.parseExpression(LOWEST)
-	
+
 	// Check if there's a colon after the first expression (slice)
 	if p.peekTokenIs(token.COLON) {
 		sliceExp := &ast.SliceExpression{Token: tok, Left: left, Start: firstExp}
@@ -1128,7 +1141,7 @@ func (p *Parser) parseIndexExpression(left ast.Expression) ast.Expression {
 		}
 		return sliceExp
 	}
-	
+
 	// Regular index expression
 	exp := &ast.IndexExpression{Token: tok, Left: left, Index: firstExp}
 	if !p.expectPeek(token.RBRACK) {
@@ -1192,25 +1205,26 @@ func (p *Parser) parseBoolean() ast.Expression {
 }
 
 func (p *Parser) peekError(t token.TokenType) {
-	msg := fmt.Sprintf("at line %d, column %d: expected next token to be %s, got %s instead", 
+	msg := fmt.Sprintf("at line %d, column %d: expected next token to be %s, got %s instead",
 		p.peekToken.Line, p.peekToken.Column, t, p.peekToken.Type)
 	p.errors = append(p.errors, msg)
 }
 
 func (p *Parser) addError(message string) {
-	msg := fmt.Sprintf("at line %d, column %d: %s", 
+	msg := fmt.Sprintf("at line %d, column %d: %s",
 		p.currToken.Line, p.currToken.Column, message)
 	p.errors = append(p.errors, msg)
 }
 
 func (p *Parser) addErrorWithToken(message string, tok token.Token) {
-	msg := fmt.Sprintf("at line %d, column %d: %s", 
+	msg := fmt.Sprintf("at line %d, column %d: %s",
 		tok.Line, tok.Column, message)
 	p.errors = append(p.errors, msg)
 }
 
 func (p *Parser) nextToken() {
 	p.currToken = p.peekToken
+	p.updateIndentStack(p.currToken)
 	p.peekToken = p.l.NextToken()
 }
 
@@ -1219,6 +1233,13 @@ func (p *Parser) ParseProgram() *ast.Program {
 	program.Statements = []ast.Statement{}
 
 	for p.currToken.Type != token.EOF {
+		// Handle indentation errors immediately
+		if p.currToken.Type == token.INDENT_ERROR {
+			p.addErrorWithToken(p.currToken.Literal, p.currToken)
+			p.nextToken()
+			continue
+		}
+
 		// Skip blank lines, indentation dedents, and semicolons
 		for p.currToken.Type == token.NEWLINE ||
 			p.currToken.Type == token.INDENT ||
@@ -1242,6 +1263,11 @@ func (p *Parser) ParseProgram() *ast.Program {
 func (p *Parser) parseStatement() ast.Statement {
 	if p.currToken.Type == token.NEWLINE || p.currToken.Type == token.EOF ||
 		p.currToken.Type == token.INDENT || p.currToken.Type == token.DEDENT {
+		return nil
+	}
+	// Handle indentation errors from the lexer
+	if p.currToken.Type == token.INDENT_ERROR {
+		p.addErrorWithToken(p.currToken.Literal, p.currToken)
 		return nil
 	}
 	switch p.currToken.Type {
@@ -1305,7 +1331,7 @@ func (p *Parser) parseStatement() ast.Statement {
 		p.peekTokenIs(token.DIVASSGN) {
 		return p.finishAssignmentStatement(leftExpr)
 	}
-	
+
 	// Check for unpack operator
 	if p.peekTokenIs(token.UNPACK) {
 		p.nextToken() // move to <- token
@@ -1727,12 +1753,43 @@ func (p *Parser) getCurrentIndent() int {
 	return len(p.contextStack)
 }
 
+func (p *Parser) getIndentLevel() int {
+	if len(p.indentStack) == 0 {
+		return 0
+	}
+	return p.indentStack[len(p.indentStack)-1]
+}
+
+func (p *Parser) updateIndentStack(tok token.Token) {
+	switch tok.Type {
+	case token.INDENT:
+		indent := tok.Column - 1
+		if indent < 0 {
+			indent = 0
+		}
+		p.indentStack = append(p.indentStack, indent)
+	case token.DEDENT:
+		if len(p.indentStack) > 1 {
+			p.indentStack = p.indentStack[:len(p.indentStack)-1]
+		}
+	}
+}
+
 func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 	block := &ast.BlockStatement{Token: p.currToken}
 	block.Statements = []ast.Statement{}
 	prevIndent := p.getCurrentIndent()
+	blockIndent := p.getIndentLevel()
 
-	for !p.currTokenIs(token.DEDENT) && !p.currTokenIs(token.EOF) {
+	for !p.currTokenIs(token.EOF) {
+		if p.currTokenIs(token.DEDENT) {
+			if p.getIndentLevel() < blockIndent {
+				break
+			}
+			p.nextToken()
+			continue
+		}
+
 		stmt := p.parseStatement()
 		if stmt != nil {
 			block.Statements = append(block.Statements, stmt)
@@ -1816,15 +1873,15 @@ func (p *Parser) parseForStatement() ast.Statement {
 	if !p.expectPeek(token.IDENT) {
 		return nil
 	}
-	
+
 	// Start with the first identifier
 	firstVar := &ast.Identifier{Token: p.currToken, Value: p.currToken.Literal}
-	
+
 	// Check if there are more variables (tuple unpacking)
 	if p.peekTokenIs(token.COMMA) {
 		// Multiple variables - create a tuple literal
 		variables := []ast.Expression{firstVar}
-		
+
 		// Parse remaining variables
 		for p.peekTokenIs(token.COMMA) {
 			p.nextToken() // consume comma
@@ -1834,7 +1891,7 @@ func (p *Parser) parseForStatement() ast.Statement {
 			nextVar := &ast.Identifier{Token: p.currToken, Value: p.currToken.Literal}
 			variables = append(variables, nextVar)
 		}
-		
+
 		// Create tuple literal for multiple variables
 		tupleLiteral := &ast.TupleLiteral{
 			Token:    firstVar.Token,
@@ -2252,11 +2309,11 @@ func (p *Parser) parseImportStatement() ast.Statement {
 		p.errors = append(p.errors, "expected file path string after 'import'")
 		return nil
 	}
-	
+
 	importPath := p.currToken.Literal
-	
+
 	// Check if this is a grimoire-only import (single name starting with uppercase)
-	if !strings.Contains(importPath, "/") && !strings.Contains(importPath, ".") && 
+	if !strings.Contains(importPath, "/") && !strings.Contains(importPath, ".") &&
 		len(importPath) > 0 && importPath[0] >= 'A' && importPath[0] <= 'Z' {
 		// This is a grimoire name import like import "HelloWorld"
 		// We'll treat it as a selective import where the evaluator will search for the grimoire
@@ -2271,21 +2328,45 @@ func (p *Parser) parseImportStatement() ast.Statement {
 		}
 	} else {
 		// Check if the import path ends with a dot notation for selective imports
-		// We need to check if the LAST dot represents a grimoire selection
+		// We need to check if the LAST dot represents a grimoire/spell selection
 		lastDotIndex := strings.LastIndex(importPath, ".")
 		if lastDotIndex != -1 && lastDotIndex < len(importPath)-1 {
-			// Check if the part after the last dot looks like a grimoire name (starts with uppercase)
-			potentialGrimoire := importPath[lastDotIndex+1:]
-			if len(potentialGrimoire) > 0 && potentialGrimoire[0] >= 'A' && potentialGrimoire[0] <= 'Z' {
-				// This looks like a selective import: "module/path.GrimoireName"
-				modulePath := importPath[:lastDotIndex]
-				stmt.FilePath = &ast.StringLiteral{
-					Token: p.currToken,
-					Value: modulePath, // The module path without the grimoire name
+			potentialName := importPath[lastDotIndex+1:]
+			// Check if the part after the last dot is a valid identifier (grimoire or spell name)
+			// It should start with a letter and contain only alphanumeric characters and underscores
+			isValidIdentifier := len(potentialName) > 0 &&
+				((potentialName[0] >= 'A' && potentialName[0] <= 'Z') ||
+					(potentialName[0] >= 'a' && potentialName[0] <= 'z') ||
+					potentialName[0] == '_')
+
+			if isValidIdentifier {
+				// Check if it's a valid identifier throughout
+				allValidChars := true
+				for _, ch := range potentialName {
+					if !((ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') ||
+						(ch >= '0' && ch <= '9') || ch == '_') {
+						allValidChars = false
+						break
+					}
 				}
-				stmt.ClassName = &ast.Identifier{
-					Token: p.currToken,
-					Value: potentialGrimoire, // The specific grimoire name
+
+				if allValidChars {
+					// This looks like a selective import: "module/path.Name" or "module/path.spell_name"
+					modulePath := importPath[:lastDotIndex]
+					stmt.FilePath = &ast.StringLiteral{
+						Token: p.currToken,
+						Value: modulePath, // The module path without the name
+					}
+					stmt.ClassName = &ast.Identifier{
+						Token: p.currToken,
+						Value: potentialName, // The specific grimoire or spell name
+					}
+				} else {
+					// Regular import path with non-identifier after dot (like file.crl)
+					stmt.FilePath = &ast.StringLiteral{
+						Token: p.currToken,
+						Value: importPath,
+					}
 				}
 			} else {
 				// Regular import path that happens to have dots
@@ -2495,31 +2576,31 @@ func (p *Parser) parseGlobalStatement() ast.Statement {
 
 func (p *Parser) parseWithStatement() ast.Statement {
 	stmt := &ast.WithStatement{Token: p.currToken}
-	
+
 	// autoclose <expression> as <variable>:
 	if !p.expectPeek(token.IDENT) && !p.currTokenIs(token.LPAREN) {
 		return nil
 	}
-	
+
 	// Parse the expression (e.g., open("file.txt", "r"))
 	stmt.Expression = p.parseExpression(LOWEST)
-	
+
 	// Expect 'as'
 	if !p.expectPeek(token.AS) {
 		return nil
 	}
-	
+
 	// Parse the variable name
 	if !p.expectPeek(token.IDENT) {
 		return nil
 	}
 	stmt.Variable = &ast.Identifier{Token: p.currToken, Value: p.currToken.Literal}
-	
+
 	// Expect colon
 	if !p.expectPeek(token.COLON) {
 		return nil
 	}
-	
+
 	// Expect newline and indent
 	if !p.expectPeek(token.NEWLINE) {
 		return nil
@@ -2527,10 +2608,10 @@ func (p *Parser) parseWithStatement() ast.Statement {
 	if !p.expectPeek(token.INDENT) {
 		return nil
 	}
-	
+
 	// Parse the body
 	stmt.Body = p.parseBlockStatement()
-	
+
 	return stmt
 }
 
@@ -2541,7 +2622,7 @@ func (p *Parser) parseUnpackStatement(left ast.Expression) *ast.UnpackStatement 
 		Token: p.currToken,
 		Value: nil,
 	}
-	
+
 	// Convert left expression to list of variables
 	if tuple, ok := left.(*ast.TupleLiteral); ok {
 		stmt.Variables = tuple.Elements
@@ -2549,10 +2630,10 @@ func (p *Parser) parseUnpackStatement(left ast.Expression) *ast.UnpackStatement 
 		// Single variable
 		stmt.Variables = []ast.Expression{left}
 	}
-	
+
 	// Parse the right side (value being unpacked)
 	p.nextToken()
 	stmt.Value = p.parseExpression(LOWEST)
-	
+
 	return stmt
 }

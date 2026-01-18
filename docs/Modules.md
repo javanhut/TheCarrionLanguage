@@ -45,14 +45,17 @@ import "GrimoireName" as MyGrimoire  // Import grimoire with alias
 
 #### Local File Imports
 ```python
-import "filename"              // Current directory: ./filename.crl
-import "mymodule.ClassName"    // Selective import: ./mymodule.crl -> ClassName
+import "filename"                 // Current directory: ./filename.crl (imports all definitions)
+import "mymodule.ClassName"       // Selective import: ./mymodule.crl -> ClassName grimoire
+import "mymodule.spell_name"      // Selective import: ./mymodule.crl -> spell_name function
+import "mymodule.spell_name" as fn // Selective import with alias
 ```
 
 #### Simplified Package Imports
 ```python
-import "package/module"              // Auto-resolves to: carrion_modules/package/[version]/src/module.crl
-import "package/module.ClassName"    // Selective import from package module
+import "package/module"                // Auto-resolves to: carrion_modules/package/[version]/src/module.crl (all definitions)
+import "package/module.ClassName"      // Selective grimoire import from package module
+import "package/module.function_name"  // Selective spell import from package module
 ```
 
 #### Relative Path Imports
@@ -278,12 +281,15 @@ import "HelloWorld" as Hello      // → Search for HelloWorld grimoire with ali
 import "debug"                    // → Import debug module for basic logging
 
 // 2. Local file imports (current directory)
-import "utils"                    // → ./utils.crl
-import "utils.Helper"             // → ./utils.crl (import Helper grimoire)
+import "utils"                    // → ./utils.crl (imports all top-level definitions)
+import "utils.Helper"             // → ./utils.crl (import Helper grimoire only)
+import "utils.format_text"        // → ./utils.crl (import format_text spell only)
+import "utils.format_text" as fmt // → ./utils.crl (import spell with alias)
 
 // 3. Simplified package imports (auto-resolves versions)
-import "hello-world/main"              // → carrion_modules/hello-world/0.1.0/src/main.crl
+import "hello-world/main"              // → carrion_modules/hello-world/0.1.0/src/main.crl (all definitions)
 import "hello-world/main.HelloWorld"   // → carrion_modules/hello-world/0.1.0/src/main.crl (HelloWorld grimoire)
+import "hello-world/main.greet"        // → carrion_modules/hello-world/0.1.0/src/main.crl (greet spell)
 
 // 4. Relative path imports
 import "./utils"                  // → ./utils.crl (explicit current)
@@ -341,6 +347,61 @@ main:
     logger.info("Application started")
 ```
 
+## Import Behavior
+
+### What Gets Imported
+
+Carrion's import system has different behaviors depending on how you import:
+
+#### Full Module Import (No Dot Notation)
+```python
+import "module_name"
+```
+Imports **all top-level definitions** from the module, including:
+- All spells (functions)
+- All grimoires (classes)
+- All global variables
+- **Excludes**: Private items (names starting with `__`)
+
+#### Selective Import (With Dot Notation)
+```python
+import "module_name.item_name"
+```
+Imports **only the specified item** from the module:
+- Can be a spell (function) name
+- Can be a grimoire (class) name
+- Can be any top-level defined object
+
+#### Module Alias Import
+```python
+import "module_name" as alias
+```
+Creates a **namespace** containing all module contents:
+- Access items via `alias.item_name`
+- All top-level definitions available through namespace
+- Private items (starting with `__`) are excluded
+
+### Import Caching
+
+Carrion intelligently caches imported modules:
+
+```python
+// First import: file is parsed and evaluated
+import "utilities.Logger"
+
+// Second import: reuses cached environment (no re-parsing)
+import "utilities.format_date"
+
+// Third import: still uses cache
+import "utilities.Cache"
+```
+
+**Benefits:**
+- Modules are only parsed once
+- Multiple selective imports from same file are efficient
+- Module initialization code runs only once
+- Shared module state across imports
+
 ## Import Examples
 
 ### Basic File Import
@@ -397,6 +458,51 @@ print(f"Calculator result: {sum_result}")  // → "Calculator result: 25"
 
 ## Selective Imports
 
+Carrion supports selective imports for both grimoires (classes) and spells (functions), allowing you to import only what you need from a module.
+
+### Importing Specific Spells (Functions)
+
+You can import individual spells (functions) from a module without importing the entire module or its grimoires.
+
+**File: `math_helpers.crl`**
+```python
+spell add(a, b):
+    return a + b
+
+spell subtract(a, b):
+    return a - b
+
+spell multiply(a, b):
+    return a * b
+
+spell divide(a, b):
+    if b == 0:
+        raise Error("Math", "Division by zero")
+    return a / b
+
+grim Calculator:
+    init():
+        self.result = 0
+```
+
+**File: `main.crl`**
+```python
+// Import specific spells
+import "math_helpers.add"
+import "math_helpers.multiply" as mult
+
+// Use imported spells
+sum = add(10, 5)              // Works - add was imported
+product = mult(4, 7)          // Works - multiply imported with alias
+
+print(f"Sum: {sum}")          // Output: Sum: 15
+print(f"Product: {product}")  // Output: Product: 28
+
+// These would cause errors:
+// result = subtract(10, 5)   // Error: subtract not imported
+// calc = Calculator()         // Error: Calculator not imported
+```
+
 ### Importing Specific Grimoires
 ```python
 import "data_structures.Stack"
@@ -449,19 +555,83 @@ print(stack.pop())  // → 2
 ```
 
 ### Import with Aliases
+
+Aliases work for modules, grimoires, and spells:
+
 ```python
+// Module aliases
 import "very_long_module_name" as short_name
+
+// Grimoire aliases
 import "data_structures.Stack" as MyStack
+
+// Spell aliases
+import "string_utils.capitalize" as cap
+import "math_helpers.calculate_average" as avg
 ```
 
 **Example:**
 ```python
+// Import entire module with alias (namespace)
 import "mathematical_operations" as math_ops
+
+// Import specific grimoire with alias
 import "string_utilities.StringProcessor" as StrProc
 
+// Import specific spell with alias
+import "formatters.format_currency" as fmt_money
+
+// Use aliases
 result = math_ops.complex_calculation(10, 20)
 processor = StrProc("Hello World")
 formatted = processor.format_title()
+price_str = fmt_money(19.99, "USD")
+```
+
+### Mixed Imports (Spells and Grimoires)
+
+You can import multiple items from the same module using multiple import statements:
+
+**File: `utilities.crl`**
+```python
+spell format_date(date_string):
+    return f"Formatted: {date_string}"
+
+spell validate_email(email):
+    return "@" in email
+
+grim Logger:
+    init(name):
+        self.name = name
+
+    spell log(message):
+        print(f"[{self.name}] {message}")
+
+grim Cache:
+    init():
+        self.data = {}
+```
+
+**File: `main.crl`**
+```python
+// Import specific spells
+import "utilities.format_date"
+import "utilities.validate_email" as check_email
+
+// Import specific grimoires
+import "utilities.Logger"
+import "utilities.Cache"
+
+// Use imported spells
+formatted = format_date("2024-01-15")
+is_valid = check_email("user@example.com")
+
+// Use imported grimoires
+logger = Logger("MyApp")
+cache = Cache()
+
+logger.log(f"Date: {formatted}")
+logger.log(f"Email valid: {is_valid}")
 ```
 
 ## Package Management with Bifrost

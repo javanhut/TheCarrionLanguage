@@ -11,6 +11,7 @@ import (
 
 	"github.com/peterh/liner"
 
+	"github.com/javanhut/TheCarrionLanguage/src/ast"
 	"github.com/javanhut/TheCarrionLanguage/src/debug"
 	"github.com/javanhut/TheCarrionLanguage/src/evaluator"
 	"github.com/javanhut/TheCarrionLanguage/src/lexer"
@@ -60,7 +61,7 @@ func Start(in io.Reader, out io.Writer, env *object.Environment) {
 	defer func() {
 		ok := line.Close()
 		if ok != nil {
-			log.Fatal("Unable to close the file: ", ok)
+			log.Printf("Warning: Unable to close liner: %v", ok)
 		}
 		evaluator.LineReader = nil
 		// Clean up global state to prevent memory leaks
@@ -231,12 +232,12 @@ func Start(in io.Reader, out io.Writer, env *object.Environment) {
 	if f, err := os.Open(historyFile); err == nil {
 		_, err := line.ReadHistory(f)
 		if err != nil {
-			log.Fatal("Error occured", err)
+			log.Printf("Warning: Could not read history file: %v", err)
 		}
 
 		closed := f.Close()
 		if closed != nil {
-			log.Fatal("Unable to close file. Error: ", closed)
+			log.Printf("Warning: Could not close history file: %v", closed)
 		}
 	}
 
@@ -361,9 +362,12 @@ func Start(in io.Reader, out io.Writer, env *object.Environment) {
 					if shouldEvaluate {
 						input := inputBuffer.String()
 						if strings.TrimSpace(input) != "" {
-							evaluated, complete := tryParseAndEval(input, out, env)
+							evaluated, complete, shouldPrint := tryParseAndEval(input, out, env)
 							if complete {
-								if evaluated != nil && evaluated.Type() != object.NONE_OBJ {
+								// Only print if shouldPrint is true and it's not a function, grimoire, or builtin identifier without call
+								if shouldPrint && evaluated != nil && evaluated.Type() != object.NONE_OBJ &&
+									evaluated.Type() != object.FUNCTION_OBJ && evaluated.Type() != object.GRIMOIRE_OBJ &&
+									evaluated.Type() != object.BUILTIN_OBJ {
 									fmt.Fprintf(out, "%s\n", evaluated.Inspect())
 								}
 							}
@@ -422,9 +426,12 @@ func Start(in io.Reader, out io.Writer, env *object.Environment) {
 				continue
 			}
 
-			evaluated, complete := tryParseAndEval(input, out, env)
+			evaluated, complete, shouldPrint := tryParseAndEval(input, out, env)
 			if complete {
-				if evaluated != nil && evaluated.Type() != object.NONE_OBJ {
+				// Only print if shouldPrint is true and it's not a function, grimoire, or builtin identifier without call
+				if shouldPrint && evaluated != nil && evaluated.Type() != object.NONE_OBJ &&
+					evaluated.Type() != object.FUNCTION_OBJ && evaluated.Type() != object.GRIMOIRE_OBJ &&
+					evaluated.Type() != object.BUILTIN_OBJ {
 					fmt.Fprintf(out, "%s\n", evaluated.Inspect())
 				}
 				inputBuffer.Reset()
@@ -493,7 +500,8 @@ func ProcessFile(filePath string, out io.Writer, env *object.Environment) error 
 }
 
 // tryParseAndEval attempts to parse and evaluate the input
-func tryParseAndEval(input string, out io.Writer, env *object.Environment) (object.Object, bool) {
+// Returns: (result object, parsing complete, should print result)
+func tryParseAndEval(input string, out io.Writer, env *object.Environment) (object.Object, bool, bool) {
 	if out == nil {
 	}
 	l := lexer.NewWithFilename(
@@ -505,21 +513,29 @@ func tryParseAndEval(input string, out io.Writer, env *object.Environment) (obje
 
 	if len(p.Errors()) > 0 {
 		if isIncompleteParse(p.Errors()) {
-			return nil, false
+			return nil, false, false
 		}
 		utils.PrintParseFail("<repl>", input, p.Errors())
-		return nil, true
+		return nil, true, false
+	}
+
+	// Check if the program is a single assignment statement
+	isAssignment := false
+	if len(program.Statements) == 1 {
+		if _, ok := program.Statements[0].(*ast.AssignStatement); ok {
+			isAssignment = true
+		}
 	}
 
 	evaluated := evaluator.Eval(program, env, nil)
 	if evaluated == nil {
-		return nil, true
+		return nil, true, false
 	}
 
 	// Use custom error printer for all errors
 	if errObj, ok := evaluated.(*object.ErrorWithTrace); ok {
 		utils.PrintError(errObj)
-		return nil, true
+		return nil, true, false
 	}
 
 	if errObj, ok := evaluated.(*object.Error); ok {
@@ -534,14 +550,16 @@ func tryParseAndEval(input string, out io.Writer, env *object.Environment) (obje
 			},
 		}
 		utils.PrintError(traceError)
-		return nil, true
+		return nil, true, false
 	}
 
 	if returnValue, ok := evaluated.(*object.ReturnValue); ok {
 		evaluated = returnValue.Value
 	}
 
-	return evaluated, true
+	// Don't print if it's an assignment statement
+	shouldPrint := !isAssignment
+	return evaluated, true, shouldPrint
 }
 
 // isIncompleteParse checks if the parser errors indicate incomplete input

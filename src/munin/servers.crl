@@ -18,7 +18,8 @@ grim Server:
     
     spell start():
         if self.is_running:
-            print(self.server_type + " server already running on " + self.address)
+            server_type: str = String(self.server_type)
+            print(server_type + " server already running on " + self.address)
             return self
         
         attempt:
@@ -81,10 +82,16 @@ grim TCPServer(Server):
         super.init("tcp", address, timeout)
         self.clients = []
     
-    spell tcp_start():
+    spell start():
+        ```
+        Start TCP server for connection-oriented communication.
+        ```
         return super.start()
     
-    spell tcp_stop():
+    spell shutdown():
+        ```
+        Stop TCP server and close all client connections.
+        ```
         # Close all client connections
         for client in self.clients:
             attempt:
@@ -96,6 +103,9 @@ grim TCPServer(Server):
         return super.shutdown()
     
     spell accept_client():
+        ```
+        Accept new client connection.
+        ```
         if not self.is_running:
             print("TCP server is not running")
             return None
@@ -109,40 +119,56 @@ grim TCPServer(Server):
             return None
     
     spell send_to_client(client_handle, data):
+        ```
+        Send data to specific client.
+        ```
         return socket_send(client_handle, data)
     
     spell receive_from_client(client_handle, buffer_size):
+        ```
+        Receive data from specific client.
+        ```
         return socket_receive(client_handle, buffer_size)
     
-    spell set_context(key, value):
-        return super.set_context(key, value)
-    
-    spell get_context(key, default):
-        return super.get_context(key, default)
-    
-    spell get_info():
-        return super.get_info()
-    
-    spell is_active():
-        return super.is_active()
-    
     spell client_count():
+        ```
+        Get number of connected clients.
+        ```
         return len(self.clients)
+    
+    spell wait_for_shutdown():
+        ```
+        Block until the server shuts down. Keeps the program alive.
+        ```
+        if not self.is_running:
+            print("TCP server is not running")
+            return self
+        
+        # Keep server alive until interrupted
+        attempt:
+            while self.is_running:
+                # Accept and handle clients in a loop
+                # User code should break this loop when done
+                pass
+        ensnare:
+            pass
+        
+        return self
 
 grim UDPServer(Server):
     init(address, timeout):
         super.init("udp", address, timeout)
         self.message_buffer = []
     
-    spell udp_start():
+    spell start():
         ```
         Start UDP server for datagram communication.
         ```
         return super.start()
     
-    spell udp_shutdown():
+    spell shutdown():
         ```
-        Shutdown UDP server and clear message buffer.
+        Stop UDP server and clear message buffer.
         ```
         self.message_buffer = []
         return super.shutdown()
@@ -195,6 +221,25 @@ grim UDPServer(Server):
         Get count of buffered messages.
         ```
         return len(self.message_buffer)
+    
+    spell wait_for_shutdown():
+        ```
+        Block until the server shuts down. Keeps the program alive.
+        ```
+        if not self.is_running:
+            print("UDP server is not running")
+            return self
+        
+        # Keep server alive until interrupted
+        attempt:
+            while self.is_running:
+                # Receive and handle datagrams in a loop
+                # User code should break this loop when done
+                pass
+        ensnare:
+            pass
+        
+        return self
 
 grim UnixServer(Server):
     init(socket_path, timeout):
@@ -202,15 +247,15 @@ grim UnixServer(Server):
         self.socket_path = socket_path
         self.clients = []
     
-    spell unix_start():
+    spell start():
         ```
         Start Unix domain socket server.
         ```
         return super.start()
     
-    spell unix_shutdown():
+    spell shutdown():
         ```
-        Shutdown Unix server and cleanup socket file.
+        Stop Unix server and cleanup socket file.
         ```
         # Close all client connections
         for client in self.clients:
@@ -275,6 +320,25 @@ grim UnixServer(Server):
         Get number of connected Unix socket clients.
         ```
         return len(self.clients)
+    
+    spell wait_for_shutdown():
+        ```
+        Block until the server shuts down. Keeps the program alive.
+        ```
+        if not self.is_running:
+            print("Unix server is not running")
+            return self
+        
+        # Keep server alive until interrupted
+        attempt:
+            while self.is_running:
+                # Accept and handle clients in a loop
+                # User code should break this loop when done
+                pass
+        ensnare:
+            pass
+        
+        return self
 
 grim HTTPServer(Server):
     init(address, port, timeout):
@@ -284,15 +348,27 @@ grim HTTPServer(Server):
         self.middleware = []
         self.static_paths = {}
     
-    spell http_start():
+    spell start():
         ```
         Start HTTP server with routing capabilities.
         ```
-        return super.start()
+        result = super.start()
+        
+        # Register all routes with the Go HTTP server after starting
+        if result and self.handle:
+            for route_key in self.routes:
+                parts = route_key.split(":")
+                if len(parts) == 2:
+                    method = parts[0]
+                    path = parts[1]
+                    handler = self.routes[route_key]
+                    http_register_route(self.handle, method, path, handler)
+        
+        return result
     
-    spell http_shutdown():
+    spell shutdown():
         ```
-        Shutdown HTTP server and clear routes.
+        Stop HTTP server and clear routes.
         ```
         self.routes = {}
         self.middleware = []
@@ -305,6 +381,11 @@ grim HTTPServer(Server):
         ```
         route_key = method.upper() + ":" + path
         self.routes[route_key] = handler
+        
+        # Register route with the Go HTTP server if server is running
+        if self.is_running and self.handle:
+            http_register_route(self.handle, method, path, handler)
+        
         return self
     
     spell add_middleware(middleware_func):
@@ -365,6 +446,19 @@ grim HTTPServer(Server):
         Get number of registered routes.
         ```
         return len(self.routes)
+    
+    spell wait_for_shutdown():
+        ```
+        Block until the server shuts down. Keeps the program alive.
+        ```
+        if not self.is_running:
+            print("HTTP server is not running")
+            return self
+        
+        if self.handle:
+            http_wait_for_shutdown(self.handle)
+        
+        return self
 
 grim WebServer(HTTPServer):
     init(address, port, timeout, document_root):
@@ -385,19 +479,24 @@ grim WebServer(HTTPServer):
             "txt": "text/plain"
         }
     
-    spell web_start():
+    spell start():
         ```
         Start web server with document root serving.
         ```
-        # Set up default static path mapping
-        self.add_static_path("/", self.document_root)
-        return super.http_start()
+        # Start the HTTP server first
+        result = super.start()
+        
+        # Set document root for static file serving if server started successfully
+        if result and self.handle:
+            http_set_document_root(self.handle, self.document_root)
+        
+        return result
     
-    spell web_shutdown():
+    spell shutdown():
         ```
-        Shutdown web server.
+        Stop web server.
         ```
-        return super.http_shutdown()
+        return super.shutdown()
     
     spell serve_file(file_path):
         ```
@@ -462,4 +561,3 @@ grim WebServer(HTTPServer):
         ```
         self.default_pages = pages
         return self
-

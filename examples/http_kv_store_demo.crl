@@ -1,0 +1,118 @@
+# Simple REST API Example - Demonstrates enhanced HTTP features
+# A minimal key-value store API
+
+print("Starting Key-Value Store API...")
+
+# Simple storage
+store = {}
+
+# Helper function
+spell json_response(status, data):
+    return http_response(status, data, {"Content-Type": "application/json"})
+
+# GET / - API documentation
+spell docs_handler(request):
+    docs = "Key-Value Store API\n"
+    docs = docs + "===================\n\n"
+    docs = docs + "GET  /           - This documentation\n"
+    docs = docs + "GET  /store      - List all keys\n"
+    docs = docs + "POST /store      - Set value: {\"key\":\"x\", \"value\":\"y\"}\n"
+    docs = docs + "GET  /store?key=x - Get value for key\n"
+    return http_response(200, docs, {"Content-Type": "text/plain"})
+
+# GET /store - List all keys OR get specific value
+spell get_handler(request):
+    # Check for specific key query parameter
+    if "query" in request:
+        if "key" in request["query"]:
+            key = request["query"]["key"]
+            
+            if key in store:
+                value = store[key]
+                response = "{\"key\":\"" + key + "\",\"value\":\"" + value + "\"}"
+                return json_response(200, response)
+            else:
+                return json_response(404, "{\"error\":\"Key not found\"}")
+    
+    # No key specified - list all keys
+    result = "["
+    first = True
+    for key in store:
+        if not first:
+            result = result + ","
+        first = False
+        result = result + "\"" + key + "\""
+    result = result + "]"
+    
+    return json_response(200, result)
+
+# POST /store - Set a key-value pair
+spell post_handler(request):
+    if "body" not in request:
+        return json_response(400, "{\"error\":\"Request body required\"}")
+    
+    body = request["body"]
+    print("Received: " + body)
+    
+    # Parse key
+    key_pos = body.find("\"key\":")
+    if key_pos == -1:
+        return json_response(400, "{\"error\":\"Missing 'key' field\"}")
+    
+    key_start = body.find("\"", key_pos + 6)
+    key_end = body.find("\"", key_start + 1)
+    if key_start == -1 or key_end == -1:
+        return json_response(400, "{\"error\":\"Invalid key format\"}")
+    key = body[key_start + 1:key_end]
+    
+    # Parse value
+    val_pos = body.find("\"value\":")
+    if val_pos == -1:
+        return json_response(400, "{\"error\":\"Missing 'value' field\"}")
+    
+    val_start = body.find("\"", val_pos + 8)
+    val_end = body.find("\"", val_start + 1)
+    if val_start == -1 or val_end == -1:
+        return json_response(400, "{\"error\":\"Invalid value format\"}")
+    value = body[val_start + 1:val_end]
+    
+    # Store the key-value pair
+    store[key] = value
+    print("Stored: " + key + " = " + value)
+    
+    response = "{\"key\":\"" + key + "\",\"value\":\"" + value + "\",\"status\":\"stored\"}"
+    return json_response(201, response)
+
+# Create server
+server = HTTPServer("0.0.0.0", 8080, 60)
+
+# Register routes
+server.add_route("GET", "/", docs_handler)
+server.add_route("GET", "/store", get_handler)
+server.add_route("POST", "/store", post_handler)
+
+# Start server
+result = server.start()
+
+if result:
+    print("\n✓ Server started on http://0.0.0.0:8080")
+    print("\nExample commands:")
+    print("  # View docs")
+    print("  curl http://localhost:8080/")
+    print("")
+    print("  # Set values")
+    print("  curl -X POST http://localhost:8080/store -d '{\"key\":\"name\",\"value\":\"Carrion\"}'")
+    print("  curl -X POST http://localhost:8080/store -d '{\"key\":\"version\",\"value\":\"0.1.8\"}'")
+    print("")
+    print("  # List all keys")
+    print("  curl http://localhost:8080/store")
+    print("")
+    print("  # Get specific value")
+    print("  curl http://localhost:8080/store?key=name")
+    print("")
+    print("Press Ctrl+C to stop...")
+    
+    server.wait_for_shutdown()
+    print("\nServer stopped")
+else:
+    print("Failed to start server")

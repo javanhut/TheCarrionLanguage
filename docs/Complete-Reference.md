@@ -448,22 +448,6 @@ spell sum_all(*numbers):
 result = sum_all(1, 2, 3, 4, 5)  // 15
 ```
 
-### Lambda Functions
-```python
-// Anonymous functions
-square = λ x: x * x
-print(square(5))  // 25
-
-add = λ x, y: x + y
-print(add(3, 4))  // 7
-
-// Higher-order functions
-spell apply_function(func, value):
-    return func(value)
-
-result = apply_function(λ x: x * 2, 10)  // 20
-```
-
 ---
 
 ## Grimoires (Classes)

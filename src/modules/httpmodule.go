@@ -373,12 +373,12 @@ var HttpModule = map[string]*object.Builtin{
 			if len(args) != 1 {
 				return &object.Error{Message: "http_parse_request requires 1 argument: request_data"}
 			}
-			
+
 			requestData, err := extractString(args[0], "request_data")
 			if err != nil {
 				return err
 			}
-			
+
 			return parseHTTPRequest(requestData)
 		},
 	},
@@ -388,17 +388,17 @@ var HttpModule = map[string]*object.Builtin{
 			if len(args) < 2 || len(args) > 3 {
 				return &object.Error{Message: "http_response requires 2-3 arguments: status_code, body, [headers]"}
 			}
-			
+
 			statusCode, ok := args[0].(*object.Integer)
 			if !ok {
 				return &object.Error{Message: "http_response: status_code must be an integer"}
 			}
-			
+
 			body, err := extractString(args[1], "body")
 			if err != nil {
 				return err
 			}
-			
+
 			headers := make(map[string]string)
 			if len(args) == 3 {
 				if headerHash, ok := args[2].(*object.Hash); ok {
@@ -409,7 +409,7 @@ var HttpModule = map[string]*object.Builtin{
 					}
 				}
 			}
-			
+
 			return buildHTTPResponse(int(statusCode.Value), body, headers)
 		},
 	},
@@ -419,12 +419,12 @@ var HttpModule = map[string]*object.Builtin{
 			if len(args) != 1 {
 				return &object.Error{Message: "serve_static_file requires 1 argument: file_path"}
 			}
-			
+
 			filePath, err := extractString(args[0], "file_path")
 			if err != nil {
 				return err
 			}
-			
+
 			return serveStaticFile(filePath)
 		},
 	},
@@ -434,12 +434,12 @@ var HttpModule = map[string]*object.Builtin{
 			if len(args) != 1 {
 				return &object.Error{Message: "list_directory requires 1 argument: directory_path"}
 			}
-			
+
 			dirPath, err := extractString(args[0], "directory_path")
 			if err != nil {
 				return err
 			}
-			
+
 			return listDirectory(dirPath)
 		},
 	},
@@ -627,17 +627,17 @@ func parseHTTPRequest(requestData string) object.Object {
 	if len(lines) == 0 {
 		return &object.Error{Message: "Empty request"}
 	}
-	
+
 	// Parse request line
 	requestLine := strings.Fields(lines[0])
 	if len(requestLine) < 3 {
 		return &object.Error{Message: "Invalid request line"}
 	}
-	
+
 	method := requestLine[0]
 	path := requestLine[1]
 	version := requestLine[2]
-	
+
 	// Parse headers
 	headers := make(map[object.HashKey]object.HashPair)
 	var bodyStart int
@@ -647,7 +647,7 @@ func parseHTTPRequest(requestData string) object.Object {
 			bodyStart = i + 1
 			break
 		}
-		
+
 		parts := strings.SplitN(line, ":", 2)
 		if len(parts) == 2 {
 			key := &object.String{Value: strings.TrimSpace(parts[0])}
@@ -655,51 +655,70 @@ func parseHTTPRequest(requestData string) object.Object {
 			headers[key.HashKey()] = object.HashPair{Key: key, Value: value}
 		}
 	}
-	
+
 	// Parse body
 	body := ""
 	if bodyStart < len(lines) {
 		body = strings.Join(lines[bodyStart:], "\r\n")
 	}
-	
+
 	// Create request hash
 	result := &object.Hash{Pairs: make(map[object.HashKey]object.HashPair)}
-	
+
 	methodKey := &object.String{Value: "method"}
 	result.Pairs[methodKey.HashKey()] = object.HashPair{Key: methodKey, Value: &object.String{Value: method}}
-	
+
 	pathKey := &object.String{Value: "path"}
 	result.Pairs[pathKey.HashKey()] = object.HashPair{Key: pathKey, Value: &object.String{Value: path}}
-	
+
 	versionKey := &object.String{Value: "version"}
 	result.Pairs[versionKey.HashKey()] = object.HashPair{Key: versionKey, Value: &object.String{Value: version}}
-	
+
 	headersKey := &object.String{Value: "headers"}
 	result.Pairs[headersKey.HashKey()] = object.HashPair{Key: headersKey, Value: &object.Hash{Pairs: headers}}
-	
+
 	bodyKey := &object.String{Value: "body"}
 	result.Pairs[bodyKey.HashKey()] = object.HashPair{Key: bodyKey, Value: &object.String{Value: body}}
-	
+
 	return result
 }
 
 func buildHTTPResponse(statusCode int, body string, headers map[string]string) object.Object {
-	response := fmt.Sprintf("HTTP/1.1 %d %s\r\n", statusCode, getStatusText(statusCode))
-	
-	// Add default headers
-	if headers["Content-Type"] == "" {
-		headers["Content-Type"] = "text/plain"
+	// Return a Hash structure for HTTP responses (compatible with new WebSocket servers)
+	response := &object.Hash{Pairs: make(map[object.HashKey]object.HashPair)}
+
+	// Add status code
+	statusKey := &object.String{Value: "status"}
+	response.Pairs[statusKey.HashKey()] = object.HashPair{
+		Key:   statusKey,
+		Value: &object.Integer{Value: int64(statusCode)},
 	}
-	headers["Content-Length"] = fmt.Sprintf("%d", len(body))
-	
+
+	// Add body
+	bodyKey := &object.String{Value: "body"}
+	response.Pairs[bodyKey.HashKey()] = object.HashPair{
+		Key:   bodyKey,
+		Value: &object.String{Value: body},
+	}
+
 	// Add headers
-	for key, value := range headers {
-		response += fmt.Sprintf("%s: %s\r\n", key, value)
+	if len(headers) > 0 {
+		headersHash := &object.Hash{Pairs: make(map[object.HashKey]object.HashPair)}
+		for key, value := range headers {
+			keyObj := &object.String{Value: key}
+			headersHash.Pairs[keyObj.HashKey()] = object.HashPair{
+				Key:   keyObj,
+				Value: &object.String{Value: value},
+			}
+		}
+		headersKey := &object.String{Value: "headers"}
+		response.Pairs[headersKey.HashKey()] = object.HashPair{
+			Key:   headersKey,
+			Value: headersHash,
+		}
 	}
-	
-	response += "\r\n" + body
-	
-	return &object.String{Value: response}
+
+	return response
 }
 
 func getStatusText(code int) string {
@@ -727,11 +746,11 @@ func listDirectory(dirPath string) object.Object {
 	if err != nil {
 		return &object.Error{Message: fmt.Sprintf("Failed to list directory: %v", err)}
 	}
-	
+
 	var files []object.Object
 	for _, entry := range entries {
 		files = append(files, &object.String{Value: entry.Name()})
 	}
-	
+
 	return &object.Array{Elements: files}
 }

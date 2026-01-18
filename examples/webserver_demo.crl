@@ -1,0 +1,74 @@
+# WebServer Demo - Static files + Dynamic API routes
+# Demonstrates the full power of Carrion's web capabilities
+
+print("Starting Carrion WebServer with static files and API...")
+
+# API handler - returns JSON
+spell api_test_handler(request):
+    response = "{"
+    response = response + "\"message\":\"Hello from Carrion API!\","
+    response = response + "\"method\":\"" + request["method"] + "\","
+    response = response + "\"path\":\"" + request["path"] + "\","
+    response = response + "\"timestamp\":\"2025-11-05\""
+    response = response + "}"
+    
+    return http_response(200, response, {"Content-Type": "application/json"})
+
+# API info handler - shows request details
+spell api_info_handler(request):
+    info = "<html><head><title>Request Info</title></head><body>"
+    info = info + "<h1>Request Information</h1>"
+    info = info + "<p><strong>Method:</strong> " + request["method"] + "</p>"
+    info = info + "<p><strong>Path:</strong> " + request["path"] + "</p>"
+    
+    info = info + "<h2>Headers</h2><ul>"
+    if "headers" in request:
+        for key in request["headers"]:
+            info = info + "<li><strong>" + key + ":</strong> " + request["headers"][key] + "</li>"
+    info = info + "</ul>"
+    
+    if "query" in request:
+        info = info + "<h2>Query Parameters</h2><ul>"
+        for key in request["query"]:
+            info = info + "<li><strong>" + key + ":</strong> " + request["query"][key] + "</li>"
+        info = info + "</ul>"
+    
+    info = info + "<p><a href='/'>Back to Home</a></p>"
+    info = info + "</body></html>"
+    
+    return http_response(200, info, {"Content-Type": "text/html"})
+
+# Create WebServer with document root
+# Note: WebServer extends HTTPServer and adds static file serving
+server = WebServer("0.0.0.0", 8080, 60, "./test_www")
+
+# Add custom API routes (dynamic handlers)
+server.add_route("GET", "/api/test", api_test_handler)
+server.add_route("GET", "/api/info", api_info_handler)
+
+print("Registered custom API routes:")
+print("  GET /api/test  - JSON API endpoint")
+print("  GET /api/info  - Request information page")
+
+# Start the web server
+# This will serve static files from ./test_www
+# AND handle our custom API routes
+result = server.start()
+
+if result:
+    print("\n✓ WebServer started on http://0.0.0.0:8080")
+    print("\nStatic files served from: ./test_www")
+    print("\nTry these URLs in your browser or with curl:")
+    print("  http://localhost:8080/              - Static index.html")
+    print("  http://localhost:8080/about.html    - Static about page")
+    print("  http://localhost:8080/test.json     - Static JSON file")
+    print("  http://localhost:8080/style.css     - Static CSS")
+    print("  http://localhost:8080/api/test      - Dynamic API (JSON)")
+    print("  http://localhost:8080/api/info      - Dynamic API (HTML)")
+    print("")
+    print("Press Ctrl+C to stop...")
+    
+    server.wait_for_shutdown()
+    print("\nServer stopped")
+else:
+    print("Failed to start server")
