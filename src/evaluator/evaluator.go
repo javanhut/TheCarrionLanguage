@@ -1780,6 +1780,14 @@ func evalStaticMethodCall(
 ) object.Object {
 	method, ok := grimoire.Methods[methodName]
 	if !ok {
+		// Get available methods and find similar names for suggestions
+		availableMethods := object.GetObjectMethods(grimoire)
+		similarNames := object.FindSimilarNames(methodName, availableMethods, 3)
+
+		if len(similarNames) > 0 {
+			return newErrorWithTrace("static method '%s' not found on %s. Did you mean '%s'?",
+				ctx.Node, ctx, methodName, grimoire.Name, similarNames[0])
+		}
 		return newErrorWithTrace("static method '%s' not found on %s",
 			ctx.Node, ctx, methodName, grimoire.Name)
 	}
@@ -1895,6 +1903,14 @@ func evalGrimoireMethodCall(
 ) object.Object {
 	method, ok := instance.Grimoire.Methods[methodName]
 	if !ok {
+		// Get available methods and find similar names for suggestions
+		availableMethods := object.GetObjectMethods(instance)
+		similarNames := object.FindSimilarNames(methodName, availableMethods, 3)
+
+		if len(similarNames) > 0 {
+			return newErrorWithTrace("method '%s' not found on %s. Did you mean '%s'?",
+				ctx.Node, ctx, methodName, instance.Grimoire.Name, similarNames[0])
+		}
 		return newErrorWithTrace("method '%s' not found on %s",
 			ctx.Node, ctx, methodName, instance.Grimoire.Name)
 	}

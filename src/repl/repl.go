@@ -147,9 +147,9 @@ func Start(in io.Reader, out io.Writer, env *object.Environment) {
 				"read", "write", "append", "exists", "close", "seek", "tell", "flush",
 			},
 			"Stack": {"push", "pop", "peek", "is_empty", "get_size", "print", "iter"},
-			"Queue": {"enqueue", "dequeue", "peek", "is_empty", "print", "iter"},
+			"Queue": {"enqueue", "dequeue", "peek", "is_empty", "get_size", "print", "iter"},
 			"Heap":  {"insert", "extract", "peek", "is_empty", "get_size", "clear", "to_array", "print", "build_heap", "iter"},
-			"BTree": {"insert", "size", "max_depth", "inorder", "preorder", "postorder", "print_tree", "find", "iter"},
+			"BTree": {"insert", "get_size", "max_depth", "inorder", "preorder", "postorder", "print_tree", "find", "iter", "display_tree"},
 		}
 
 		// Only suggest keywords at the beginning of input

@@ -267,46 +267,63 @@ func printFixSuggestions(err *object.ErrorWithTrace) {
 		errorType = "undefined_variable"
 	} else if strings.Contains(err.Message, "type mismatch") {
 		errorType = "type_mismatch"
+	} else if strings.Contains(err.Message, "len() not supported for") {
+		errorType = "len_not_supported"
+	} else if strings.Contains(err.Message, "not found on") && strings.Contains(err.Message, "method") {
+		errorType = "method_not_found"
 	}
 
 	// Print suggestion based on error type
 	if errorType != "" {
-		fmt.Printf("\n%sSuggestion:%s ", Bold+Green, Reset)
+		fmt.Printf("\n%shelp:%s ", Bold+Green, Reset)
 
 		switch errorType {
 		case "invalid_assignment":
 			fmt.Println(
 				"Carrion doesn't support direct array element assignment like arr[i] = value.",
 			)
-            fmt.Println(
-                "  Try creating an Array grim with a 'set(index, value)' method instead:",
-            )
-            fmt.Println("    grim Array:")
-			fmt.Println("      spell set(index, value):")
-			fmt.Println("        new_elements = []")
-			fmt.Println("        for i in range(len(self.elements)):")
-			fmt.Println("          if i == index:")
-			fmt.Println("            new_elements = new_elements + [value]")
-			fmt.Println("          else:")
-			fmt.Println("            new_elements = new_elements + [self.elements[i]]")
-			fmt.Println("        self.elements = new_elements")
+			fmt.Println(
+				"      Try creating an Array grim with a 'set(index, value)' method instead:",
+			)
+			fmt.Println("        grim Array:")
+			fmt.Println("          spell set(index, value):")
+			fmt.Println("            new_elements = []")
+			fmt.Println("            for i in range(len(self.elements)):")
+			fmt.Println("              if i == index:")
+			fmt.Println("                new_elements = new_elements + [value]")
+			fmt.Println("              else:")
+			fmt.Println("                new_elements = new_elements + [self.elements[i]]")
+			fmt.Println("            self.elements = new_elements")
 
 		case "invalid_index":
 			fmt.Println("You're trying to use [] indexing on a type that doesn't support it.")
-			fmt.Println("  If this is a custom object, try implementing a 'get(index)' method:")
-            fmt.Println("    grim YourType:")
-			fmt.Println("      spell get(index):")
-			fmt.Println("        // Your implementation here")
+			fmt.Println("      If this is a custom object, try implementing a 'get(index)' method:")
+			fmt.Println("        grim YourType:")
+			fmt.Println("          spell get(index):")
+			fmt.Println("            // Your implementation here")
 
 		case "undefined_variable":
 			fmt.Println("The variable name you're trying to use hasn't been defined.")
-			fmt.Println("  Make sure to declare variables before using them:")
-			fmt.Println("    my_var = initial_value")
+			fmt.Println("      Make sure to declare variables before using them:")
+			fmt.Println("        my_var = initial_value")
 
 		case "type_mismatch":
 			fmt.Println("You're trying to perform an operation on incompatible types.")
-			fmt.Println("  Try using type conversion functions like int(), str(), or float():")
-			fmt.Println("    converted_value = int(other_value)")
+			fmt.Println("      Try using type conversion functions like int(), str(), or float():")
+			fmt.Println("        converted_value = int(other_value)")
+
+		case "len_not_supported":
+			fmt.Println("The len() builtin only works with arrays, strings, and hashes.")
+			fmt.Println("      Data structures like Stack, Queue, and Heap use methods instead:")
+			fmt.Printf("        %sstack.get_size()%s  // returns the number of elements\n", Bold, Reset)
+			fmt.Printf("        %sstack.is_empty()%s  // returns true if empty\n", Bold, Reset)
+
+		case "method_not_found":
+			// The error message already contains "Did you mean 'X'?" if a similar method was found
+			if !strings.Contains(err.Message, "Did you mean") {
+				fmt.Println("Check the spelling of the method name.")
+				fmt.Println("      Use your IDE or REPL tab completion to see available methods.")
+			}
 		}
 	}
 }
@@ -407,7 +424,7 @@ func formatErrorMessage(msg string) string {
 
 // Print suggestions for common parsing errors
 func printParseErrorSuggestion(errMsg string) {
-	fmt.Printf("\n%sSuggestion:%s ", Bold+Green, Reset)
+	fmt.Printf("\n%shelp:%s ", Bold+Green, Reset)
 
 	switch {
 	case strings.Contains(errMsg, "expected COLON"):
