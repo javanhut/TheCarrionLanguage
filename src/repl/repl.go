@@ -61,7 +61,7 @@ func Start(in io.Reader, out io.Writer, env *object.Environment) {
 	defer func() {
 		ok := line.Close()
 		if ok != nil {
-			log.Fatal("Unable to close the file: ", ok)
+			log.Printf("Warning: Unable to close liner: %v", ok)
 		}
 		evaluator.LineReader = nil
 		// Clean up global state to prevent memory leaks
@@ -232,12 +232,12 @@ func Start(in io.Reader, out io.Writer, env *object.Environment) {
 	if f, err := os.Open(historyFile); err == nil {
 		_, err := line.ReadHistory(f)
 		if err != nil {
-			log.Fatal("Error occured", err)
+			log.Printf("Warning: Could not read history file: %v", err)
 		}
 
 		closed := f.Close()
 		if closed != nil {
-			log.Fatal("Unable to close file. Error: ", closed)
+			log.Printf("Warning: Could not close history file: %v", closed)
 		}
 	}
 

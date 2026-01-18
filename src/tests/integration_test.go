@@ -9,48 +9,61 @@ import (
 	"testing"
 )
 
+// findProjectRoot finds the project root by looking for go.mod
+func findProjectRoot() (string, error) {
+	dir, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+
+	for {
+		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
+			return dir, nil
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return "", fmt.Errorf("go.mod not found")
+		}
+		dir = parent
+	}
+}
+
 // TestExampleFiles runs all example .crl files to ensure they don't crash
 func TestExampleFiles(t *testing.T) {
-	examplesDir := "examples"
-	
-	// Get list of all .crl files in examples directory
-	files, err := filepath.Glob(filepath.Join(examplesDir, "*.crl"))
+	projectRoot, err := findProjectRoot()
+	if err != nil {
+		t.Fatalf("Failed to find project root: %v", err)
+	}
+
+	examplesDir := filepath.Join(projectRoot, "examples")
+	var files []string
+	files, err = filepath.Glob(filepath.Join(examplesDir, "*.crl"))
 	if err != nil {
 		t.Fatalf("Failed to list example files: %v", err)
 	}
-	
+
 	if len(files) == 0 {
-		t.Skip("No example files found")
+		t.Skip("No example files found in any expected location")
 		return
 	}
-	
+
 	// Files that are expected to fail (contain invalid syntax or test error conditions)
 	expectedFailures := map[string]bool{
 		"test_cannot_declare_priv.crl": true,  // Tests access control errors
 		"test_custom_error.crl":        true,  // Tests error raising
 		"test_throw_error.crl":         true,  // Tests error throwing
 		"test_raise.crl":               true,  // Tests error raising
+		"failing_with_call.crl":        true,  // Intentionally fails assertion
 	}
-	
-	// Files that require function parameters (currently broken)
+
+	// Files to skip (interactive, require external resources, have syntax issues)
 	skipFiles := map[string]bool{
-		"test_oop_one_self.crl":     true,  // Uses self parameter
-		"test_oop_two_self.crl":     true,  // Uses self parameter
-		"test_grimoire.crl":        true,  // Uses self parameter
-		"test_inheritance.crl":      true,  // Uses self parameter
-		"test_priv_prot.crl":        true,  // Uses self parameter
-		"test_arcane_grimoire.crl":  true,  // Uses self parameter
-		"test_default_in_grimoire.crl": true, // Uses parameters
-		"test_calculator.crl":       true,  // Uses parameters
-		"test_loops.crl":            true,  // Uses loop variables
-		"test_for_skip_continue.crl": true, // Uses loop variables
-		"test_attempt_resolve.crl":  true,  // Uses error handling
-		"test_match_case.crl":       true,  // Uses variables
-		"test_enumerate.crl":        true,  // Uses function parameters
-		"test_import.crl":           true,  // Requires other files
-		"test_modules.crl":          true,  // Requires other files
-		"test_file.crl":             true,  // File operations might fail
-		"test_os.crl":               true,  // OS operations might fail
+		"http_kv_store_demo.crl":     true,  // Starts HTTP server
+		"http_rest_api_demo.crl":     true,  // Starts HTTP server
+		"quick_webserver_demo.crl":   true,  // Starts HTTP server
+		"webserver_demo.crl":         true,  // Starts HTTP server
+		"simple_check_test.crl":      true,  // Has syntax errors (check function)
+		"test_return.crl":            true,  // Has syntax errors (check function)
 	}
 	
 	passed := 0
@@ -62,14 +75,15 @@ func TestExampleFiles(t *testing.T) {
 		
 		t.Run(filename, func(t *testing.T) {
 			if skipFiles[filename] {
-				t.Skipf("Skipping %s - requires function parameters (currently broken)", filename)
+				t.Skipf("Skipping %s - starts server or requires external resources", filename)
 				skipped++
 				return
 			}
 			
 			// Run the Carrion interpreter on the file
-			cmd := exec.Command("go", "run", "main.go", file)
-			cmd.Dir = "."
+			mainPath := filepath.Join(projectRoot, "src", "main.go")
+			cmd := exec.Command("go", "run", mainPath, file)
+			cmd.Dir = projectRoot
 			output, err := cmd.CombinedOutput()
 			
 			if expectedFailures[filename] {
@@ -106,6 +120,11 @@ func TestExampleFiles(t *testing.T) {
 
 // TestBasicFunctionality tests core language features that should work
 func TestBasicFunctionality(t *testing.T) {
+	projectRoot, err := findProjectRoot()
+	if err != nil {
+		t.Fatalf("Failed to find project root: %v", err)
+	}
+
 	tests := []struct {
 		name    string
 		code    string
@@ -154,8 +173,9 @@ print(int("10"))`,
 			defer os.Remove(tmpFile)
 			
 			// Run the code
-			cmd := exec.Command("go", "run", "../main.go", tmpFile)
-			cmd.Dir = "."
+			mainPath := filepath.Join(projectRoot, "src", "main.go")
+			cmd := exec.Command("go", "run", mainPath, tmpFile)
+			cmd.Dir = projectRoot
 			output, err := cmd.CombinedOutput()
 			
 			if tt.wantErr && err == nil {
