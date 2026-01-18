@@ -219,10 +219,10 @@ bst.insert(15)
 bst.insert(3)
 ```
 
-### `size()`
+### `get_size()`
 Returns the total number of nodes in the tree.
 ```carrion
-node_count = bst.size()
+node_count = bst.get_size()
 ```
 
 ### `max_depth()`
@@ -263,6 +263,20 @@ Prints the tree using specified traversal method.
 bst.print_tree("inorder")    # Default
 bst.print_tree("preorder")
 bst.print_tree("postorder")
+```
+
+### `display_tree()`
+Displays the binary tree structure with visual representation using indentation and branch characters.
+```carrion
+bst.display_tree()
+# Output:
+# 10
+# |-- 5
+# |   |-- 3
+# |   |-- 7
+# |-- 15
+# |   |-- 12
+# |   |-- 18
 ```
 
 ## Usage Examples
@@ -323,7 +337,7 @@ for value in values:
     bst.insert(value)
 
 print(bst.find(7))        # True
-print(bst.size())         # 7
+print(bst.get_size())     # 7
 print(bst.max_depth())    # 3
 
 # Print different traversals
