@@ -472,24 +472,9 @@ func ProcessFile(filePath string, out io.Writer, env *object.Environment) error 
 
 	evaluated := evaluator.Eval(program, env, nil)
 
-	// Handle errors with improved formatting
-	if errObj, ok := evaluated.(*object.ErrorWithTrace); ok {
-		utils.PrintError(errObj)
-		return fmt.Errorf("runtime error in file %s", filePath)
-	}
-
-	if errObj, ok := evaluated.(*object.Error); ok {
-		// Convert simple errors to error with trace for consistent formatting
-		traceError := &object.ErrorWithTrace{
-			ErrorType: object.ERROR_OBJ,
-			Message:   errObj.Message,
-			Position: object.SourcePosition{
-				Filename: filePath,
-				Line:     1,
-				Column:   1,
-			},
-		}
-		utils.PrintError(traceError)
+	// Handle errors with unified formatting (EnhancedError, ErrorWithTrace, Error)
+	if object.IsError(evaluated) {
+		utils.PrintAnyError(evaluated)
 		return fmt.Errorf("runtime error in file %s", filePath)
 	}
 
@@ -532,24 +517,9 @@ func tryParseAndEval(input string, out io.Writer, env *object.Environment) (obje
 		return nil, true, false
 	}
 
-	// Use custom error printer for all errors
-	if errObj, ok := evaluated.(*object.ErrorWithTrace); ok {
-		utils.PrintError(errObj)
-		return nil, true, false
-	}
-
-	if errObj, ok := evaluated.(*object.Error); ok {
-		// Convert simple errors to error with trace for consistent formatting
-		traceError := &object.ErrorWithTrace{
-			ErrorType: object.ERROR_OBJ,
-			Message:   errObj.Message,
-			Position: object.SourcePosition{
-				Filename: "<repl>",
-				Line:     1,
-				Column:   1,
-			},
-		}
-		utils.PrintError(traceError)
+	// Use unified error printer for all error types (EnhancedError, ErrorWithTrace, Error)
+	if object.IsError(evaluated) {
+		utils.PrintAnyError(evaluated)
 		return nil, true, false
 	}
 
@@ -632,24 +602,9 @@ func ProcessFileWithDebug(filePath string, out io.Writer, env *object.Environmen
 		fmt.Fprintf(os.Stderr, "=====================\n\n")
 	}
 
-	// Handle errors with improved formatting
-	if errObj, ok := evaluated.(*object.ErrorWithTrace); ok {
-		utils.PrintError(errObj)
-		return fmt.Errorf("runtime error in file %s", filePath)
-	}
-
-	if errObj, ok := evaluated.(*object.Error); ok {
-		// Convert simple errors to error with trace for consistent formatting
-		traceError := &object.ErrorWithTrace{
-			ErrorType: object.ERROR_OBJ,
-			Message:   errObj.Message,
-			Position: object.SourcePosition{
-				Filename: filePath,
-				Line:     1,
-				Column:   1,
-			},
-		}
-		utils.PrintError(traceError)
+	// Handle errors with unified formatting (EnhancedError, ErrorWithTrace, Error)
+	if object.IsError(evaluated) {
+		utils.PrintAnyError(evaluated)
 		return fmt.Errorf("runtime error in file %s", filePath)
 	}
 

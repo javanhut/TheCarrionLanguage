@@ -444,3 +444,37 @@ func printParseErrorSuggestion(errMsg string) {
 		fmt.Println("  - Variable names follow the language conventions")
 	}
 }
+
+// PrintAnyError handles any error type and routes to appropriate formatter
+func PrintAnyError(err object.Object) {
+	// Check for EnhancedError first
+	if enhanced, ok := err.(*object.EnhancedError); ok {
+		PrintEnhancedError(enhanced)
+		return
+	}
+
+	// Check for ErrorWithTrace
+	if errWithTrace, ok := err.(*object.ErrorWithTrace); ok {
+		PrintError(errWithTrace)
+		return
+	}
+
+	// Check for basic Error
+	if basicErr, ok := err.(*object.Error); ok {
+		// Convert to ErrorWithTrace for consistent formatting
+		traceError := &object.ErrorWithTrace{
+			ErrorType: object.ERROR_OBJ,
+			Message:   basicErr.Message,
+			Position: object.SourcePosition{
+				Filename: "unknown",
+				Line:     0,
+				Column:   0,
+			},
+		}
+		PrintError(traceError)
+		return
+	}
+
+	// Fallback for unknown error types
+	fmt.Printf("Error: %s\n", err.Inspect())
+}

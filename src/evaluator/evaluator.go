@@ -1595,8 +1595,12 @@ func evalIndexAssignment(
 		}
 
 		if idx < 0 || idx > maxIndex {
-			return newErrorWithTrace("index out of bounds: %d (array length: %d)",
-				node, ctx, idx, maxIndex+1)
+			if maxIndex < 0 {
+				return newErrorWithTrace("index out of bounds: %d (array is empty)",
+					node, ctx, idx)
+			}
+			return newErrorWithTrace("index out of bounds: %d (array length: %d, valid indices: 0-%d)",
+				node, ctx, idx, maxIndex+1, maxIndex)
 		}
 
 		// Perform the assignment
@@ -2245,6 +2249,12 @@ func evalDotExpression(
 		if val, found := namespace.Env.Get(fieldOrMethodName); found {
 			return val
 		}
+		// Build suggestion context with namespace environment
+		suggCtx := object.BuildSuggestionContext(nil, fieldOrMethodName, namespace.Env)
+		suggestion := object.FormatSuggestion(suggCtx)
+		if suggestion != "" {
+			return newErrorWithTrace("undefined member in namespace: %s. %s", node, ctx, fieldOrMethodName, suggestion)
+		}
 		return newErrorWithTrace("undefined member in namespace: %s", node, ctx, fieldOrMethodName)
 	}
 
@@ -2253,6 +2263,12 @@ func evalDotExpression(
 		methodName := node.Right.Value
 		method, exists := grimoire.Methods[methodName]
 		if !exists {
+			// Build suggestion context for helpful error message
+			suggCtx := object.BuildSuggestionContext(grimoire, methodName, env)
+			suggestion := object.FormatSuggestion(suggCtx)
+			if suggestion != "" {
+				return newErrorWithTrace("undefined static method: %s. %s", node, ctx, methodName, suggestion)
+			}
 			return newErrorWithTrace("undefined static method: %s", node, ctx, methodName)
 		}
 
@@ -2356,6 +2372,12 @@ func evalDotExpression(
 
 	method, ok := instance.Grimoire.Methods[fieldOrMethodName]
 	if !ok {
+		// Build suggestion context for helpful error message
+		suggCtx := object.BuildSuggestionContext(instance, fieldOrMethodName, env)
+		suggestion := object.FormatSuggestion(suggCtx)
+		if suggestion != "" {
+			return newErrorWithTrace("undefined property or method: %s. %s", node, ctx, fieldOrMethodName, suggestion)
+		}
 		return newErrorWithTrace("undefined property or method: %s", node, ctx, fieldOrMethodName)
 	}
 
@@ -2549,8 +2571,13 @@ func evalTupleIndexExpression(
 	}
 
 	if idx < 0 || idx >= len(tupleObj.Elements) {
-		return newErrorWithTrace("index out of bounds: %d (tuple length: %d)",
-			node, ctx, idx, len(tupleObj.Elements))
+		tupleLen := len(tupleObj.Elements)
+		if tupleLen == 0 {
+			return newErrorWithTrace("index out of bounds: %d (tuple is empty)",
+				node, ctx, idx)
+		}
+		return newErrorWithTrace("index out of bounds: %d (tuple length: %d, valid indices: 0-%d)",
+			node, ctx, idx, tupleLen, tupleLen-1)
 	}
 
 	return tupleObj.Elements[idx]
@@ -2602,8 +2629,12 @@ func evalArrayIndexExpression(
 	}
 
 	if idx < 0 || idx > maxIndex {
-		return newErrorWithTrace("index out of bounds: %d (array length: %d)",
-			node, ctx, idx, maxIndex+1)
+		if maxIndex < 0 {
+			return newErrorWithTrace("index out of bounds: %d (array is empty)",
+				node, ctx, idx)
+		}
+		return newErrorWithTrace("index out of bounds: %d (array length: %d, valid indices: 0-%d)",
+			node, ctx, idx, maxIndex+1, maxIndex)
 	}
 
 	return arrayObject.Elements[idx]
@@ -2634,8 +2665,12 @@ func evalStringIndexExpression(
 	}
 
 	if idx < 0 || idx > maxIndex {
-		return newErrorWithTrace("string index out of bounds: %d (string length: %d)",
-			node, ctx, idx, strLen)
+		if strLen == 0 {
+			return newErrorWithTrace("string index out of bounds: %d (string is empty)",
+				node, ctx, idx)
+		}
+		return newErrorWithTrace("string index out of bounds: %d (string length: %d, valid indices: 0-%d)",
+			node, ctx, idx, strLen, maxIndex)
 	}
 
 	// Return a single-character string
@@ -2875,6 +2910,12 @@ func evalIdentifier(node *ast.Identifier, env *object.Environment, ctx *CallCont
 	}
 	if node.Value == "None" {
 		return object.NONE
+	}
+	// Build suggestion context with current environment
+	suggCtx := object.BuildSuggestionContext(nil, node.Value, env)
+	suggestion := object.FormatSuggestion(suggCtx)
+	if suggestion != "" {
+		return newErrorWithTrace("identifier not found: %s. %s", node, ctx, node.Value, suggestion)
 	}
 	return newErrorWithTrace("identifier not found: %s", node, ctx, node.Value)
 }
@@ -3256,9 +3297,19 @@ func evalInfixExpression(
 		}
 
 		// If not handled above, fall through to type mismatch error
+		hint := getConversionHint(right.Type(), left.Type())
+		if hint != "" {
+			return newErrorWithTrace("type mismatch: %s %s %s. %s", node, ctx,
+				left.Type(), operator, right.Type(), hint)
+		}
 		return newErrorWithTrace("type mismatch: %s %s %s", node, ctx,
 			left.Type(), operator, right.Type())
 	case unwrappedLeft.Type() != unwrappedRight.Type():
+		hint := getConversionHint(unwrappedRight.Type(), unwrappedLeft.Type())
+		if hint != "" {
+			return newErrorWithTrace("type mismatch: %s %s %s. %s", node, ctx,
+				unwrappedLeft.Type(), operator, unwrappedRight.Type(), hint)
+		}
 		return newErrorWithTrace("type mismatch: %s %s %s", node, ctx,
 			unwrappedLeft.Type(), operator, unwrappedRight.Type())
 	case unwrappedLeft.Type() == object.FLOAT_OBJ || unwrappedRight.Type() == object.FLOAT_OBJ:
@@ -3301,6 +3352,17 @@ func evalInfixExpression(
 		}
 	}
 
+	hint := getConversionHint(right.Type(), left.Type())
+	if hint != "" {
+		return newErrorWithTrace(
+			"unknown operator or type mismatch: %s %s %s. %s",
+			node, ctx,
+			left.Type(),
+			operator,
+			right.Type(),
+			hint,
+		)
+	}
 	return newErrorWithTrace(
 		"unknown operator or type mismatch: %s %s %s",
 		node, ctx,
@@ -5024,6 +5086,49 @@ func getTypeString(expr ast.Expression) string {
 		return ident.Value
 	}
 	return "Unknown"
+}
+
+// getConversionHint returns a conversion suggestion for type mismatches
+func getConversionHint(fromType, toType object.ObjectType) string {
+	// Handle common type conversions
+	switch {
+	// String to numeric
+	case fromType == object.STRING_OBJ && toType == object.INTEGER_OBJ:
+		return "Use int() to convert STRING to INTEGER"
+	case fromType == object.STRING_OBJ && toType == object.FLOAT_OBJ:
+		return "Use float() to convert STRING to FLOAT"
+
+	// Numeric to string
+	case fromType == object.INTEGER_OBJ && toType == object.STRING_OBJ:
+		return "Use str() to convert INTEGER to STRING"
+	case fromType == object.FLOAT_OBJ && toType == object.STRING_OBJ:
+		return "Use str() to convert FLOAT to STRING"
+
+	// Numeric conversions
+	case fromType == object.INTEGER_OBJ && toType == object.FLOAT_OBJ:
+		return "Use float() to convert, or numeric operations will auto-promote"
+	case fromType == object.FLOAT_OBJ && toType == object.INTEGER_OBJ:
+		return "Use int() to convert (truncates decimal part)"
+
+	// Boolean conversions
+	case fromType == object.BOOLEAN_OBJ && toType == object.INTEGER_OBJ:
+		return "Use int() to convert (True=1, False=0)"
+	case fromType == object.BOOLEAN_OBJ && toType == object.STRING_OBJ:
+		return "Use str() to convert BOOLEAN to STRING"
+	case toType == object.BOOLEAN_OBJ:
+		return "Use bool() to convert to BOOLEAN"
+
+	// Collection conversions
+	case fromType == object.ARRAY_OBJ && toType == object.TUPLE_OBJ:
+		return "Use tuple() to convert ARRAY to TUPLE"
+	case fromType == object.TUPLE_OBJ && toType == object.ARRAY_OBJ:
+		return "Use list() to convert TUPLE to ARRAY"
+	case fromType == object.STRING_OBJ && toType == object.ARRAY_OBJ:
+		return "Use list() to convert STRING to character ARRAY"
+
+	default:
+		return ""
+	}
 }
 
 func getObjectTypeString(obj object.Object) string {

@@ -88,6 +88,24 @@ type Error struct {
 func (e *Error) Type() ObjectType { return ERROR_OBJ }
 func (e *Error) Inspect() string  { return "ERROR: " + e.Message }
 
+// IsError checks if an object is any type of error (Error, ErrorWithTrace, EnhancedError, CustomError)
+func IsError(obj Object) bool {
+	if obj == nil {
+		return false
+	}
+	switch obj.Type() {
+	case ERROR_OBJ, CUSTOM_ERROR_OBJ, CAUGHT_ERROR_OBJ:
+		return true
+	default:
+		// Also check for types that might not have standard ObjectType
+		switch obj.(type) {
+		case *Error, *ErrorWithTrace, *EnhancedError, *CustomError, *CaughtError:
+			return true
+		}
+		return false
+	}
+}
+
 type Function struct {
 	// Parameters holds function parameters, either simple identifiers or full Parameter nodes
 	Parameters  []ast.Expression

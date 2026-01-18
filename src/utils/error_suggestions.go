@@ -39,25 +39,88 @@ var ErrorPatterns = []ErrorPattern{
 		ContextHelp: "Variables and functions must be defined before they can be used. In Carrion, use 'spell' for functions and simple assignment for variables.",
 	},
 	
-	// Type mismatch errors
+	// Type mismatch with STRING - suggest conversion
 	{
-		Pattern: regexp.MustCompile(`type mismatch: (.+) (.+) (.+)`),
+		Pattern: regexp.MustCompile(`type mismatch:.*STRING.*(INTEGER|FLOAT)|type mismatch:.*(INTEGER|FLOAT).*STRING`),
+		Suggestion: object.ErrorSuggestion{
+			Title:       "String/Number type mismatch",
+			Description: "You're mixing strings and numbers in an operation.",
+			Fixes: []object.ErrorFix{
+				{
+					Description: "Convert string to number: int(\"123\") or float(\"3.14\")",
+				},
+				{
+					Description: "Convert number to string: str(123) or str(3.14)",
+				},
+				{
+					Description: "Use string concatenation (+) only with strings, arithmetic only with numbers",
+				},
+			},
+		},
+		ContextHelp: "In Carrion, + means concatenation for strings and addition for numbers. Convert types explicitly to avoid ambiguity.",
+	},
+
+	// Type mismatch with BOOLEAN - suggest comparison or conversion
+	{
+		Pattern: regexp.MustCompile(`type mismatch:.*(BOOLEAN).*(INTEGER|FLOAT|STRING)|type mismatch:.*(INTEGER|FLOAT|STRING).*(BOOLEAN)`),
+		Suggestion: object.ErrorSuggestion{
+			Title:       "Boolean type mismatch",
+			Description: "You're mixing boolean with other types in an operation.",
+			Fixes: []object.ErrorFix{
+				{
+					Description: "Use comparison operators (==, !=, <, >) to get boolean results",
+				},
+				{
+					Description: "Convert to boolean with bool(): bool(0) is False, bool(1) is True",
+				},
+				{
+					Description: "Convert boolean to int: int(True) is 1, int(False) is 0",
+				},
+			},
+		},
+		ContextHelp: "Booleans represent True/False values. Use comparisons to create booleans, or convert explicitly.",
+	},
+
+	// Type mismatch for assignment with type hints
+	{
+		Pattern: regexp.MustCompile(`type mismatch: cannot assign (\w+) to variable '(\w+)' with type hint (\w+)`),
+		Suggestion: object.ErrorSuggestion{
+			Title:       "Type hint violation",
+			Description: "You're assigning a value that doesn't match the variable's declared type.",
+			Fixes: []object.ErrorFix{
+				{
+					Description: "Convert the value to match the type hint before assignment",
+				},
+				{
+					Description: "Remove or update the type hint if you need flexibility",
+				},
+				{
+					Description: "Check that your data source provides the expected type",
+				},
+			},
+		},
+		ContextHelp: "Type hints in Carrion enforce type safety. Use conversion functions to match types.",
+	},
+
+	// Generic type mismatch (fallback)
+	{
+		Pattern: regexp.MustCompile(`type mismatch: (\w+) (.+) (\w+)`),
 		Suggestion: object.ErrorSuggestion{
 			Title:       "Type mismatch",
 			Description: "You're trying to perform an operation on incompatible types.",
 			Fixes: []object.ErrorFix{
 				{
-					Description: "Use type conversion functions: int(), float(), str(), bool()",
+					Description: "Use type conversion: int(), float(), str(), bool(), list(), tuple()",
 				},
 				{
-					Description: "Check that both operands are of compatible types",
+					Description: "Check that both operands are compatible for this operation",
 				},
 				{
-					Description: "Use appropriate operators for the data types",
+					Description: "For arithmetic: both values must be numbers (INTEGER or FLOAT)",
 				},
 			},
 		},
-		ContextHelp: "Carrion has dynamic typing but operations must be performed on compatible types. Use conversion functions when needed.",
+		ContextHelp: "Carrion has dynamic typing but operations require compatible types. Use conversion functions when needed.",
 	},
 	
 	// Wrong number of arguments
@@ -123,25 +186,46 @@ var ErrorPatterns = []ErrorPattern{
 		ContextHelp: "In Carrion, you cannot assign to expressions like function calls or array indices directly.",
 	},
 	
-	// Index out of bounds
+	// Index out of bounds (with valid range info)
 	{
-		Pattern: regexp.MustCompile(`index out of bounds: (\d+)`),
+		Pattern: regexp.MustCompile(`index out of bounds: (-?\d+).*(?:length: (\d+)|is empty)`),
 		Suggestion: object.ErrorSuggestion{
 			Title:       "Index out of bounds",
-			Description: "You're trying to access an array or string index that doesn't exist.",
+			Description: "You're trying to access an index outside the valid range.",
 			Fixes: []object.ErrorFix{
 				{
-					Description: "Check the array/string length before accessing indices",
+					Description: "Indices start at 0, not 1 - if you meant the last element, use index length-1",
 				},
 				{
-					Description: "Use len() function to get the size: if index < len(array):",
+					Description: "Check bounds first: if index >= 0 and index < len(collection):",
 				},
 				{
-					Description: "Use safe access methods that return None for invalid indices",
+					Description: "Use negative indices for end-relative access: -1 for last, -2 for second-to-last",
 				},
 			},
 		},
-		ContextHelp: "Array and string indices start at 0 and go up to len(collection) - 1.",
+		ContextHelp: "Array, tuple, and string indices start at 0. For a collection of length N, valid indices are 0 to N-1. Negative indices count from the end (-1 is the last element).",
+	},
+
+	// Empty collection index error
+	{
+		Pattern: regexp.MustCompile(`index out of bounds: (-?\d+) \((array|tuple|string) is empty\)`),
+		Suggestion: object.ErrorSuggestion{
+			Title:       "Cannot index empty collection",
+			Description: "The collection has no elements to access.",
+			Fixes: []object.ErrorFix{
+				{
+					Description: "Check if collection is empty before indexing: if len(collection) > 0:",
+				},
+				{
+					Description: "Ensure the collection was properly initialized with data",
+				},
+				{
+					Description: "Handle the empty case separately in your logic",
+				},
+			},
+		},
+		ContextHelp: "An empty array, tuple, or string has no valid indices. Always check length before accessing.",
 	},
 	
 	// Parsing errors
@@ -203,7 +287,49 @@ var ErrorPatterns = []ErrorPattern{
 		},
 		ContextHelp: "Carrion uses indentation to define code blocks, similar to Python. Use 4 spaces per indentation level.",
 	},
-	
+
+	// Mixed tabs and spaces in indentation
+	{
+		Pattern: regexp.MustCompile(`mixed tabs and spaces in indentation`),
+		Suggestion: object.ErrorSuggestion{
+			Title:       "Mixed indentation",
+			Description: "You have both tabs and spaces on the same indented line.",
+			Fixes: []object.ErrorFix{
+				{
+					Description: "Use only spaces: Replace all tabs with 4 spaces",
+				},
+				{
+					Description: "Use only tabs: Replace all spaces with tabs",
+				},
+				{
+					Description: "Configure your editor to convert tabs to spaces on save",
+				},
+			},
+		},
+		ContextHelp: "Carrion requires consistent indentation. Pick either tabs or spaces and use them throughout your file.",
+	},
+
+	// Inconsistent indentation style (tabs vs spaces between lines)
+	{
+		Pattern: regexp.MustCompile(`inconsistent indentation: expected (\w+), got (\w+)`),
+		Suggestion: object.ErrorSuggestion{
+			Title:       "Inconsistent indentation style",
+			Description: "Your file started with one indentation style but switched to another.",
+			Fixes: []object.ErrorFix{
+				{
+					Description: "Convert this line to match the file's established style",
+				},
+				{
+					Description: "Use find-and-replace to convert all indentation in the file",
+				},
+				{
+					Description: "Configure your editor's indentation settings for .crl files",
+				},
+			},
+		},
+		ContextHelp: "Once you indent a line with tabs or spaces, stick with that style for the entire file.",
+	},
+
 	// Import errors
 	{
 		Pattern: regexp.MustCompile(`module (.+) not found`),
