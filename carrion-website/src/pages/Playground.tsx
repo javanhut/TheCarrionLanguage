@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
+import { carrionWasm, CarrionResult, StdlibStatus } from '../utils/carrion-wasm';
 
 const Container = styled.div`
   max-width: 1400px;
@@ -135,16 +136,27 @@ const OutputHeader = styled.div`
   border-bottom: 1px solid ${({ theme }) => theme.colors.border};
   font-weight: 600;
   color: ${({ theme }) => theme.colors.text.primary};
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 `;
 
-const OutputContent = styled.pre`
+const VersionBadge = styled.span`
+  font-size: 0.8rem;
+  padding: 0.2rem 0.6rem;
+  background: ${({ theme }) => theme.colors.primary}20;
+  color: ${({ theme }) => theme.colors.primary};
+  border-radius: 4px;
+`;
+
+const OutputContent = styled.pre<{ hasError?: boolean }>`
   padding: 1.5rem;
   min-height: 500px;
   margin: 0;
   font-family: ${({ theme }) => theme.fonts.code};
   font-size: 0.9rem;
   line-height: 1.6;
-  color: ${({ theme }) => theme.colors.text.primary};
+  color: ${({ hasError, theme }) => hasError ? '#ff6b6b' : theme.colors.text.primary};
   overflow-x: auto;
   white-space: pre-wrap;
   word-wrap: break-word;
@@ -178,6 +190,35 @@ const InfoCard = styled.div`
     color: ${({ theme }) => theme.colors.text.secondary};
     line-height: 1.8;
   }
+`;
+
+const StatusIndicator = styled.span<{ status: 'loading' | 'ready' | 'error' }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.8rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+
+  ${({ status }) => {
+    switch (status) {
+      case 'loading':
+        return `
+          background: #f39c1220;
+          color: #f39c12;
+        `;
+      case 'ready':
+        return `
+          background: #27ae6020;
+          color: #27ae60;
+        `;
+      case 'error':
+        return `
+          background: #e74c3c20;
+          color: #e74c3c;
+        `;
+    }
+  }}
 `;
 
 const ExamplesSection = styled.div`
@@ -249,11 +290,11 @@ grim MagicalCrow:
         self.name = name
         self.power = power
         self.spells = []
-    
+
     spell learn_spell(spell_name):
         self.spells.append(spell_name)
         return f"{self.name} learned {spell_name}!"
-    
+
     spell cast(target):
         if len(self.spells) > 0:
             spell = self.spells[0]
@@ -280,11 +321,11 @@ else:
     print("Keep practicing your magic!")
 
 # Loops
-print("\nCounting spell:")
+print("\\nCounting spell:")
 for i in range(5):
     print("Abracadabra!")
 
-print("\nPower levels:")
+print("\\nPower levels:")
 levels = [10, 25, 50, 75, 100]
 for level in levels:
     print(f"Power level: {level}")`,
@@ -301,12 +342,12 @@ ensnare:
 resolve:
     print("Magic calculation complete!")
 
-# Custom errors
+# Another example
 attempt:
-    spell_name = "Forbidden Spell"
+    spell_name = "Test Spell"
     print(f"Casting {spell_name}...")
-    # This would cause an error in real code
-    raise "This spell is too dangerous!"
+    result = 10 / 2
+    print(f"Result: {result}")
 ensnare:
     print("Spell failed!")
 resolve:
@@ -333,157 +374,156 @@ print("")
 print(f"First 10 Fibonacci numbers: {numbers}")`
 };
 
+type WasmStatus = 'loading' | 'ready' | 'error';
+
 const Playground: React.FC = () => {
   const [code, setCode] = useState(codeExamples.helloWorld);
-  const [output, setOutput] = useState('Click "Run" to execute your Carrion code...');
+  const [output, setOutput] = useState('Loading Carrion interpreter...');
   const [isRunning, setIsRunning] = useState(false);
-  const [apiAvailable, setApiAvailable] = useState(true);
+  const [wasmStatus, setWasmStatus] = useState<WasmStatus>('loading');
+  const [version, setVersion] = useState('');
+  const [hasError, setHasError] = useState(false);
 
-  // Check API availability on component mount
-  React.useEffect(() => {
-    checkApiHealth();
+  // Initialize WASM on component mount
+  useEffect(() => {
+    initWasm();
   }, []);
 
-  const checkApiHealth = async () => {
+  const initWasm = async () => {
     try {
-      // In production, we'll use simulation mode since the API requires a backend server
-      const apiUrl = process.env.NODE_ENV === 'development' 
-        ? 'http://localhost:3001/health' 
-        : null; // No API in production for now
-      
-      if (!apiUrl) {
-        setApiAvailable(false);
-        return;
+      setWasmStatus('loading');
+      setOutput('Loading Carrion interpreter...');
+
+      await carrionWasm.init();
+      const ver = await carrionWasm.getVersion();
+      setVersion(ver);
+
+      // Check stdlib status
+      const stdlibStatus: StdlibStatus = await carrionWasm.getStdlibStatus();
+
+      setWasmStatus('ready');
+      if (stdlibStatus.loaded) {
+        setOutput('Carrion interpreter ready with Munin standard library. Click "Run" to execute your code.');
+      } else {
+        setOutput(`Carrion interpreter ready (stdlib warning: ${stdlibStatus.error}). Click "Run" to execute your code.`);
       }
-      
-      const response = await fetch(apiUrl);
-      setApiAvailable(response.ok);
-    } catch {
-      setApiAvailable(false);
+      setHasError(false);
+    } catch (error) {
+      setWasmStatus('error');
+      setOutput(`Failed to load Carrion interpreter: ${error instanceof Error ? error.message : String(error)}`);
+      setHasError(true);
     }
   };
 
-  const runCode = async () => {
-    if (!apiAvailable) {
-      setOutput('⚠️ Playground API is not available.\nUsing simulation mode...\n\n' + simulateCarrionExecution(code));
+  const runCode = useCallback(async () => {
+    if (wasmStatus !== 'ready') {
+      setOutput('Interpreter not ready. Please wait for it to load.');
       return;
     }
 
     setIsRunning(true);
-    setOutput('🐦‍⬛ Executing Carrion code...\n');
+    setOutput('Executing...');
+    setHasError(false);
 
     try {
-      const apiUrl = process.env.NODE_ENV === 'development' 
-        ? 'http://localhost:3001/execute' 
-        : null; // No API in production for now
-      
-      if (!apiUrl) {
-        throw new Error('API not available in production');
-      }
-      
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ code }),
-      });
-
-      const result = await response.json();
+      const result: CarrionResult = await carrionWasm.evaluate(code);
 
       if (result.success) {
-        setOutput(result.output || 'Program executed successfully (no output)');
+        let outputText = '';
+
+        // Add print output
+        if (result.output) {
+          outputText += result.output;
+        }
+
+        // Add final result if it's not empty
+        if (result.result && result.result.trim()) {
+          if (outputText) outputText += '\n';
+          outputText += `=> ${result.result}`;
+        }
+
+        if (!outputText.trim()) {
+          outputText = 'Program executed successfully (no output)';
+        }
+
+        setOutput(outputText);
+        setHasError(false);
       } else {
-        setOutput(`❌ Execution Error:\n${result.stderr || result.error || 'Unknown error'}`);
+        let errorOutput = '';
+        if (result.output) {
+          errorOutput += result.output + '\n\n';
+        }
+        errorOutput += `Error: ${result.error}`;
+        setOutput(errorOutput);
+        setHasError(true);
       }
-    } catch (error: any) {
-      console.error('API Error:', error);
-      setOutput(`🔌 Connection Error: ${error.message}\n\nFalling back to simulation mode...\n\n` + simulateCarrionExecution(code));
-      setApiAvailable(false);
+    } catch (error) {
+      setOutput(`Execution error: ${error instanceof Error ? error.message : String(error)}`);
+      setHasError(true);
     } finally {
       setIsRunning(false);
     }
-  };
-
-  const simulateCarrionExecution = (code: string): string => {
-    const output: string[] = [];
-    const lines = code.split('\n');
-    
-    // Simple simulation - just look for print statements
-    lines.forEach(line => {
-      const trimmed = line.trim();
-      
-      // Skip comments and empty lines
-      if (!trimmed || trimmed.startsWith('//')) return;
-      
-      // Simulate print statements
-      if (trimmed.startsWith('print(')) {
-        const match = trimmed.match(/print\((.*)\)/);
-        if (match) {
-          let value = match[1].trim();
-          
-          // Remove quotes for string literals
-          if ((value.startsWith('"') && value.endsWith('"')) || 
-              (value.startsWith("'") && value.endsWith("'"))) {
-            value = value.slice(1, -1);
-          }
-          
-          output.push(value);
-        }
-      }
-    });
-
-    // Add a note about simulation
-    if (output.length === 0) {
-      output.push('Code executed successfully (no output)');
-    }
-    
-    output.push('\n---');
-    output.push('Note: This is a simulated output. For full Carrion features,');
-    output.push('please download and install the Carrion interpreter.');
-    
-    return output.join('\n');
-  };
+  }, [code, wasmStatus]);
 
   const loadExample = (exampleKey: keyof typeof codeExamples) => {
     setCode(codeExamples[exampleKey]);
     setOutput('Example loaded. Click "Run" to execute.');
+    setHasError(false);
   };
 
   const clearCode = () => {
     setCode('');
     setOutput('');
+    setHasError(false);
+  };
+
+  const resetEnvironment = async () => {
+    await carrionWasm.reset();
+    setOutput('Environment reset. Variables and functions cleared.');
+    setHasError(false);
+  };
+
+  const getStatusText = () => {
+    switch (wasmStatus) {
+      case 'loading':
+        return 'Loading...';
+      case 'ready':
+        return 'Ready';
+      case 'error':
+        return 'Error';
+    }
   };
 
   return (
     <Container>
       <Header>
         <Title>Carrion Playground</Title>
-        <Subtitle>Try Carrion directly in your browser</Subtitle>
+        <Subtitle>
+          Run real Carrion code directly in your browser
+          <StatusIndicator status={wasmStatus} style={{ marginLeft: '1rem' }}>
+            {getStatusText()}
+          </StatusIndicator>
+        </Subtitle>
       </Header>
 
       <InfoSection>
-        <h2>🚀 Real Carrion Code Execution</h2>
+        <h2>Real Carrion Code Execution</h2>
         <p style={{ textAlign: 'center', marginBottom: '1.5rem', color: '#8892b0' }}>
-          This playground executes actual Carrion code using the official interpreter in a secure Docker environment.
-          {!apiAvailable && (
-            <span style={{ color: '#f39c12', display: 'block', marginTop: '0.5rem' }}>
-              ⚠️ API currently unavailable - using simulation mode
-            </span>
-          )}
+          This playground runs the actual Carrion interpreter compiled to WebAssembly.
+          Your code executes entirely in your browser - no server required.
         </p>
         <InfoGrid>
           <InfoCard>
-            <h3>🔒 Secure Execution</h3>
-            <p>Code runs in isolated Docker containers with resource limits and network isolation for security.</p>
+            <h3>Full Language Support</h3>
+            <p>Run real Carrion code with grimoires, spells, error handling, and all language features.</p>
           </InfoCard>
           <InfoCard>
-            <h3>⚡ Real-time Results</h3>
-            <p>See actual Carrion interpreter output, errors, and execution behavior instantly.</p>
+            <h3>Instant Execution</h3>
+            <p>Code runs locally in your browser using WebAssembly for near-native performance.</p>
           </InfoCard>
           <InfoCard>
-            <h3>📚 Learn by Doing</h3>
-            <p>Experiment with real Carrion features - grimoires, spells, error handling, and more.</p>
+            <h3>Learn by Doing</h3>
+            <p>Experiment freely - the interpreter runs in a sandboxed environment with no network access.</p>
           </InfoCard>
         </InfoGrid>
       </InfoSection>
@@ -499,11 +539,14 @@ const Playground: React.FC = () => {
                main.crl
             </EditorTitle>
             <EditorActions>
-              <Button onClick={clearCode}>
-                 Clear
+              <Button onClick={resetEnvironment} disabled={wasmStatus !== 'ready'}>
+                Reset
               </Button>
-              <Button primary onClick={runCode} disabled={isRunning}>
-                 {isRunning ? 'Running...' : 'Run'}
+              <Button onClick={clearCode}>
+                Clear
+              </Button>
+              <Button primary onClick={runCode} disabled={isRunning || wasmStatus !== 'ready'}>
+                {isRunning ? 'Running...' : 'Run'}
               </Button>
             </EditorActions>
           </EditorHeader>
@@ -522,8 +565,11 @@ const Playground: React.FC = () => {
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <OutputHeader>Output</OutputHeader>
-          <OutputContent>{output}</OutputContent>
+          <OutputHeader>
+            <span>Output</span>
+            {version && <VersionBadge>Carrion v{version}</VersionBadge>}
+          </OutputHeader>
+          <OutputContent hasError={hasError}>{output}</OutputContent>
         </OutputContainer>
       </PlaygroundContainer>
 

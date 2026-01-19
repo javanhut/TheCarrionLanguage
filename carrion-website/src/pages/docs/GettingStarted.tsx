@@ -1,172 +1,266 @@
 import React from 'react';
-import styled from 'styled-components';
 import { Light as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomOneDark } from 'react-syntax-highlighter/dist/esm/styles/hljs';
 import { Link } from 'react-router-dom';
+import {
+  DocLayout,
+  Section,
+  SectionTitle,
+  SubSection,
+  SubSectionTitle,
+  Paragraph,
+  Lead,
+  CodeBlock,
+  InfoBox,
+  InfoTitle,
+  InfoText,
+  TipBox,
+  TipTitle,
+  CardGrid,
+  Card,
+  CardTitle,
+  CardDescription,
+  InlineCode,
+  ComparisonTable,
+  ComparisonItem,
+  ComparisonLabel,
+  ComparisonValue,
+  List,
+  ListItem,
+} from '../../components/docs';
 
-const Container = styled.div`
-  max-width: 1000px;
-  margin: 0 auto;
-  padding: 6rem 2rem 4rem;
-  min-height: 100vh;
-`;
-
-const Header = styled.div`
-  text-align: center;
-  margin-bottom: 3rem;
-`;
-
-const Title = styled.h1`
-  font-size: 3rem;
-  margin-bottom: 1rem;
-  background: ${({ theme }) => theme.gradients.primary};
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-`;
-
-const Subtitle = styled.p`
-  font-size: 1.3rem;
-  color: ${({ theme }) => theme.colors.text.secondary};
-  max-width: 600px;
-  margin: 0 auto;
-`;
-
-const Section = styled.section`
-  margin-bottom: 3rem;
-`;
-
-const SectionTitle = styled.h2`
-  color: ${({ theme }) => theme.colors.primary};
-  margin-bottom: 1.5rem;
-  font-size: 2rem;
-`;
-
-const SubSectionTitle = styled.h3`
-  color: ${({ theme }) => theme.colors.text.primary};
-  margin-bottom: 1rem;
-  font-size: 1.5rem;
-`;
-
-const StepCard = styled.div`
-  background: ${({ theme }) => theme.colors.background.secondary};
-  border: 1px solid ${({ theme }) => theme.colors.border};
-  border-radius: 15px;
-  padding: 2rem;
-  margin-bottom: 2rem;
-  transition: all ${({ theme }) => theme.transitions.normal};
-
-  &:hover {
-    border-color: ${({ theme }) => theme.colors.primary};
-    transform: translateY(-2px);
-  }
-`;
-
-const StepNumber = styled.div`
-  background: ${({ theme }) => theme.colors.primary};
-  color: white;
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
-  margin-bottom: 1rem;
-`;
-
-const CodeBlock = styled.div`
-  margin: 1rem 0;
-`;
-
-const QuickNavCard = styled.div`
-  background: ${({ theme }) => theme.colors.background.tertiary};
-  border: 1px solid ${({ theme }) => theme.colors.border};
-  border-radius: 10px;
-  padding: 1.5rem;
-  margin: 2rem 0;
-`;
-
-const NavList = styled.ul`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-  list-style: none;
-  margin: 1rem 0;
-`;
-
-const NavItem = styled.li`
-  a {
-    color: ${({ theme }) => theme.colors.primary};
-    text-decoration: none;
-    font-weight: 500;
-    
-    &:hover {
-      text-decoration: underline;
-    }
-  }
-`;
-
-const InfoBox = styled.div`
-  background: rgba(0, 204, 153, 0.1);
-  border: 1px solid ${({ theme }) => theme.colors.primary};
-  border-radius: 8px;
-  padding: 1rem;
-  margin: 1rem 0;
-`;
-
-const WarningBox = styled.div`
-  background: rgba(255, 204, 0, 0.1);
-  border: 1px solid ${({ theme }) => theme.colors.warning};
-  border-radius: 8px;
-  padding: 1rem;
-  margin: 1rem 0;
-`;
+const sections = [
+  { id: 'hello-world', title: 'Hello World' },
+  { id: 'variables', title: 'Variables' },
+  { id: 'data-types', title: 'Data Types' },
+  { id: 'functions', title: 'Functions' },
+  { id: 'classes', title: 'Grimoires (Classes)' },
+  { id: 'error-handling', title: 'Error Handling' },
+  { id: 'repl', title: 'Using the REPL' },
+];
 
 const GettingStarted: React.FC = () => {
-  const helloWorldExample = `# hello.crl
-print("Hello, magical world of Carrion!")`;
+  return (
+    <DocLayout
+      title="Introduction"
+      description="Welcome to Carrion! Learn the fundamentals and start writing magical code."
+      sections={sections}
+    >
+      <Lead>
+        Carrion is a dynamically-typed programming language with a magical theme. Classes are called
+        "grimoires", methods are "spells", and error handling uses "attempt/ensnare". This guide
+        covers the basics you need to get started.
+      </Lead>
 
-  const basicVariablesExample = `# Variables in Carrion
-name = "Wizard"
+      <Section id="hello-world">
+        <SectionTitle>Hello World</SectionTitle>
+        <Paragraph>
+          Create a file called <InlineCode>hello.crl</InlineCode> with the following content:
+        </Paragraph>
+
+        <CodeBlock>
+          <SyntaxHighlighter language="python" style={atomOneDark}>
+            {'print("Hello, Carrion!")'}
+          </SyntaxHighlighter>
+        </CodeBlock>
+
+        <Paragraph>Run it:</Paragraph>
+
+        <CodeBlock>
+          <SyntaxHighlighter language="bash" style={atomOneDark}>
+            {'carrion hello.crl'}
+          </SyntaxHighlighter>
+        </CodeBlock>
+
+        <InfoBox>
+          <InfoTitle>File Extension</InfoTitle>
+          <InfoText>
+            Carrion source files use the <InlineCode>.crl</InlineCode> extension.
+          </InfoText>
+        </InfoBox>
+      </Section>
+
+      <Section id="variables">
+        <SectionTitle>Variables</SectionTitle>
+        <Paragraph>
+          Variables in Carrion are dynamically typed. No type declarations needed.
+        </Paragraph>
+
+        <CodeBlock>
+          <SyntaxHighlighter language="python" style={atomOneDark}>
+{`name = "Alice"
 age = 25
 height = 5.9
-is_magical = True
+is_student = True
 
-# String interpolation
+# String interpolation with f-strings
 greeting = f"Hello, {name}! You are {age} years old."
-print(greeting)`;
+print(greeting)`}
+          </SyntaxHighlighter>
+        </CodeBlock>
 
-  const firstGrimExample = `# first_grim.crl
-grim MagicalCreature:
-    init(name, element):
+        <TipBox>
+          <TipTitle>String Interpolation</TipTitle>
+          <InfoText>
+            Use f-strings for embedding variables: <InlineCode>f"Hello, &#123;name&#125;!"</InlineCode>
+          </InfoText>
+        </TipBox>
+      </Section>
+
+      <Section id="data-types">
+        <SectionTitle>Data Types</SectionTitle>
+        <Paragraph>Carrion supports the following data types:</Paragraph>
+
+        <ComparisonTable>
+          <ComparisonItem>
+            <ComparisonLabel>Integer</ComparisonLabel>
+            <ComparisonValue>42, -10</ComparisonValue>
+          </ComparisonItem>
+          <ComparisonItem>
+            <ComparisonLabel>Float</ComparisonLabel>
+            <ComparisonValue>3.14, -2.5</ComparisonValue>
+          </ComparisonItem>
+          <ComparisonItem>
+            <ComparisonLabel>String</ComparisonLabel>
+            <ComparisonValue>"hello", 'world'</ComparisonValue>
+          </ComparisonItem>
+          <ComparisonItem>
+            <ComparisonLabel>Boolean</ComparisonLabel>
+            <ComparisonValue>True, False</ComparisonValue>
+          </ComparisonItem>
+          <ComparisonItem>
+            <ComparisonLabel>Array</ComparisonLabel>
+            <ComparisonValue>[1, 2, 3]</ComparisonValue>
+          </ComparisonItem>
+          <ComparisonItem>
+            <ComparisonLabel>Hash</ComparisonLabel>
+            <ComparisonValue>&#123;"key": "value"&#125;</ComparisonValue>
+          </ComparisonItem>
+          <ComparisonItem>
+            <ComparisonLabel>None</ComparisonLabel>
+            <ComparisonValue>None</ComparisonValue>
+          </ComparisonItem>
+        </ComparisonTable>
+
+        <SubSection>
+          <SubSectionTitle>Arrays</SubSectionTitle>
+          <CodeBlock>
+            <SyntaxHighlighter language="python" style={atomOneDark}>
+{`numbers = [1, 2, 3, 4, 5]
+mixed = ["text", 42, True, [1, 2]]
+
+# Access elements
+first = numbers[0]       # 1
+last = numbers[-1]       # 5 (negative indexing)
+
+# Array methods
+numbers.append(6)
+print(numbers.length())  # 6`}
+            </SyntaxHighlighter>
+          </CodeBlock>
+        </SubSection>
+
+        <SubSection>
+          <SubSectionTitle>Hashes (Dictionaries)</SubSectionTitle>
+          <CodeBlock>
+            <SyntaxHighlighter language="python" style={atomOneDark}>
+{`person = {
+    "name": "Alice",
+    "age": 25,
+    "city": "NYC"
+}
+
+# Access values
+print(person["name"])  # Alice
+
+# Add/update
+person["email"] = "alice@example.com"`}
+            </SyntaxHighlighter>
+          </CodeBlock>
+        </SubSection>
+      </Section>
+
+      <Section id="functions">
+        <SectionTitle>Functions</SectionTitle>
+        <Paragraph>
+          Functions in Carrion are called "spells". Define them with the <InlineCode>spell</InlineCode> keyword.
+        </Paragraph>
+
+        <CodeBlock>
+          <SyntaxHighlighter language="python" style={atomOneDark}>
+{`spell greet(name):
+    return f"Hello, {name}!"
+
+spell add(a, b):
+    return a + b
+
+# Call functions
+message = greet("Alice")
+print(message)  # Hello, Alice!
+
+result = add(5, 3)
+print(result)   # 8`}
+          </SyntaxHighlighter>
+        </CodeBlock>
+
+        <SubSection>
+          <SubSectionTitle>Default Parameters</SubSectionTitle>
+          <CodeBlock>
+            <SyntaxHighlighter language="python" style={atomOneDark}>
+{`spell greet(name, greeting="Hello"):
+    return f"{greeting}, {name}!"
+
+print(greet("Alice"))           # Hello, Alice!
+print(greet("Bob", "Hi"))       # Hi, Bob!`}
+            </SyntaxHighlighter>
+          </CodeBlock>
+        </SubSection>
+      </Section>
+
+      <Section id="classes">
+        <SectionTitle>Grimoires (Classes)</SectionTitle>
+        <Paragraph>
+          Classes in Carrion are called "grimoires" - spellbooks that contain methods (spells).
+        </Paragraph>
+
+        <CodeBlock>
+          <SyntaxHighlighter language="python" style={atomOneDark}>
+{`grim Person:
+    init(name, age):
         self.name = name
-        self.element = element
-        self.spells = []
-    
-    spell introduce():
-        return f"I am {self.name}, master of {self.element} magic!"
-    
-    spell learn_spell(spell_name):
-        self.spells.append(spell_name)
-        print(f"{self.name} learned {spell_name}!")
-    
-    spell cast_spell(spell_name):
-        if spell_name in self.spells:
-            print(f"{self.name} casts {spell_name}!")
-        else:
-            print(f"{self.name} doesn't know {spell_name}")
+        self.age = age
 
-# Create a magical creature
-wizard = MagicalCreature("Gandalf", "Light")
-print(wizard.introduce())
+    spell greet():
+        return f"Hello, I'm {self.name}"
 
-wizard.learn_spell("Lightning Bolt")
-wizard.learn_spell("Healing Light")
-wizard.cast_spell("Lightning Bolt")`;
+    spell birthday():
+        self.age += 1
+        return f"Now {self.age} years old"
 
-  const errorHandlingExample = `# error_handling.crl
-spell divide_numbers(a, b):
+# Create an instance
+alice = Person("Alice", 30)
+print(alice.greet())     # Hello, I'm Alice
+print(alice.birthday())  # Now 31 years old`}
+          </SyntaxHighlighter>
+        </CodeBlock>
+
+        <InfoBox>
+          <InfoTitle>Magical Terminology</InfoTitle>
+          <InfoText>
+            <InlineCode>grim</InlineCode> = class, <InlineCode>spell</InlineCode> = method/function, <InlineCode>init</InlineCode> = constructor
+          </InfoText>
+        </InfoBox>
+      </Section>
+
+      <Section id="error-handling">
+        <SectionTitle>Error Handling</SectionTitle>
+        <Paragraph>
+          Use <InlineCode>attempt</InlineCode>/<InlineCode>ensnare</InlineCode>/<InlineCode>resolve</InlineCode> for error handling (like try/catch/finally).
+        </Paragraph>
+
+        <CodeBlock>
+          <SyntaxHighlighter language="python" style={atomOneDark}>
+{`spell divide(a, b):
     attempt:
         result = a / b
         return result
@@ -174,282 +268,83 @@ spell divide_numbers(a, b):
         print("Cannot divide by zero!")
         return None
     resolve:
-        print("Division operation completed")
+        print("Division complete")
 
-# Test error handling
-print(divide_numbers(10, 2))  # Works fine
-print(divide_numbers(10, 0))  # Handles error`;
+print(divide(10, 2))  # 5.0
+print(divide(10, 0))  # Cannot divide by zero! -> None`}
+          </SyntaxHighlighter>
+        </CodeBlock>
 
-  const replExample = `$ carrion
-🐦‍⬛ Welcome to Carrion REPL v0.1.6
-Type 'mimir' for help, 'quit' to exit
+        <ComparisonTable>
+          <ComparisonItem>
+            <ComparisonLabel>attempt</ComparisonLabel>
+            <ComparisonValue>try</ComparisonValue>
+          </ComparisonItem>
+          <ComparisonItem>
+            <ComparisonLabel>ensnare</ComparisonLabel>
+            <ComparisonValue>catch/except</ComparisonValue>
+          </ComparisonItem>
+          <ComparisonItem>
+            <ComparisonLabel>resolve</ComparisonLabel>
+            <ComparisonValue>finally</ComparisonValue>
+          </ComparisonItem>
+        </ComparisonTable>
+      </Section>
 
->>> print("Hello from REPL!")
-Hello from REPL!
+      <Section id="repl">
+        <SectionTitle>Using the REPL</SectionTitle>
+        <Paragraph>
+          Start the interactive REPL by running <InlineCode>carrion</InlineCode> without arguments.
+        </Paragraph>
+
+        <CodeBlock>
+          <SyntaxHighlighter language="bash" style={atomOneDark}>
+{`$ carrion
+Welcome to Carrion REPL v0.1.9
 
 >>> name = "Coder"
->>> f"Welcome {name}!"
-'Welcome Coder!'
+>>> f"Hello, {name}!"
+'Hello, Coder!'
 
->>> # Check version
 >>> version()
-Carrion v0.1.6
+Carrion v0.1.9
 
->>> # Get help
->>> mimir
-Welcome to Mimir - The Carrion Help System
-...
+>>> mimir     # Get help
+>>> quit      # Exit`}
+          </SyntaxHighlighter>
+        </CodeBlock>
 
->>> quit`;
-
-  return (
-    <Container>
-      <Header>
-        <Title>Getting Started with Carrion</Title>
-        <Subtitle>
-          Welcome to the mystical world of Carrion! This guide will help you cast your first spells 
-          and embark on your magical programming journey.
-        </Subtitle>
-      </Header>
-
-      <QuickNavCard>
-        <h3>🗺️ Quick Navigation</h3>
-        <NavList>
-          <NavItem><Link to="/docs/installation">📦 Installation Guide</Link></NavItem>
-          <NavItem><Link to="/docs/language-reference">📚 Language Reference</Link></NavItem>
-          <NavItem><Link to="/playground">🎮 Try Online Playground</Link></NavItem>
-          <NavItem><Link to="/docs/quick-start">⚡ Quick Start Tutorial</Link></NavItem>
-          <NavItem><Link to="/docs/standard-library">🔮 Standard Library</Link></NavItem>
-          <NavItem><Link to="/community">💬 Join Community</Link></NavItem>
-        </NavList>
-      </QuickNavCard>
-
-      <Section>
-        <SectionTitle>Step 1: Install Carrion</SectionTitle>
-        
-        <StepCard>
-          <StepNumber>1</StepNumber>
-          <SubSectionTitle>Choose Your Installation Method</SubSectionTitle>
-          
-          <h4>🚀 Quick Install (Recommended)</h4>
-          <CodeBlock>
-            <SyntaxHighlighter language="bash" style={atomOneDark}>
-{`# Download for your OS from releases page
-curl -L "https://github.com/javanhut/TheCarrionLanguage/releases/download/v0.1.6/carrion_linux_amd64.tar.gz" -o carrion.tar.gz
-tar -xzf carrion.tar.gz
-sudo cp carrion /usr/local/bin/
-
-# Test installation
-carrion
-# In REPL, type: version()`}
-            </SyntaxHighlighter>
-          </CodeBlock>
-
-          <h4>🐳 Using Docker</h4>
-          <CodeBlock>
-            <SyntaxHighlighter language="bash" style={atomOneDark}>
-{`docker pull javanhut/carrionlanguage:latest
-docker run -it javanhut/carrionlanguage:latest`}
-            </SyntaxHighlighter>
-          </CodeBlock>
-
-          <InfoBox>
-            <p><strong>Need help installing?</strong> Check out our detailed <Link to="/docs/installation">Installation Guide</Link> for step-by-step instructions for all operating systems.</p>
-          </InfoBox>
-        </StepCard>
+        <Paragraph>REPL features:</Paragraph>
+        <List>
+          <ListItem>Tab completion for keywords and functions</ListItem>
+          <ListItem>Command history with arrow keys</ListItem>
+          <ListItem>Type <InlineCode>mimir</InlineCode> for interactive help</ListItem>
+          <ListItem>Type <InlineCode>version()</InlineCode> to check the version</ListItem>
+        </List>
       </Section>
 
       <Section>
-        <SectionTitle>Step 2: Your First Carrion Program</SectionTitle>
-        
-        <StepCard>
-          <StepNumber>2</StepNumber>
-          <SubSectionTitle>Hello, Magical World!</SubSectionTitle>
-          
-          <p>Let's start with the traditional "Hello World" program in Carrion:</p>
-          
-          <CodeBlock>
-            <SyntaxHighlighter language="python" style={atomOneDark}>
-              {helloWorldExample}
-            </SyntaxHighlighter>
-          </CodeBlock>
-
-          <p>Save this as <code>hello.crl</code> and run it:</p>
-          <CodeBlock>
-            <SyntaxHighlighter language="bash" style={atomOneDark}>
-{`carrion hello.crl`}
-            </SyntaxHighlighter>
-          </CodeBlock>
-
-          <p>You should see: <code>Hello, magical world of Carrion!</code></p>
-        </StepCard>
+        <SectionTitle>Next Steps</SectionTitle>
+        <CardGrid>
+          <Card as={Link} to="/docs/quick-start" style={{ textDecoration: 'none' }}>
+            <CardTitle>Quick Start Tutorial</CardTitle>
+            <CardDescription>Build your first Carrion project step by step.</CardDescription>
+          </Card>
+          <Card as={Link} to="/docs/language-reference" style={{ textDecoration: 'none' }}>
+            <CardTitle>Language Reference</CardTitle>
+            <CardDescription>Complete guide to Carrion's syntax and features.</CardDescription>
+          </Card>
+          <Card as={Link} to="/docs/grimoires" style={{ textDecoration: 'none' }}>
+            <CardTitle>Grimoires (OOP)</CardTitle>
+            <CardDescription>Learn about classes, inheritance, and more.</CardDescription>
+          </Card>
+          <Card as={Link} to="/docs/standard-library" style={{ textDecoration: 'none' }}>
+            <CardTitle>Standard Library</CardTitle>
+            <CardDescription>Explore Munin, the standard library.</CardDescription>
+          </Card>
+        </CardGrid>
       </Section>
-
-      <Section>
-        <SectionTitle>Step 3: Learning the Basics</SectionTitle>
-        
-        <StepCard>
-          <StepNumber>3</StepNumber>
-          <SubSectionTitle>Variables and Data Types</SubSectionTitle>
-          
-          <p>Carrion supports dynamic typing with familiar syntax:</p>
-          
-          <CodeBlock>
-            <SyntaxHighlighter language="python" style={atomOneDark}>
-              {basicVariablesExample}
-            </SyntaxHighlighter>
-          </CodeBlock>
-
-          <h4>📊 Supported Data Types:</h4>
-          <ul>
-            <li><strong>Integer:</strong> <code>42</code>, <code>-10</code></li>
-            <li><strong>Float:</strong> <code>3.14</code>, <code>-2.5</code></li>
-            <li><strong>String:</strong> <code>"Hello"</code>, <code>'World'</code>, <code>f"Formatted &#123;var&#125;"</code></li>
-            <li><strong>Boolean:</strong> <code>True</code>, <code>False</code></li>
-            <li><strong>Array:</strong> <code>[1, 2, 3]</code></li>
-            <li><strong>Hash:</strong> <code>&#123;"key": "value"&#125;</code></li>
-            <li><strong>None:</strong> <code>None</code></li>
-          </ul>
-        </StepCard>
-      </Section>
-
-      <Section>
-        <SectionTitle>Step 4: Your First Grimoire (Class)</SectionTitle>
-        
-        <StepCard>
-          <StepNumber>4</StepNumber>
-          <SubSectionTitle>Creating Magical Objects</SubSectionTitle>
-          
-          <p>In Carrion, classes are called "grimoires" and methods are "spells". Let's create your first magical creature:</p>
-          
-          <CodeBlock>
-            <SyntaxHighlighter language="python" style={atomOneDark}>
-              {firstGrimExample}
-            </SyntaxHighlighter>
-          </CodeBlock>
-
-          <InfoBox>
-            <p><strong>Magical Keywords:</strong></p>
-            <ul>
-              <li><code>grim</code> = class</li>
-              <li><code>spell</code> = method/function</li>
-              <li><code>init</code> = constructor</li>
-            </ul>
-          </InfoBox>
-        </StepCard>
-      </Section>
-
-      <Section>
-        <SectionTitle>Step 5: Error Handling Magic</SectionTitle>
-        
-        <StepCard>
-          <StepNumber>5</StepNumber>
-          <SubSectionTitle>Attempt, Ensnare, and Resolve</SubSectionTitle>
-          
-          <p>Carrion uses magical keywords for error handling:</p>
-          
-          <CodeBlock>
-            <SyntaxHighlighter language="python" style={atomOneDark}>
-              {errorHandlingExample}
-            </SyntaxHighlighter>
-          </CodeBlock>
-
-          <InfoBox>
-            <p><strong>Error Handling Keywords:</strong></p>
-            <ul>
-              <li><code>attempt</code> = try</li>
-              <li><code>ensnare</code> = catch/except</li>
-              <li><code>resolve</code> = finally</li>
-            </ul>
-          </InfoBox>
-        </StepCard>
-      </Section>
-
-      <Section>
-        <SectionTitle>Step 6: Interactive Programming with REPL</SectionTitle>
-        
-        <StepCard>
-          <StepNumber>6</StepNumber>
-          <SubSectionTitle>The Carrion REPL Experience</SubSectionTitle>
-          
-          <p>Carrion includes a powerful REPL (Read-Eval-Print Loop) for interactive programming:</p>
-          
-          <CodeBlock>
-            <SyntaxHighlighter language="bash" style={atomOneDark}>
-              {replExample}
-            </SyntaxHighlighter>
-          </CodeBlock>
-
-          <h4>🔧 REPL Features:</h4>
-          <ul>
-            <li><strong>Tab Completion:</strong> Press Tab to auto-complete keywords and functions</li>
-            <li><strong>Command History:</strong> Use arrow keys to navigate previous commands</li>
-            <li><strong>Help System:</strong> Type <code>mimir</code> for interactive help</li>
-            <li><strong>Built-in Commands:</strong> <code>version()</code>, <code>help()</code>, <code>modules()</code></li>
-            <li><strong>Multi-line Input:</strong> Supports complex expressions and functions</li>
-          </ul>
-        </StepCard>
-      </Section>
-
-      <Section>
-        <SectionTitle>🎯 What's Next?</SectionTitle>
-        
-        <p>Congratulations! You've taken your first steps into the magical world of Carrion. Here's where to go next:</p>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', margin: '2rem 0' }}>
-          <StepCard>
-            <h3>📖 Dive Deeper</h3>
-            <p>Explore the complete language features:</p>
-            <ul>
-              <li><Link to="/docs/language-reference">Language Reference</Link></li>
-              <li><Link to="/docs/grimoires">Classes & Inheritance</Link></li>
-              <li><Link to="/docs/control-flow">Control Flow</Link></li>
-              <li><Link to="/docs/operators">Operators</Link></li>
-            </ul>
-          </StepCard>
-
-          <StepCard>
-            <h3>🔮 Standard Library</h3>
-            <p>Discover the power of Munin:</p>
-            <ul>
-              <li><Link to="/docs/standard-library">Munin Overview</Link></li>
-              <li><Link to="/docs/builtin-functions">Built-in Functions</Link></li>
-              <li><Link to="/docs/modules">Modules System</Link></li>
-            </ul>
-          </StepCard>
-
-          <StepCard>
-            <h3>🎮 Practice & Play</h3>
-            <p>Hone your magical skills:</p>
-            <ul>
-              <li><Link to="/playground">Online Playground</Link></li>
-              <li><Link to="/docs/quick-start">Quick Start Tutorial</Link></li>
-              <li><Link to="/community">Join the Community</Link></li>
-            </ul>
-          </StepCard>
-        </div>
-
-        <WarningBox>
-          <p><strong>Note:</strong> Carrion is currently in active development (v0.1.8). Some features may be unstable. Please report any issues on our <a href="https://github.com/javanhut/TheCarrionLanguage/issues" target="_blank" rel="noopener noreferrer">GitHub repository</a>.</p>
-        </WarningBox>
-      </Section>
-
-      <Section>
-        <SectionTitle>💡 Tips for Success</SectionTitle>
-        
-        <StepCard>
-          <SubSectionTitle>Best Practices</SubSectionTitle>
-          <ul>
-            <li><strong>Start Small:</strong> Begin with simple programs and gradually add complexity</li>
-            <li><strong>Use the REPL:</strong> Perfect for testing ideas and learning syntax</li>
-            <li><strong>Embrace the Magic:</strong> Don't be afraid of the magical terminology - it makes coding fun!</li>
-            <li><strong>Read Error Messages:</strong> Carrion provides detailed error information to help you debug</li>
-            <li><strong>Explore Examples:</strong> Check out the documentation for more code examples</li>
-            <li><strong>Join the Community:</strong> Connect with other Carrion developers for help and inspiration</li>
-          </ul>
-        </StepCard>
-      </Section>
-    </Container>
+    </DocLayout>
   );
 };
 

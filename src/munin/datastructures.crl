@@ -1,0 +1,920 @@
+grim Node:
+    ```
+    A simple node implementation for linked data structures.
+    
+    Contains data and a reference to the next node in the structure.
+    ```
+    init(data):
+        ```
+        Initialize a new node with the given data.
+        
+        Args:
+            data: The data to store in this node
+        ```
+        self.data = data
+        self.next = None
+
+grim StackIterator:
+    ```
+    Iterator for Stack data structure.
+    
+    Iterates through stack elements from top to bottom (LIFO order).
+    ```
+    init(stack):
+        ```
+        Initialize iterator for the given stack.
+        
+        Args:
+            stack: The Stack instance to iterate over
+        ```
+        self.current = stack.head
+    
+    spell next():
+        ```
+        Get the next element from the stack.
+        
+        Returns:
+            The next data element in the stack
+            
+        Raises:
+            StopIteration: When no more elements are available
+        ```
+        if self.current == None:
+            raise "StopIteration"
+        data = self.current.data
+        self.current = self.current.next
+        return data
+
+grim QueueIterator:
+    ```
+    Iterator for Queue data structure.
+    
+    Iterates through queue elements from front to rear (FIFO order).
+    ```
+    init(queue):
+        ```
+        Initialize iterator for the given queue.
+        
+        Args:
+            queue: The Queue instance to iterate over
+        ```
+        self.current = queue.front
+    
+    spell next():
+        ```
+        Get the next element from the queue.
+        
+        Returns:
+            The next data element in the queue
+            
+        Raises:
+            StopIteration: When no more elements are available
+        ```
+        if self.current == None:
+            raise "StopIteration"
+        data = self.current.data
+        self.current = self.current.next
+        return data
+
+grim HeapIterator:
+    ```
+    Iterator for Heap data structure.
+    
+    Iterates through heap elements in their internal array order
+    (not in sorted order).
+    ```
+    init(heap):
+        ```
+        Initialize iterator for the given heap.
+        
+        Args:
+            heap: The Heap instance to iterate over
+        ```
+        self.heap = heap
+        self.index = 0
+    
+    spell next():
+        ```
+        Get the next element from the heap.
+        
+        Returns:
+            The next data element in the heap
+            
+        Raises:
+            StopIteration: When no more elements are available
+        ```
+        if self.index >= self.heap.size:
+            raise "StopIteration"
+        value = self.heap.heap[self.index]
+        self.index = self.index + 1
+        return value
+
+grim BTreeIterator:
+    ```
+    Iterator for BTree data structure.
+    
+    Performs in-order traversal, yielding elements in sorted order.
+    ```
+    init(btree):
+        ```
+        Initialize iterator for the given binary tree.
+        
+        Args:
+            btree: The BTree instance to iterate over
+        ```
+        self.values = btree.inorder()
+        self.index = 0
+    
+    spell next():
+        ```
+        Get the next element from the tree in sorted order.
+        
+        Returns:
+            The next data element in sorted order
+            
+        Raises:
+            StopIteration: When no more elements are available
+        ```
+        if self.index >= len(self.values):
+            raise "StopIteration"
+        value = self.values[self.index]
+        self.index = self.index + 1
+        return value
+
+grim TreeNode:
+    ```
+    A node for binary tree data structures.
+    
+    Contains a value and references to left and right child nodes.
+    ```
+    init(value):
+        ```
+        Initialize a new tree node with the given value.
+        
+        Args:
+            value: The value to store in this node
+        ```
+        self.value = value
+        self.left = None
+        self.right = None
+
+
+grim Stack(Iterable):
+    ```
+    A Last-In-First-Out (LIFO) data structure implementation.
+    
+    Supports standard stack operations: push, pop, peek, and iteration.
+    Elements are added and removed from the top of the stack.
+    ```
+    init():
+        ```
+        Initialize an empty stack.
+        ```
+        self.head = None
+        self.size = 0
+
+    spell push(value):
+        ```
+        Add an element to the top of the stack.
+        
+        Args:
+            value: The element to add to the stack
+        ```
+        new_node = Node(value)
+        if self.head:
+            new_node.next = self.head
+        self.head = new_node
+        self.size = self.size + 1
+        
+    spell pop():
+        ```
+        Remove and return the top element from the stack.
+        
+        Returns:
+            The element that was at the top of the stack
+            
+        Raises:
+            Error: If the stack is empty
+        ```
+        if self.size == 0:
+            return "Cannot perform pop as Stack is empty"
+        popped_node = self.head
+        self.head = self.head.next
+        self.size = self.size - 1
+        return popped_node.data
+
+    spell peek():
+        ```
+        Return the top element without removing it from the stack.
+        
+        Returns:
+            The element at the top of the stack
+            
+        Raises:
+            Error: If the stack is empty
+        ```
+        if self.size == 0:
+            return "Cannot peek Stack is Empty"
+        return self.head.data
+    
+    spell is_empty():
+        ```
+        Check if the stack is empty.
+        
+        Returns:
+            True if the stack contains no elements, False otherwise
+        ```
+        return self.size == 0
+
+    spell get_size():
+        ```
+        Get the number of elements in the stack.
+        
+        Returns:
+            Integer representing the number of elements in the stack
+        ```
+        return self.size
+
+    spell print():
+        ```
+        Print all elements in the stack from top to bottom.
+        ```
+        temp = self.head
+        while temp:
+            print(temp.data)
+            temp = temp.next
+        print("")
+    
+    spell iter():
+        ```
+        Return an iterator for this stack.
+        
+        Returns:
+            StackIterator instance for iterating through elements
+        ```
+        return StackIterator(self)
+            
+
+
+grim Queue(Iterable):
+    ```
+    A First-In-First-Out (FIFO) data structure implementation.
+    
+    Supports standard queue operations: enqueue, dequeue, peek, and iteration.
+    Elements are added at the rear and removed from the front.
+    ```
+    init():
+        ```
+        Initialize an empty queue.
+        ```
+        self.front = None
+        self.rear = None
+        self.length = 0
+    
+    spell enqueue(element):
+        ```
+        Add an element to the rear of the queue.
+        
+        Args:
+            element: The element to add to the queue
+        ```
+        new_node = Node(element)
+        if self.rear == None:
+            self.front = new_node
+            self.rear = new_node
+            self.length = self.length + 1
+        else:
+            self.rear.next = new_node
+            self.rear = new_node
+            self.length = self.length + 1
+
+    spell dequeue():
+        ```
+        Remove and return the front element from the queue.
+        
+        Returns:
+            The element that was at the front of the queue
+            
+        Raises:
+            Error: If the queue is empty
+        ```
+        if self.length == 0:
+            return "Cannot Dequeue as Queue is Empty"
+        temp = self.front
+        self.front = temp.next
+        self.length = self.length - 1
+        if self.front == None:
+            self.rear = None
+        return temp.data
+
+    spell peek():
+        ```
+        Return the front element without removing it from the queue.
+        
+        Returns:
+            The element at the front of the queue
+            
+        Raises:
+            Error: If the queue is empty
+        ```
+        if self.length == 0:
+            return "Cannot peek as Queue is empty"
+        return self.front.data
+
+    spell is_empty():
+        ```
+        Check if the queue is empty.
+        
+        Returns:
+            True if the queue contains no elements, False otherwise
+        ```
+        return self.length == 0
+
+    spell get_size():
+        ```
+        Get the number of elements in the queue.
+        
+        Returns:
+            Integer representing the number of elements in the queue
+        ```
+        return self.length
+    
+    spell print():
+        ```
+        Print all elements in the queue from front to rear.
+        ```
+        temp = self.front
+        while temp:
+            print(temp.data)
+            temp = temp.next
+        print("")
+    
+    spell iter():
+        ```
+        Return an iterator for this queue.
+        
+        Returns:
+            QueueIterator instance for iterating through elements
+        ```
+        return QueueIterator(self)
+        
+
+grim Heap(Iterable):
+    ```
+    A binary heap data structure implementation.
+    
+    Supports both min-heap and max-heap configurations. Provides efficient
+    insertion, extraction, and peek operations with O(log n) complexity.
+    ```
+    init(is_min_heap = True):
+        ```
+        Initialize a new heap.
+        
+        Args:
+            is_min_heap: True for min-heap (default), False for max-heap
+        ```
+        self.heap = Array([])
+        self.is_min_heap = is_min_heap
+        self.size = 0
+    
+    spell _parent(index):
+        ```
+        Get the parent index of a given heap element.
+        
+        Args:
+            index: The index of the current element
+            
+        Returns:
+            The index of the parent element
+        ```
+        return (index - 1) // 2
+    
+    spell _left_child(index):
+        ```
+        Get the left child index of a given heap element.
+        
+        Args:
+            index: The index of the current element
+            
+        Returns:
+            The index of the left child element
+        ```
+        return 2 * index + 1
+    
+    spell _right_child(index):
+        ```
+        Get the right child index of a given heap element.
+        
+        Args:
+            index: The index of the current element
+            
+        Returns:
+            The index of the right child element
+        ```
+        return 2 * index + 2
+    
+    spell _has_left_child(index):
+        ```
+        Check if a heap element has a left child.
+        
+        Args:
+            index: The index of the current element
+            
+        Returns:
+            True if left child exists, False otherwise
+        ```
+        return self._left_child(index) < self.size
+    
+    spell _has_right_child(index):
+        ```
+        Check if a heap element has a right child.
+        
+        Args:
+            index: The index of the current element
+            
+        Returns:
+            True if right child exists, False otherwise
+        ```
+        return self._right_child(index) < self.size
+    
+    spell _has_parent(index):
+        ```
+        Check if a heap element has a parent.
+        
+        Args:
+            index: The index of the current element
+            
+        Returns:
+            True if parent exists, False otherwise
+        ```
+        return self._parent(index) >= 0
+    
+    spell _left_child_value(index):
+        ```
+        Get the value of the left child of a heap element.
+        
+        Args:
+            index: The index of the current element
+            
+        Returns:
+            The value of the left child element
+        ```
+        return self.heap[self._left_child(index)]
+    
+    spell _right_child_value(index):
+        ```
+        Get the value of the right child of a heap element.
+        
+        Args:
+            index: The index of the current element
+            
+        Returns:
+            The value of the right child element
+        ```
+        return self.heap[self._right_child(index)]
+    
+    spell _parent_value(index):
+        ```
+        Get the value of the parent of a heap element.
+        
+        Args:
+            index: The index of the current element
+            
+        Returns:
+            The value of the parent element
+        ```
+        return self.heap[self._parent(index)]
+    
+    spell _swap(index1, index2):
+        ```
+        Swap two elements in the heap.
+        
+        Args:
+            index1: The index of the first element
+            index2: The index of the second element
+        ```
+        temp = self.heap[index1]
+        val2 = self.heap[index2]
+        self.heap.set(index1, val2)
+        self.heap.set(index2, temp)
+    
+    spell _compare(val1, val2):
+        ```
+        Compare two values according to heap type.
+        
+        For min-heap: returns True if val1 < val2
+        For max-heap: returns True if val1 > val2
+        
+        Args:
+            val1: The first value to compare
+            val2: The second value to compare
+            
+        Returns:
+            True if val1 should be higher in the heap than val2
+        ```
+        if self.is_min_heap:
+            return val1 < val2
+        else:
+            return val1 > val2
+    
+    spell _heapify_up():
+        ```
+        Restore heap property by moving the last element up.
+        
+        Used after insertion to maintain heap invariant.
+        ```
+        index = self.size - 1
+        while self._has_parent(index) and self._compare(self.heap[index], self._parent_value(index)):
+            self._swap(index, self._parent(index))
+            index = self._parent(index)
+    
+    spell _heapify_down():
+        ```
+        Restore heap property by moving the root element down.
+        
+        Used after extraction to maintain heap invariant.
+        ```
+        index = 0
+        while self._has_left_child(index):
+            smaller_child_index = self._left_child(index)
+            if self._has_right_child(index) and self._compare(self._right_child_value(index), self._left_child_value(index)):
+                smaller_child_index = self._right_child(index)
+            
+            if self._compare(self.heap[index], self.heap[smaller_child_index]):
+                stop
+            else:
+                self._swap(index, smaller_child_index)
+            
+            index = smaller_child_index
+    
+    spell insert(value):
+        ```
+        Insert a new value into the heap.
+        
+        Args:
+            value: The value to insert into the heap
+        ```
+        self.heap.append(value)
+        self.size = self.size + 1
+        self._heapify_up()
+    
+    spell extract():
+        ```
+        Extract and return the root element from the heap.
+        
+        For min-heap: returns the minimum element
+        For max-heap: returns the maximum element
+        
+        Returns:
+            The root element of the heap
+            
+        Raises:
+            Error: If the heap is empty
+        ```
+        if self.size == 0:
+            return "Cannot extract from empty heap"
+        
+        root = self.heap[0]
+        last_element = self.heap[self.size - 1]
+        self.heap.set(0, last_element)
+        sliced_elements = self.heap.slice(0, self.size - 1)
+        self.heap = Array(sliced_elements)
+        self.size = self.size - 1
+        
+        if self.size > 0:
+            self._heapify_down()
+        
+        return root
+    
+    spell peek():
+        ```
+        Return the root element without removing it from the heap.
+        
+        For min-heap: returns the minimum element
+        For max-heap: returns the maximum element
+        
+        Returns:
+            The root element of the heap
+            
+        Raises:
+            Error: If the heap is empty
+        ```
+        if self.size == 0:
+            return "Cannot peek empty heap"
+        return self.heap[0]
+    
+    spell is_empty():
+        ```
+        Check if the heap is empty.
+        
+        Returns:
+            True if heap contains no elements, False otherwise
+        ```
+        return self.size == 0
+    
+    spell get_size():
+        ```
+        Get the number of elements in the heap.
+        
+        Returns:
+            Integer representing the number of elements in the heap
+        ```
+        return self.size
+    
+    spell clear():
+        ```
+        Remove all elements from the heap.
+        ```
+        self.heap = Array([])
+        self.size = 0
+    
+    spell to_array():
+        ```
+        Convert the heap to an array.
+        
+        Returns:
+            Array containing all heap elements in their internal order
+        ```
+        return self.heap.slice(0, self.size)
+    
+    spell print():
+        ```
+        Print the heap contents and type.
+        ```
+        if self.size == 0:
+            print("Empty heap")
+        else:
+            if self.is_min_heap:
+                heap_type = "Min"
+            else:
+                heap_type = "Max"
+            print(f"{heap_type} Heap: {self.heap}")
+    
+    spell build_heap(array):
+        ```
+        Build a heap from an existing array.
+        
+        Uses the heapify algorithm to convert an arbitrary array
+        into a valid heap in O(n) time.
+        
+        Args:
+            array: The array to convert into a heap
+        ```
+        self.heap = Array(array[:])
+        self.size = len(array)
+        
+        for i in range(self.size // 2 - 1, -1, -1):
+            self._heapify_down_from(i)
+    
+    spell _heapify_down_from(index):
+        ```
+        Restore heap property starting from a specific index.
+        
+        Used in build_heap to heapify subtrees.
+        
+        Args:
+            index: The starting index for heapification
+        ```
+        while self._has_left_child(index):
+            smaller_child_index = self._left_child(index)
+            if self._has_right_child(index) and self._compare(self._right_child_value(index), self._left_child_value(index)):
+                smaller_child_index = self._right_child(index)
+            
+            if self._compare(self.heap[index], self.heap[smaller_child_index]):
+                stop
+            else:
+                self._swap(index, smaller_child_index)
+            
+            index = smaller_child_index
+    
+    spell iter():
+        ```
+        Return an iterator for this heap.
+        
+        Returns:
+            HeapIterator instance for iterating through elements
+        ```
+        return HeapIterator(self)
+
+grim BTree(Iterable):
+    ```
+    A binary search tree implementation.
+    
+    Maintains sorted order of elements with efficient search, insertion,
+    and traversal operations. Left subtree contains smaller values,
+    right subtree contains larger values.
+    ```
+    init():
+        ```
+        Initialize an empty binary tree.
+        ```
+        self.node = None
+
+    spell insert(value):
+        ```
+        Insert a value into the binary search tree.
+        
+        Args:
+            value: The value to insert into the tree
+            
+        Returns:
+            The root node of the tree
+        ```
+        if value == None:
+          skip
+        if self.node == None:
+            self.node = TreeNode(value)
+            return self.node
+            
+        spell _insert_recursive(node, value):
+            if value == node.value:
+                return
+            
+            if value < node.value:
+                if node.left == None:
+                    node.left = TreeNode(value)
+                else:
+                    _insert_recursive(node.left, value)
+            else:
+                if node.right == None:
+                    node.right = TreeNode(value)
+                else:
+                    _insert_recursive(node.right, value)
+        
+        _insert_recursive(self.node, value)
+        return self.node
+
+    spell get_size():
+        ```
+        Get the number of nodes in the binary tree.
+
+        Returns:
+            Integer representing the total number of nodes
+        ```
+        spell _size_recursive(node):
+            if node == None:
+                return 0
+            left_size = _size_recursive(node.left)
+            right_size = _size_recursive(node.right)
+            return left_size + 1 + right_size
+        
+        return _size_recursive(self.node)
+
+    spell max_depth():
+        ```
+        Calculate the maximum depth of the binary tree.
+        
+        Returns:
+            Integer representing the maximum depth (height) of the tree
+        ```
+        spell _max_depth_recursive(node):
+            if node == None:
+                return 0
+            left_depth = _max_depth_recursive(node.left)
+            right_depth = _max_depth_recursive(node.right)
+            return max(left_depth, right_depth) + 1
+        
+        return _max_depth_recursive(self.node)
+
+    spell inorder():
+        ```
+        Perform in-order traversal of the binary tree.
+        
+        Returns:
+            Array containing values in sorted order (left-root-right)
+        ```
+        result = Array([])
+        spell inorderTraversal(root, result):
+            if root == None:
+                return
+
+            inorderTraversal(root.left, result)
+            result.append(root.value)
+            inorderTraversal(root.right, result)
+            return
+        inorderTraversal(self.node, result)
+        return result
+
+    spell preorder():
+        ```
+        Perform pre-order traversal of the binary tree.
+        
+        Returns:
+            Array containing values in pre-order (root-left-right)
+        ```
+        result = Array([])
+        spell preorderTraversal(node, result):
+            if node == None:
+                return
+            result.append(node.value)
+            preorderTraversal(node.left, result)
+            preorderTraversal(node.right, result)
+            return 
+        preorderTraversal(self.node, result)
+        return result
+
+    spell postorder():
+        ```
+        Perform post-order traversal of the binary tree.
+        
+        Returns:
+            Array containing values in post-order (left-right-root)
+        ```
+        result = Array([])
+        spell postorderTraversal(node, result):
+            if node == None:
+                return
+            postorderTraversal(node.left, result)
+            postorderTraversal(node.right, result)
+            result.append(node.value)
+            return 
+        postorderTraversal(self.node, result)
+        return result
+
+    spell print_tree(traversal="inorder"):
+        ```
+        Print the tree using specified traversal method.
+        
+        Args:
+            traversal: The traversal type ("inorder", "preorder", or "postorder")
+        ```
+        printed_tree = None
+        match traversal:
+            case "inorder":
+                printed_tree = self.inorder()
+            case "preorder":
+                printed_tree = self.preorder()
+            case "postorder":
+                printed_tree = self.postorder()
+        print("Traversal:", traversal, ":", printed_tree)
+
+    spell find(value):
+        ```
+        Search for a value in the binary search tree.
+        
+        Args:
+            value: The value to search for
+            
+        Returns:
+            True if the value is found, False otherwise
+        ```
+        root = self.node 
+        if root == None:
+            return False
+        while root:
+            if root.value == value:
+                return True
+            if value > root.value:
+                root = root.right
+            otherwise value < root.value:
+                root = root.left
+        return False
+    
+    spell iter():
+        ```
+        Return an iterator for this binary tree.
+
+        Returns:
+            BTreeIterator instance for iterating through elements in sorted order
+        ```
+        return BTreeIterator(self)
+
+    spell display_tree():
+        ```
+        Display the binary tree structure with visual representation.
+
+        Shows tree structure using indentation and branch characters.
+        Displays the tree in a readable hierarchical format.
+        ```
+        if self.node == None:
+            print("Empty tree")
+            return
+
+        spell _display_helper(node, prefix, is_tail):
+            if node == None:
+                return
+
+            print(prefix + "|-- " + str(node.value))
+
+            children = []
+            if node.left != None:
+                children = children + [node.left]
+            if node.right != None:
+                children = children + [node.right]
+
+            for i in range(0, len(children)):
+                is_last = i == len(children) - 1
+                extension = ""
+                if is_tail:
+                    extension = "    "
+                else:
+                    extension = "|   "
+                _display_helper(children[i], prefix + extension, is_last)
+
+        print(str(self.node.value))
+        if self.node.left != None or self.node.right != None:
+            if self.node.left != None:
+                _display_helper(self.node.left, "", self.node.right == None)
+            if self.node.right != None:
+                _display_helper(self.node.right, "", True)
+

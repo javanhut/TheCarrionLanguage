@@ -1,0 +1,26 @@
+#!/usr/bin/env carrion
+
+print("=== Time Formatting Still Available ===")
+print()
+print("Even though format functions were removed from the grimoire,")
+print("users can still format times using the direct functions:")
+print()
+
+current_ts = timeNow()
+
+# Basic formatting (default)
+basic = timeFormat(current_ts)
+print("Basic formatting with timeFormat():", basic)
+
+# Users can access all the underlying time functions directly:
+print("\nDirect access to all time functions:")
+print("✓ timeNow():", timeNow())
+print("✓ timeFormat() for basic formatting")
+print("✓ timeSince(), timeUntil(), timeDiff()")
+print("✓ seconds(), minutes(), hours(), milliseconds()")
+print("✓ And 40+ other time functions!")
+
+print("\nThe grimoire provides a clean OOP interface,")
+print("while direct functions remain available for advanced use.")
+
+print("\n=== Formatting demonstration complete ===")

@@ -1,0 +1,34 @@
+# Sindri Testing Framework Demo
+
+spell appraise_arithmetic():
+    # Test basic arithmetic
+    check(2 + 2 == 4, True)
+    check(10 - 3 == 7, True)
+    check(6 * 7 == 42, True)
+
+spell test_appraise_strings():
+    # Test string operations
+    greeting = "Hello, " + "World!"
+    check(greeting == "Hello, World!", True)
+
+spell appraise_boolean_operations():
+    # Test boolean logic
+    check(True and True == True, True)
+    check(True and False == False, True)
+    check(not False == True, True)
+
+spell math_appraise_division():
+    # Test division
+    result = 15 / 3
+    check(result == 5, True)
+
+spell appraise_comparison():
+    # Test comparisons
+    check(5 > 3, True)
+    check(10 >= 10, True)
+    check(2 < 8, True)
+
+# This test will fail to demonstrate error reporting
+spell appraise_intentional_failure():
+    # This should fail
+    check(1 == 2, True)

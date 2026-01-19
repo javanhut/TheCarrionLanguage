@@ -1,0 +1,76 @@
+# Carrion HTTP Server Demo
+print("Starting Carrion HTTP Server...")
+
+# Create TCP server for HTTP
+server_id = server("tcp", "localhost:8080", 60)
+print("✓ TCP server created on localhost:8080")
+
+# Listen for connections
+listener_id = socket_listen(server_id)
+print("✓ Server listening for connections")
+print("🌐 HTTP Server is running at: http://localhost:8080")
+print("📱 Open your browser and navigate to: http://localhost:8080")
+print("⏸️  Server will keep running - tell me when to stop!")
+print("")
+
+# Build HTTP response using triple quotes for multi-line strings
+html_content = """<!DOCTYPE html>
+<html>
+<head>
+    <title>Carrion HTTP Server</title>
+    <style>
+        body { font-family: Arial; margin: 40px; background: #667eea; color: white; }
+        h1 { text-align: center; }
+        div { background: rgba(255,255,255,0.1); padding: 20px; border-radius: 10px; margin: 20px 0; }
+    </style>
+</head>
+<body>
+    <h1>Carrion Sockets HTTP Server</h1>
+    <div>
+        <h2>Success! Server is working!</h2>
+        <p><strong>Language:</strong> Carrion</p>
+        <p><strong>Module:</strong> Custom Sockets</p>
+        <p><strong>Port:</strong> 8080</p>
+        <p><strong>Status:</strong> Active</p>
+    </div>
+    <div>
+        <h3>Technical Details:</h3>
+        <p>This server uses Carrion's sockets module wrapping Go's net package.</p>
+        <p>Refresh to test multiple requests!</p>
+    </div>
+</body>
+</html>"""
+
+content_length = len(html_content)
+http_headers = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + str(content_length) + "\r\nConnection: close\r\n\r\n"
+http_response = http_headers + html_content
+
+# Main server loop
+connection_count = 0
+while True:
+    attempt:
+        # Accept new connection
+        client_id = socket_accept(listener_id)
+        connection_count = connection_count + 1
+        print("📥 Connection " + str(connection_count) + " - Client connected")
+        
+        # Receive HTTP request
+        request = socket_receive(client_id, 4096)
+        print("📨 Received request (" + str(len(request)) + " bytes)")
+        
+        # Show basic request info
+        if len(request) > 0:
+            print("🔍 Request received (details logged)")
+        
+        # Send HTTP response
+        bytes_sent = socket_send(client_id, http_response)
+        print("📤 Sent response (" + str(bytes_sent) + " bytes)")
+        
+        # Close connection
+        socket_close(client_id)
+        print("✅ Connection " + str(connection_count) + " closed")
+        print("")
+        
+    ensnare(error):
+        print("❌ Error handling connection: " + str(error))
+        print("")

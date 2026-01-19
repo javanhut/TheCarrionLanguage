@@ -33,13 +33,18 @@ const Logo = styled(Link)`
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 1.5rem;
-  font-weight: bold;
+  font-size: clamp(0.95rem, 2vw, 1.15rem);
+  font-weight: 600;
   color: ${({ theme }) => theme.colors.primary};
   text-decoration: none;
+  white-space: nowrap;
 
   &:hover {
     color: ${({ theme }) => theme.colors.text.accent};
+  }
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.mobile}) {
+    font-size: 0.9rem;
   }
 `;
 
@@ -284,12 +289,11 @@ const Navbar: React.FC = () => {
     <Nav scrolled={scrolled}>
       <NavContainer>
         <Logo to="/">
-          <LogoIcon>🐦‍⬛</LogoIcon>
-          Carrion
+          The Carrion Language
         </Logo>
         <CenterSection>
           <SearchContainer>
-            <SearchIcon>🔍</SearchIcon>
+            <SearchIcon>⌕</SearchIcon>
             <SearchInput
               type="text"
               placeholder="Search documentation..."

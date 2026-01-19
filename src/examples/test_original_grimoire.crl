@@ -1,0 +1,25 @@
+#!/usr/bin/env carrion
+
+print("=== Testing Original Time Grimoire Methods ===")
+
+# Test creating a Time grimoire instance
+time_grim = Time()
+print("Time grimoire created")
+
+# Test the original methods that were working
+print("\nTesting original working methods:")
+
+# These should work based on the original grimoire
+current_ts = time_grim.now()
+print("time_grim.now():", current_ts)
+
+time_grim.sleep(0.1)
+print("time_grim.sleep() worked")
+
+date_parts = time_grim.date()
+print("time_grim.date():", date_parts)
+
+formatted = time_grim.format(current_ts)
+print("time_grim.format():", formatted)
+
+print("\n=== Original grimoire methods test complete ===")

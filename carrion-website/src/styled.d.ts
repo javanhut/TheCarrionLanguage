@@ -18,6 +18,7 @@ declare module 'styled-components' {
         secondary: string;
         muted: string;
         accent: string;
+        inverse: string;
       };
       border: string;
       borderAccent: string;

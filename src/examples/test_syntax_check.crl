@@ -1,0 +1,3 @@
+#!/usr/bin/env carrion
+
+print("Syntax check - if this prints, the grimoire loads successfully")

@@ -1,0 +1,4 @@
+spell appraise_debug():
+    print("Before check")
+    check(1 == 2)
+    print("After check")

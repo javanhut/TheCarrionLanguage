@@ -1,0 +1,23 @@
+# Test file appending functionality
+print("=== Testing File Append Functionality ===")
+
+# Create initial file
+File.write("data.txt", "Initial content from Carrion\n")
+print("✓ Created initial data.txt")
+
+# Show initial content
+print("Initial content:")
+content = File.read("data.txt")
+print(content)
+
+# Append to the file
+File.append("data.txt", "Second line appended\n")
+File.append("data.txt", "Third line appended\n")
+print("✓ Appended two lines")
+
+# Show final content
+print("Final content:")
+final_content = File.read("data.txt")
+print(final_content)
+
+print("=== Test Complete ===")

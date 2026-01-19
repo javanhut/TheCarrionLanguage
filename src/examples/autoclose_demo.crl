@@ -1,0 +1,102 @@
+# Autoclose Statement Demonstration
+# 
+# This example demonstrates the autoclose statement for automatic
+# resource management in Carrion. The autoclose statement ensures
+# that resources like files are properly cleaned up when exiting
+# the block, even if an error occurs.
+
+print("=== Autoclose Statement Examples ===")
+
+# Example 1: Basic file reading with autoclose
+print("\n1. Reading a file with autoclose:")
+autoclose open("../docs/README.md", "r") as file:
+    content = file.read()
+    lines = content.split("\n")
+    print(f"File has {len(lines)} lines")
+    print(f"First line: {lines[0]}")
+
+# Example 2: Writing to a file with autoclose  
+print("\n2. Writing to a file with autoclose:")
+autoclose open("example_output.txt", "w") as file:
+    file.write("Hello from Carrion!\n")
+    file.write("This file was created using autoclose.\n")
+    file.write("The file will be automatically closed.\n")
+    for i in range(5):
+        file.write(f"Line {i + 1}\n")
+
+print("File 'example_output.txt' has been created and closed automatically.")
+
+# Example 3: Appending to a file with autoclose
+print("\n3. Appending to a file with autoclose:")
+autoclose open("example_output.txt", "a") as file:
+    file.write("\n--- Appended Content ---\n")
+    file.write("This content was appended using autoclose.\n")
+    file.write("Total safety guaranteed!\n")
+
+print("Content has been appended to 'example_output.txt'.")
+
+# Example 4: Reading the file we just created
+print("\n4. Reading our created file:")
+autoclose open("example_output.txt", "r") as file:
+    content = file.read()
+    print("File contents:")
+    print(content)
+
+# Example 5: Copying a file using nested autoclose
+print("\n5. Copying file with nested autoclose:")
+autoclose open("example_output.txt", "r") as input_file:
+    autoclose open("example_copy.txt", "w") as output_file:
+        content = input_file.read()
+        output_file.write("=== COPY ===\n")
+        output_file.write(content)
+        output_file.write("\n=== END COPY ===\n")
+
+print("File copied to 'example_copy.txt' with nested autoclose.")
+
+# Example 6: Error handling with autoclose
+print("\n6. Error handling with autoclose:")
+attempt:
+    autoclose open("nonexistent_file.txt", "r") as file:
+        content = file.read()
+        print("This won't print because file doesn't exist")
+ensnare:
+    print("Error: Could not read file (but autoclose still ensures cleanup)")
+
+# Example 7: Processing data with autoclose in a function
+spell process_log_file(filename):
+    print(f"\nProcessing log file: {filename}")
+    autoclose open(filename, "r") as file:
+        content = file.read()
+        lines = content.split("\n")
+        non_empty_lines = []
+        for line in lines:
+            if len(line.strip()) > 0:
+                non_empty_lines.append(line)
+        return non_empty_lines
+
+# Create a sample log file and process it
+print("\n7. Function using autoclose:")
+autoclose open("sample_log.txt", "w") as file:
+    file.write("INFO: Application started\n")
+    file.write("\n")
+    file.write("DEBUG: Loading configuration\n")
+    file.write("WARN: Deprecated function used\n")
+    file.write("\n")
+    file.write("ERROR: Connection failed\n")
+    file.write("INFO: Retrying connection\n")
+
+processed_lines = process_log_file("sample_log.txt")
+print(f"Processed {len(processed_lines)} non-empty lines:")
+for line in processed_lines:
+    print(f"  {line}")
+
+print("\n=== Benefits of Autoclose ===")
+print("✓ Automatic resource cleanup")
+print("✓ No need to remember file.close()")
+print("✓ Exception-safe resource management")
+print("✓ Cleaner, more readable code")
+print("✓ Prevents resource leaks")
+
+print("\n=== Demo Complete ===")
+print("All files have been automatically closed!")
+print("Check the created files: example_output.txt, example_copy.txt, sample_log.txt")

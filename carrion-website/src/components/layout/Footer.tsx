@@ -88,7 +88,7 @@ const Footer: React.FC = () => {
             <FooterTitle>Carrion Language</FooterTitle>
             <LogoSection>
               <p>Where code meets magic</p>
-              <LogoIcon>🐦‍⬛</LogoIcon>
+              <LogoIcon></LogoIcon>
             </LogoSection>
           </FooterSection>
 

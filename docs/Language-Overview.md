@@ -14,6 +14,10 @@ Carrion is a dynamically typed, interpreted programming language with a Norse my
 - **Interactive REPL**: Built-in read-eval-print loop
 - **Error Handling**: Comprehensive try-catch system with custom syntax
 - **Module System**: Import and organize code across files
+- **Package Management**: Integrated Bifrost package manager for dependency management
+- **Universal Iteration**: Strings, arrays, and maps are all iterable
+- **Membership Testing**: Enhanced `in` operator works with all collection types
+- **Multiplication Operators**: String and array repetition with `*` operator
 
 ## Basic Syntax
 
@@ -35,7 +39,7 @@ x, y = (10, 20)
 
 ### Comments
 ```python
-// Single-line comment
+# Single-line comment
 /* 
    Multi-line
    comment 
@@ -53,7 +57,7 @@ x, y = (10, 20)
 
 ### Collection Types
 - **Array**: Ordered, mutable lists (`[1, 2, 3]`)
-- **Hash**: Key-value dictionaries (`{"key": "value"}`)
+- **Map**: Key-value dictionaries (`{"key": "value"}`) with support for string, integer, float, and boolean keys
 - **Tuple**: Immutable ordered collections (`(1, 2, 3)`)
 
 ## Getting Started
@@ -104,6 +108,27 @@ Carrion embraces the mystical and magical, transforming mundane programming conc
 - **Error handling** uses **attempt/ensnare/resolve** instead of try/catch/finally
 
 This creative approach makes programming feel more like crafting magic while maintaining familiar, readable syntax patterns.
+
+## Package Management
+
+Carrion includes **Bifrost**, the official package manager, which is automatically installed when you install Carrion. Bifrost provides seamless dependency management and module distribution.
+
+### Quick Start with Bifrost
+
+```bash
+# Initialize a new Carrion project
+bifrost init
+
+# Install packages
+bifrost install json-utils
+bifrost install --global http-client
+
+# Use packages in your code
+import "json-utils/parser"
+import "http-client/request"
+```
+
+For complete Bifrost documentation, visit the [Bifrost Repository](https://github.com/javanhut/bifrost).
 
 ## Next Steps
 

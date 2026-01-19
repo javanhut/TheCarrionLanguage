@@ -1,0 +1,238 @@
+# Carrion File and OS Operations Demo
+# This file demonstrates the new File and OS grimoire APIs
+
+print("=== Carrion File and OS Operations Demo ===")
+
+# 1. Basic File Operations using File grimoire static methods
+print("1. Basic File Operations")
+print("------------------------")
+
+# Create a sample file
+sample_content = "This is a sample file created by Carrion.\nIt contains multiple lines.\nLine 3 with numbers: 123, 456, 789"
+File.write("sample.txt", sample_content)
+print("Created sample.txt")
+
+# Check if file exists
+if File.exists("sample.txt"):
+    print("✓ File exists")
+else:
+    print("✗ File does not exist")
+
+# Read the file content
+content = File.read("sample.txt")
+print(f"File content:\n{content}")
+
+# Append to the file
+File.append("sample.txt", "\nAppended line: Hello from Carrion!")
+print("Appended content to file")
+
+# Read again to show the appended content
+updated_content = File.read("sample.txt")
+print(f"Updated content:\n{updated_content}")
+
+
+# 2. File Objects with autoclose for complex operations
+print("2. File Objects with Autoclose")
+print("------------------------------")
+
+# Create a data file using File objects
+autoclose File.open("data.txt", "w") as file:
+    file.write_content("Name: Alice\n")
+    file.write_content("Age: 30\n")
+    file.write_content("City: New York\n")
+    file.write_content("Occupation: Engineer\n")
+print("Created data.txt with structured data")
+
+# Read and process the file
+autoclose File.open("data.txt", "r") as file:
+    content = file.read_content()
+    lines = str(content).split("\n")
+    print("Processing file data:")
+    for line in lines:
+        if str(line).strip(""):
+            print(f"  {line}")
+
+# 3. OS Operations using OS grimoire static methods
+print("3. OS Operations")
+print("-"*15)
+
+# Get current directory
+current_dir = OS.cwd()
+print(f"Current directory: {current_dir}")
+
+# List directory contents
+files = OS.listdir(".")
+print(f"Files in current directory ({len(files)} items):")
+for filename in files:
+    print(f"  - {filename}")
+
+
+# 4. Environment Variables
+print("4. Environment Variables")
+print("------------------------")
+
+# Get common environment variables
+home = OS.getenv("HOME")
+user = OS.getenv("USER")
+path = OS.getenv("PATH")
+
+print(f"Home directory: {home}")
+print(f"Current user: {user}")
+print(f"PATH length: {len(path)} characters")
+
+# Set custom environment variables
+OS.setenv("CARRION_DEMO", "enabled")
+OS.setenv("DEMO_VERSION", "1.0.0")
+
+# Verify they were set
+demo_flag = OS.getenv("CARRION_DEMO")
+demo_version = OS.getenv("DEMO_VERSION")
+print(f"CARRION_DEMO: {demo_flag}")
+print(f"DEMO_VERSION: {demo_version}")
+
+# Expand environment variables
+expanded_path = OS.expandEnv("/home/user/.config/carrion")
+print(f"Expanded config path: {expanded_path}")
+
+
+# 5. Directory Operations
+print("5. Directory Operations")
+print("-----------------------")
+
+# Create a demo directory
+demo_dir = "carrion_demo"
+print(f"Setting up {demo_dir} directory...")
+
+# Clean up any existing directory first
+if File.exists(demo_dir):
+    print(f"Removing existing {demo_dir}")
+    # Remove all files in directory first
+    existing_files = OS.listdir(demo_dir)
+    for file in existing_files:
+        OS.remove(f"{demo_dir}/{file}")
+    # Then remove the empty directory
+    OS.remove(demo_dir)
+
+# Create fresh directory
+OS.mkdir(demo_dir)
+print(f"Created directory: {demo_dir}")
+
+# Create files in the demo directory
+demo_files = ["config.txt", "data.txt", "log.txt"]
+for filename in demo_files:
+    filepath = f"{demo_dir}/{filename}"
+    File.write(filepath, f"This is {filename} in the demo directory.\nCreated by Carrion File API.\n")
+    print(f"Created: {filepath}")
+
+# List the demo directory
+demo_contents = OS.listdir(demo_dir)
+print(f"Contents of {demo_dir}:")
+for item in demo_contents:
+    print(f"  - {item}")
+
+
+# 6. System Commands
+print("6. System Commands")
+print("------------------")
+
+# Run a simple command and show output
+OS.run("echo", ["Hello from system command!"], False)
+
+# Run a command and capture output
+output = OS.run("date", [], True)
+print(f"Current date/time: {output}")
+
+# List files using system command
+file_list = OS.run("ls", ["-l", "."], True)
+print("File listing output captured successfully")
+
+
+# 7. Complex File Processing Example
+print("7. Complex File Processing")
+print("--------------------------")
+
+# Create a simple data file with employee records
+File.write("employee1.txt", "Alice,30,New York,Engineer")
+File.write("employee2.txt", "Bob,25,San Francisco,Designer")
+File.write("employee3.txt", "Charlie,35,Chicago,Manager")
+File.write("employee4.txt", "Diana,28,Boston,Developer")
+
+print("Created 4 employee data files")
+
+# Create a summary file by reading each employee file
+autoclose File.open("employee_summary.txt", "w") as outfile:
+    outfile.write_content("Employee Summary Report\n")
+    outfile.write_content("=======================\n\n")
+    outfile.write_content("Total employees: 4\n\n")
+    outfile.write_content("Employee Details:\n")
+    
+    # Process each employee file
+    for i in range(1, 5):
+        filename = f"employee{i}.txt"
+        if File.exists(filename):
+            data = File.read(filename)
+            outfile.write_content(f"{i}. {data}\n")
+
+print("Processed employee data and created summary")
+
+# Read and display the summary
+summary = File.read("employee_summary.txt")
+print("Generated summary:")
+print(summary)
+
+
+# 8. Cleanup demonstration
+print("8. Cleanup Operations")
+print("---------------------")
+
+# Clean up demo files
+cleanup_files = ["sample.txt", "data.txt", "employees.csv", "employee_summary.txt"]
+for filename in cleanup_files:
+    if File.exists(filename):
+        OS.remove(filename)
+        print(f"Removed: {filename}")
+
+# Clean up demo directory
+for filename in demo_files:
+    filepath = f"{demo_dir}/{filename}"
+    if File.exists(filepath):
+        OS.remove(filepath)
+        print(f"Removed: {filepath}")
+
+if File.exists(demo_dir):
+    OS.remove(demo_dir)
+    print(f"Removed directory: {demo_dir}")
+
+
+# 9. Error Handling with File Operations
+print("9. Error Handling")
+print("-----------------")
+
+# Demonstrate error handling with file operations
+attempt:
+    content = File.read("nonexistent_file.txt")
+    print("This should not print")
+ensnare:
+    print("✓ Caught error when trying to read nonexistent file")
+
+# Demonstrate error handling with OS operations
+attempt:
+    OS.chdir("/nonexistent/directory")
+    print("This should not print")
+ensnare:
+    print("✓ Caught error when trying to change to nonexistent directory")
+
+
+# 10. Performance and Best Practices
+print("10. Best Practices Summary")
+print("--------------------------")
+
+print("✓ Use File.read(), File.write(), File.append() for simple operations")
+print("✓ Use File.open() with autoclose for complex file operations")
+print("✓ Use OS.cwd(), OS.listdir(), OS.run() for system operations")
+print("✓ Always use autoclose with File.open() for automatic cleanup")
+print("✓ Use File.exists() before reading files to avoid errors")
+print("✓ Use OS.getenv() and OS.setenv() for environment management")
+print("✓ Use attempt/ensnare blocks for error handling")
+
+print("=== Demo Complete ===")

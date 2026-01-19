@@ -1,0 +1,53 @@
+arcane grim Iterable:
+    ```
+    Abstract base class for iterable objects.
+    
+    Defines the iterator protocol that allows objects to be used in
+    for loops and other iteration contexts. Subclasses must implement
+    the iter() method to return an iterator object.
+    ```
+    spell iter():
+        ```
+        Return an iterator for this iterable object.
+        
+        Returns:
+            An iterator object that implements the next() method
+            
+        Raises:
+            Error: Subclasses must override this method
+        ```
+        raise "Subclasses must implement iter"
+    
+
+grim Iterator:
+    ```
+    A generic iterator implementation for sequences.
+    
+    Provides iteration over any sequence-like object that supports
+    indexing and length operations.
+    ```
+    init(items):
+        ```
+        Initialize iterator with a sequence of items.
+        
+        Args:
+            items: A sequence-like object to iterate over
+        ```
+        self.items = items
+        self.index = 0
+    
+    spell next():
+        ```
+        Get the next item from the sequence.
+        
+        Returns:
+            The next item in the sequence
+            
+        Raises:
+            StopIteration: When no more items are available
+        ```
+        if self.index >= len(self.items):
+            raise "StopIteration"
+        value = self.items[self.index]
+        self.index = self.index + 1
+        return value

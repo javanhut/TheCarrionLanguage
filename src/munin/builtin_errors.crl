@@ -1,18 +1,174 @@
-# Standard error types for Carrion language
-# TODO: Implement when parameter access is fixed
+"""
+Standard error types grimoire providing common exception classes.
 
-grim ValueError:
-    init():
-        ignore
+This grimoire defines standard error types commonly used in programming
+languages for consistent error handling. These error types follow common
+conventions and provide structured exception handling for Carrion applications.
 
-grim TypeError:
-    init():
-        ignore
+Key Features:
+- Standard exception hierarchy with base Error class
+- Specific error types for common programming errors
+- Structured error information with messages and context
+- Compatibility with Carrion's attempt/ensnare error handling
 
-grim IndexError:
-    init():
-        ignore
+Error Types:
+- ValueError: Invalid values or arguments
+- TypeError: Type-related errors
+- IndexError: Array/list index out of bounds
+- KeyError: Dictionary/hash key not found
+- RuntimeError: General runtime errors
+- AttributeError: Invalid attribute access
 
-grim KeyError:
-    init():
-        ignore
+Usage:
+    error = ValueError("Invalid input value")
+    error = IndexError("List index out of range")
+"""
+
+"""
+Base error class for all standard errors.
+
+This serves as the foundation for all error types, providing common
+functionality and ensuring consistent error handling behavior.
+"""
+grim BaseError:
+    """
+    Initialize a base error with message and optional details.
+    
+    Args:
+        message (str): Error message describing the issue (default: "")
+        details (dict): Additional error context (default: {})
+    """
+    init(message="", details={}):
+        self.message = message
+        self.details = details
+        self.error_type = "BaseError"
+    
+    """
+    Get string representation of the error.
+    
+    Returns:
+        str: Formatted error message
+    """
+    spell to_string():
+        if len(self.message) > 0:
+            return self.error_type + ": " + self.message
+        else:
+            return self.error_type
+    
+    """
+    Add additional context to the error.
+    
+    Args:
+        key (str): Context key
+        value: Context value
+    """
+    spell add_context(key, value):
+        self.details[key] = value
+
+"""
+Error for invalid values or arguments.
+
+Raised when a function receives an argument of correct type but
+inappropriate value, or when a value is outside expected range.
+"""
+grim ValueError(BaseError):
+    """
+    Initialize a ValueError with message and optional details.
+    
+    Args:
+        message (str): Error message (default: "Invalid value")
+        details (dict): Additional context (default: {})
+    """
+    init(message="Invalid value", details={}):
+        super.init(message, details)
+        self.error_type = "ValueError"
+
+"""
+Error for type-related issues.
+
+Raised when an operation or function is applied to an object of
+inappropriate type, or when type conversion fails.
+"""
+grim TypeError(BaseError):
+    """
+    Initialize a TypeError with message and optional details.
+    
+    Args:
+        message (str): Error message (default: "Type error")
+        details (dict): Additional context (default: {})
+    """
+    init(message="Type error", details={}):
+        super.init(message, details)
+        self.error_type = "TypeError"
+
+"""
+Error for array/list index out of bounds.
+
+Raised when attempting to access an array or list element using
+an index that is outside the valid range.
+"""
+grim IndexError(BaseError):
+    """
+    Initialize an IndexError with message and optional details.
+    
+    Args:
+        message (str): Error message (default: "Index out of range")
+        details (dict): Additional context (default: {})
+    """
+    init(message="Index out of range", details={}):
+        super.init(message, details)
+        self.error_type = "IndexError"
+
+"""
+Error for dictionary/hash key not found.
+
+Raised when attempting to access a dictionary or hash using
+a key that does not exist.
+"""
+grim KeyError(BaseError):
+    """
+    Initialize a KeyError with message and optional details.
+    
+    Args:
+        message (str): Error message (default: "Key not found")
+        details (dict): Additional context (default: {})
+    """
+    init(message="Key not found", details={}):
+        super.init(message, details)
+        self.error_type = "KeyError"
+
+"""
+General runtime error.
+
+Raised when an error occurs during execution that doesn't fall into
+other specific error categories.
+"""
+grim RuntimeError(BaseError):
+    """
+    Initialize a RuntimeError with message and optional details.
+    
+    Args:
+        message (str): Error message (default: "Runtime error")
+        details (dict): Additional context (default: {})
+    """
+    init(message="Runtime error", details={}):
+        super.init(message, details)
+        self.error_type = "RuntimeError"
+
+"""
+Error for invalid attribute access.
+
+Raised when attempting to access an attribute that does not exist
+on an object or when attribute access is not permitted.
+"""
+grim AttributeError(BaseError):
+    """
+    Initialize an AttributeError with message and optional details.
+    
+    Args:
+        message (str): Error message (default: "Attribute error")
+        details (dict): Additional context (default: {})
+    """
+    init(message="Attribute error", details={}):
+        super.init(message, details)
+        self.error_type = "AttributeError"

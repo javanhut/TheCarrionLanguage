@@ -1,0 +1,257 @@
+"""
+HTTP client grimoire providing comprehensive API request functionality.
+
+This grimoire offers a complete HTTP client interface with support for all
+major HTTP methods, JSON handling, authentication, retry logic, and URL building.
+It wraps the underlying HTTP interface with error handling and convenience methods
+for common API operations.
+
+Key Features:
+- Full HTTP method support (GET, POST, PUT, DELETE, HEAD, custom requests)
+- JSON request/response handling with automatic serialization
+- Authentication header management (Bearer, custom)
+- Retry logic with configurable attempts and delays
+- URL building with query parameter support
+- Standardized response format with success/error handling
+
+Usage:
+    api = ApiRequest()
+    response = api.get_json("https://api.example.com/data")
+    if response["success"]:
+        data = response["data"]
+    
+    # With authentication
+    headers = api.with_auth({}, "token123")
+    response = api.post_json("https://api.example.com/create", {"name": "test"}, headers)
+"""
+grim ApiRequest:
+    spell get(url, headers={}):
+        ```
+        Perform an HTTP GET request.
+        
+        Args:
+            url (str): The URL to request
+            headers (dict): HTTP headers to include (default: {})
+            
+        Returns:
+            dict: Response with success status and data/error information
+        ```
+        response = httpGet(url, headers)
+        if response["status"] >= 200 and response["status"] < 300:
+            return {"success": True, "data": response}
+        else:
+            return {"success": False, "error": "Request failed with status " + str(response["status"]), "response": response}
+
+    spell post(url, body, headers={}):
+        ```
+        Perform an HTTP POST request.
+        
+        Args:
+            url (str): The URL to request
+            body (str): Request body content
+            headers (dict): HTTP headers to include (default: {})
+            
+        Returns:
+            dict: Response with success status and data/error information
+        ```
+        response = httpPost(url, body, headers)
+        if response["status"] >= 200 and response["status"] < 300:
+            return {"success": True, "data": response}
+        else:
+            return {"success": False, "error": "Request failed with status " + str(response["status"]), "response": response}
+
+    spell put(url, body, headers={}):
+        ```
+        Perform an HTTP PUT request.
+        
+        Args:
+            url (str): The URL to request
+            body (str): Request body content
+            headers (dict): HTTP headers to include (default: {})
+            
+        Returns:
+            dict: Response with success status and data/error information
+        ```
+        response = httpPut(url, body, headers)
+        if response["status"] >= 200 and response["status"] < 300:
+            return {"success": True, "data": response}
+        else:
+            return {"success": False, "error": "Request failed with status " + str(response["status"]), "response": response}
+
+    spell delete(url, headers={}):
+        ```
+        Perform an HTTP DELETE request.
+        
+        Args:
+            url (str): The URL to request
+            headers (dict): HTTP headers to include (default: {})
+            
+        Returns:
+            dict: Response with success status and data/error information
+        ```
+        response = httpDelete(url, headers)
+        if response["status"] >= 200 and response["status"] < 300:
+            return {"success": True, "data": response}
+        else:
+            return {"success": False, "error": "Request failed with status " + str(response["status"]), "response": response}
+
+    spell head(url, headers={}):
+        ```
+        Perform an HTTP HEAD request.
+        
+        Args:
+            url (str): The URL to request
+            headers (dict): HTTP headers to include (default: {})
+            
+        Returns:
+            dict: Response with success status and data/error information
+        ```
+        response = httpHead(url, headers)
+        if response["status"] >= 200 and response["status"] < 300:
+            return {"success": True, "data": response}
+        else:
+            return {"success": False, "error": "Request failed with status " + str(response["status"]), "response": response}
+
+    spell request(options):
+        ```
+        Perform a custom HTTP request with full control.
+        
+        Args:
+            options (dict): Request options including method, URL, headers, body
+            
+        Returns:
+            dict: Response with success status and data/error information
+        ```
+        response = httpRequest(options)
+        if response["status"] >= 200 and response["status"] < 300:
+            return {"success": True, "data": response}
+        else:
+            return {"success": False, "error": "Request failed with status " + str(response["status"]), "response": response}
+
+    spell get_json(url, headers={}):
+        ```
+        Perform a GET request and parse the response as JSON.
+        
+        Args:
+            url (str): The URL to request
+            headers (dict): HTTP headers to include (default: {})
+            
+        Returns:
+            dict: Response with success status and parsed JSON data/error
+        ```
+        result = self.get(url, headers)
+        if result["success"]:
+            attempt:
+                parsed = httpParseJSON(result["data"]["body"])
+                return {"success": True, "data": parsed}
+            ensnare:
+                return {"success": False, "error": "Failed to parse JSON"}
+        else:
+            return result
+
+    spell post_json(url, data, headers={}):
+        ```
+        Perform a POST request with JSON data.
+        
+        Automatically serializes data to JSON and sets Content-Type header.
+        
+        Args:
+            url (str): The URL to request
+            data (dict): Data to serialize as JSON
+            headers (dict): Additional HTTP headers (default: {})
+            
+        Returns:
+            dict: Response with success status and data/error information
+        ```
+        json_body = httpStringifyJSON(data)
+        all_headers = {"Content-Type": "application/json"}
+        for key in headers:
+            all_headers[key] = headers[key]
+        return self.post(url, json_body, all_headers)
+
+    spell put_json(url, data, headers={}):
+        ```
+        Perform a PUT request with JSON data.
+        
+        Automatically serializes data to JSON and sets Content-Type header.
+        
+        Args:
+            url (str): The URL to request
+            data (dict): Data to serialize as JSON
+            headers (dict): Additional HTTP headers (default: {})
+            
+        Returns:
+            dict: Response with success status and data/error information
+        ```
+        json_body = httpStringifyJSON(data)
+        all_headers = {"Content-Type": "application/json"}
+        for key in headers:
+            all_headers[key] = headers[key]
+        return self.put(url, json_body, all_headers)
+
+    spell build_url(base_url, params):
+        ```
+        Build a URL with query parameters.
+        
+        Args:
+            base_url (str): The base URL
+            params (dict): Query parameters to append
+            
+        Returns:
+            str: Complete URL with query string
+        ```
+        query = httpBuildQuery(params)
+        if len(query) > 0:
+            return base_url + "?" + query
+        else:
+            return base_url
+
+    spell retry_request(fn, max_retries=3, delay=1):
+        ```
+        Execute a request function with retry logic.
+        
+        Args:
+            fn (function): Function that returns a request result
+            max_retries (int): Maximum number of retry attempts (default: 3)
+            delay (int): Delay in seconds between retries (default: 1)
+            
+        Returns:
+            dict: Final response after retries or failure
+        ```
+        attempts = 0
+        last_error = None
+        
+        while attempts < max_retries:
+            result = fn()
+            if result["success"]:
+                return result
+            
+            last_error = result["error"]
+            attempts = attempts + 1
+            
+            if attempts < max_retries:
+                osSleep(delay)
+        
+        return {"success": False, "error": "Max retries exceeded. Last error: " + last_error}
+
+    spell with_auth(headers, token, auth_type="Bearer"):
+        ```
+        Add authentication headers to existing headers.
+        
+        Args:
+            headers (dict): Existing headers to copy
+            token (str): Authentication token
+            auth_type (str): Authentication type (default: "Bearer")
+            
+        Returns:
+            dict: Headers with added Authorization header
+        ```
+        auth_headers = {}
+        if headers["Accept"]:
+            auth_headers["Accept"] = headers["Accept"]
+        if headers["Content-Type"]:
+            auth_headers["Content-Type"] = headers["Content-Type"]
+        if headers["User-Agent"]:
+            auth_headers["User-Agent"] = headers["User-Agent"]
+        auth_headers["Authorization"] = auth_type + " " + token
+        return auth_headers

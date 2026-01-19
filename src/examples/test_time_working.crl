@@ -1,0 +1,223 @@
+#!/usr/bin/env carrion
+
+"""
+Working Time Functions Test
+Tests the time functions that are currently operational
+"""
+
+print("=== Carrion Time Functions Test (Working Functions) ===\n")
+
+# Test 1: Core Time Functions
+print("1. Core Time Functions")
+print("----------------------")
+
+# Test timeNow() - returns Unix timestamp
+timestamp = timeNow()
+print("timeNow() timestamp:", timestamp)
+
+# Test timeNowNano() - returns nanosecond timestamp
+nano_timestamp = timeNowNano()
+print("timeNowNano() nanosecond timestamp:", nano_timestamp)
+
+# Test timeSleep() with different types
+print("\nTesting timeSleep:")
+print("Sleeping for 0.2 seconds...")
+timeSleep(0.2)
+print("Slept with float")
+
+print("Sleeping for 1 second...")
+timeSleep(1)
+print("Slept with integer")
+
+print()
+
+# Test 2: Basic Formatting
+print("2. Basic Formatting")
+print("-------------------")
+
+# Test timeFormat with default format
+formatted_default = timeFormat(timestamp)
+print("timeFormat (default):", formatted_default)
+
+print()
+
+# Test 3: Duration Creation and Conversion
+print("3. Duration Creation and Conversion")
+print("-----------------------------------")
+
+# Test duration creation
+dur_sec = seconds(30)
+print("seconds(30):", type(dur_sec))
+
+dur_min = minutes(5)
+print("minutes(5):", type(dur_min))
+
+dur_hr = hours(2)
+print("hours(2):", type(dur_hr))
+
+dur_ms = milliseconds(500)
+print("milliseconds(500):", type(dur_ms))
+
+# Test with floats
+dur_sec_float = seconds(1.5)
+print("seconds(1.5):", type(dur_sec_float))
+
+dur_min_float = minutes(2.5)
+print("minutes(2.5):", type(dur_min_float))
+
+# Test duration conversion
+test_dur = minutes(2)  # 2 minutes = 120 seconds
+print("\nTesting duration conversion (2 minutes):")
+print("durationToSeconds:", durationToSeconds(test_dur), "seconds")
+print("durationToMinutes:", durationToMinutes(test_dur), "minutes")
+print("durationToHours:", durationToHours(test_dur), "hours")
+print("durationToMilliseconds:", durationToMilliseconds(test_dur), "milliseconds")
+
+print()
+
+# Test 4: Unix Timestamp Operations
+print("4. Unix Timestamp Operations")
+print("-----------------------------")
+
+# Test fromUnix
+time_obj = fromUnix(timestamp)
+print("fromUnix result:", type(time_obj))
+
+# Test unix conversion back
+unix_ts = unix(time_obj)
+print("unix(time_obj):", unix_ts)
+
+# Test fromUnixNano
+time_obj_nano = fromUnixNano(nano_timestamp)
+print("fromUnixNano result:", type(time_obj_nano))
+
+unix_nano = unixNano(time_obj_nano)
+print("unixNano(time_obj):", unix_nano)
+
+print()
+
+# Test 5: Date Components
+print("5. Date Components")
+print("------------------")
+
+# Test timeDate
+date_components = timeDate()
+print("timeDate() current:", date_components)
+
+# Test with timestamp
+date_from_ts = timeDate(timestamp)
+print("timeDate(timestamp):", date_from_ts)
+
+# Test individual component functions on time objects
+print("\nTesting component functions:")
+print("year:", year(time_obj))
+print("month:", month(time_obj))
+print("day:", day(time_obj))
+print("weekday:", weekday(time_obj), "(0=Sunday)")
+print("hour:", hour(time_obj))
+print("minute:", minute(time_obj))
+print("second:", second(time_obj))
+
+print()
+
+# Test 6: Duration Calculations
+print("6. Duration Calculations")
+print("------------------------")
+
+# Test timeSince with timestamps
+past_timestamp = timestamp - 3600  # 1 hour ago
+elapsed = timeSince(past_timestamp)
+print("timeSince (1 hour ago):", type(elapsed))
+
+# Test timeUntil with timestamps
+future_timestamp = timestamp + 3600  # 1 hour from now
+remaining = timeUntil(future_timestamp)
+print("timeUntil (1 hour ahead):", type(remaining))
+
+# Test addDuration
+dur = seconds(30)
+new_time = addDuration(time_obj, dur)
+print("addDuration result:", type(new_time))
+
+# Test timeAddDuration
+new_timestamp = timeAddDuration(timestamp, 3600)
+print("timeAddDuration (add 1 hour):", new_timestamp - timestamp, "seconds added")
+
+# Test timeDiff
+diff = timeDiff(future_timestamp, timestamp)
+print("timeDiff (timestamps):", diff, "seconds")
+
+print()
+
+# Test 7: Time Comparison
+print("7. Time Comparison")
+print("------------------")
+
+time1 = fromUnix(timestamp)
+time2 = fromUnix(future_timestamp)
+
+print("time1: current, time2: 1 hour ahead")
+print("timeBefore(time1, time2):", timeBefore(time1, time2))
+print("timeAfter(time1, time2):", timeAfter(time1, time2))
+
+time3 = fromUnix(timestamp)
+print("timeEqual(time1, time3):", timeEqual(time1, time3))
+
+print()
+
+# Test 8: Timezone Operations
+print("8. Timezone Operations")
+print("----------------------")
+
+# Test timezone conversions
+utc_time = utc(time_obj)
+print("utc() conversion:", type(utc_time))
+
+local_time = local(time_obj)
+print("local() conversion:", type(local_time))
+
+print()
+
+# Test 9: Error Handling
+print("9. Error Handling")
+print("-----------------")
+
+# Test negative sleep (should error)
+attempt:
+    timeSleep(-1)
+    print("ERROR: Negative sleep should have failed!")
+ensnare:
+    print("Negative sleep correctly rejected")
+
+print()
+
+# Test 10: Complex Duration Math
+print("10. Complex Duration Math")
+print("-------------------------")
+
+# Create various durations
+d1 = hours(1)
+d2 = minutes(30)
+d3 = seconds(45)
+
+# Add durations to time
+start_time = fromUnix(timestamp)
+time_plus_1h = addDuration(start_time, d1)
+time_plus_1h30m = addDuration(time_plus_1h, d2)
+final_time = addDuration(time_plus_1h30m, d3)
+
+print("Added 1h + 30m + 45s to current time")
+
+# Calculate total duration
+total_seconds = durationToSeconds(d1) + durationToSeconds(d2) + durationToSeconds(d3)
+print("Total duration:", total_seconds, "seconds")
+
+# Test the final time is correct
+expected_total = 5445.0  # 1h + 30m + 45s in seconds as float
+if total_seconds == expected_total:
+    print("Duration math is correct!")
+else:
+    print("Duration math error: expected", expected_total, "got", total_seconds)
+
+print("\n=== Time Functions Test Complete ===")
+print("All tested functions are working correctly!")

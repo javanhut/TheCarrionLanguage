@@ -4,8 +4,11 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/javanhut/TheCarrionLanguage/src/ast"
 	"github.com/javanhut/TheCarrionLanguage/src/debug"
@@ -22,18 +25,20 @@ var (
 	NONE                        = &object.None{Value: "None"}
 	TRUE                        = &object.Boolean{Value: true}
 	FALSE                       = &object.Boolean{Value: false}
-	importedFiles               = map[string]bool{}
+	importedFiles               = map[string]interface{}{}
 	MAX_CALL_DEPTH              = 1000
 	CurrentContext *CallContext = nil
 )
 
 // CallContext tracks function call state for better error reporting
 type CallContext struct {
-	FunctionName string
-	Node         ast.Node
-	Parent       *CallContext
-	env          *object.Environment
-	depth        int
+	FunctionName      string
+	Node              ast.Node
+	Parent            *CallContext
+	env               *object.Environment
+	depth             int
+	IsDirectExecution bool             // True when file is run directly, false when imported
+	MethodGrimoire    *object.Grimoire // The grimoire that owns the current method
 }
 
 // A map to track call stack depth for recursive functions
@@ -45,20 +50,71 @@ var recursionDepths = make(map[*ast.BlockStatement]int)
 // CleanupGlobalState clears all global state maps to prevent memory leaks
 func CleanupGlobalState() {
 	// Clear imported files
-	importedFiles = make(map[string]bool)
-	
+	importedFiles = make(map[string]interface{})
+
 	// Clear call stack
 	for k := range callStack {
 		delete(callStack, k)
 	}
-	
+
 	// Clear recursion depths
 	for k := range recursionDepths {
 		delete(recursionDepths, k)
 	}
-	
+
 	// Reset current context
 	CurrentContext = nil
+
+	// Cleanup goroutine manager
+	CleanupGoroutineManager()
+}
+
+// CleanupGoroutineManager waits for goroutines to finish and resets the manager
+func CleanupGoroutineManager() {
+
+	// Create a channel to signal completion
+	done := make(chan bool, 1)
+
+	go func() {
+		// Wait for all named goroutines to finish
+		namedGoroutines := globalGoroutineManager.GetAllNamedGoroutines()
+		for _, goroutine := range namedGoroutines {
+			if goroutine.IsRunning {
+				select {
+				case <-goroutine.Done:
+					// Goroutine finished normally
+				case <-time.After(100 * time.Millisecond):
+					// Continue to next goroutine after short timeout
+				}
+			}
+		}
+
+		// Wait for all anonymous goroutines to finish
+		anonymousGoroutines := globalGoroutineManager.GetAllAnonymousGoroutines()
+		for _, goroutine := range anonymousGoroutines {
+			if goroutine.IsRunning {
+				select {
+				case <-goroutine.Done:
+					// Goroutine finished normally
+				case <-time.After(100 * time.Millisecond):
+					// Continue to next goroutine after short timeout
+				}
+			}
+		}
+
+		done <- true
+	}()
+
+	// Wait for completion or timeout after 5 seconds
+	select {
+	case <-done:
+		// All goroutines finished or timed out individually
+	case <-time.After(5 * time.Second):
+		// Global timeout reached
+	}
+
+	// Reset the global goroutine manager to a fresh state
+	globalGoroutineManager.Reset()
 }
 
 // CleanupCallStack removes entries from call stack for specific function
@@ -97,10 +153,20 @@ func getSourcePosition(node ast.Node) object.SourcePosition {
 func getNodeToken(node ast.Node) *token.Token {
 	switch n := node.(type) {
 	case *ast.Program:
+		// For programs, try to get filename from the first statement
+		var filename string
 		if len(n.Statements) > 0 {
-			return getNodeToken(n.Statements[0])
+			if firstToken := getNodeToken(n.Statements[0]); firstToken != nil {
+				filename = firstToken.Filename
+			}
 		}
-		return nil
+		return &token.Token{
+			Type:     token.NEWLINE,
+			Literal:  "",
+			Line:     1,
+			Column:   1,
+			Filename: filename,
+		}
 	case *ast.ExpressionStatement:
 		return getNodeToken(n.Expression)
 	case *ast.IntegerLiteral:
@@ -151,6 +217,32 @@ func getNodeToken(node ast.Node) *token.Token {
 		return &n.Token
 	case *ast.AttemptStatement:
 		return &n.Token
+	case *ast.WithStatement:
+		return &n.Token
+	case *ast.MainStatement:
+		return &n.Token
+	case *ast.RaiseStatement:
+		return &n.Token
+	case *ast.IgnoreStatement:
+		return &n.Token
+	case *ast.StopStatement:
+		return &n.Token
+	case *ast.SkipStatement:
+		return &n.Token
+	case *ast.DivergeStatement:
+		return &n.Token
+	case *ast.ConvergeStatement:
+		return &n.Token
+	case *ast.CheckStatement:
+		return &n.Token
+	case *ast.ElseStatement:
+		return &n.Token
+	case *ast.GlobalStatement:
+		return &n.Token
+	case *ast.SliceExpression:
+		return &n.Token
+	case *ast.WildcardExpression:
+		return &n.Token
 	default:
 		// Return a synthetic token for unknown nodes to prevent nil pointer issues
 		return &token.Token{
@@ -184,11 +276,34 @@ func newErrorWithTrace(
 	for currentCtx != nil {
 		if currentCtx.Node != nil {
 			nodePos := getSourcePosition(currentCtx.Node)
+
+			// If current node has unknown filename, try to get it from parent context
+			if (nodePos.Filename == "unknown" || nodePos.Filename == "") && currentCtx.Parent != nil && currentCtx.Parent.Node != nil {
+				parentPos := getSourcePosition(currentCtx.Parent.Node)
+				if parentPos.Filename != "unknown" && parentPos.Filename != "" {
+					nodePos.Filename = parentPos.Filename
+				}
+			}
+
 			entry := object.StackTraceEntry{
 				FunctionName: currentCtx.FunctionName,
 				Position:     nodePos,
 			}
-			err.Stack = append(err.Stack, entry)
+
+			// Skip duplicate consecutive entries with same function name and unknown location
+			shouldSkip := false
+			if len(err.Stack) > 0 {
+				lastEntry := err.Stack[len(err.Stack)-1]
+				if lastEntry.FunctionName == entry.FunctionName &&
+					(entry.Position.Filename == "unknown" || entry.Position.Filename == "") &&
+					(lastEntry.Position.Filename != "unknown" && lastEntry.Position.Filename != "") {
+					shouldSkip = true
+				}
+			}
+
+			if !shouldSkip {
+				err.Stack = append(err.Stack, entry)
+			}
 		}
 		currentCtx = currentCtx.Parent
 	}
@@ -212,7 +327,7 @@ func newCustomErrorWithTrace(
 		Stack:         []object.StackTraceEntry{},
 		CustomDetails: details,
 	}
-	
+
 	// Debug: ensure details is not nil
 	if err.CustomDetails == nil {
 		err.CustomDetails = make(map[string]object.Object)
@@ -256,11 +371,35 @@ func isPrimitiveLiteral(obj object.Object) bool {
 	}
 }
 
+func areValuesEqual(a, b object.Object) bool {
+	if a.Type() != b.Type() {
+		return false
+	}
+
+	switch objA := a.(type) {
+	case *object.Integer:
+		objB := b.(*object.Integer)
+		return objA.Value == objB.Value
+	case *object.String:
+		objB := b.(*object.String)
+		return objA.Value == objB.Value
+	case *object.Boolean:
+		objB := b.(*object.Boolean)
+		return objA.Value == objB.Value
+	case *object.Float:
+		objB := b.(*object.Float)
+		const epsilon = 1e-9
+		return math.Abs(objA.Value-objB.Value) < epsilon
+	default:
+		return a.Inspect() == b.Inspect()
+	}
+}
+
 func wrapPrimitive(obj object.Object, env *object.Environment, ctx *CallContext) object.Object {
 	if debugPrimitiveWrapping {
 		fmt.Fprintf(os.Stderr, "WRAP: Evaluating %T, ctx=%s, hasSelf=%t\n", obj, getContextName(ctx), hasSelfInEnv(env))
 	}
-	
+
 	// Don't wrap if we're inside an instance method or initializer
 	// Check current environment and traverse up parent environments
 	if hasSelfInEnv(env) {
@@ -269,7 +408,7 @@ func wrapPrimitive(obj object.Object, env *object.Environment, ctx *CallContext)
 		}
 		return obj
 	}
-	
+
 	// Don't wrap if we're in a method context (check the call context chain)
 	if isInMethodContext(ctx) {
 		if debugPrimitiveWrapping {
@@ -277,11 +416,11 @@ func wrapPrimitive(obj object.Object, env *object.Environment, ctx *CallContext)
 		}
 		return obj
 	}
-	
+
 	// Don't wrap if this is in a function call context that expects primitives
 	if ctx != nil && ctx.FunctionName != "" {
-		// Don't wrap arguments to builtin functions (except for input functions that should return String instances)
-		if isBuiltinFunction(ctx.FunctionName) && !shouldWrapStringResult(ctx.FunctionName) {
+		// Don't wrap arguments to builtin functions (except for input functions that should return String instances and pairs() that should return Array instances)
+		if isBuiltinFunction(ctx.FunctionName) && !shouldWrapStringResult(ctx.FunctionName) && ctx.FunctionName != "pairs" {
 			if debugPrimitiveWrapping {
 				fmt.Fprintf(os.Stderr, "WRAP: Builtin function %s, not wrapping\n", ctx.FunctionName)
 			}
@@ -295,11 +434,11 @@ func wrapPrimitive(obj object.Object, env *object.Environment, ctx *CallContext)
 			return obj
 		}
 	}
-	
+
 	if debugPrimitiveWrapping {
 		fmt.Fprintf(os.Stderr, "WRAP: Wrapping %T in context %s\n", obj, getContextName(ctx))
 	}
-	
+
 	var grimName string
 
 	switch obj.Type() {
@@ -311,6 +450,8 @@ func wrapPrimitive(obj object.Object, env *object.Environment, ctx *CallContext)
 		grimName = "String"
 	case object.BOOLEAN_OBJ:
 		grimName = "Boolean"
+	case object.ARRAY_OBJ:
+		grimName = "Array"
 	default:
 		return obj // Not a primitive, return as is
 	}
@@ -324,9 +465,19 @@ func wrapPrimitive(obj object.Object, env *object.Environment, ctx *CallContext)
 				Env:      object.NewEnclosedEnvironment(grimoire.Env),
 			}
 
-			// For now, just set the value directly to avoid init method issues
+			// Set self reference
 			instance.Env.Set("self", instance)
-			instance.Env.Set("value", obj)
+
+			// Handle different types appropriately
+			if grimName == "Array" {
+				// For arrays, set the elements directly
+				if arrayObj, isArray := obj.(*object.Array); isArray {
+					instance.Env.Set("elements", arrayObj)
+				}
+			} else {
+				// For other primitives, set the value
+				instance.Env.Set("value", obj)
+			}
 
 			return instance
 		}
@@ -433,14 +584,23 @@ func Eval(node ast.Node, env *object.Environment, ctx *CallContext) object.Objec
 	if env == nil {
 		return newErrorWithTrace("environment cannot be nil", node, ctx)
 	}
-	
+	// Add ctx validation
+	if ctx == nil {
+		ctx = &CallContext{
+			FunctionName: "<unknown>",
+			Node:         node,
+			Parent:       nil,
+			env:          env,
+		}
+	}
+
 	// Debug AST node types for // operations
 	if debugPrimitiveWrapping {
 		if infixNode, ok := node.(*ast.InfixExpression); ok && infixNode.Operator == "//" {
 			fmt.Fprintf(os.Stderr, "EVAL: InfixExpression // in %s\n", getContextName(ctx))
 		}
 	}
-	
+
 	oldContext := CurrentContext
 	CurrentContext = ctx
 	defer func() { CurrentContext = oldContext }()
@@ -454,10 +614,11 @@ func Eval(node ast.Node, env *object.Environment, ctx *CallContext) object.Objec
 		}
 
 		newCtx := &CallContext{
-			FunctionName: funcName,
-			Node:         node,
-			Parent:       ctx,
-			env:          env,
+			FunctionName:   funcName,
+			Node:           node,
+			Parent:         ctx,
+			env:            env,
+			MethodGrimoire: ctx.MethodGrimoire, // Inherit from parent
 		}
 		ctx = newCtx
 	}
@@ -478,11 +639,44 @@ func Eval(node ast.Node, env *object.Environment, ctx *CallContext) object.Objec
 		return object.STOP
 	case *ast.SkipStatement:
 		return object.SKIP
+	case *ast.DivergeStatement:
+		return evalDivergeStatement(node, env, ctx)
+	case *ast.ConvergeStatement:
+		return evalConvergeStatement(node, env, ctx)
 	case *ast.CheckStatement:
 		cond := Eval(node.Condition, env, ctx)
 		if isError(cond) {
 			return cond
 		}
+
+		// Special handling for check(value, expected) pattern
+		if node.Message != nil {
+			expected := Eval(node.Message, env, ctx)
+			if isError(expected) {
+				return expected
+			}
+
+			// Check if this looks like check(actual, expected)
+			if cond.Type() == expected.Type() {
+				if !areValuesEqual(cond, expected) {
+					msg := fmt.Sprintf("Value %s didn't Match Value %s, Expected %s to Equal %s got %s instead", cond.Inspect(), expected.Inspect(), cond.Inspect(), expected.Inspect(), cond.Inspect())
+					details := make(map[string]object.Object)
+					details["actual"] = cond
+					details["expected"] = expected
+					return newCustomErrorWithTrace("Assertion Check Failed", msg, node, ctx, details)
+				}
+				return object.NONE
+			} else {
+				// Types don't match - this is also an assertion failure
+				msg := fmt.Sprintf("Value %s didn't Match Value %s, Expected %s to Equal %s got %s instead", cond.Inspect(), expected.Inspect(), cond.Inspect(), expected.Inspect(), cond.Inspect())
+				details := make(map[string]object.Object)
+				details["actual"] = cond
+				details["expected"] = expected
+				return newCustomErrorWithTrace("Assertion Check Failed", msg, node, ctx, details)
+			}
+		}
+
+		// Standard boolean check
 		if !isTruthy(cond) {
 			msg := "Assertion failed: " + node.Condition.String()
 			if node.Message != nil {
@@ -561,7 +755,7 @@ func Eval(node ast.Node, env *object.Environment, ctx *CallContext) object.Objec
 		if debugPrimitiveWrapping && node.Operator == "//" {
 			fmt.Fprintf(os.Stderr, "CALLING evalInfixExpression for %s in %s\n", node.Operator, getContextName(ctx))
 		}
-		result := evalInfixExpression(node.Operator, left, right, node, ctx)
+		result := evalInfixExpression(node.Operator, left, right, node, ctx, env)
 		return result
 
 	case *ast.PostfixExpression:
@@ -582,9 +776,12 @@ func Eval(node ast.Node, env *object.Environment, ctx *CallContext) object.Objec
 	case *ast.WildcardExpression:
 		return &object.String{Value: "_"}
 	case *ast.ReturnStatement:
-		val := Eval(node.ReturnValue, env, ctx)
-		if isError(val) {
-			return val
+		var val object.Object = NONE
+		if node.ReturnValue != nil {
+			val = Eval(node.ReturnValue, env, ctx)
+			if isError(val) {
+				return val
+			}
 		}
 		return &object.ReturnValue{Value: val}
 	case *ast.Boolean:
@@ -613,7 +810,7 @@ func Eval(node ast.Node, env *object.Environment, ctx *CallContext) object.Objec
 		if len(elements) == 1 && isError(elements[0]) {
 			return elements[0]
 		}
-		
+
 		// Create Array instance if Array grimoire exists
 		if grimObj, ok := env.Get("Array"); ok {
 			if grimoire, isGrim := grimObj.(*object.Grimoire); isGrim {
@@ -626,7 +823,7 @@ func Eval(node ast.Node, env *object.Environment, ctx *CallContext) object.Objec
 				return instance
 			}
 		}
-		
+
 		// Fallback to regular array
 		return &object.Array{Elements: elements}
 
@@ -640,6 +837,7 @@ func Eval(node ast.Node, env *object.Environment, ctx *CallContext) object.Objec
 	case *ast.FunctionDefinition:
 		fnObj := &object.Function{
 			Parameters: node.Parameters,
+			ReturnType: node.ReturnType,
 			Body:       node.Body,
 			Env:        env,
 		}
@@ -657,10 +855,33 @@ func Eval(node ast.Node, env *object.Environment, ctx *CallContext) object.Objec
 			return index
 		}
 		return evalIndexExpression(left, index, node, ctx)
+	case *ast.SliceExpression:
+		left := Eval(node.Left, env, ctx)
+		if isError(left) {
+			return left
+		}
+		var start, end object.Object
+		if node.Start != nil {
+			start = Eval(node.Start, env, ctx)
+			if isError(start) {
+				return start
+			}
+		}
+		if node.End != nil {
+			end = Eval(node.End, env, ctx)
+			if isError(end) {
+				return end
+			}
+		}
+		return evalSliceExpression(left, start, end, node, ctx)
 	case *ast.GrimoireDefinition:
 		return evalGrimoireDefinition(node, env, ctx)
 	case *ast.AttemptStatement:
 		return evalAttemptStatement(node, env, ctx)
+	case *ast.WithStatement:
+		return evalWithStatement(node, env, ctx)
+	case *ast.UnpackStatement:
+		return evalUnpackStatement(node, env, ctx)
 	case *ast.IgnoreStatement:
 		return object.NONE
 	case *ast.CallExpression:
@@ -682,27 +903,39 @@ func Eval(node ast.Node, env *object.Environment, ctx *CallContext) object.Objec
 
 // EvalWithDebug evaluates an AST node with debug output
 func EvalWithDebug(node ast.Node, env *object.Environment, ctx *CallContext, debugConfig *debug.Config) object.Object {
+	// If no context provided, create one for direct execution
+	if ctx == nil {
+		ctx = &CallContext{
+			FunctionName:      "main",
+			Node:              node,
+			Parent:            nil,
+			env:               env,
+			depth:             0,
+			IsDirectExecution: true,
+		}
+	}
+
 	if debugConfig == nil || !debugConfig.ShouldDebugEvaluator() {
 		return Eval(node, env, ctx)
 	}
-	
+
 	// Log the node being evaluated
 	fmt.Fprintf(os.Stderr, "evaluator: Evaluating %T", node)
 	if n, ok := node.(ast.Node); ok && n != nil {
 		fmt.Fprintf(os.Stderr, " - %s", n.String())
 	}
 	fmt.Fprintf(os.Stderr, "\n")
-	
+
 	// Evaluate the node
 	result := Eval(node, env, ctx)
-	
+
 	// Log the result
 	if result != nil {
 		fmt.Fprintf(os.Stderr, "evaluator: Result: %s (type: %s)\n", result.Inspect(), result.Type())
 	} else {
 		fmt.Fprintf(os.Stderr, "evaluator: Result: nil\n")
 	}
-	
+
 	return result
 }
 
@@ -866,7 +1099,7 @@ func evalRaiseStatement(
 				message = msgStr.Value
 			}
 		}
-		
+
 		// Check for String wrapper instances
 		if instance.Grimoire.Name == "String" {
 			if value, ok := instance.Env.Get("value"); ok {
@@ -890,7 +1123,7 @@ func evalRaiseStatement(
 		return newCustomErrorWithTrace("Error", str.Value, node, ctx, details)
 	}
 
-	return newErrorWithTrace("cannot raise non-error object: %s", node, ctx, errObj.Type())
+	return newErrorWithTrace("cannot raise non-error object: %s", node, ctx, getObjectTypeString(errObj))
 }
 
 func evalExpressions(
@@ -923,10 +1156,11 @@ func evalAttemptStatement(
 
 	// Create a new context for the try block
 	tryCtx := &CallContext{
-		FunctionName: "attempt",
-		Node:         node.TryBlock,
-		Parent:       ctx,
-		env:          env,
+		FunctionName:   "attempt",
+		Node:           node.TryBlock,
+		Parent:         ctx,
+		env:            env,
+		MethodGrimoire: ctx.MethodGrimoire, // Inherit from parent
 	}
 	tryResult := Eval(node.TryBlock, env, tryCtx)
 
@@ -934,7 +1168,7 @@ func evalAttemptStatement(
 		for _, ensnare := range node.EnsnareClauses {
 			var shouldCatch bool
 			var ensnareEnv *object.Environment
-			
+
 			// Check if this ensnare clause should catch the error
 			if ensnare.Alias != nil {
 				// If there's an alias, catch all errors and bind the error to the alias
@@ -952,29 +1186,70 @@ func evalAttemptStatement(
 				// If there's a condition, evaluate it to check if we should catch
 				condition := Eval(ensnare.Condition, env, ctx)
 				if isError(condition) {
-					result = condition
-					break
-				}
-				
-				// Check different error types
-				if customErr, ok := tryResult.(*object.CustomError); ok {
-					if grimoire, ok := condition.(*object.Grimoire); ok {
-						shouldCatch = customErr.ErrorType == grimoire
-					} else if str, ok := condition.(*object.String); ok {
-						shouldCatch = customErr.Name == str.Value
+					// Check if this is an "identifier not found" error, which means it should be treated as an alias
+					if errWithTrace, ok := condition.(*object.ErrorWithTrace); ok {
+						if strings.Contains(errWithTrace.Message, "identifier not found") {
+							// Treat this as an alias - catch all errors and bind to the identifier
+							if identifier, ok := ensnare.Condition.(*ast.Identifier); ok {
+								shouldCatch = true
+								ensnareEnv = object.NewEnclosedEnvironment(env)
+								if isError(tryResult) {
+									caughtError := &object.CaughtError{OriginalError: tryResult}
+									ensnareEnv.Set(identifier.Value, caughtError)
+								} else {
+									ensnareEnv.Set(identifier.Value, tryResult)
+								}
+							}
+						} else {
+							result = condition
+							break
+						}
+					} else {
+						result = condition
+						break
 					}
-				} else if errWithTrace, ok := tryResult.(*object.ErrorWithTrace); ok {
-					if str, ok := condition.(*object.String); ok {
-						shouldCatch = strings.HasPrefix(errWithTrace.Message, str.Value)
+				} else {
+					// Check different error types
+					if customErr, ok := tryResult.(*object.CustomError); ok {
+						if grimoire, ok := condition.(*object.Grimoire); ok {
+							shouldCatch = customErr.ErrorType == grimoire
+						} else if str, ok := condition.(*object.String); ok {
+							shouldCatch = customErr.Name == str.Value
+						}
+					} else if errWithTrace, ok := tryResult.(*object.ErrorWithTrace); ok {
+						if grimoire, ok := condition.(*object.Grimoire); ok {
+							// Check if the error type matches the grimoire name
+							if errWithTrace.CustomDetails != nil {
+								if errorType, exists := errWithTrace.CustomDetails["errorType"]; exists {
+									if errorTypeStr, ok := errorType.(*object.String); ok {
+										shouldCatch = errorTypeStr.Value == grimoire.Name
+									}
+								}
+							}
+						} else if str, ok := condition.(*object.String); ok {
+							// Check if the error type matches the string or if message starts with it
+							if errWithTrace.CustomDetails != nil {
+								if errorType, exists := errWithTrace.CustomDetails["errorType"]; exists {
+									if errorTypeStr, ok := errorType.(*object.String); ok {
+										shouldCatch = errorTypeStr.Value == str.Value
+									}
+								}
+							}
+							if !shouldCatch {
+								shouldCatch = strings.HasPrefix(errWithTrace.Message, str.Value)
+							}
+						}
 					}
 				}
-				ensnareEnv = env
+				if ensnareEnv == nil {
+					ensnareEnv = env
+				}
 			} else {
 				// No condition or alias, catch all errors
 				shouldCatch = true
 				ensnareEnv = env
 			}
-			
+
 			if shouldCatch {
 				ensnareCtx := &CallContext{
 					FunctionName: "ensnare",
@@ -1004,6 +1279,57 @@ func evalAttemptStatement(
 		resolveResult := Eval(node.ResolveBlock, env, resolveCtx)
 		if isError(resolveResult) {
 			return resolveResult
+		}
+	}
+
+	return result
+}
+
+func evalWithStatement(
+	ws *ast.WithStatement,
+	env *object.Environment,
+	ctx *CallContext,
+) object.Object {
+	// Evaluate the expression to get the resource
+	resource := Eval(ws.Expression, env, ctx)
+	if isError(resource) {
+		return resource
+	}
+
+	// Create a new environment for the with block
+	withEnv := object.NewEnclosedEnvironment(env)
+
+	// Bind the resource to the specified variable
+	if ws.Variable != nil {
+		withEnv.Set(ws.Variable.Value, resource)
+	}
+
+	// Create a new context for the with block
+	withCtx := &CallContext{
+		FunctionName: "with_block",
+		Node:         ws.Body,
+		Parent:       ctx,
+		env:          withEnv,
+	}
+
+	// Execute the body
+	result := Eval(ws.Body, withEnv, withCtx)
+
+	// Check if the resource has a close method and call it
+	if resource != nil {
+		if instance, ok := resource.(*object.Instance); ok {
+			if closeMethod, exists := instance.Env.Get("close"); exists {
+				if fn, isFn := closeMethod.(*object.Function); isFn {
+					// Call the close method
+					closeCtx := &CallContext{
+						FunctionName: "close",
+						Node:         ws,
+						Parent:       ctx,
+						env:          instance.Env,
+					}
+					evalCallExpression(fn, []object.Object{}, instance.Env, closeCtx)
+				}
+			}
 		}
 	}
 
@@ -1054,7 +1380,7 @@ func isEqual(obj1, obj2 object.Object) bool {
 	// Unwrap primitives if they are wrapped in instances
 	obj1 = unwrapPrimitive(obj1)
 	obj2 = unwrapPrimitive(obj2)
-	
+
 	switch obj1 := obj1.(type) {
 	case *object.Integer:
 		if obj2, ok := obj2.(*object.Integer); ok {
@@ -1085,9 +1411,38 @@ func evalAssignStatement(
 ) object.Object {
 	switch target := node.Name.(type) {
 	case *ast.Identifier:
-			val := Eval(node.Value, env, ctx)
+		val := Eval(node.Value, env, ctx)
 		if isError(val) {
 			return val
+		}
+
+		// Check type hint if present
+		if node.TypeHint != nil {
+			// Get the type name from the type hint expression
+			typeHintIdent, ok := node.TypeHint.(*ast.Identifier)
+			if !ok {
+				return newErrorWithTrace("invalid type hint: %s", node, ctx, node.TypeHint.String())
+			}
+			expectedType := typeHintIdent.Value
+
+			// Validate the type
+			if !checkType(val, expectedType) {
+				return newErrorWithTrace("type mismatch: cannot assign %s to variable '%s' with type hint %s", node, ctx, getObjectTypeString(val), target.Value, expectedType)
+			}
+
+			// Store the type hint for future validations
+			typeHintKey := "__type_hint__" + target.Value
+			env.Set(typeHintKey, &object.String{Value: expectedType})
+		} else {
+			// Check if variable already has a type hint from previous assignment
+			typeHintKey := "__type_hint__" + target.Value
+			if existingTypeHint, exists := env.Get(typeHintKey); exists {
+				if typeHintStr, ok := existingTypeHint.(*object.String); ok {
+					if !checkType(val, typeHintStr.Value) {
+						return newErrorWithTrace("type mismatch: cannot assign %s to variable '%s' with type hint %s", node, ctx, getObjectTypeString(val), target.Value, typeHintStr.Value)
+					}
+				}
+			}
 		}
 
 		// Don't wrap primitives - this breaks arithmetic operations
@@ -1124,6 +1479,61 @@ func evalAssignStatement(
 			values = v.Elements
 		case *object.Array:
 			values = v.Elements
+		case *object.Instance:
+			// Handle Array instance unpacking
+			if v.Grimoire.Name == "Array" {
+				if elements, ok := v.Env.Get("elements"); ok {
+					if arr, ok := elements.(*object.Array); ok {
+						// Check if this is a pairs() result (array of tuples) being unpacked into 2 variables
+						if len(target.Elements) == 2 {
+							// Check if all elements are tuples (or empty array)
+							allTuples := len(arr.Elements) == 0 // Empty array counts as "all tuples"
+							if !allTuples {
+								allTuples = true
+								for _, elem := range arr.Elements {
+									if _, ok := elem.(*object.Tuple); !ok {
+										allTuples = false
+										break
+									}
+								}
+							}
+
+							if allTuples {
+								// Extract keys and values from tuples
+								keys := &object.Array{Elements: []object.Object{}}
+								vals := &object.Array{Elements: []object.Object{}}
+
+								for _, elem := range arr.Elements {
+									if tuple, ok := elem.(*object.Tuple); ok && len(tuple.Elements) == 2 {
+										keys.Elements = append(keys.Elements, tuple.Elements[0])
+										vals.Elements = append(vals.Elements, tuple.Elements[1])
+									}
+								}
+
+								// Assign to variables
+								for i, expr := range target.Elements {
+									ident, ok := expr.(*ast.Identifier)
+									if !ok {
+										return newErrorWithTrace("invalid assignment target in tuple assignment", node, ctx)
+									}
+									if i == 0 {
+										env.Set(ident.Value, keys)
+									} else {
+										env.Set(ident.Value, vals)
+									}
+								}
+								return val
+							}
+						}
+
+						// Regular array unpacking
+						values = arr.Elements
+					}
+				}
+			}
+			if values == nil {
+				return newErrorWithTrace("cannot unpack instance of %s", node, ctx, v.Grimoire.Name)
+			}
 		default:
 			return newErrorWithTrace("cannot unpack non-iterable type: %s", node, ctx, val.Type())
 		}
@@ -1185,8 +1595,12 @@ func evalIndexAssignment(
 		}
 
 		if idx < 0 || idx > maxIndex {
-			return newErrorWithTrace("index out of bounds: %d (array length: %d)",
-				node, ctx, idx, maxIndex+1)
+			if maxIndex < 0 {
+				return newErrorWithTrace("index out of bounds: %d (array is empty)",
+					node, ctx, idx)
+			}
+			return newErrorWithTrace("index out of bounds: %d (array length: %d, valid indices: 0-%d)",
+				node, ctx, idx, maxIndex+1, maxIndex)
 		}
 
 		// Perform the assignment
@@ -1194,12 +1608,14 @@ func evalIndexAssignment(
 		return value
 
 	case *object.Hash:
-		key, ok := index.(object.Hashable)
+		// Unwrap primitives that may have been wrapped in Instance objects
+		unwrappedIndex := unwrapPrimitive(index)
+		key, ok := unwrappedIndex.(object.Hashable)
 		if !ok {
-			return newErrorWithTrace("unusable as hash key: %s", node, ctx, index.Type())
+			return newErrorWithTrace("unusable as hash key: %s", node, ctx, unwrappedIndex.Type())
 		}
 
-		pair := object.HashPair{Key: index, Value: value}
+		pair := object.HashPair{Key: unwrappedIndex, Value: value}
 		array.Pairs[key.HashKey()] = pair
 		return value
 
@@ -1211,14 +1627,54 @@ func evalIndexAssignment(
 func checkType(val object.Object, expectedType string) bool {
 	switch expectedType {
 	case "str":
-		return val.Type() == object.STRING_OBJ
+		// Check both primitive STRING and String grimoire instances
+		if val.Type() == object.STRING_OBJ {
+			return true
+		}
+		if instance, ok := val.(*object.Instance); ok && instance.Grimoire.Name == "String" {
+			return true
+		}
+		return false
 	case "int":
-		return val.Type() == object.INTEGER_OBJ
+		// Check both primitive INTEGER and Integer grimoire instances
+		if val.Type() == object.INTEGER_OBJ {
+			return true
+		}
+		if instance, ok := val.(*object.Instance); ok && instance.Grimoire.Name == "Integer" {
+			return true
+		}
+		return false
 	case "float":
-		return val.Type() == object.FLOAT_OBJ
+		// Check both primitive FLOAT and Float grimoire instances
+		if val.Type() == object.FLOAT_OBJ {
+			return true
+		}
+		if instance, ok := val.(*object.Instance); ok && instance.Grimoire.Name == "Float" {
+			return true
+		}
+		return false
 	case "bool":
-		return val.Type() == object.BOOLEAN_OBJ
+		// Check both primitive BOOLEAN and Boolean grimoire instances
+		if val.Type() == object.BOOLEAN_OBJ {
+			return true
+		}
+		if instance, ok := val.(*object.Instance); ok && instance.Grimoire.Name == "Boolean" {
+			return true
+		}
+		return false
+	case "list":
+		return val.Type() == object.ARRAY_OBJ
+	case "dict":
+		return val.Type() == object.MAP_OBJ
+	case "None":
+		return val.Type() == object.NONE_OBJ
+	case "any":
+		return true
 	default:
+		// For custom grimoire types, check if the value is an instance of that type
+		if instance, ok := val.(*object.Instance); ok {
+			return instance.Grimoire.Name == expectedType
+		}
 		return true
 	}
 }
@@ -1229,7 +1685,6 @@ func getGlobalEnv(env *object.Environment, ctx *CallContext) *object.Environment
 	}
 	return env
 }
-
 
 func evalGrimoireDefinition(
 	node *ast.GrimoireDefinition,
@@ -1314,6 +1769,131 @@ func evalGrimoireDefinition(
 	return grimoire
 }
 
+// evalStaticMethodCall executes a static method call on a grimoire
+// Sets MethodGrimoire to the grimoire itself since static methods belong to the class
+func evalStaticMethodCall(
+	grimoire *object.Grimoire,
+	methodName string,
+	args []object.Object,
+	env *object.Environment,
+	ctx *CallContext,
+) object.Object {
+	method, ok := grimoire.Methods[methodName]
+	if !ok {
+		// Get available methods and find similar names for suggestions
+		availableMethods := object.GetObjectMethods(grimoire)
+		similarNames := object.FindSimilarNames(methodName, availableMethods, 3)
+
+		if len(similarNames) > 0 {
+			return newErrorWithTrace("static method '%s' not found on %s. Did you mean '%s'?",
+				ctx.Node, ctx, methodName, grimoire.Name, similarNames[0])
+		}
+		return newErrorWithTrace("static method '%s' not found on %s",
+			ctx.Node, ctx, methodName, grimoire.Name)
+	}
+
+	if method.IsPrivate && !sameClass(env, grimoire) {
+		return newErrorWithTrace("private static method '%s' not accessible outside its defining class",
+			ctx.Node, ctx, methodName)
+	}
+
+	if method.IsProtected && !sameOrSubclass(env, grimoire) {
+		return newErrorWithTrace("protected static method '%s' not accessible here",
+			ctx.Node, ctx, methodName)
+	}
+
+	// Create isolated method environment (no instance, no self)
+	methodEnv := object.NewEnclosedEnvironment(grimoire.Env)
+
+	// Add the grimoire constructor to the environment for self-instantiation
+	methodEnv.Set(grimoire.Name, grimoire)
+
+	// Create method context
+	methodCtx := &CallContext{
+		FunctionName:   grimoire.Name + "." + methodName,
+		Node:           ctx.Node,
+		Parent:         ctx,
+		env:            methodEnv,
+		MethodGrimoire: grimoire,
+	}
+
+	// Bind arguments: support simple identifiers or full Parameter nodes
+	// For static methods, we don't skip 'self' parameter
+	argIndex := 0
+	for _, pExpr := range method.Parameters {
+		switch param := pExpr.(type) {
+		case *ast.Identifier:
+			name := param.Value
+			if argIndex < len(args) {
+				methodEnv.Set(name, args[argIndex])
+				argIndex++
+			} else {
+				methodEnv.Set(name, NONE)
+			}
+		case *ast.Parameter:
+			name := param.Name.Value
+			if argIndex < len(args) {
+				methodEnv.Set(name, args[argIndex])
+				argIndex++
+			} else if param.DefaultValue != nil {
+				methodEnv.Set(name, Eval(param.DefaultValue, method.Env, methodCtx))
+			} else {
+				methodEnv.Set(name, NONE)
+			}
+		default:
+			// unsupported parameter type
+		}
+	}
+
+	// Execute with bounds checking for recursive calls
+	return evalWithRecursionLimit(method.Body, methodEnv, method, methodCtx, 0)
+}
+
+// bindMethodParameters binds arguments to method parameters, handling default values and self parameter
+func bindMethodParameters(
+	method *object.Function,
+	args []object.Object,
+	methodEnv *object.Environment,
+	methodCtx *CallContext,
+	skipSelf bool,
+) {
+	argIndex := 0
+	for _, pExpr := range method.Parameters {
+		switch param := pExpr.(type) {
+		case *ast.Identifier:
+			name := param.Value
+			// Skip 'self' parameter if requested (for instance methods)
+			if skipSelf && name == "self" {
+				continue
+			}
+			if argIndex < len(args) {
+				methodEnv.Set(name, args[argIndex])
+				argIndex++
+			} else {
+				methodEnv.Set(name, NONE)
+			}
+		case *ast.Parameter:
+			name := param.Name.Value
+			// Skip 'self' parameter if requested (for instance methods)
+			if skipSelf && name == "self" {
+				continue
+			}
+			if argIndex < len(args) {
+				methodEnv.Set(name, args[argIndex])
+				argIndex++
+			} else if param.DefaultValue != nil {
+				methodEnv.Set(name, Eval(param.DefaultValue, method.Env, methodCtx))
+			} else {
+				methodEnv.Set(name, NONE)
+			}
+		default:
+			// unsupported parameter type
+		}
+	}
+}
+
+// evalGrimoireMethodCall executes a method call on a grimoire instance
+// Sets MethodGrimoire to the method's defining class for proper super resolution
 func evalGrimoireMethodCall(
 	instance *object.Instance,
 	methodName string,
@@ -1323,6 +1903,14 @@ func evalGrimoireMethodCall(
 ) object.Object {
 	method, ok := instance.Grimoire.Methods[methodName]
 	if !ok {
+		// Get available methods and find similar names for suggestions
+		availableMethods := object.GetObjectMethods(instance)
+		similarNames := object.FindSimilarNames(methodName, availableMethods, 3)
+
+		if len(similarNames) > 0 {
+			return newErrorWithTrace("method '%s' not found on %s. Did you mean '%s'?",
+				ctx.Node, ctx, methodName, instance.Grimoire.Name, similarNames[0])
+		}
 		return newErrorWithTrace("method '%s' not found on %s",
 			ctx.Node, ctx, methodName, instance.Grimoire.Name)
 	}
@@ -1341,49 +1929,81 @@ func evalGrimoireMethodCall(
 	methodEnv := object.NewEnclosedEnvironment(instance.Env)
 	methodEnv.Set("self", instance)
 
+	// Find which grimoire owns this method for proper super resolution
+	// This enables multi-level inheritance by tracking method ownership
+	methodOwner := findMethodOwner(instance, methodName, method)
+
 	// Create method context
 	methodCtx := &CallContext{
-		FunctionName: instance.Grimoire.Name + "." + methodName,
-		Node:         ctx.Node,
-		Parent:       ctx,
-		env:          methodEnv,
+		FunctionName:   methodOwner.Name + "." + methodName,
+		Node:           ctx.Node,
+		Parent:         ctx,
+		env:            methodEnv,
+		MethodGrimoire: methodOwner,
 	}
 
-	// Bind arguments: support simple identifiers or full Parameter nodes
-	// For method calls, we need to handle the 'self' parameter specially
-	argIndex := 0
-	for _, pExpr := range method.Parameters {
-		switch param := pExpr.(type) {
-		case *ast.Identifier:
-			name := param.Value
-			// Skip 'self' parameter - it's already set in the method environment
-			if name == "self" {
-				continue
+	// Bind arguments using the common helper function
+	bindMethodParameters(method, args, methodEnv, methodCtx, true)
+
+	// Execute with bounds checking for recursive calls
+	return evalWithRecursionLimit(method.Body, methodEnv, method, methodCtx, 0)
+}
+
+// findMethodOwner finds which grimoire in the inheritance chain owns the given method
+// This is crucial for proper super resolution in multi-level inheritance, ensuring
+// that super calls resolve to the parent of the method's defining class, not the instance's class
+func findMethodOwner(instance *object.Instance, methodName string, method *object.Function) *object.Grimoire {
+	current := instance.Grimoire
+	for current != nil {
+		// Check if this grimoire has the method
+		if methodName == "init" {
+			if current.InitMethod == method {
+				return current
 			}
-			if argIndex < len(args) {
-				methodEnv.Set(name, args[argIndex])
-				argIndex++
-			} else {
-				methodEnv.Set(name, NONE)
+		} else {
+			if m, exists := current.Methods[methodName]; exists && m == method {
+				return current
 			}
-		case *ast.Parameter:
-			name := param.Name.Value
-			// Skip 'self' parameter - it's already set in the method environment
-			if name == "self" {
-				continue
-			}
-			if argIndex < len(args) {
-				methodEnv.Set(name, args[argIndex])
-				argIndex++
-			} else if param.DefaultValue != nil {
-				methodEnv.Set(name, Eval(param.DefaultValue, method.Env, methodCtx))
-			} else {
-				methodEnv.Set(name, NONE)
-			}
-		default:
-			// unsupported parameter type
 		}
+		current = current.Inherits
 	}
+	// Fallback: return the instance's grimoire if we can't find the owner
+	return instance.Grimoire
+}
+
+// evalBoundMethodCall executes a bound method call with proper context tracking
+// Sets MethodGrimoire to enable correct super resolution in inheritance hierarchies
+func evalBoundMethodCall(
+	boundMethod *object.BoundMethod,
+	args []object.Object,
+	env *object.Environment,
+	ctx *CallContext,
+) object.Object {
+	// For bound methods, use the stored method directly with proper environment
+	method := boundMethod.Method
+	instance := boundMethod.Instance
+	methodName := boundMethod.Name
+
+	// Create isolated method environment from the method's original environment, not instance env
+	methodEnv := object.NewEnclosedEnvironment(method.Env)
+	methodEnv.Set("self", instance)
+
+	// Find which grimoire owns this method for proper super resolution
+	// This enables multi-level inheritance by tracking method ownership
+	methodOwner := findMethodOwner(instance, methodName, method)
+
+	// Create method context
+	methodCtx := &CallContext{
+		FunctionName:   methodOwner.Name + "." + methodName,
+		Node:           ctx.Node,
+		Parent:         ctx,
+		env:            methodEnv,
+		depth:          ctx.depth + 1,
+		MethodGrimoire: methodOwner,
+	}
+
+	// Bind arguments using the common helper function
+	bindMethodParameters(method, args, methodEnv, methodCtx, true)
 
 	// Execute with bounds checking for recursive calls
 	return evalWithRecursionLimit(method.Body, methodEnv, method, methodCtx, 0)
@@ -1430,14 +2050,7 @@ func evalCallExpression(
 	env *object.Environment,
 	ctx *CallContext,
 ) object.Object {
-	// ── 1.  Flatten a single‑tuple argument safely ────────────────────────────
-	if len(args) == 1 && args[0] != nil {
-		if tup, ok := args[0].(*object.Tuple); ok {
-			args = tup.Elements
-		}
-	}
-
-	// ── 2.  Propagate existing errors, don’t try to “call” them ───────────────
+	// ── 1.  Propagate existing errors, don't try to "call" them ───────────────
 	if isError(fn) {
 		return fn
 	}
@@ -1447,10 +2060,15 @@ func evalCallExpression(
 		}
 	}
 
-	// ── 3.  Normal dispatch ───────────────────────────────────────────────────
+	// ── 2.  Normal dispatch ───────────────────────────────────────────────────
 	switch fnTyped := fn.(type) {
 
 	case *object.Function:
+		// Type checking before function call
+		if typeErr := checkParameterTypes(fnTyped, args, ctx); typeErr != nil {
+			return typeErr
+		}
+
 		// use the correctly typed value as the map key
 		fun := fnTyped // alias for brevity
 
@@ -1490,7 +2108,11 @@ func evalCallExpression(
 		}
 		return unwrapReturnValue(evaluated)
 	case *object.BoundMethod:
-		return evalGrimoireMethodCall(fnTyped.Instance, fnTyped.Name, args, env, ctx)
+		// Use a special version of evalGrimoireMethodCall that uses the stored method
+		return evalBoundMethodCall(fnTyped, args, env, ctx)
+
+	case *object.StaticMethod:
+		return evalStaticMethodCall(fnTyped.Grimoire, fnTyped.Name, args, env, ctx)
 
 	case *object.Grimoire:
 		if fnTyped.IsArcane {
@@ -1509,10 +2131,11 @@ func evalCallExpression(
 			extended.Set("self", instance)
 
 			initCtx := &CallContext{
-				FunctionName: fnTyped.Name + ".init",
-				Node:         fnTyped.InitMethod.Body,
-				Parent:       ctx,
-				env:          extended,
+				FunctionName:   fnTyped.Name + ".init",
+				Node:           fnTyped.InitMethod.Body,
+				Parent:         ctx,
+				env:            extended,
+				MethodGrimoire: fnTyped,
 			}
 			result := Eval(fnTyped.InitMethod.Body, extended, initCtx)
 			if isError(result) {
@@ -1530,6 +2153,12 @@ func evalCallExpression(
 		if shouldWrapStringResult(ctx.FunctionName) {
 			if stringObj, isString := res.(*object.String); isString {
 				return wrapPrimitive(stringObj, env, ctx)
+			}
+		}
+		// Wrap array results from pairs() function so they have access to methods
+		if ctx.FunctionName == "pairs" {
+			if arrayObj, isArray := res.(*object.Array); isArray {
+				return wrapPrimitive(arrayObj, env, ctx)
 			}
 		}
 		return res
@@ -1552,6 +2181,37 @@ func evalDotExpression(
 		return leftObj
 	}
 
+	// Handle super object access
+	if superObj, ok := leftObj.(*object.Super); ok {
+		var parentMethod *object.Function
+		var methodExists bool
+
+		// Check if it's the init method
+		if node.Right.Value == "init" {
+			parentMethod = superObj.Parent.InitMethod
+			methodExists = (parentMethod != nil)
+		} else {
+			// Check regular methods
+			parentMethod, methodExists = superObj.Parent.Methods[node.Right.Value]
+		}
+
+		if !methodExists {
+			return newErrorWithTrace(
+				"no method '%s' found in parent class",
+				node,
+				ctx,
+				node.Right.Value,
+			)
+		}
+
+		return &object.BoundMethod{
+			Instance: superObj.Instance,
+			Method:   parentMethod,
+			Name:     node.Right.Value,
+		}
+	}
+
+	// Handle super string-based access (fallback for original syntax)
 	if node.Left.String() == "super" {
 		instance, ok := env.Get("self")
 		if !ok || instance == nil {
@@ -1571,8 +2231,19 @@ func evalDotExpression(
 			return newErrorWithTrace("no parent class found for 'super'", node, ctx)
 		}
 
-		parentMethod, ok := inst.Grimoire.Inherits.Methods[node.Right.Value]
-		if !ok {
+		var parentMethod *object.Function
+		var methodExists bool
+
+		// Check if it's the init method
+		if node.Right.Value == "init" {
+			parentMethod = inst.Grimoire.Inherits.InitMethod
+			methodExists = (parentMethod != nil)
+		} else {
+			// Check regular methods
+			parentMethod, methodExists = inst.Grimoire.Inherits.Methods[node.Right.Value]
+		}
+
+		if !methodExists {
 			return newErrorWithTrace(
 				"no method '%s' found in parent class",
 				node,
@@ -1588,9 +2259,125 @@ func evalDotExpression(
 		}
 	}
 
+	// Handle namespace access (for import aliases)
+	if namespace, ok := leftObj.(*object.Namespace); ok {
+		fieldOrMethodName := node.Right.Value
+		if val, found := namespace.Env.Get(fieldOrMethodName); found {
+			return val
+		}
+		// Build suggestion context with namespace environment
+		suggCtx := object.BuildSuggestionContext(nil, fieldOrMethodName, namespace.Env)
+		suggestion := object.FormatSuggestion(suggCtx)
+		if suggestion != "" {
+			return newErrorWithTrace("undefined member in namespace: %s. %s", node, ctx, fieldOrMethodName, suggestion)
+		}
+		return newErrorWithTrace("undefined member in namespace: %s", node, ctx, fieldOrMethodName)
+	}
+
+	// Handle static method calls on grimoire classes
+	if grimoire, ok := leftObj.(*object.Grimoire); ok {
+		methodName := node.Right.Value
+		method, exists := grimoire.Methods[methodName]
+		if !exists {
+			// Build suggestion context for helpful error message
+			suggCtx := object.BuildSuggestionContext(grimoire, methodName, env)
+			suggestion := object.FormatSuggestion(suggCtx)
+			if suggestion != "" {
+				return newErrorWithTrace("undefined static method: %s. %s", node, ctx, methodName, suggestion)
+			}
+			return newErrorWithTrace("undefined static method: %s", node, ctx, methodName)
+		}
+
+		// Return a static method wrapper that doesn't require self
+		return &object.StaticMethod{
+			Grimoire: grimoire,
+			Method:   method,
+			Name:     methodName,
+		}
+	}
+
+	// Handle CaughtError access
+	if caughtErr, ok := leftObj.(*object.CaughtError); ok {
+		switch node.Right.Value {
+		case "message":
+			return &object.String{Value: caughtErr.GetMessage()}
+		case "type":
+			if errWithTrace, ok := caughtErr.OriginalError.(*object.ErrorWithTrace); ok {
+				if errWithTrace.CustomDetails != nil {
+					if errorType, exists := errWithTrace.CustomDetails["errorType"]; exists {
+						return errorType
+					}
+				}
+			}
+			if customErr, ok := caughtErr.OriginalError.(*object.CustomError); ok {
+				return &object.String{Value: customErr.Name}
+			}
+			return &object.String{Value: "Error"}
+		default:
+			return newErrorWithTrace("CaughtError has no property: %s", node, ctx, node.Right.Value)
+		}
+	}
+
+	// Wrap primitives to allow method access (e.g., self.some_string.upper())
+	// This enables calling methods on primitives stored in instance variables
+	switch leftObj.Type() {
+	case object.INTEGER_OBJ, object.FLOAT_OBJ, object.STRING_OBJ, object.BOOLEAN_OBJ, object.ARRAY_OBJ:
+		// Determine the grimoire name based on the primitive type
+		var grimName string
+		switch leftObj.Type() {
+		case object.INTEGER_OBJ:
+			grimName = "Integer"
+		case object.FLOAT_OBJ:
+			grimName = "Float"
+		case object.STRING_OBJ:
+			grimName = "String"
+		case object.BOOLEAN_OBJ:
+			grimName = "Boolean"
+		case object.ARRAY_OBJ:
+			grimName = "Array"
+		}
+
+		// Find the grimoire in the stdlib environment (not local env)
+		// We need to use stdlibEnv to access primitive grimoires that are globally available
+
+		// Try stdlib environment first (where String, Integer, etc. grimoires are defined)
+		var grimObj object.Object
+		var ok bool
+		if stdlibEnv != nil {
+			grimObj, ok = stdlibEnv.Get(grimName)
+		}
+
+		// Fallback to local environment if not found in stdlib
+		if !ok {
+			grimObj, ok = env.Get(grimName)
+		}
+
+		if ok {
+			if grimoire, isGrim := grimObj.(*object.Grimoire); isGrim {
+				// Create an instance wrapping the primitive
+				instance := &object.Instance{
+					Grimoire: grimoire,
+					Env:      object.NewEnclosedEnvironment(grimoire.Env),
+				}
+				instance.Env.Set("self", instance)
+
+				// Set the primitive value
+				if grimName == "Array" {
+					if arrayObj, isArray := leftObj.(*object.Array); isArray {
+						instance.Env.Set("elements", arrayObj)
+					}
+				} else {
+					instance.Env.Set("value", leftObj)
+				}
+
+				leftObj = instance
+			}
+		}
+	}
+
 	instance, ok := leftObj.(*object.Instance)
 	if !ok {
-		return newErrorWithTrace("type error: %s is not an instance", node, ctx, leftObj.Type())
+		return newErrorWithTrace("type error: %s is not an instance or namespace", node, ctx, getObjectTypeString(leftObj))
 	}
 
 	fieldOrMethodName := node.Right.Value
@@ -1601,6 +2388,12 @@ func evalDotExpression(
 
 	method, ok := instance.Grimoire.Methods[fieldOrMethodName]
 	if !ok {
+		// Build suggestion context for helpful error message
+		suggCtx := object.BuildSuggestionContext(instance, fieldOrMethodName, env)
+		suggestion := object.FormatSuggestion(suggCtx)
+		if suggestion != "" {
+			return newErrorWithTrace("undefined property or method: %s. %s", node, ctx, fieldOrMethodName, suggestion)
+		}
 		return newErrorWithTrace("undefined property or method: %s", node, ctx, fieldOrMethodName)
 	}
 
@@ -1683,16 +2476,18 @@ func evalHashLiteral(
 		if isError(key) {
 			return key
 		}
-		hashKey, ok := key.(object.Hashable)
+		// Unwrap primitives that may have been wrapped in Instance objects
+		unwrappedKey := unwrapPrimitive(key)
+		hashKey, ok := unwrappedKey.(object.Hashable)
 		if !ok {
-			return newErrorWithTrace("unusable as hash key: %s", node, ctx, key.Type())
+			return newErrorWithTrace("unusable as hash key: %s", node, ctx, unwrappedKey.Type())
 		}
 		value := Eval(valueNode, env, ctx)
 		if isError(value) {
 			return value
 		}
 		hashed := hashKey.HashKey()
-		pairs[hashed] = object.HashPair{Key: key, Value: value}
+		pairs[hashed] = object.HashPair{Key: unwrappedKey, Value: value}
 	}
 	return &object.Hash{Pairs: pairs}
 }
@@ -1714,13 +2509,13 @@ func evalIndexExpression(left, index object.Object, node ast.Node, ctx *CallCont
 	// Unwrap instances to get the underlying primitive values
 	unwrappedLeft := unwrapPrimitive(left)
 	unwrappedIndex := unwrapPrimitive(index)
-	
+
 	switch {
 	case unwrappedLeft.Type() == object.TUPLE_OBJ:
 		return evalTupleIndexExpression(unwrappedLeft, unwrappedIndex, node, ctx)
 	case unwrappedLeft.Type() == object.ARRAY_OBJ && unwrappedIndex.Type() == object.INTEGER_OBJ:
 		return evalArrayIndexExpression(unwrappedLeft, unwrappedIndex, node, ctx)
-	case unwrappedLeft.Type() == object.HASH_OBJ:
+	case unwrappedLeft.Type() == object.MAP_OBJ:
 		return evalHashIndexExpression(unwrappedLeft, unwrappedIndex, node, ctx)
 	case unwrappedLeft.Type() == object.STRING_OBJ && unwrappedIndex.Type() == object.INTEGER_OBJ:
 		result := evalStringIndexExpression(unwrappedLeft, unwrappedIndex, node, ctx)
@@ -1779,7 +2574,7 @@ func evalTupleIndexExpression(
 	if !ok {
 		return newErrorWithTrace("not a tuple: %s", node, ctx, tuple.Type())
 	}
-	
+
 	indexObj, ok := index.(*object.Integer)
 	if !ok {
 		return newErrorWithTrace("tuple index must be INTEGER, got %s", node, ctx, index.Type())
@@ -1792,8 +2587,13 @@ func evalTupleIndexExpression(
 	}
 
 	if idx < 0 || idx >= len(tupleObj.Elements) {
-		return newErrorWithTrace("index out of bounds: %d (tuple length: %d)",
-			node, ctx, idx, len(tupleObj.Elements))
+		tupleLen := len(tupleObj.Elements)
+		if tupleLen == 0 {
+			return newErrorWithTrace("index out of bounds: %d (tuple is empty)",
+				node, ctx, idx)
+		}
+		return newErrorWithTrace("index out of bounds: %d (tuple length: %d, valid indices: 0-%d)",
+			node, ctx, idx, tupleLen, tupleLen-1)
 	}
 
 	return tupleObj.Elements[idx]
@@ -1808,9 +2608,11 @@ func evalHashIndexExpression(
 	if !ok {
 		return newErrorWithTrace("not a hash: %s", node, ctx, hash.Type())
 	}
-	key, ok := index.(object.Hashable)
+	// Unwrap primitives that may have been wrapped in Instance objects
+	unwrappedIndex := unwrapPrimitive(index)
+	key, ok := unwrappedIndex.(object.Hashable)
 	if !ok {
-		return newErrorWithTrace("unusable as hash key: %s", node, ctx, index.Type())
+		return newErrorWithTrace("unusable as hash key: %s", node, ctx, unwrappedIndex.Type())
 	}
 	pair, ok := hashObject.Pairs[key.HashKey()]
 	if !ok {
@@ -1843,8 +2645,12 @@ func evalArrayIndexExpression(
 	}
 
 	if idx < 0 || idx > maxIndex {
-		return newErrorWithTrace("index out of bounds: %d (array length: %d)",
-			node, ctx, idx, maxIndex+1)
+		if maxIndex < 0 {
+			return newErrorWithTrace("index out of bounds: %d (array is empty)",
+				node, ctx, idx)
+		}
+		return newErrorWithTrace("index out of bounds: %d (array length: %d, valid indices: 0-%d)",
+			node, ctx, idx, maxIndex+1, maxIndex)
 	}
 
 	return arrayObject.Elements[idx]
@@ -1875,12 +2681,147 @@ func evalStringIndexExpression(
 	}
 
 	if idx < 0 || idx > maxIndex {
-		return newErrorWithTrace("string index out of bounds: %d (string length: %d)",
-			node, ctx, idx, strLen)
+		if strLen == 0 {
+			return newErrorWithTrace("string index out of bounds: %d (string is empty)",
+				node, ctx, idx)
+		}
+		return newErrorWithTrace("string index out of bounds: %d (string length: %d, valid indices: 0-%d)",
+			node, ctx, idx, strLen, maxIndex)
 	}
 
 	// Return a single-character string
 	return &object.String{Value: string(stringObj.Value[idx])}
+}
+
+func evalSliceExpression(left, start, end object.Object, node ast.Node, ctx *CallContext) object.Object {
+	// Unwrap instances to get the underlying primitive values
+	unwrappedLeft := unwrapPrimitive(left)
+
+	switch {
+	case unwrappedLeft.Type() == object.STRING_OBJ:
+		result := evalStringSliceExpression(unwrappedLeft, start, end, node, ctx)
+		// If the original left was an instance, wrap the result back to maintain consistency
+		if left.Type() == object.INSTANCE_OBJ {
+			var currentEnv *object.Environment
+			if ctx != nil && ctx.env != nil {
+				currentEnv = ctx.env
+			} else {
+				currentEnv = object.NewEnvironment()
+			}
+			return wrapPrimitive(result, currentEnv, ctx)
+		}
+		return result
+	case unwrappedLeft.Type() == object.ARRAY_OBJ:
+		return evalArraySliceExpression(unwrappedLeft, start, end, node, ctx)
+	default:
+		return newErrorWithTrace("slice operator not supported: %s", node, ctx, left.Type())
+	}
+}
+
+func evalStringSliceExpression(str, start, end object.Object, node ast.Node, ctx *CallContext) object.Object {
+	stringObj, ok := str.(*object.String)
+	if !ok {
+		return newErrorWithTrace("slice operation not supported on %s", node, ctx, str.Type())
+	}
+
+	strLen := int64(len(stringObj.Value))
+	var startIdx, endIdx int64
+
+	// Handle start index
+	if start != nil {
+		startInt, ok := start.(*object.Integer)
+		if !ok {
+			return newErrorWithTrace("slice start index must be INTEGER, got %s", node, ctx, start.Type())
+		}
+		startIdx = startInt.Value
+		if startIdx < 0 {
+			startIdx = strLen + startIdx
+		}
+	} else {
+		startIdx = 0
+	}
+
+	// Handle end index
+	if end != nil {
+		endInt, ok := end.(*object.Integer)
+		if !ok {
+			return newErrorWithTrace("slice end index must be INTEGER, got %s", node, ctx, end.Type())
+		}
+		endIdx = endInt.Value
+		if endIdx < 0 {
+			endIdx = strLen + endIdx
+		}
+	} else {
+		endIdx = strLen
+	}
+
+	// Bounds checking
+	if startIdx < 0 {
+		startIdx = 0
+	}
+	if endIdx > strLen {
+		endIdx = strLen
+	}
+	if startIdx > endIdx {
+		startIdx = endIdx
+	}
+
+	// Extract substring
+	return &object.String{Value: stringObj.Value[startIdx:endIdx]}
+}
+
+func evalArraySliceExpression(arr, start, end object.Object, node ast.Node, ctx *CallContext) object.Object {
+	arrayObj, ok := arr.(*object.Array)
+	if !ok {
+		return newErrorWithTrace("slice operation not supported on %s", node, ctx, arr.Type())
+	}
+
+	arrLen := int64(len(arrayObj.Elements))
+	var startIdx, endIdx int64
+
+	// Handle start index
+	if start != nil {
+		startInt, ok := start.(*object.Integer)
+		if !ok {
+			return newErrorWithTrace("slice start index must be INTEGER, got %s", node, ctx, start.Type())
+		}
+		startIdx = startInt.Value
+		if startIdx < 0 {
+			startIdx = arrLen + startIdx
+		}
+	} else {
+		startIdx = 0
+	}
+
+	// Handle end index
+	if end != nil {
+		endInt, ok := end.(*object.Integer)
+		if !ok {
+			return newErrorWithTrace("slice end index must be INTEGER, got %s", node, ctx, end.Type())
+		}
+		endIdx = endInt.Value
+		if endIdx < 0 {
+			endIdx = arrLen + endIdx
+		}
+	} else {
+		endIdx = arrLen
+	}
+
+	// Bounds checking
+	if startIdx < 0 {
+		startIdx = 0
+	}
+	if endIdx > arrLen {
+		endIdx = arrLen
+	}
+	if startIdx > endIdx {
+		startIdx = endIdx
+	}
+
+	// Extract subarray
+	newElements := make([]object.Object, endIdx-startIdx)
+	copy(newElements, arrayObj.Elements[startIdx:endIdx])
+	return &object.Array{Elements: newElements}
 }
 
 func extendFunctionEnv(
@@ -1921,6 +2862,14 @@ func extendFunctionEnv(
 			} else {
 				env.Set(name, NONE)
 			}
+
+			// Store type hint for parameter if present
+			if param.TypeHint != nil {
+				if typeHintIdent, ok := param.TypeHint.(*ast.Identifier); ok {
+					typeHintKey := "__type_hint__" + name
+					env.Set(typeHintKey, &object.String{Value: typeHintIdent.Value})
+				}
+			}
 		default:
 			// Unsupported parameter node
 		}
@@ -1930,16 +2879,59 @@ func extendFunctionEnv(
 }
 
 func evalIdentifier(node *ast.Identifier, env *object.Environment, ctx *CallContext) object.Object {
-	// First check builtins.
-	if builtin, ok := builtins[node.Value]; ok {
-		return builtin
+	// Handle super keyword
+	if node.Value == "super" {
+		instance, ok := env.Get("self")
+		if !ok || instance == nil {
+			return newErrorWithTrace("'super' can only be used in an instance method", node, ctx)
+		}
+
+		inst, ok := instance.(*object.Instance)
+		if !ok {
+			return newErrorWithTrace(
+				"'super' must be used in an instance of a grimoire",
+				node,
+				ctx,
+			)
+		}
+
+		// Use the method's grimoire context if available, otherwise fall back to instance grimoire
+		// This ensures super resolves to the parent of the current method's class, not the instance's class
+		// Critical for multi-level inheritance to work correctly
+		var currentGrimoire *object.Grimoire
+		if ctx.MethodGrimoire != nil {
+			currentGrimoire = ctx.MethodGrimoire
+		} else {
+			currentGrimoire = inst.Grimoire
+		}
+
+		if currentGrimoire == nil || currentGrimoire.Inherits == nil {
+			return newErrorWithTrace("no parent class found for 'super'", node, ctx)
+		}
+
+		// Return a super object that can be used for method calls
+		return &object.Super{
+			Instance: inst,
+			Parent:   currentGrimoire.Inherits,
+		}
 	}
-	// Then check the environment.
+
+	// First check the environment for user-defined variables.
 	if val, ok := env.Get(node.Value); ok {
 		return val
 	}
+	// Then check builtins.
+	if builtin, ok := builtins[node.Value]; ok {
+		return builtin
+	}
 	if node.Value == "None" {
 		return object.NONE
+	}
+	// Build suggestion context with current environment
+	suggCtx := object.BuildSuggestionContext(nil, node.Value, env)
+	suggestion := object.FormatSuggestion(suggCtx)
+	if suggestion != "" {
+		return newErrorWithTrace("identifier not found: %s. %s", node, ctx, node.Value, suggestion)
 	}
 	return newErrorWithTrace("identifier not found: %s", node, ctx, node.Value)
 }
@@ -1947,7 +2939,18 @@ func evalIdentifier(node *ast.Identifier, env *object.Environment, ctx *CallCont
 func evalProgram(program *ast.Program, env *object.Environment, ctx *CallContext) object.Object {
 	var result object.Object
 	var mainStatement *ast.MainStatement
-	
+
+	// Create a proper program context if none exists
+	if ctx == nil {
+		ctx = &CallContext{
+			FunctionName:      "<program>",
+			Node:              program,
+			Parent:            nil,
+			IsDirectExecution: true,
+			env:               env,
+		}
+	}
+
 	// First pass: check if main statement exists
 	for _, statement := range program.Statements {
 		if mainStmt, ok := statement.(*ast.MainStatement); ok {
@@ -1955,14 +2958,14 @@ func evalProgram(program *ast.Program, env *object.Environment, ctx *CallContext
 			break
 		}
 	}
-	
+
 	// Second pass: process statements based on whether main exists
 	for _, statement := range program.Statements {
 		if _, ok := statement.(*ast.MainStatement); ok {
 			// Skip main statement for now
 			continue
 		}
-		
+
 		// If main exists, only execute function definitions, class definitions, and assignments
 		// Skip other top-level executable statements
 		if mainStatement != nil {
@@ -1986,7 +2989,7 @@ func evalProgram(program *ast.Program, env *object.Environment, ctx *CallContext
 			// No main block, execute everything normally (backward compatibility)
 			result = Eval(statement, env, ctx)
 		}
-		
+
 		switch result.(type) {
 		case *object.ReturnValue:
 			return result.(*object.ReturnValue).Value
@@ -1994,11 +2997,18 @@ func evalProgram(program *ast.Program, env *object.Environment, ctx *CallContext
 			return result
 		}
 	}
-	
-	// If main statement exists, execute it last
-	if mainStatement != nil {
-		result = Eval(mainStatement, env, ctx)
-		
+
+	// If main statement exists, execute it last (only for direct execution)
+	if mainStatement != nil && ctx != nil && ctx.IsDirectExecution {
+		mainCtx := &CallContext{
+			FunctionName:      "main",
+			Node:              mainStatement,
+			Parent:            ctx,
+			IsDirectExecution: true,
+			env:               env,
+		}
+		result = Eval(mainStatement, env, mainCtx)
+
 		switch result.(type) {
 		case *object.ReturnValue:
 			return result.(*object.ReturnValue).Value
@@ -2006,7 +3016,7 @@ func evalProgram(program *ast.Program, env *object.Environment, ctx *CallContext
 			return result
 		}
 	}
-	
+
 	return result
 }
 
@@ -2121,6 +3131,7 @@ func evalInfixExpression(
 	left, right object.Object,
 	node ast.Node,
 	ctx *CallContext,
+	env *object.Environment,
 ) object.Object {
 	if debugPrimitiveWrapping && operator == "//" {
 		fmt.Fprintf(os.Stderr, "EVAL_INFIX: %s between %T and %T in %s\n", operator, left, right, getContextName(ctx))
@@ -2128,10 +3139,10 @@ func evalInfixExpression(
 	// Unwrap primitive values from instances if needed
 	unwrappedLeft := unwrapPrimitive(left)
 	unwrappedRight := unwrapPrimitive(right)
-	
+
 	// Debug all arithmetic operations in method contexts
 	if debugPrimitiveWrapping && ctx != nil && strings.Contains(getContextName(ctx), ".") {
-		fmt.Fprintf(os.Stderr, "ARITH: %T %s %T -> unwrapped: %T %s %T in %s\n", 
+		fmt.Fprintf(os.Stderr, "ARITH: %T %s %T -> unwrapped: %T %s %T in %s\n",
 			left, operator, right, unwrappedLeft, operator, unwrappedRight, getContextName(ctx))
 		if leftInt, ok := unwrappedLeft.(*object.Integer); ok {
 			if rightInt, ok := unwrappedRight.(*object.Integer); ok {
@@ -2139,14 +3150,52 @@ func evalInfixExpression(
 			}
 		}
 	}
-	
+
+	// Handle "in" and "not in" operators before type-specific switches
+	if operator == "in" || operator == "not in" {
+		result := evalInOperator(unwrappedLeft, unwrappedRight, node, ctx)
+		if operator == "not in" {
+			// Invert the result for "not in"
+			if boolResult, ok := result.(*object.Boolean); ok {
+				return nativeBoolToBooleanObject(!boolResult.Value)
+			}
+		}
+		return result
+	}
+
 	switch {
 	case unwrappedLeft.Type() == object.INTEGER_OBJ && unwrappedRight.Type() == object.INTEGER_OBJ:
-		return evalIntegerInfixExpression(operator, unwrappedLeft, unwrappedRight, node, ctx)
+		return evalIntegerInfixExpression(operator, unwrappedLeft, unwrappedRight, node, ctx, env)
 	case unwrappedLeft.Type() == object.BOOLEAN_OBJ && unwrappedRight.Type() == object.BOOLEAN_OBJ:
 		return evalBooleanInfixExpression(operator, unwrappedLeft, unwrappedRight, node, ctx)
 	case unwrappedLeft.Type() == object.STRING_OBJ && unwrappedRight.Type() == object.STRING_OBJ:
-		return evalStringInfixExpression(operator, unwrappedLeft, unwrappedRight, node, ctx)
+		return evalStringInfixExpression(operator, unwrappedLeft, unwrappedRight, node, ctx, env)
+	case unwrappedLeft.Type() == object.STRING_OBJ && unwrappedRight.Type() == object.INTEGER_OBJ:
+		// String multiplication: "hello" * 3
+		if operator == "*" {
+			strVal := unwrappedLeft.(*object.String).Value
+			count := unwrappedRight.(*object.Integer).Value
+			if count < 0 {
+				return newErrorWithTrace("string multiplication count cannot be negative", node, ctx)
+			}
+			result := strings.Repeat(strVal, int(count))
+			primitive := &object.String{Value: result}
+			return wrapPrimitive(primitive, env, ctx)
+		}
+		return newErrorWithTrace("unsupported operation: %s %s %s", node, ctx, unwrappedLeft.Type(), operator, unwrappedRight.Type())
+	case unwrappedLeft.Type() == object.INTEGER_OBJ && unwrappedRight.Type() == object.STRING_OBJ:
+		// Integer * string: 3 * "hello"
+		if operator == "*" {
+			count := unwrappedLeft.(*object.Integer).Value
+			strVal := unwrappedRight.(*object.String).Value
+			if count < 0 {
+				return newErrorWithTrace("string multiplication count cannot be negative", node, ctx)
+			}
+			result := strings.Repeat(strVal, int(count))
+			primitive := &object.String{Value: result}
+			return wrapPrimitive(primitive, env, ctx)
+		}
+		return newErrorWithTrace("unsupported operation: %s %s %s", node, ctx, unwrappedLeft.Type(), operator, unwrappedRight.Type())
 	case unwrappedLeft == object.NONE && unwrappedRight == object.NONE:
 		return nativeBoolToBooleanObject(operator == "==")
 	case unwrappedLeft.Type() == object.ARRAY_OBJ && unwrappedRight.Type() == object.ARRAY_OBJ:
@@ -2159,6 +3208,44 @@ func evalInfixExpression(
 			return &object.Array{Elements: combined}
 		}
 		return newErrorWithTrace("unknown operator for arrays: %s", node, ctx, operator)
+	case unwrappedLeft.Type() == object.ARRAY_OBJ && unwrappedRight.Type() == object.INTEGER_OBJ:
+		// Array multiplication: [1, 2] * 3
+		if operator == "*" {
+			leftArr := unwrappedLeft.(*object.Array)
+			count := unwrappedRight.(*object.Integer).Value
+			if count < 0 {
+				return newErrorWithTrace("array multiplication count cannot be negative", node, ctx)
+			}
+
+			totalElements := len(leftArr.Elements) * int(count)
+			result := make([]object.Object, totalElements)
+
+			for i := 0; i < int(count); i++ {
+				copy(result[i*len(leftArr.Elements):], leftArr.Elements)
+			}
+
+			return &object.Array{Elements: result}
+		}
+		return newErrorWithTrace("unsupported operation: %s %s %s", node, ctx, unwrappedLeft.Type(), operator, unwrappedRight.Type())
+	case unwrappedLeft.Type() == object.INTEGER_OBJ && unwrappedRight.Type() == object.ARRAY_OBJ:
+		// Integer * array: 3 * [1, 2]
+		if operator == "*" {
+			count := unwrappedLeft.(*object.Integer).Value
+			rightArr := unwrappedRight.(*object.Array)
+			if count < 0 {
+				return newErrorWithTrace("array multiplication count cannot be negative", node, ctx)
+			}
+
+			totalElements := len(rightArr.Elements) * int(count)
+			result := make([]object.Object, totalElements)
+
+			for i := 0; i < int(count); i++ {
+				copy(result[i*len(rightArr.Elements):], rightArr.Elements)
+			}
+
+			return &object.Array{Elements: result}
+		}
+		return newErrorWithTrace("unsupported operation: %s %s %s", node, ctx, unwrappedLeft.Type(), operator, unwrappedRight.Type())
 	case unwrappedLeft == object.NONE || unwrappedRight == object.NONE:
 		if operator == "==" {
 			return nativeBoolToBooleanObject(false)
@@ -2170,12 +3257,23 @@ func evalInfixExpression(
 		// Handle instance operations specially
 		leftInstance := left.(*object.Instance)
 		rightInstance := right.(*object.Instance)
-		
+
+		// Check if both are primitive wrapper instances (Float, Integer, String, Boolean)
+		// and delegate to unwrapped primitive operations
+		isPrimitiveWrapper := func(grimName string) bool {
+			return grimName == "Float" || grimName == "Integer" || grimName == "String" || grimName == "Boolean"
+		}
+
+		if isPrimitiveWrapper(leftInstance.Grimoire.Name) && isPrimitiveWrapper(rightInstance.Grimoire.Name) {
+			// Use unwrapped primitives for the operation
+			return evalInfixExpression(operator, unwrappedLeft, unwrappedRight, node, ctx, env)
+		}
+
 		// Check if both are Array instances and handle concatenation
 		if leftInstance.Grimoire.Name == "Array" && rightInstance.Grimoire.Name == "Array" && operator == "+" {
 			// Get the actual arrays from the instances
 			var leftArray, rightArray *object.Array
-			
+
 			if leftElements, exists := leftInstance.Env.Get("elements"); exists {
 				if arr, isArray := leftElements.(*object.Array); isArray {
 					leftArray = arr
@@ -2187,7 +3285,7 @@ func evalInfixExpression(
 					}
 				}
 			}
-			
+
 			if rightElements, exists := rightInstance.Env.Get("elements"); exists {
 				if arr, isArray := rightElements.(*object.Array); isArray {
 					rightArray = arr
@@ -2199,13 +3297,13 @@ func evalInfixExpression(
 					}
 				}
 			}
-			
+
 			if leftArray != nil && rightArray != nil {
 				combined := make([]object.Object, len(leftArray.Elements)+len(rightArray.Elements))
 				copy(combined, leftArray.Elements)
 				copy(combined[len(leftArray.Elements):], rightArray.Elements)
 				result := &object.Array{Elements: combined}
-				
+
 				// Wrap the result back as an Array instance if we're in an environment with Array grimoire
 				if ctx != nil && ctx.env != nil {
 					return wrapPrimitive(result, ctx.env, ctx)
@@ -2213,11 +3311,21 @@ func evalInfixExpression(
 				return result
 			}
 		}
-		
+
 		// If not handled above, fall through to type mismatch error
+		hint := getConversionHint(right.Type(), left.Type())
+		if hint != "" {
+			return newErrorWithTrace("type mismatch: %s %s %s. %s", node, ctx,
+				left.Type(), operator, right.Type(), hint)
+		}
 		return newErrorWithTrace("type mismatch: %s %s %s", node, ctx,
 			left.Type(), operator, right.Type())
 	case unwrappedLeft.Type() != unwrappedRight.Type():
+		hint := getConversionHint(unwrappedRight.Type(), unwrappedLeft.Type())
+		if hint != "" {
+			return newErrorWithTrace("type mismatch: %s %s %s. %s", node, ctx,
+				unwrappedLeft.Type(), operator, unwrappedRight.Type(), hint)
+		}
 		return newErrorWithTrace("type mismatch: %s %s %s", node, ctx,
 			unwrappedLeft.Type(), operator, unwrappedRight.Type())
 	case unwrappedLeft.Type() == object.FLOAT_OBJ || unwrappedRight.Type() == object.FLOAT_OBJ:
@@ -2225,18 +3333,23 @@ func evalInfixExpression(
 		rightVal := toFloat(unwrappedRight)
 		switch operator {
 		case "+":
-			return &object.Float{Value: leftVal + rightVal}
+			primitive := &object.Float{Value: leftVal + rightVal}
+			return wrapPrimitive(primitive, env, ctx)
 		case "-":
-			return &object.Float{Value: leftVal - rightVal}
+			primitive := &object.Float{Value: leftVal - rightVal}
+			return wrapPrimitive(primitive, env, ctx)
 		case "*":
-			return &object.Float{Value: leftVal * rightVal}
+			primitive := &object.Float{Value: leftVal * rightVal}
+			return wrapPrimitive(primitive, env, ctx)
 		case "/":
 			if rightVal == 0 {
 				return newErrorWithTrace("division by zero", node, ctx)
 			}
-			return &object.Float{Value: leftVal / rightVal}
+			primitive := &object.Float{Value: leftVal / rightVal}
+			return wrapPrimitive(primitive, env, ctx)
 		case "**":
-			return &object.Float{Value: math.Pow(leftVal, rightVal)}
+			primitive := &object.Float{Value: math.Pow(leftVal, rightVal)}
+			return wrapPrimitive(primitive, env, ctx)
 		case "<":
 			return nativeBoolToBooleanObject(leftVal < rightVal)
 		case ">":
@@ -2255,6 +3368,17 @@ func evalInfixExpression(
 		}
 	}
 
+	hint := getConversionHint(right.Type(), left.Type())
+	if hint != "" {
+		return newErrorWithTrace(
+			"unknown operator or type mismatch: %s %s %s. %s",
+			node, ctx,
+			left.Type(),
+			operator,
+			right.Type(),
+			hint,
+		)
+	}
 	return newErrorWithTrace(
 		"unknown operator or type mismatch: %s %s %s",
 		node, ctx,
@@ -2280,13 +3404,15 @@ func evalStringInfixExpression(
 	left, right object.Object,
 	node ast.Node,
 	ctx *CallContext,
+	env *object.Environment,
 ) object.Object {
 	leftVal := left.(*object.String).Value
 	rightVal := right.(*object.String).Value
-	
+
 	switch operator {
 	case "+":
-		return &object.String{Value: leftVal + rightVal}
+		primitive := &object.String{Value: leftVal + rightVal}
+		return wrapPrimitive(primitive, env, ctx)
 	case "==":
 		return nativeBoolToBooleanObject(leftVal == rightVal)
 	case "!=":
@@ -2461,7 +3587,7 @@ func evalMinusPrefixOperatorExpression(
 ) object.Object {
 	// Unwrap primitive values from instances if needed
 	unwrapped := unwrapPrimitive(right)
-	
+
 	if unwrapped.Type() != object.INTEGER_OBJ && unwrapped.Type() != object.FLOAT_OBJ {
 		// Unknown operand type for prefix minus
 		return newError("unknown operator: -%s", right.Type())
@@ -2482,36 +3608,43 @@ func evalIntegerInfixExpression(
 	left, right object.Object,
 	node ast.Node,
 	ctx *CallContext,
+	env *object.Environment,
 ) object.Object {
 	leftVal := left.(*object.Integer).Value
 	rightVal := right.(*object.Integer).Value
-	
+
 	if debugPrimitiveWrapping && operator == "//" {
 		fmt.Fprintf(os.Stderr, "INTDIV: %d %s %d in %s\n", leftVal, operator, rightVal, getContextName(ctx))
 	}
 	switch operator {
 	case "+":
-		return &object.Integer{Value: leftVal + rightVal}
+		primitive := &object.Integer{Value: leftVal + rightVal}
+		return wrapPrimitive(primitive, env, ctx)
 	case "-":
-		return &object.Integer{Value: leftVal - rightVal}
+		primitive := &object.Integer{Value: leftVal - rightVal}
+		return wrapPrimitive(primitive, env, ctx)
 	case "*":
-		return &object.Integer{Value: leftVal * rightVal}
+		primitive := &object.Integer{Value: leftVal * rightVal}
+		return wrapPrimitive(primitive, env, ctx)
 	case "/":
 		if rightVal == 0 {
 			return newErrorWithTrace("division by zero", node, ctx)
 		}
-		return &object.Integer{Value: leftVal / rightVal}
+		primitive := &object.Integer{Value: leftVal / rightVal}
+		return wrapPrimitive(primitive, env, ctx)
 	case "%":
 		if rightVal == 0 {
 			return newErrorWithTrace("modulo by zero", node, ctx)
 		}
-		return &object.Integer{Value: leftVal % rightVal}
+		primitive := &object.Integer{Value: leftVal % rightVal}
+		return wrapPrimitive(primitive, env, ctx)
 	case "<":
 		return nativeBoolToBooleanObject(leftVal < rightVal)
 	case ">":
 		return nativeBoolToBooleanObject(leftVal > rightVal)
 	case "**":
-		return &object.Integer{Value: int64(math.Pow(float64(leftVal), float64(rightVal)))}
+		primitive := &object.Integer{Value: int64(math.Pow(float64(leftVal), float64(rightVal)))}
+		return wrapPrimitive(primitive, env, ctx)
 	case "==":
 		return nativeBoolToBooleanObject(leftVal == rightVal)
 	case "!=":
@@ -2521,20 +3654,26 @@ func evalIntegerInfixExpression(
 	case "<=":
 		return nativeBoolToBooleanObject(leftVal <= rightVal)
 	case "<<":
-		return &object.Integer{Value: leftVal << uint(rightVal)}
+		primitive := &object.Integer{Value: leftVal << uint(rightVal)}
+		return wrapPrimitive(primitive, env, ctx)
 	case ">>":
-		return &object.Integer{Value: leftVal >> uint(rightVal)}
+		primitive := &object.Integer{Value: leftVal >> uint(rightVal)}
+		return wrapPrimitive(primitive, env, ctx)
 	case "&":
-		return &object.Integer{Value: leftVal & rightVal}
+		primitive := &object.Integer{Value: leftVal & rightVal}
+		return wrapPrimitive(primitive, env, ctx)
 	case "^":
-		return &object.Integer{Value: leftVal ^ rightVal}
+		primitive := &object.Integer{Value: leftVal ^ rightVal}
+		return wrapPrimitive(primitive, env, ctx)
 	case "|":
-		return &object.Integer{Value: leftVal | rightVal}
+		primitive := &object.Integer{Value: leftVal | rightVal}
+		return wrapPrimitive(primitive, env, ctx)
 	case "//":
 		if rightVal == 0 {
 			return newErrorWithTrace("integer division by zero", node, ctx)
 		}
-		return &object.Integer{Value: leftVal / rightVal}
+		primitive := &object.Integer{Value: leftVal / rightVal}
+		return wrapPrimitive(primitive, env, ctx)
 	default:
 		return newErrorWithTrace("unknown operator: %s %s %s",
 			node, ctx, left.Type(), operator, right.Type())
@@ -2558,7 +3697,7 @@ func evalCompoundAssignment(
 			return newErrorWithTrace("undefined variable: %s", node, ctx, leftNode.Value)
 		}
 
-		newVal := applyCompoundOperator(node.Operator, currVal, rightVal, node, ctx)
+		newVal := applyCompoundOperator(node.Operator, currVal, rightVal, node, ctx, env)
 		if isError(newVal) {
 			return newVal
 		}
@@ -2583,6 +3722,7 @@ func applyCompoundOperator(
 	leftVal, rightVal object.Object,
 	node ast.Node,
 	ctx *CallContext,
+	env *object.Environment,
 ) object.Object {
 	// Helper function to extract the actual integer/float value from either direct objects or Instance wrappers
 	extractInteger := func(obj object.Object) (*object.Integer, bool) {
@@ -2626,22 +3766,26 @@ func applyCompoundOperator(
 		}
 		switch operator {
 		case "+=":
-			return &object.Integer{Value: lInt.Value + rInt.Value}
+			primitive := &object.Integer{Value: lInt.Value + rInt.Value}
+			return wrapPrimitive(primitive, env, ctx)
 		case "-=":
-			return &object.Integer{Value: lInt.Value - rInt.Value}
+			primitive := &object.Integer{Value: lInt.Value - rInt.Value}
+			return wrapPrimitive(primitive, env, ctx)
 		case "*=":
-			return &object.Integer{Value: lInt.Value * rInt.Value}
+			primitive := &object.Integer{Value: lInt.Value * rInt.Value}
+			return wrapPrimitive(primitive, env, ctx)
 		case "/=":
 			if rInt.Value == 0 {
 				return newErrorWithTrace("division by zero", node, ctx)
 			}
-			return &object.Integer{Value: lInt.Value / rInt.Value}
+			primitive := &object.Integer{Value: lInt.Value / rInt.Value}
+			return wrapPrimitive(primitive, env, ctx)
 		default:
 			return newErrorWithTrace("unknown operator: %s", node, ctx, operator)
 		}
 	}
 
-	// Try to extract floats 
+	// Try to extract floats
 	if lFloat, ok := extractFloat(leftVal); ok {
 		rFloat, ok := extractFloat(rightVal)
 		if !ok {
@@ -2650,18 +3794,48 @@ func applyCompoundOperator(
 		}
 		switch operator {
 		case "+=":
-			return &object.Float{Value: lFloat.Value + rFloat.Value}
+			primitive := &object.Float{Value: lFloat.Value + rFloat.Value}
+			return wrapPrimitive(primitive, env, ctx)
 		case "-=":
-			return &object.Float{Value: lFloat.Value - rFloat.Value}
+			primitive := &object.Float{Value: lFloat.Value - rFloat.Value}
+			return wrapPrimitive(primitive, env, ctx)
 		case "*=":
-			return &object.Float{Value: lFloat.Value * rFloat.Value}
+			primitive := &object.Float{Value: lFloat.Value * rFloat.Value}
+			return wrapPrimitive(primitive, env, ctx)
 		case "/=":
 			if rFloat.Value == 0 {
 				return newErrorWithTrace("division by zero", node, ctx)
 			}
-			return &object.Float{Value: lFloat.Value / rFloat.Value}
+			primitive := &object.Float{Value: lFloat.Value / rFloat.Value}
+			return wrapPrimitive(primitive, env, ctx)
 		default:
 			return newErrorWithTrace("unknown operator: %s", node, ctx, operator)
+		}
+	}
+
+	// Handle string concatenation with +=
+	extractString := func(obj object.Object) (*object.String, bool) {
+		if strObj, ok := obj.(*object.String); ok {
+			return strObj, true
+		}
+		if instance, ok := obj.(*object.Instance); ok {
+			if instance.Grimoire.Name == "String" {
+				if value, exists := instance.Env.Get("value"); exists {
+					if strObj, ok := value.(*object.String); ok {
+						return strObj, true
+					}
+				}
+			}
+		}
+		return nil, false
+	}
+
+	if operator == "+=" {
+		if lStr, ok := extractString(leftVal); ok {
+			if rStr, ok := extractString(rightVal); ok {
+				primitive := &object.String{Value: lStr.Value + rStr.Value}
+				return wrapPrimitive(primitive, env, ctx)
+			}
 		}
 	}
 
@@ -2726,6 +3900,54 @@ func isError(obj object.Object) bool {
 	return obj.Type() == object.ERROR_OBJ ||
 		obj.Type() == object.CUSTOM_ERROR_OBJ ||
 		isErrorWithTrace(obj)
+}
+
+// isStopIterationError checks if an object represents a StopIteration error
+func isStopIterationError(obj object.Object) bool {
+	switch err := obj.(type) {
+	case *object.Error:
+		return strings.Contains(err.Message, "StopIteration")
+	case *object.CustomError:
+		// Check the name directly
+		if err.Name == "StopIteration" {
+			return true
+		}
+		// Check the message
+		if strings.Contains(err.Message, "StopIteration") {
+			return true
+		}
+		// Check details for StopIteration pattern
+		if details, ok := err.Details["errorType"]; ok {
+			if strType, ok := details.(*object.String); ok && strType.Value == "String" {
+				if instance, ok := err.Details["instance"]; ok {
+					if strInstance, ok := instance.(*object.String); ok && strInstance.Value == "StopIteration" {
+						return true
+					}
+				}
+			}
+		}
+		return false
+	case *object.ErrorWithTrace:
+		// Check the message
+		if strings.Contains(err.Message, "StopIteration") {
+			return true
+		}
+		// Check CustomDetails for StopIteration pattern
+		if err.CustomDetails != nil {
+			if errorType, ok := err.CustomDetails["errorType"]; ok {
+				if strType, ok := errorType.(*object.String); ok && strType.Value == "String" {
+					if instance, ok := err.CustomDetails["instance"]; ok {
+						if strInstance, ok := instance.(*object.String); ok && strInstance.Value == "StopIteration" {
+							return true
+						}
+					}
+				}
+			}
+		}
+		return false
+	default:
+		return false
+	}
 }
 
 func evalWhileStatement(
@@ -2847,12 +4069,121 @@ func evalForStatement(
 		if result != NONE {
 			return result
 		}
+	case *object.String:
+		// Convert string to array of character strings for iteration
+		charElements := make([]object.Object, len(iter.Value))
+		for i, char := range iter.Value {
+			charElements[i] = &object.String{Value: string(char)}
+		}
+		result := processArrayIteration(charElements, fs, env, forCtx, ctx)
+		if result != NONE {
+			return result
+		}
+	case *object.Hash:
+		// Iterate over hash keys by default
+		var elements []object.Object
+		for _, pair := range iter.Pairs {
+			elements = append(elements, pair.Key)
+		}
+		result := processArrayIteration(elements, fs, env, forCtx, ctx)
+		if result != NONE {
+			return result
+		}
 	case *object.Instance:
-		// Handle Array instances
-		if iter.Grimoire.Name == "Array" {
+		// First check if the instance has an iter method
+		if _, ok := iter.Grimoire.Methods["iter"]; ok {
+			// Call iter to get an iterator
+			iteratorObj := evalGrimoireMethodCall(iter, "iter", []object.Object{}, env, forCtx)
+			if isError(iteratorObj) {
+				return iteratorObj
+			}
+
+			// Use the iterator to iterate
+			if iterator, ok := iteratorObj.(*object.Instance); ok {
+				// Process elements one at a time instead of collecting all first
+				for {
+					if _, hasNext := iterator.Grimoire.Methods["next"]; hasNext {
+						nextValue := evalGrimoireMethodCall(iterator, "next", []object.Object{}, env, forCtx)
+
+						// Check if it's a StopIteration error
+						if isStopIterationError(nextValue) {
+							break
+						}
+						if isError(nextValue) {
+							return nextValue
+						}
+
+						// Process each element immediately
+						switch varExpr := fs.Variable.(type) {
+						case *ast.Identifier:
+							env.Set(varExpr.Value, nextValue)
+						case *ast.TupleLiteral:
+							var items []object.Object
+							if tupObj, ok := nextValue.(*object.Tuple); ok {
+								items = tupObj.Elements
+							} else if arrObj, ok := nextValue.(*object.Array); ok {
+								items = arrObj.Elements
+							} else {
+								return newErrorWithTrace(fmt.Sprintf("cannot unpack non-iterable element: %s", nextValue.Type()), fs, ctx)
+							}
+							if len(varExpr.Elements) > len(items) {
+								return newErrorWithTrace("not enough values to unpack", fs, ctx)
+							}
+							for i, elem := range varExpr.Elements {
+								ident, ok := elem.(*ast.Identifier)
+								if !ok {
+									return newErrorWithTrace("invalid assignment target in for loop", fs, ctx)
+								}
+								env.Set(ident.Value, items[i])
+							}
+						default:
+							env.Set(fs.Variable.String(), nextValue)
+						}
+
+						if fs.Body != nil {
+							loopResult := Eval(fs.Body, env, forCtx)
+							if loopResult != nil {
+								rt := getObjectType(loopResult)
+								if rt == string(object.STOP.Type()) {
+									return object.STOP
+								}
+								if rt == string(object.SKIP.Type()) {
+									continue
+								}
+								if rt == object.RETURN_VALUE_OBJ || rt == object.ERROR_OBJ ||
+									rt == object.CUSTOM_ERROR_OBJ || isErrorWithTrace(loopResult) {
+									return loopResult
+								}
+							}
+						}
+					} else {
+						return newErrorWithTrace("Iterator must have next method", fs, ctx)
+					}
+				}
+				// Iterator exhausted, return NONE
+				return NONE
+			} else {
+				return newErrorWithTrace("iter must return an iterator instance", fs, ctx)
+			}
+		} else if iter.Grimoire.Name == "Array" {
+			// Handle Array instances
 			if elementsObj, ok := iter.Env.Get("elements"); ok {
 				if arr, ok := elementsObj.(*object.Array); ok {
 					result := processArrayIteration(arr.Elements, fs, env, forCtx, ctx)
+					if result != NONE {
+						return result
+					}
+				}
+			}
+		} else if iter.Grimoire.Name == "String" {
+			// Handle String instances by getting the value and converting to characters
+			if valueObj, ok := iter.Env.Get("value"); ok {
+				if str, ok := valueObj.(*object.String); ok {
+					charElements := make([]object.Object, len(str.Value))
+					for i, char := range str.Value {
+						charElements[i] = &object.String{Value: string(char)}
+					}
+					result := processArrayIteration(charElements, fs, env, forCtx, ctx)
 					if result != NONE {
 						return result
 					}
@@ -2865,6 +4196,99 @@ func evalForStatement(
 		return newErrorWithTrace("for loop requires an iterable, got %s", fs, ctx, iterable.Type())
 	}
 	return NONE
+}
+
+// evalInOperator handles "in" operator for membership testing across different container types
+func evalInOperator(
+	left, right object.Object,
+	node ast.Node,
+	ctx *CallContext,
+) object.Object {
+	switch container := right.(type) {
+	case *object.String:
+		// Check if left is a substring or character in the string
+		if leftStr, ok := left.(*object.String); ok {
+			contains := strings.Contains(container.Value, leftStr.Value)
+			return nativeBoolToBooleanObject(contains)
+		}
+		return newErrorWithTrace("'in' operator with string requires string on left side, got %s", node, ctx, left.Type())
+
+	case *object.Array:
+		// Check if element exists in array
+		for _, elem := range container.Elements {
+			if isObjectEqual(left, elem) {
+				return nativeBoolToBooleanObject(true)
+			}
+		}
+		return nativeBoolToBooleanObject(false)
+
+	case *object.Hash:
+		// Check if key exists in hash
+		hashKey, ok := left.(object.Hashable)
+		if !ok {
+			return newErrorWithTrace("unusable as hash key: %T", node, ctx, left)
+		}
+		_, exists := container.Pairs[hashKey.HashKey()]
+		return nativeBoolToBooleanObject(exists)
+
+	case *object.Instance:
+		// Handle wrapped containers
+		if container.Grimoire.Name == "String" {
+			if valueObj, ok := container.Env.Get("value"); ok {
+				if str, ok := valueObj.(*object.String); ok {
+					if leftStr, ok := left.(*object.String); ok {
+						contains := strings.Contains(str.Value, leftStr.Value)
+						return nativeBoolToBooleanObject(contains)
+					}
+					return newErrorWithTrace("'in' operator with string requires string on left side, got %s", node, ctx, left.Type())
+				}
+			}
+		} else if container.Grimoire.Name == "Array" {
+			if elementsObj, ok := container.Env.Get("elements"); ok {
+				if arr, ok := elementsObj.(*object.Array); ok {
+					for _, elem := range arr.Elements {
+						if isObjectEqual(left, elem) {
+							return nativeBoolToBooleanObject(true)
+						}
+					}
+					return nativeBoolToBooleanObject(false)
+				}
+			}
+		}
+		return newErrorWithTrace("'in' operator not supported for %s instance", node, ctx, container.Grimoire.Name)
+
+	default:
+		return newErrorWithTrace("'in' operator not supported for %s", node, ctx, right.Type())
+	}
+}
+
+// Helper function to check if two objects are equal
+func isObjectEqual(left, right object.Object) bool {
+	// Unwrap primitives to handle instances
+	unwrappedLeft := unwrapPrimitive(left)
+	unwrappedRight := unwrapPrimitive(right)
+
+	if unwrappedLeft.Type() != unwrappedRight.Type() {
+		return false
+	}
+
+	switch leftObj := unwrappedLeft.(type) {
+	case *object.Integer:
+		rightObj := unwrappedRight.(*object.Integer)
+		return leftObj.Value == rightObj.Value
+	case *object.Float:
+		rightObj := unwrappedRight.(*object.Float)
+		return leftObj.Value == rightObj.Value
+	case *object.String:
+		rightObj := unwrappedRight.(*object.String)
+		return leftObj.Value == rightObj.Value
+	case *object.Boolean:
+		rightObj := unwrappedRight.(*object.Boolean)
+		return leftObj.Value == rightObj.Value
+	default:
+		// For other types, use pointer comparison as fallback
+		return unwrappedLeft == unwrappedRight
+	}
 }
 
 // Helper function to process array iteration with variable unpacking and loop body execution
@@ -2924,63 +4348,544 @@ func processArrayIteration(
 	return NONE
 }
 
+// resolveImportPath searches for an import file with smart resolution
+func resolveImportPath(importPath string) (string, error) {
+	// Get current working directory
+	currentDir, err := os.Getwd()
+	if err != nil {
+		currentDir = "."
+	}
+
+	// Handle relative imports explicitly (starts with . or ..)
+	if strings.HasPrefix(importPath, "./") || strings.HasPrefix(importPath, "../") {
+		return resolveRelativeImport(importPath, currentDir)
+	}
+
+	// Check if this looks like a package import
+	// Pattern analysis:
+	// - "packagename.filename" -> package import (look in carrion_modules)
+	// - "filename" -> local file (look in current dir first)
+	// - "path/filename" -> explicit path
+
+	return resolvePackageOrFileImport(importPath, currentDir)
+}
+
+// resolveRelativeImport handles relative imports like ../file or ./file
+func resolveRelativeImport(importPath, currentDir string) (string, error) {
+	// Remove any .crl extension if provided
+	cleanPath := strings.TrimSuffix(importPath, ".crl")
+
+	// Resolve the relative path
+	fullPath := filepath.Join(currentDir, cleanPath+".crl")
+	absPath, err := filepath.Abs(fullPath)
+	if err != nil {
+		return "", fmt.Errorf("could not resolve relative path %s: %v", importPath, err)
+	}
+
+	if _, err := os.Stat(absPath); err == nil {
+		return absPath, nil
+	}
+
+	return "", fmt.Errorf("relative import not found: %s", importPath)
+}
+
+// resolvePackageOrFileImport handles package and file imports with smart resolution
+func resolvePackageOrFileImport(importPath, currentDir string) (string, error) {
+	// Define search paths in order of priority
+	searchPaths := []string{
+		// 1. Current directory (for local files)
+		currentDir,
+		// 2. Local project modules
+		filepath.Join(currentDir, "carrion_modules"),
+		// 3. Global bifrost modules
+		"/usr/bin/carrion_modules",
+		// 4. User-specific packages (~/.carrion/packages)
+		getUserCarrionPackages(),
+		// 5. Shared global packages (/usr/local/share/carrion/lib)
+		getSharedGlobalPackages(),
+	}
+
+	// Smart import resolution logic
+	if strings.Contains(importPath, "/") {
+		// Explicit path provided - try as package/file structure
+		return resolveExplicitPath(importPath, searchPaths)
+	} else {
+		// Simple name - could be local file or package
+		return resolveSimpleName(importPath, searchPaths, currentDir)
+	}
+}
+
+// resolveExplicitPath handles imports with slashes like "package/file" or "path/to/file"
+func resolveExplicitPath(importPath string, searchPaths []string) (string, error) {
+	parts := strings.Split(importPath, "/")
+	if len(parts) < 2 {
+		return "", fmt.Errorf("invalid explicit path: %s", importPath)
+	}
+
+	packageName := parts[0]
+	subPath := strings.Join(parts[1:], "/")
+
+	// Try each search path for package structure
+	for _, basePath := range searchPaths {
+		if basePath == "" {
+			continue
+		}
+
+		// Try versioned package structure: basePath/package/version/src/file.crl
+		packagePath := filepath.Join(basePath, packageName)
+		if versions, err := getLatestPackageVersion(packagePath); err == nil && len(versions) > 0 {
+			latestVersion := versions[len(versions)-1]
+			versionedPath := filepath.Join(packagePath, latestVersion, "src", subPath+".crl")
+			if _, err := os.Stat(versionedPath); err == nil {
+				return versionedPath, nil
+			}
+		}
+
+		// Try direct path: basePath/package/file.crl
+		directPath := filepath.Join(basePath, importPath+".crl")
+		if _, err := os.Stat(directPath); err == nil {
+			return directPath, nil
+		}
+	}
+
+	return "", fmt.Errorf("explicit path import not found: %s", importPath)
+}
+
+// resolveSimpleName handles simple imports like "filename" - looks for local files first, then packages
+func resolveSimpleName(importPath string, searchPaths []string, currentDir string) (string, error) {
+	// First, try as a local file in current directory
+	localPath := filepath.Join(currentDir, importPath+".crl")
+	if _, err := os.Stat(localPath); err == nil {
+		return localPath, nil
+	}
+
+	// Then try as a package name in each search location
+	for i, basePath := range searchPaths {
+		if basePath == "" {
+			continue
+		}
+
+		// Skip current directory since we already tried it
+		if i == 0 {
+			continue
+		}
+
+		// Look for package with this name
+		packagePath := filepath.Join(basePath, importPath)
+		if versions, err := getLatestPackageVersion(packagePath); err == nil && len(versions) > 0 {
+			latestVersion := versions[len(versions)-1]
+
+			// Try common entry points in package
+			possibleEntries := []string{
+				filepath.Join(packagePath, latestVersion, "src", importPath+".crl"),
+				filepath.Join(packagePath, latestVersion, "src", "main.crl"),
+				filepath.Join(packagePath, latestVersion, "src", "index.crl"),
+			}
+
+			for _, entryPath := range possibleEntries {
+				if _, err := os.Stat(entryPath); err == nil {
+					return entryPath, nil
+				}
+			}
+		}
+
+		// Try direct file path as fallback
+		directPath := filepath.Join(basePath, importPath+".crl")
+		if _, err := os.Stat(directPath); err == nil {
+			return directPath, nil
+		}
+	}
+
+	return "", fmt.Errorf("import not found: %s", importPath)
+}
+
+// getUserCarrionPackages returns the user-specific Carrion packages directory
+func getUserCarrionPackages() string {
+	if home := os.Getenv("CARRION_HOME"); home != "" {
+		return filepath.Join(home, "packages")
+	}
+
+	userHome, err := os.UserHomeDir()
+	if err != nil {
+		return ""
+	}
+	return filepath.Join(userHome, ".carrion", "packages")
+}
+
+// getSharedGlobalPackages returns the shared global packages directory
+func getSharedGlobalPackages() string {
+	if runtime.GOOS == "windows" {
+		if programData := os.Getenv("ProgramData"); programData != "" {
+			return filepath.Join(programData, "Carrion", "lib")
+		}
+		return filepath.Join("C:", "ProgramData", "Carrion", "lib")
+	}
+	return "/usr/local/share/carrion/lib"
+}
+
+// getLatestPackageVersion returns sorted list of versions for a package
+func getLatestPackageVersion(packagePath string) ([]string, error) {
+	entries, err := os.ReadDir(packagePath)
+	if err != nil {
+		return nil, err
+	}
+
+	var versions []string
+	for _, entry := range entries {
+		if entry.IsDir() {
+			versions = append(versions, entry.Name())
+		}
+	}
+
+	// TODO: Sort by semantic version - for now just return alphabetical
+	return versions, nil
+}
+
 func evalImportStatement(
 	node *ast.ImportStatement,
 	env *object.Environment,
 	ctx *CallContext,
 ) object.Object {
-	filePath := node.FilePath.Value + ".crl"
-
-	if importedFiles[filePath] {
-		return object.NONE
+	// Handle grimoire-only imports (import "GrimoireName")
+	if node.FilePath.Value == "" && node.ClassName != nil {
+		return evalGrimoireImport(node, env, ctx)
 	}
-	importedFiles[filePath] = true
 
-	fileContent, err := os.ReadFile(filePath)
+	importPath := node.FilePath.Value
+
+	// Resolve the import path to an actual file
+	resolvedPath, err := resolveImportPath(importPath)
 	if err != nil {
-		return newErrorWithTrace("could not import file: %s", node, ctx, err)
+		return newErrorWithTrace("could not resolve import: %s", node, ctx, err)
 	}
 
-	l := lexer.NewWithFilename(string(fileContent), filePath)
-	p := parser.New(l)
-	program := p.ParseProgram()
-
-	if len(p.Errors()) > 0 {
-		errorDetails := fmt.Sprintf("parsing errors in imported file %s:\n", filePath)
-		for _, err := range p.Errors() {
-			errorDetails += fmt.Sprintf("- %s\n", err)
+	// Check if file has already been parsed/evaluated
+	// Use resolved path as the cache key to handle relative vs absolute paths correctly
+	var importEnv *object.Environment
+	if cachedEnv, alreadyImported := importedFiles[resolvedPath]; alreadyImported {
+		// File already imported, reuse the cached environment
+		// This allows multiple selective imports from the same file
+		if envObj, ok := cachedEnv.(*object.Environment); ok {
+			importEnv = envObj
+		} else {
+			// Shouldn't happen, but handle gracefully
+			return newErrorWithTrace("internal error: cached import is not an environment", node, ctx)
 		}
-		return newErrorWithTrace(errorDetails, node, ctx)
-	}
+	} else {
+		// First time importing this file, parse and evaluate it
+		fileContent, err := os.ReadFile(resolvedPath)
+		if err != nil {
+			return newErrorWithTrace("could not read import file: %s", node, ctx, err)
+		}
 
-	importEnv := object.NewEnclosedEnvironment(env)
-	importCtx := &CallContext{
-		FunctionName: "import_" + filePath,
-		Node:         program,
-		Parent:       ctx,
-		env:          importEnv,
-	}
+		l := lexer.NewWithFilename(string(fileContent), resolvedPath)
+		p := parser.New(l)
+		program := p.ParseProgram()
 
-	evalResult := Eval(program, importEnv, importCtx)
-	if isError(evalResult) {
-		return newErrorWithTrace("error evaluating imported file %s: %s",
-			node, ctx, filePath, evalResult.Inspect())
+		if len(p.Errors()) > 0 {
+			errorDetails := fmt.Sprintf("parsing errors in imported file %s:\n", resolvedPath)
+			for _, err := range p.Errors() {
+				errorDetails += fmt.Sprintf("- %s\n", err)
+			}
+			return newErrorWithTrace(errorDetails, node, ctx)
+		}
+
+		importEnv = object.NewEnclosedEnvironment(env)
+		importCtx := &CallContext{
+			FunctionName:      "import_" + importPath,
+			Node:              program,
+			Parent:            ctx,
+			env:               importEnv,
+			IsDirectExecution: false, // This is an import, not direct execution
+		}
+
+		evalResult := Eval(program, importEnv, importCtx)
+		if isError(evalResult) {
+			return newErrorWithTrace("error evaluating imported file %s: %s",
+				node, ctx, resolvedPath, evalResult.Inspect())
+		}
+
+		// Cache the environment for future imports from this file
+		importedFiles[resolvedPath] = importEnv
 	}
 
 	namespace := &object.Namespace{Env: importEnv}
 
-	if node.Alias != nil {
+	if node.ClassName != nil {
+		// Selective import: import only the specified grimoire or spell
+		itemName := node.ClassName.Value
+		val, exists := importEnv.Get(itemName)
+		if !exists {
+			return newErrorWithTrace("'%s' not found in module '%s'",
+				node, ctx, itemName, importPath)
+		}
+		// Allow importing grimoires, functions, or any other defined object
+		// No type restriction - users can import whatever they define
+
+		if node.Alias != nil {
+			// Selective import with alias: bind the specific item to the alias
+			env.Set(node.Alias.Value, val)
+		} else {
+			// Selective import without alias: bind to original name
+			env.Set(itemName, val)
+		}
+	} else if node.Alias != nil {
+		// Module import with alias: create a namespace
 		env.Set(node.Alias.Value, namespace)
 	} else {
+		// Import all top-level definitions from the module
+		// This includes grimoires, spells, and any other defined objects
 		for _, name := range importEnv.GetNames() {
-			val, _ := importEnv.Get(name)
-			if val.Type() == object.GRIMOIRE_OBJ {
+			// Skip internal/private names (those starting with double underscore)
+			if !strings.HasPrefix(name, "__") {
+				val, _ := importEnv.Get(name)
 				env.Set(name, val)
 			}
 		}
 	}
 
 	return object.NONE
+}
+
+// evalGrimoireImport handles grimoire-only imports like import "HelloWorld" as hw
+func evalGrimoireImport(
+	node *ast.ImportStatement,
+	env *object.Environment,
+	ctx *CallContext,
+) object.Object {
+	grimoireName := node.ClassName.Value
+
+	// Get current working directory
+	currentDir, err := os.Getwd()
+	if err != nil {
+		currentDir = "."
+	}
+
+	// Define search paths for grimoire files
+	searchPaths := []string{
+		// 1. Current directory
+		currentDir,
+		// 2. Local project modules
+		filepath.Join(currentDir, "carrion_modules"),
+		// 3. Global carrion modules
+		"/usr/bin/carrion_modules",
+		// 4. User-specific packages
+		getUserCarrionPackages(),
+		// 5. Shared global packages
+		getSharedGlobalPackages(),
+	}
+
+	// Search for files containing the grimoire
+	var foundGrimoire object.Object
+	var foundInFile string
+
+	for _, searchPath := range searchPaths {
+		if searchPath == "" {
+			continue
+		}
+
+		// Look for .crl files in the search path
+		files, err := findCarrionFiles(searchPath)
+		if err != nil {
+			continue
+		}
+
+		// Check each file for the grimoire
+		for _, filePath := range files {
+			// Skip if already imported
+			if _, alreadyImported := importedFiles[filePath]; alreadyImported {
+				continue
+			}
+
+			// Read and parse the file
+			fileContent, err := os.ReadFile(filePath)
+			if err != nil {
+				continue
+			}
+
+			l := lexer.NewWithFilename(string(fileContent), filePath)
+			p := parser.New(l)
+			program := p.ParseProgram()
+
+			if len(p.Errors()) > 0 {
+				continue
+			}
+
+			// Evaluate the file in a temporary environment
+			tempEnv := object.NewEnclosedEnvironment(env)
+			tempCtx := &CallContext{
+				FunctionName:      "import_search",
+				Node:              program,
+				Parent:            ctx,
+				env:               tempEnv,
+				IsDirectExecution: false,
+			}
+
+			evalResult := Eval(program, tempEnv, tempCtx)
+			if isError(evalResult) {
+				continue
+			}
+
+			// Check if the grimoire exists in this file
+			if val, exists := tempEnv.Get(grimoireName); exists && val.Type() == object.GRIMOIRE_OBJ {
+				foundGrimoire = val
+				foundInFile = filePath
+				break
+			}
+		}
+
+		if foundGrimoire != nil {
+			break
+		}
+
+		// Also check in bifrost package structure
+		packagePaths, _ := findBifrostPackages(searchPath)
+		for _, pkgPath := range packagePaths {
+			mainFile := filepath.Join(pkgPath, "src", "main.crl")
+			if _, err := os.Stat(mainFile); err != nil {
+				continue
+			}
+
+			// Skip if already imported
+			if _, alreadyImported := importedFiles[mainFile]; alreadyImported {
+				continue
+			}
+
+			fileContent, err := os.ReadFile(mainFile)
+			if err != nil {
+				continue
+			}
+
+			l := lexer.NewWithFilename(string(fileContent), mainFile)
+			p := parser.New(l)
+			program := p.ParseProgram()
+
+			if len(p.Errors()) > 0 {
+				continue
+			}
+
+			tempEnv := object.NewEnclosedEnvironment(env)
+			tempCtx := &CallContext{
+				FunctionName:      "import_search",
+				Node:              program,
+				Parent:            ctx,
+				env:               tempEnv,
+				IsDirectExecution: false,
+			}
+
+			evalResult := Eval(program, tempEnv, tempCtx)
+			if isError(evalResult) {
+				continue
+			}
+
+			if val, exists := tempEnv.Get(grimoireName); exists && val.Type() == object.GRIMOIRE_OBJ {
+				foundGrimoire = val
+				foundInFile = mainFile
+				break
+			}
+		}
+
+		if foundGrimoire != nil {
+			break
+		}
+	}
+
+	if foundGrimoire == nil {
+		return newErrorWithTrace("grimoire '%s' not found in any available module",
+			node, ctx, grimoireName)
+	}
+
+	// Mark the file as imported
+	importedFiles[foundInFile] = true
+
+	// Bind the grimoire to the environment
+	if node.Alias != nil {
+		env.Set(node.Alias.Value, foundGrimoire)
+	} else {
+		env.Set(grimoireName, foundGrimoire)
+	}
+
+	return object.NONE
+}
+
+// findCarrionFiles finds all .crl files in a directory (non-recursive for current dir, limited recursion for modules)
+func findCarrionFiles(dir string) ([]string, error) {
+	var files []string
+
+	// For current directory, only check top level
+	currentDir, _ := os.Getwd()
+	if dir == currentDir {
+		entries, err := os.ReadDir(dir)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, entry := range entries {
+			if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".crl") {
+				files = append(files, filepath.Join(dir, entry.Name()))
+			}
+		}
+		return files, nil
+	}
+
+	// For other directories, do limited recursive search
+	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return nil // Skip errors
+		}
+
+		// Skip hidden directories
+		if info.IsDir() && strings.HasPrefix(filepath.Base(path), ".") && path != dir {
+			return filepath.SkipDir
+		}
+
+		if !info.IsDir() && strings.HasSuffix(path, ".crl") {
+			files = append(files, path)
+		}
+
+		// Don't recurse too deep
+		if info.IsDir() && strings.Count(path, string(os.PathSeparator))-strings.Count(dir, string(os.PathSeparator)) > 2 {
+			return filepath.SkipDir
+		}
+
+		return nil
+	})
+
+	return files, err
+}
+
+// findBifrostPackages finds all bifrost package directories (pattern: package/version)
+func findBifrostPackages(basePath string) ([]string, error) {
+	var packages []string
+
+	entries, err := os.ReadDir(basePath)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+
+		packagePath := filepath.Join(basePath, entry.Name())
+		versions, err := os.ReadDir(packagePath)
+		if err != nil {
+			continue
+		}
+
+		for _, version := range versions {
+			if version.IsDir() {
+				versionPath := filepath.Join(packagePath, version.Name())
+				// Check if it has src directory
+				if _, err := os.Stat(filepath.Join(versionPath, "src")); err == nil {
+					packages = append(packages, versionPath)
+				}
+			}
+		}
+	}
+
+	return packages, nil
 }
 
 func evalGlobalStatement(
@@ -2992,5 +4897,482 @@ func evalGlobalStatement(
 	for _, name := range node.Names {
 		env.MarkGlobal(name.Value)
 	}
+	return object.NONE
+}
+
+func evalUnpackStatement(
+	node *ast.UnpackStatement,
+	env *object.Environment,
+	ctx *CallContext,
+) object.Object {
+	// Evaluate the value being unpacked
+	val := Eval(node.Value, env, ctx)
+	if isError(val) {
+		return val
+	}
+
+	// Handle different types of unpacking
+	switch value := val.(type) {
+	case *object.Instance:
+		// Handle instances of Array, Tuple, Map grimoires
+		switch value.Grimoire.Name {
+		case "Array":
+			// Extract the internal array from the instance
+			if elements, ok := value.Env.Get("elements"); ok {
+				if arr, ok := elements.(*object.Array); ok {
+					return unpackArray(node.Variables, arr, env, ctx, node)
+				}
+			}
+		case "Tuple":
+			// Extract the internal tuple from the instance
+			if elements, ok := value.Env.Get("elements"); ok {
+				if tup, ok := elements.(*object.Tuple); ok {
+					return unpackTuple(node.Variables, tup, env, ctx, node)
+				}
+			}
+		case "Map", "Dict":
+			// Extract the internal hash from the instance
+			if pairs, ok := value.Env.Get("pairs"); ok {
+				if hash, ok := pairs.(*object.Hash); ok {
+					return unpackMap(node.Variables, hash, env, ctx, node)
+				}
+			}
+		}
+		return newErrorWithTrace(
+			fmt.Sprintf("cannot unpack instance of %s", value.Grimoire.Name),
+			node,
+			ctx,
+		)
+	case *object.Array:
+		return unpackArray(node.Variables, value, env, ctx, node)
+	case *object.Tuple:
+		return unpackTuple(node.Variables, value, env, ctx, node)
+	case *object.Hash:
+		return unpackMap(node.Variables, value, env, ctx, node)
+	default:
+		return newErrorWithTrace(
+			fmt.Sprintf("cannot unpack object of type %T", val),
+			node,
+			ctx,
+		)
+	}
+}
+
+func unpackArray(
+	variables []ast.Expression,
+	arr *object.Array,
+	env *object.Environment,
+	ctx *CallContext,
+	node ast.Node,
+) object.Object {
+	if len(variables) == 2 {
+		// Check if all elements are tuples - if so, this is pairs() unpacking
+		allTuples := len(arr.Elements) == 0 // Empty array counts as "all tuples"
+		if !allTuples && len(arr.Elements) > 0 {
+			allTuples = true
+			for _, elem := range arr.Elements {
+				if _, ok := elem.(*object.Tuple); !ok {
+					allTuples = false
+					break
+				}
+			}
+		}
+
+		if allTuples {
+			// Special case: k, v = pairs(map) - extract keys and values from tuples
+			keys := &object.Array{Elements: []object.Object{}}
+			values := &object.Array{Elements: []object.Object{}}
+
+			for _, elem := range arr.Elements {
+				if tuple, ok := elem.(*object.Tuple); ok && len(tuple.Elements) == 2 {
+					keys.Elements = append(keys.Elements, tuple.Elements[0])
+					values.Elements = append(values.Elements, tuple.Elements[1])
+				}
+			}
+
+			// Assign to variables
+			if ident, ok := variables[0].(*ast.Identifier); ok {
+				env.Set(ident.Value, keys)
+			}
+			if ident, ok := variables[1].(*ast.Identifier); ok {
+				env.Set(ident.Value, values)
+			}
+
+			return object.NONE
+		}
+
+		// Only apply index unpacking if we have more than 2 elements
+		if len(arr.Elements) > 2 {
+			// Special case: k, v <- [10, 20, 30]
+			// k gets indices [0, 1, 2], v gets values [10, 20, 30]
+
+			// Create indices array
+			indices := &object.Array{Elements: []object.Object{}}
+			for i := range arr.Elements {
+				indices.Elements = append(indices.Elements, &object.Integer{Value: int64(i)})
+			}
+
+			// Assign to variables
+			if ident, ok := variables[0].(*ast.Identifier); ok {
+				env.Set(ident.Value, indices)
+			}
+			if ident, ok := variables[1].(*ast.Identifier); ok {
+				env.Set(ident.Value, arr)
+			}
+
+			return object.NONE
+		}
+	}
+
+	// Regular unpacking: a, b, c <- [1, 2, 3]
+	if len(variables) != len(arr.Elements) {
+		return newErrorWithTrace(
+			"cannot unpack %d values into %d variables",
+			node, ctx, len(arr.Elements), len(variables))
+	}
+
+	for i, variable := range variables {
+		if ident, ok := variable.(*ast.Identifier); ok {
+			env.Set(ident.Value, arr.Elements[i])
+		}
+	}
+
+	return object.NONE
+}
+
+func unpackTuple(
+	variables []ast.Expression,
+	tuple *object.Tuple,
+	env *object.Environment,
+	ctx *CallContext,
+	node ast.Node,
+) object.Object {
+	// Regular unpacking
+	if len(variables) != len(tuple.Elements) {
+		return newErrorWithTrace(
+			"cannot unpack %d values into %d variables",
+			node, ctx, len(tuple.Elements), len(variables))
+	}
+
+	for i, variable := range variables {
+		if ident, ok := variable.(*ast.Identifier); ok {
+			env.Set(ident.Value, tuple.Elements[i])
+		}
+	}
+
+	return object.NONE
+}
+
+func unpackMap(
+	variables []ast.Expression,
+	hash *object.Hash,
+	env *object.Environment,
+	ctx *CallContext,
+	node ast.Node,
+) object.Object {
+	if len(variables) != 2 {
+		return newErrorWithTrace(
+			"map unpacking requires exactly 2 variables (keys, values)",
+			node, ctx)
+	}
+
+	// Extract keys and values
+	keys := &object.Array{Elements: []object.Object{}}
+	values := &object.Array{Elements: []object.Object{}}
+
+	for _, pair := range hash.Pairs {
+		keys.Elements = append(keys.Elements, pair.Key)
+		values.Elements = append(values.Elements, pair.Value)
+	}
+
+	// Assign to variables
+	if ident, ok := variables[0].(*ast.Identifier); ok {
+		env.Set(ident.Value, keys)
+	}
+	if ident, ok := variables[1].(*ast.Identifier); ok {
+		env.Set(ident.Value, values)
+	}
+
+	return object.NONE
+}
+
+// Type checking helper functions
+func getTypeString(expr ast.Expression) string {
+	if ident, ok := expr.(*ast.Identifier); ok {
+		return ident.Value
+	}
+	return "Unknown"
+}
+
+// getConversionHint returns a conversion suggestion for type mismatches
+func getConversionHint(fromType, toType object.ObjectType) string {
+	// Handle common type conversions
+	switch {
+	// String to numeric
+	case fromType == object.STRING_OBJ && toType == object.INTEGER_OBJ:
+		return "Use int() to convert STRING to INTEGER"
+	case fromType == object.STRING_OBJ && toType == object.FLOAT_OBJ:
+		return "Use float() to convert STRING to FLOAT"
+
+	// Numeric to string
+	case fromType == object.INTEGER_OBJ && toType == object.STRING_OBJ:
+		return "Use str() to convert INTEGER to STRING"
+	case fromType == object.FLOAT_OBJ && toType == object.STRING_OBJ:
+		return "Use str() to convert FLOAT to STRING"
+
+	// Numeric conversions
+	case fromType == object.INTEGER_OBJ && toType == object.FLOAT_OBJ:
+		return "Use float() to convert, or numeric operations will auto-promote"
+	case fromType == object.FLOAT_OBJ && toType == object.INTEGER_OBJ:
+		return "Use int() to convert (truncates decimal part)"
+
+	// Boolean conversions
+	case fromType == object.BOOLEAN_OBJ && toType == object.INTEGER_OBJ:
+		return "Use int() to convert (True=1, False=0)"
+	case fromType == object.BOOLEAN_OBJ && toType == object.STRING_OBJ:
+		return "Use str() to convert BOOLEAN to STRING"
+	case toType == object.BOOLEAN_OBJ:
+		return "Use bool() to convert to BOOLEAN"
+
+	// Collection conversions
+	case fromType == object.ARRAY_OBJ && toType == object.TUPLE_OBJ:
+		return "Use tuple() to convert ARRAY to TUPLE"
+	case fromType == object.TUPLE_OBJ && toType == object.ARRAY_OBJ:
+		return "Use list() to convert TUPLE to ARRAY"
+	case fromType == object.STRING_OBJ && toType == object.ARRAY_OBJ:
+		return "Use list() to convert STRING to character ARRAY"
+
+	default:
+		return ""
+	}
+}
+
+func getObjectTypeString(obj object.Object) string {
+	switch o := obj.(type) {
+	case *object.Instance:
+		// For instances, return the grimoire name (which is the type)
+		return o.Grimoire.Name
+	case *object.Integer:
+		return "Integer"
+	case *object.Float:
+		return "Float"
+	case *object.String:
+		return "String"
+	case *object.Boolean:
+		return "Boolean"
+	case *object.Array:
+		return "Array"
+	case *object.Hash:
+		return "Map"
+	case *object.Tuple:
+		return "Tuple"
+	case *object.Function:
+		return "Function"
+	case *object.None:
+		return "None"
+	default:
+		return "Unknown"
+	}
+}
+
+func isTypeCompatible(expected, actual string) bool {
+	// Exact match
+	if expected == actual {
+		return true
+	}
+
+	// Handle type hint aliases (int -> Integer, str -> String, etc.)
+	expectedNormalized := normalizeTypeName(expected)
+	actualNormalized := normalizeTypeName(actual)
+
+	if expectedNormalized == actualNormalized {
+		return true
+	}
+
+	// Special cases for numeric types
+	if (expectedNormalized == "Integer" && actualNormalized == "Float") ||
+		(expectedNormalized == "Float" && actualNormalized == "Integer") {
+		return true
+	}
+
+	// None can be assigned to any type
+	if actualNormalized == "None" {
+		return true
+	}
+
+	return false
+}
+
+// normalizeTypeName converts type hint names to their grimoire equivalents
+func normalizeTypeName(typeName string) string {
+	switch typeName {
+	case "int":
+		return "Integer"
+	case "str":
+		return "String"
+	case "float":
+		return "Float"
+	case "bool":
+		return "Boolean"
+	case "list":
+		return "Array"
+	case "dict":
+		return "Map"
+	default:
+		return typeName
+	}
+}
+
+func checkParameterTypes(fn *object.Function, args []object.Object, ctx *CallContext) object.Object {
+	for i, pExpr := range fn.Parameters {
+		if param, ok := pExpr.(*ast.Parameter); ok && param.TypeHint != nil {
+			if i < len(args) {
+				expectedType := getTypeString(param.TypeHint)
+				actualType := getObjectTypeString(args[i])
+				if !isTypeCompatible(expectedType, actualType) {
+					return newErrorWithTrace(
+						"Type error: parameter '%s' expects %s but got %s",
+						ctx.Node, ctx, param.Name.Value, expectedType, actualType)
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// Global goroutine manager
+var globalGoroutineManager = object.NewGoroutineManager()
+
+func evalDivergeStatement(
+	node *ast.DivergeStatement,
+	env *object.Environment,
+	ctx *CallContext,
+) object.Object {
+	// Create a new goroutine
+	goroutine := &object.Goroutine{
+		Done:      make(chan bool, 1),
+		IsRunning: true,
+	}
+
+	// Set name if provided
+	if node.Name != nil {
+		goroutine.Name = node.Name.Value
+		globalGoroutineManager.AddNamedGoroutine(goroutine.Name, goroutine)
+	} else {
+		globalGoroutineManager.AddAnonymousGoroutine(goroutine)
+	}
+
+	// Start the goroutine
+	go func() {
+		defer func() {
+			// Recover from any panic to prevent deadlock
+			if r := recover(); r != nil {
+				// Convert panic to error and store it
+				goroutine.Error = &object.Error{
+					Message: fmt.Sprintf("Goroutine panic: %v", r),
+				}
+			}
+
+			// Always ensure Done channel receives a value
+			goroutine.IsRunning = false
+			goroutine.Done <- true
+		}()
+
+		// Create a new environment for the goroutine
+		goroutineEnv := object.NewEnclosedEnvironment(env)
+
+		// Create a new context for the goroutine
+		goroutineCtx := &CallContext{
+			FunctionName: "diverge",
+			Node:         node.Body,
+			Parent:       ctx,
+			env:          goroutineEnv,
+		}
+
+		// Execute the body
+		result := Eval(node.Body, goroutineEnv, goroutineCtx)
+
+		// Store the result or error
+		if isError(result) {
+			goroutine.Error = result
+		} else {
+			goroutine.Result = result
+		}
+	}()
+
+	return goroutine
+}
+
+func evalConvergeStatement(
+	node *ast.ConvergeStatement,
+	env *object.Environment,
+	ctx *CallContext,
+) object.Object {
+	if len(node.Names) == 0 {
+		// Wait for all goroutines
+
+		// Wait for named goroutines
+		namedGoroutines := globalGoroutineManager.GetAllNamedGoroutines()
+		for _, goroutine := range namedGoroutines {
+			// Wait for goroutine completion with race condition protection
+			select {
+			case <-goroutine.Done:
+				// Goroutine completed
+			default:
+				// If Done channel doesn't have a value yet, wait for it
+				if goroutine.IsRunning {
+					<-goroutine.Done
+				}
+			}
+		}
+
+		// Wait for anonymous goroutines
+		anonymousGoroutines := globalGoroutineManager.GetAllAnonymousGoroutines()
+		for _, goroutine := range anonymousGoroutines {
+			// Wait for goroutine completion with race condition protection
+			select {
+			case <-goroutine.Done:
+				// Goroutine completed
+			default:
+				// If Done channel doesn't have a value yet, wait for it
+				if goroutine.IsRunning {
+					<-goroutine.Done
+				}
+			}
+		}
+
+		// Clear all goroutines
+		globalGoroutineManager.ClearAll()
+
+	} else {
+		// Wait for specific named goroutines
+		for _, nameExpr := range node.Names {
+			nameIdent, ok := nameExpr.(*ast.Identifier)
+			if !ok {
+				return newErrorWithTrace("converge expects goroutine names", node, ctx)
+			}
+
+			goroutine, exists := globalGoroutineManager.GetNamedGoroutine(nameIdent.Value)
+			if !exists {
+				return newErrorWithTrace("goroutine '%s' not found", node, ctx, nameIdent.Value)
+			}
+
+			// Wait for goroutine completion regardless of IsRunning state
+			// to handle race conditions where IsRunning might have changed
+			select {
+			case <-goroutine.Done:
+				// Goroutine completed
+			default:
+				// If Done channel doesn't have a value yet, wait for it
+				if goroutine.IsRunning {
+					<-goroutine.Done
+				}
+			}
+
+			// Remove from manager with proper cleanup
+			globalGoroutineManager.RemoveAndCleanupNamed(nameIdent.Value)
+		}
+	}
+
 	return object.NONE
 }

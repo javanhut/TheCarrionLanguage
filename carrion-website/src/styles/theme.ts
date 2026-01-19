@@ -15,6 +15,7 @@ export const theme = {
       secondary: '#94a3b8',   // Medium gray
       muted: '#64748b',       // Muted gray
       accent: '#06b6d4',      // Cyan accent
+      inverse: '#0a0e27',     // Dark text for light backgrounds
     },
     border: '#334155',        // Slate border
     borderAccent: '#475569',  // Lighter border

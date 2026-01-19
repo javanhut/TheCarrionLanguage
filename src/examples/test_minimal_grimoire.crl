@@ -1,0 +1,46 @@
+#!/usr/bin/env carrion
+
+print("=== Testing Minimal Time Grimoire ===")
+
+# Test creating a Time grimoire instance
+time_grim = Time()
+print("Time grimoire created successfully")
+
+# Test basic methods
+print("\nTesting basic methods:")
+
+# Test now methods
+current_time = time_grim.now()
+print("time_grim.now():", type(current_time))
+
+current_ts = time_grim.now_timestamp()
+print("time_grim.now_timestamp():", current_ts)
+
+current_nano = time_grim.now_nano()
+print("time_grim.now_nano():", current_nano)
+
+# Test sleep
+print("Testing sleep...")
+time_grim.sleep(0.1)
+print("time_grim.sleep() worked")
+
+# Test formatting
+formatted = time_grim.format_timestamp(current_ts)
+print("time_grim.format_timestamp():", formatted)
+
+# Test duration creation
+dur = time_grim.create_seconds(10)
+print("time_grim.create_seconds(10):", type(dur))
+
+# Test unix conversions
+time_obj = time_grim.from_unix(current_ts)
+print("time_grim.from_unix():", type(time_obj))
+
+unix_back = time_grim.to_unix(time_obj)
+print("time_grim.to_unix():", unix_back)
+
+# Test date
+date_parts = time_grim.get_date()
+print("time_grim.get_date():", date_parts)
+
+print("\n=== Minimal grimoire test complete ===")

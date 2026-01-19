@@ -7,6 +7,7 @@ import { theme } from './styles/theme';
 // Layout Components
 import Navbar from './components/layout/Navbar';
 import Footer from './components/layout/Footer';
+import ScrollToTop from './components/ScrollToTop';
 
 // Page Components
 import Home from './pages/Home';
@@ -34,6 +35,7 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <Router>
+        <ScrollToTop />
         <GlobalStyles />
         <Navbar />
         <Routes>

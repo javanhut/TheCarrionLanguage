@@ -1,0 +1,14 @@
+#!/usr/bin/env carrion
+
+print("=== Simple Debug ===")
+
+# Basic facts
+print("now() returns:", type(now()))
+print("timeNow() returns:", type(timeNow()))
+
+current_ts = timeNow()
+current_time = now()
+
+print("timeFormat(timestamp) works:", timeFormat(current_ts))
+
+print("=== Debug complete ===")

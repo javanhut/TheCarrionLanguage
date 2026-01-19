@@ -1,0 +1,21 @@
+#!/usr/bin/env carrion
+
+print("=== Testing Time Grimoire ===")
+
+# Test creating a Time grimoire instance
+time_grim = Time()
+print("Time grimoire created")
+
+# Test basic methods
+current = time_grim.now()
+print("time_grim.now():", current)
+
+# Test sleep
+time_grim.sleep(0.1)
+print("time_grim.sleep() worked")
+
+# Test date
+date_parts = time_grim.date()
+print("time_grim.date():", date_parts)
+
+print("=== Grimoire test complete ===")

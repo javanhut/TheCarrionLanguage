@@ -1,0 +1,3 @@
+spell appraise_return_check():
+    result = 3 * 3
+    return check(10, result)

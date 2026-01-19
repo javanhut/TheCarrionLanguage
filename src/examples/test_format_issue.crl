@@ -1,0 +1,16 @@
+#!/usr/bin/env carrion
+
+print("=== Testing Format Issue ===")
+
+current_ts = timeNow()
+
+# This should work
+print("Basic timeFormat:", timeFormat(current_ts))
+
+# This fails
+attempt:
+    print("Custom timeFormat:", timeFormat(current_ts, "2006-01-02"))
+ensnare:
+    print("Custom timeFormat failed - string detection issue")
+
+print("=== Format issue test complete ===")

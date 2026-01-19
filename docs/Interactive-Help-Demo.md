@@ -4,65 +4,76 @@
 
 ### 1. Start the Carrion REPL
 ```bash
-./src/src
+carrion
 ```
 
 ### 2. You'll see the enhanced welcome message:
 ```
-🦅 Welcome to the Carrion Programming Language REPL! 🦅
+Welcome to the Carrion Programming Language REPL!
 
-📖 Quick Help:
-   • Type 'mimir' for comprehensive function help
+Quick Help:
+   • Run 'mimir' for comprehensive interactive documentation
+   • Run 'mimir scry <function>' for specific function help
    • Type 'help()' for basic information
    • Type 'version()' to see current version
    • Type 'modules()' to list standard library modules
 
-⚡ REPL Commands:
+REPL Commands:
    • 'clear' - Clear screen
    • 'quit', 'exit', 'q', 'qa' - Exit REPL
    • Use Tab for auto-completion
 
-✨ Quick Examples:
+Quick Examples:
    print("Hello, World!")     // Basic output
    x, y = (10, 20)            // Tuple unpacking
-   42.to_bin()                // "0b101010"
+   x = 42
+	x.to_bin()                // "0b101010"
    "hello".upper()            // "HELLO"
 
 May Mimir guide your coding journey! Type commands below:
 >>>
 ```
 
-### 3. Type 'mimir' to enter interactive help:
+### 3. Use the external Mimir tool for comprehensive help:
+```bash
+# In a separate terminal or after exiting REPL
+mimir
 ```
->>> mimir
+
+### 4. Or get specific function help:
+```bash
+mimir scry print
+mimir scry Array
 ```
 
-### 4. Interactive Help Main Menu:
+### 5. Mimir Interactive Help Main Menu:
 ```
-═══════════════════════════════════════════════════════════════════
-🧙‍♂️ Welcome to Mimir's Interactive Help System 🧙‍♂️
-═══════════════════════════════════════════════════════════════════
+    MIMIR - The All-Seeing Helper
+   ═══════════════════════════════════════
+    Interactive Carrion Documentation
+   ═══════════════════════════════════════
+   "Knowledge is the greatest treasure"
 
-📚 What would you like help with?
+What knowledge do you seek?
 
-  1️⃣  Built-in Functions    - Core language functions (print, len, type, etc.)
-  2️⃣  Standard Library      - Munin modules (Array, String, File, OS, etc.)
-  3️⃣  Language Features     - Syntax, control flow, OOP, error handling
-  4️⃣  Examples & Demos      - Working code examples and tutorials
-  5️⃣  Search Functions      - Find specific functions by name or purpose
-  6️⃣  Tips & Tricks         - REPL shortcuts and advanced features
+  1.  Built-in Functions    - Core language functions (print, len, type, etc.)
+  2.  Standard Library      - Munin modules (Array, String, File, OS, etc.)
+  3.  Language Features     - Syntax, control flow, OOP, error handling
+  4.  Examples & Demos      - Working code examples and tutorials
+  5.  Search Functions      - Find specific functions by name or purpose
+  6.  Tips & Tricks         - REPL shortcuts and advanced features
 
-💡 Commands: Type number/name (e.g., '1' or 'builtins'), 'h' for menu, 'q' to quit
-🔍 Quick search: Type any function name directly (e.g., 'print', 'Array')
+Commands: Type number/name (e.g., '1' or 'builtins'), 'h' for menu, 'q' to quit
+Quick search: Type any function name directly (e.g., 'print', 'Array')
 
-help>
+mimir>
 ```
 
 ## Navigation Examples
 
 ### Example 1: Exploring Built-in Functions
 ```
-help> 1
+mimir> 1
 # Shows built-in functions menu with categories
 
 builtins> 1
@@ -70,12 +81,12 @@ builtins> 1
 
 # Press Enter to continue, then 'b' to go back
 builtins> b
-help>
+mimir>
 ```
 
 ### Example 2: Learning Standard Library
 ```
-help> 2
+mimir> 2
 # Shows standard library modules
 
 stdlib> array
@@ -86,18 +97,18 @@ stdlib> string
 # Shows String module with all methods
 
 stdlib> b
-help>
+mimir>
 ```
 
 ### Example 3: Quick Function Search
 ```
-help> print
+mimir> print
 # Directly shows print function documentation
 
-help> Array
+mimir> Array
 # Directly shows Array module documentation
 
-help> 5
+mimir> 5
 # Enter search mode
 search> array sort
 # Shows all functions related to array sorting
@@ -105,7 +116,7 @@ search> array sort
 
 ### Example 4: Code Examples
 ```
-help> 4
+mimir> 4
 # Shows examples menu
 
 examples> 1
@@ -115,12 +126,12 @@ examples> 6
 # Shows object-oriented programming examples
 
 examples> b
-help>
+mimir>
 ```
 
 ### Example 5: Language Features
 ```
-help> 3
+mimir> 3
 # Shows language features menu
 
 syntax> 2
@@ -130,7 +141,7 @@ syntax> functions
 # Shows function/spell documentation
 
 syntax> b
-help>
+mimir>
 ```
 
 ## Interactive Features
@@ -161,28 +172,37 @@ help>
 
 ## Sample Session Walkthrough
 
-```
->>> mimir
-help> 1                    # Built-in functions
-builtins> 2               # Utility functions  
+```bash
+# Start Mimir documentation tool
+$ mimir
+
+mimir> 1                    # Built-in functions
+builtins> 2                # Utility functions  
 # Shows len, type, print, input, range with examples
-builtins> print          # Quick lookup for print function
-builtins> b              # Back to help menu
+builtins> print           # Quick lookup for print function
+builtins> b               # Back to help menu
 
-help> search             # Function search
-search> array           # Search for array functions
+mimir> search             # Function search
+search> array            # Search for array functions
 # Shows Array module and related functions
-search> b               # Back to help menu
+search> b                # Back to help menu
 
-help> 4                 # Examples
-examples> 2             # Array examples
+mimir> 4                 # Examples
+examples> 2              # Array examples
 # Shows complete array manipulation examples
-examples> b             # Back to help menu
+examples> b              # Back to help menu
 
-help> q                 # Quit help system
->>> print("Hello!")     # Back to normal REPL
+mimir> q                 # Quit help system
+
+# Or use command-line for quick lookup
+$ mimir scry print
+# Shows print function documentation
+
+# Then use the REPL for coding
+$ carrion
+>>> print("Hello!")      # Use what you learned
 Hello!
->>> quit               # Exit REPL
+>>> quit                # Exit REPL
 ```
 
 ## Benefits of Interactive Help
@@ -195,4 +215,4 @@ Hello!
 ✅ **Interactive**: Navigate at your own pace  
 ✅ **Contextual**: Get help while coding in REPL  
 
-The interactive help system makes learning and using Carrion much more efficient and enjoyable!
+The Mimir documentation system and REPL integration make learning and using Carrion much more efficient and enjoyable!

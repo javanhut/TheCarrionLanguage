@@ -1,0 +1,20 @@
+#!/usr/bin/env carrion
+
+print("Testing basic time functions...")
+
+# Test 1: timeNow should work
+print("Current timestamp:", timeNow())
+
+# Test 2: timeSleep should work
+print("Sleeping for 0.1 seconds...")
+timeSleep(0.1)
+print("Done sleeping")
+
+# Test 3: Check if parseTime exists
+attempt:
+    parsed = parseTime("2024-01-01T12:00:00Z")
+    print("parseTime works:", type(parsed))
+ensnare:
+    print("parseTime failed or not found")
+
+print("Basic test complete!")

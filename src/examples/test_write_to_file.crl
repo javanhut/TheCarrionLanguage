@@ -1,0 +1,12 @@
+contents = """Here are the contents of a new file called
+example.txt this file shouldnt exist at the time of making but should be readable now.
+"""
+
+# Write to the file
+autoclose File.open("example.txt", "w") as file:
+    file.file_write(contents)
+
+# Read the file back
+autoclose File.open("example.txt", "r") as file:
+    data = file.read_content()
+    print(data)

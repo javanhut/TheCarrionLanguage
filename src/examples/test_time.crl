@@ -1,0 +1,336 @@
+#!/usr/bin/env carrion
+
+"""
+Comprehensive test file for all time functions in Carrion
+Tests both primitive and Instance types
+"""
+
+print("=== Testing Carrion Time Functions ===\n")
+
+# Helper function to test with Integer Instances
+grim IntegerWrapper:
+    init(initial_value):
+        self.value = initial_value
+
+# Test 1: Core Time Functions
+print("1. Core Time Functions")
+print("----------------------")
+
+# Test now() - returns Time object
+time_obj = now()
+print("now() returned Time object:", type(time_obj))
+
+# Test timeNow() - returns Unix timestamp
+timestamp = timeNow()
+print("timeNow() timestamp:", timestamp)
+
+# Test timeNowNano() - returns nanosecond timestamp
+nano_timestamp = timeNowNano()
+print("timeNowNano() nanosecond timestamp:", nano_timestamp)
+
+# Test timeSleep() with different types
+print("\nTesting timeSleep with different types:")
+print("Sleeping for 0.1 seconds...")
+timeSleep(0.1)
+print("Slept with float")
+
+# print("Sleeping with Integer Instance...")
+# wrapped_time = IntegerWrapper(1)  # Pass 1 as integer, not float
+# timeSleep(wrapped_time)
+# print("Slept with Instance")
+
+print()
+
+# Test 2: Parsing and Formatting
+print("2. Parsing and Formatting")
+print("-------------------------")
+
+# Test parseTime
+time_str = "2024-01-01T12:00:00Z"
+parsed_time = parseTime(time_str)
+print("parseTime('", time_str, "'):", type(parsed_time))
+
+# Test parseTime with custom format
+custom_time = parseTime("2024-01-01 15:30:45", "2006-01-02 15:04:05")
+print("parseTime with custom format:", type(custom_time))
+
+# Test timeParse
+unix_ts = timeParse("2006-01-02", "2024-01-01")
+print("timeParse returned timestamp:", unix_ts)
+
+# Test formatTime
+formatted = formatTime(parsed_time, "2006-01-02 15:04:05")
+print("formatTime result:", formatted)
+
+# Test timeFormat with default format
+formatted_ts = timeFormat(timestamp)
+print("timeFormat (default):", formatted_ts)
+
+# Test timeFormat with custom format
+formatted_custom = timeFormat(timestamp, "Jan 2, 2006")
+print("timeFormat (custom):", formatted_custom)
+
+# Test with Integer Instance
+wrapped_ts = IntegerWrapper(timestamp)
+formatted_instance = timeFormat(wrapped_ts, "2006-01-02")
+print("timeFormat with Instance:", formatted_instance)
+
+print()
+
+# Test 3: Duration Calculations
+print("3. Duration Calculations")
+print("------------------------")
+
+# Test timeSince
+past_timestamp = timestamp - 3600  # 1 hour ago
+elapsed = timeSince(past_timestamp)
+print("timeSince (1 hour ago):", type(elapsed))
+
+# Test with Instance (commented out)
+# wrapped_past = IntegerWrapper(past_timestamp)
+# elapsed_instance = timeSince(wrapped_past)
+# print("timeSince with Instance:", type(elapsed_instance))
+
+# Test timeUntil
+future_timestamp = timestamp + 3600  # 1 hour from now
+remaining = timeUntil(future_timestamp)
+print("timeUntil (1 hour ahead):", type(remaining))
+
+# Test addDuration
+dur = seconds(30)
+new_time = addDuration(time_obj, dur)
+print("addDuration result:", type(new_time))
+
+# Test timeAddDuration
+new_timestamp = timeAddDuration(timestamp, 3600)
+print("timeAddDuration (add 1 hour):", new_timestamp - timestamp, "seconds added")
+
+# Test with Instances (commented out)
+# wrapped_ts1 = IntegerWrapper(timestamp)
+# wrapped_dur = IntegerWrapper(1800)
+# new_ts_instance = timeAddDuration(wrapped_ts1, wrapped_dur)
+# print("timeAddDuration with Instances:", new_ts_instance - timestamp, "seconds added")
+
+# Test timeDiff
+diff = timeDiff(future_timestamp, timestamp)
+print("timeDiff (timestamps):", diff, "seconds")
+
+# Test with Instances (commented out)
+# wrapped_future = IntegerWrapper(future_timestamp)
+# wrapped_current = IntegerWrapper(timestamp)
+# diff_instance = timeDiff(wrapped_future, wrapped_current)
+# print("timeDiff with Instances:", diff_instance, "seconds")
+
+print()
+
+# Test 4: Date Components
+print("4. Date Components")
+print("------------------")
+
+# Test timeDate
+date_components = timeDate()
+print("timeDate() current:", date_components)
+
+# Test with timestamp
+date_from_ts = timeDate(timestamp)
+print("timeDate(timestamp):", date_from_ts)
+
+# Test with Instance (commented out)
+# wrapped_date_ts = IntegerWrapper(timestamp)
+# date_from_instance = timeDate(wrapped_date_ts)
+# print("timeDate with Instance:", date_from_instance)
+
+# Test individual component functions
+print("\nTesting component functions on current time:")
+print("year:", year(time_obj))
+print("month:", month(time_obj))
+print("day:", day(time_obj))
+print("weekday:", weekday(time_obj), "(0=Sunday)")
+print("hour:", hour(time_obj))
+print("minute:", minute(time_obj))
+print("second:", second(time_obj))
+
+print()
+
+# Test 5: Duration Creation
+print("5. Duration Creation")
+print("--------------------")
+
+# Test with integers
+dur_sec = seconds(30)
+print("seconds(30):", type(dur_sec))
+
+dur_min = minutes(5)
+print("minutes(5):", type(dur_min))
+
+dur_hr = hours(2)
+print("hours(2):", type(dur_hr))
+
+dur_ms = milliseconds(500)
+print("milliseconds(500):", type(dur_ms))
+
+# Test with floats
+dur_sec_float = seconds(1.5)
+print("seconds(1.5):", type(dur_sec_float))
+
+# Test with Instances (commented out)
+# wrapped_30 = IntegerWrapper(30)
+# dur_instance = seconds(wrapped_30)
+# print("seconds with Instance:", type(dur_instance))
+
+print()
+
+# Test 6: Duration Conversion
+print("6. Duration Conversion")
+print("----------------------")
+
+test_dur = minutes(2.5)  # 2.5 minutes = 150 seconds
+print("Test duration: 2.5 minutes")
+print("durationToSeconds:", durationToSeconds(test_dur), "seconds")
+print("durationToMinutes:", durationToMinutes(test_dur), "minutes")
+print("durationToHours:", durationToHours(test_dur), "hours")
+print("durationToMilliseconds:", durationToMilliseconds(test_dur), "milliseconds")
+
+print()
+
+# Test 7: Time Comparison
+print("7. Time Comparison")
+print("------------------")
+
+time1 = parseTime("2024-01-01T00:00:00Z")
+time2 = parseTime("2024-01-02T00:00:00Z")
+time3 = parseTime("2024-01-01T00:00:00Z")
+
+print("time1: 2024-01-01, time2: 2024-01-02")
+print("timeBefore(time1, time2):", timeBefore(time1, time2))
+print("timeAfter(time1, time2):", timeAfter(time1, time2))
+print("timeEqual(time1, time3):", timeEqual(time1, time3))
+print("timeEqual(time1, time2):", timeEqual(time1, time2))
+
+print()
+
+# Test 8: Unix Timestamp Operations
+print("8. Unix Timestamp Operations")
+print("----------------------------")
+
+# Test unix conversions
+unix_ts = unix(time_obj)
+print("unix(now()):", unix_ts)
+
+unix_nano = unixNano(time_obj)
+print("unixNano(now()):", unix_nano)
+
+# Test fromUnix
+reconstructed = fromUnix(unix_ts)
+print("fromUnix result:", type(reconstructed))
+
+# Test with Instance (commented out)
+# wrapped_unix = IntegerWrapper(unix_ts)
+# reconstructed_instance = fromUnix(wrapped_unix)
+# print("fromUnix with Instance:", type(reconstructed_instance))
+
+# Test fromUnixNano
+reconstructed_nano = fromUnixNano(unix_nano)
+print("fromUnixNano result:", type(reconstructed_nano))
+
+print()
+
+# Test 9: Timezone Operations
+print("9. Timezone Operations")
+print("----------------------")
+
+# Test timezone conversions
+utc_time = utc(time_obj)
+print("utc() conversion:", type(utc_time))
+
+local_time = local(time_obj)
+print("local() conversion:", type(local_time))
+
+# Test inLocation
+attempt:
+    ny_time = inLocation(time_obj, "America/New_York")
+    print("inLocation (New York):", formatTime(ny_time, "15:04:05 MST"))
+ensnare:
+    print("inLocation error: timezone conversion failed")
+
+attempt:
+    tokyo_time = inLocation(time_obj, "Asia/Tokyo")
+    print("inLocation (Tokyo):", formatTime(tokyo_time, "15:04:05 MST"))
+ensnare:
+    print("inLocation error: timezone conversion failed")
+
+print()
+
+# Test 10: Time Grimoire Convenience Functions (commented out for now)
+# print("10. Time Grimoire Convenience Functions")
+# print("---------------------------------------")
+
+# import "munin/time"
+
+# time_grim = Time()
+
+# # Test grimoire methods
+# print("Testing Time grimoire methods:")
+# grim_timestamp = time_grim.now_timestamp()
+# print("Time.now_timestamp():", grim_timestamp)
+
+# print("Time.format_timestamp():", time_grim.format_timestamp(grim_timestamp))
+
+# # Test duration creation through grimoire
+# grim_dur = time_grim.seconds(10)
+# print("Time.seconds(10):", type(grim_dur))
+
+# # Test parsing through grimoire
+# grim_parsed = time_grim.parse("2024-06-15T10:30:00Z")
+# print("Time.parse():", type(grim_parsed))
+
+print()
+
+# Test 11: Edge Cases and Error Handling
+print("11. Edge Cases and Error Handling")
+print("---------------------------------")
+
+# Test negative sleep (should error)
+attempt:
+    timeSleep(-1)
+ensnare:
+    print("Negative sleep caught: duration cannot be negative")
+
+# Test invalid format
+attempt:
+    bad_parse = timeParse("invalid", "not-a-date")
+ensnare:
+    print("Invalid parse caught: failed to parse time")
+
+# Test type mismatches
+attempt:
+    timeFormat("not-a-number")
+ensnare:
+    print("Type mismatch caught: first argument must be INTEGER")
+
+print()
+
+# Test 12: Complex Duration Math
+print("12. Complex Duration Math")
+print("-------------------------")
+
+# Create various durations
+d1 = hours(1)
+d2 = minutes(30)
+d3 = seconds(45)
+
+# Add durations to time
+start_time = now()
+time_plus_1h = addDuration(start_time, d1)
+time_plus_1h30m = addDuration(time_plus_1h, d2)
+final_time = addDuration(time_plus_1h30m, d3)
+
+print("Added 1h + 30m + 45s to current time")
+print("Start:", formatTime(start_time, "15:04:05"))
+print("Final:", formatTime(final_time, "15:04:05"))
+
+# Calculate total duration
+total_seconds = durationToSeconds(d1) + durationToSeconds(d2) + durationToSeconds(d3)
+print("Total duration:", total_seconds, "seconds")
+
+print("\n=== All Time Function Tests Complete ===")

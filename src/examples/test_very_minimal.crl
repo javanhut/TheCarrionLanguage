@@ -1,0 +1,17 @@
+#!/usr/bin/env carrion
+
+print("=== Very Minimal Time Test ===")
+
+# Test only the most basic functions
+current = timeNow()
+print("Current timestamp:", current)
+
+# Test only duration creation
+dur = seconds(5)
+print("Duration created, type:", type(dur))
+
+# Test conversion
+secs = durationToSeconds(dur)
+print("Duration in seconds:", secs)
+
+print("=== Very minimal test complete ===")

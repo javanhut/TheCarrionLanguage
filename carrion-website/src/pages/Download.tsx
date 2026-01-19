@@ -191,14 +191,14 @@ interface VersionInfo {
 }
 
 const Download: React.FC = () => {
-  const [selectedVersion, setSelectedVersion] = useState('v0.1.8');
+  const [selectedVersion, setSelectedVersion] = useState('v0.1.9');
   const [selectedOS, setSelectedOS] = useState('');
   const [detectedOS, setDetectedOS] = useState('');
   const [downloadUrl, setDownloadUrl] = useState('');
   const [installCommand, setInstallCommand] = useState('');
 
   const versions: VersionInfo[] = [
-    { version: 'v0.1.8', isLatest: true, releaseDate: '2025-07-20', changelog: 'Sindri Testing Framework, Mimir Documentation System, Bifrost Package Manager, Static Methods, Critical Bug Fixes' },
+    { version: 'v0.1.9', isLatest: true, releaseDate: '2025-07-20', changelog: 'Sindri Testing Framework, Mimir Documentation System, Bifrost Package Manager, Static Methods, Critical Bug Fixes' },
     { version: 'v0.1.7', isLatest: false, releaseDate: '2025-06-15', changelog: 'Multi-level inheritance fixes and API improvements' },
     { version: 'v0.1.6', isLatest: false, releaseDate: '2024-01-15', changelog: 'String indexing and standard library enhancements' },
     { version: 'v0.1.5', isLatest: false, releaseDate: '2024-01-10', changelog: 'Stable release with core features' },
@@ -328,7 +328,7 @@ carrion
         
         {detectedOS && (
           <DetectedOS>
-            🖥️ Detected OS: <strong>{getOSLabel(detectedOS)}</strong>
+            Detected OS: <strong>{getOSLabel(detectedOS)}</strong>
           </DetectedOS>
         )}
 
@@ -365,7 +365,7 @@ carrion
             <ControlGroup>
               <Label>&nbsp;</Label>
               <DownloadButton onClick={handleDownload} disabled={!downloadUrl}>
-                📥 Download {selectedVersion}
+                Download {selectedVersion}
               </DownloadButton>
             </ControlGroup>
           </ControlsRow>
@@ -405,7 +405,7 @@ carrion
           </InstallInstructions>
 
           <InstallInstructions>
-            <h3>🐳 Docker Alternative:</h3>
+            <h3>Docker Alternative:</h3>
             <SyntaxHighlighter 
               language="bash" 
               style={atomOneDark}
@@ -453,7 +453,7 @@ docker run -it javanhut/carrionlanguage:${selectedVersion === 'v0.1.6' ? 'latest
       <DownloadSection>
         <SectionTitle>Alternative Installation Methods</SectionTitle>
         
-        <h3>📦 One-Line Installer (Linux/macOS)</h3>
+        <h3>One-Line Installer (Linux/macOS)</h3>
         <SyntaxHighlighter language="bash" style={atomOneDark}>
 {`# Using curl
 curl -fsSL https://raw.githubusercontent.com/javanhut/TheCarrionLanguage/main/install/install.sh | sh
@@ -462,7 +462,7 @@ curl -fsSL https://raw.githubusercontent.com/javanhut/TheCarrionLanguage/main/in
 wget -qO- https://raw.githubusercontent.com/javanhut/TheCarrionLanguage/main/install/install.sh | sh`}
         </SyntaxHighlighter>
 
-        <h3>🐳 Docker</h3>
+        <h3>Docker</h3>
         <SyntaxHighlighter language="bash" style={atomOneDark}>
 {`# Pull latest version
 docker pull javanhut/carrionlanguage:latest
@@ -477,7 +477,7 @@ docker run -it javanhut/carrionlanguage:0.1.6
 # Available tags: latest, 0.1.6, 0.1.5, 0.1.4, 0.1.3, 0.1.2, 0.1.1, 0.1.0`}
         </SyntaxHighlighter>
 
-        <h3>📋 Package Managers (Coming Soon)</h3>
+        <h3>Package Managers (Coming Soon)</h3>
         <p>We're working on adding Carrion to popular package managers:</p>
         <ul>
           <li>Homebrew (macOS/Linux)</li>

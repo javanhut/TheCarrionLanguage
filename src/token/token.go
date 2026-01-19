@@ -12,11 +12,12 @@ type Token struct {
 }
 
 const (
-	ILLEGAL TokenType = "ILLEGAL"
-	EOF     TokenType = "EOF"
-	NEWLINE TokenType = "NEWLINE"
-	INDENT  TokenType = "INDENT"
-	DEDENT  TokenType = "DEDENT"
+	ILLEGAL      TokenType = "ILLEGAL"
+	EOF          TokenType = "EOF"
+	NEWLINE      TokenType = "NEWLINE"
+	INDENT       TokenType = "INDENT"
+	DEDENT       TokenType = "DEDENT"
+	INDENT_ERROR TokenType = "INDENT_ERROR"
 
 	// Identifiers and Literals
 	IDENT     TokenType = "IDENT"
@@ -70,6 +71,8 @@ const (
 	LBRACK     TokenType = "["
 	RBRACK     TokenType = "]"
 	UNDERSCORE TokenType = "_"
+	ARROW      TokenType = "->"
+	UNPACK     TokenType = "<-"
 
 	// Keywords
 	VAR         TokenType = "VAR"
@@ -110,6 +113,9 @@ const (
 	NOT_IN      TokenType = "NOT_IN"
 	MAIN        TokenType = "MAIN"
 	GLOBAL      TokenType = "GLOBAL"
+	AUTOCLOSE   TokenType = "AUTOCLOSE"
+	DIVERGE     TokenType = "DIVERGE"
+	CONVERGE    TokenType = "CONVERGE"
 )
 
 var keywords = map[string]TokenType{
@@ -148,7 +154,9 @@ var keywords = map[string]TokenType{
 	"not in":      NOT_IN,
 	"main":        MAIN,
 	"global":      GLOBAL,
-
+	"autoclose":   AUTOCLOSE,
+	"diverge":     DIVERGE,
+	"converge":    CONVERGE,
 	//"range":     RANGE,
 	"None": NONE,
 }

@@ -1,0 +1,60 @@
+#!/usr/bin/env carrion
+
+print("=== Testing Comprehensive Time Grimoire ===")
+
+# Test creating a Time grimoire instance
+time_grim = Time()
+print("Time grimoire created")
+
+# Test core methods
+print("\n1. Core Methods:")
+current_time = time_grim.now()
+print("time_grim.now():", type(current_time))
+
+current_ts = time_grim.now_timestamp()
+print("time_grim.now_timestamp():", current_ts)
+
+current_nano = time_grim.now_nano()
+print("time_grim.now_nano():", current_nano)
+
+# Test duration creation
+print("\n2. Duration Creation:")
+dur_sec = time_grim.seconds(30)
+print("time_grim.seconds(30):", type(dur_sec))
+
+dur_min = time_grim.minutes(5)
+print("time_grim.minutes(5):", type(dur_min))
+
+# Test duration conversion
+print("\n3. Duration Conversion:")
+seconds_val = time_grim.duration_to_seconds(dur_min)
+print("time_grim.duration_to_seconds(5 minutes):", seconds_val)
+
+# Test Unix operations
+print("\n4. Unix Operations:")
+time_obj = time_grim.from_unix(current_ts)
+print("time_grim.from_unix():", type(time_obj))
+
+unix_back = time_grim.unix(time_obj)
+print("time_grim.unix():", unix_back)
+
+# Test date operations
+print("\n5. Date Operations:")
+date_parts = time_grim.date()
+print("time_grim.date():", date_parts)
+
+year_val = time_grim.year(time_obj)
+print("time_grim.year():", year_val)
+
+# Test comparison
+print("\n6. Time Comparison:")
+future_obj = time_grim.from_unix(current_ts + 3600)
+is_before = time_grim.before(time_obj, future_obj)
+print("time_grim.before():", is_before)
+
+# Test timezone operations
+print("\n7. Timezone Operations:")
+utc_time = time_grim.utc(time_obj)
+print("time_grim.utc():", type(utc_time))
+
+print("\n=== Comprehensive grimoire test complete ===")

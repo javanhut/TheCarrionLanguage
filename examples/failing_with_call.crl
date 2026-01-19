@@ -1,0 +1,4 @@
+spell appraise_failing():
+    check(1 == 2)
+
+appraise_failing()

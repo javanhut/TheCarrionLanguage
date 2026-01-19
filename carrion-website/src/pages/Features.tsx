@@ -2,6 +2,7 @@ import React from 'react';
 import styled from 'styled-components';
 import { Light as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomOneDark } from 'react-syntax-highlighter/dist/esm/styles/hljs';
+import { Link } from 'react-router-dom';
 
 const Container = styled.div`
   max-width: 1200px;
@@ -12,204 +13,319 @@ const Container = styled.div`
 
 const Header = styled.div`
   text-align: center;
-  margin-bottom: 4rem;
+  margin-bottom: 5rem;
 `;
 
 const Title = styled.h1`
-  font-size: 3.5rem;
-  margin-bottom: 1rem;
-  background: ${({ theme }) => theme.gradients.primary};
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  font-size: 3rem;
+  margin-bottom: 1.5rem;
+  color: ${({ theme }) => theme.colors.text.primary};
+  font-weight: 700;
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.mobile}) {
+    font-size: 2.25rem;
+  }
 `;
 
 const Subtitle = styled.p`
-  font-size: 1.4rem;
+  font-size: 1.25rem;
   color: ${({ theme }) => theme.colors.text.secondary};
-  max-width: 600px;
+  max-width: 650px;
   margin: 0 auto;
-  line-height: 1.6;
+  line-height: 1.7;
 `;
 
 const Section = styled.section`
-  margin-bottom: 4rem;
+  margin-bottom: 5rem;
+`;
+
+const SectionHeader = styled.div`
+  margin-bottom: 2.5rem;
 `;
 
 const SectionTitle = styled.h2`
-  color: ${({ theme }) => theme.colors.primary};
-  margin-bottom: 2rem;
-  font-size: 2.5rem;
-  text-align: center;
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: ${({ theme }) => theme.colors.text.primary};
+  margin-bottom: 0.75rem;
 `;
 
-const SubSectionTitle = styled.h3`
-  color: ${({ theme }) => theme.colors.text.primary};
-  margin-bottom: 1.5rem;
-  font-size: 1.8rem;
+const SectionDescription = styled.p`
+  font-size: 1.05rem;
+  color: ${({ theme }) => theme.colors.text.secondary};
+  max-width: 600px;
 `;
 
 const FeatureGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-  gap: 2rem;
-  margin-bottom: 3rem;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.tablet}) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.mobile}) {
+    grid-template-columns: 1fr;
+  }
 `;
 
 const FeatureCard = styled.div`
   background: ${({ theme }) => theme.colors.background.secondary};
   border: 1px solid ${({ theme }) => theme.colors.border};
-  border-radius: 15px;
-  padding: 2rem;
-  transition: all ${({ theme }) => theme.transitions.normal};
+  border-radius: 12px;
+  padding: 1.75rem;
+  transition: all 0.2s ease;
 
   &:hover {
     border-color: ${({ theme }) => theme.colors.primary};
-    transform: translateY(-5px);
-    box-shadow: ${({ theme }) => theme.shadows.large};
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
   }
 `;
 
 const FeatureIcon = styled.div`
-  font-size: 3rem;
+  width: 40px;
+  height: 40px;
+  background: rgba(6, 182, 212, 0.1);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin-bottom: 1rem;
+  color: ${({ theme }) => theme.colors.primary};
+  font-size: 1.25rem;
 `;
 
 const FeatureTitle = styled.h3`
-  color: ${({ theme }) => theme.colors.primary};
-  margin-bottom: 1rem;
-  font-size: 1.4rem;
+  color: ${({ theme }) => theme.colors.text.primary};
+  margin-bottom: 0.5rem;
+  font-size: 1.1rem;
+  font-weight: 600;
 `;
 
 const FeatureDescription = styled.p`
   color: ${({ theme }) => theme.colors.text.secondary};
   line-height: 1.6;
+  font-size: 0.95rem;
 `;
 
-const ComparisonTable = styled.div`
+const HighlightSection = styled.div`
   background: ${({ theme }) => theme.colors.background.secondary};
   border: 1px solid ${({ theme }) => theme.colors.border};
-  border-radius: 15px;
-  overflow: hidden;
-  margin: 2rem 0;
+  border-radius: 16px;
+  padding: 3rem;
+  margin-bottom: 5rem;
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.mobile}) {
+    padding: 2rem;
+  }
 `;
 
-const TableRow = styled.div<{ header?: boolean }>`
+const HighlightGrid = styled.div`
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  background: ${({ header, theme }) => header ? theme.colors.background.tertiary : 'transparent'};
-  
-  &:not(:last-child) {
-    border-bottom: 1px solid ${({ theme }) => theme.colors.border};
+  grid-template-columns: 1fr 1fr;
+  gap: 3rem;
+  align-items: center;
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.tablet}) {
+    grid-template-columns: 1fr;
+    gap: 2rem;
   }
 `;
 
-const TableCell = styled.div<{ header?: boolean }>`
-  padding: 1rem 1.5rem;
-  color: ${({ header, theme }) => header ? theme.colors.primary : theme.colors.text.primary};
-  font-weight: ${({ header }) => header ? '600' : 'normal'};
-  border-right: 1px solid ${({ theme }) => theme.colors.border};
+const HighlightContent = styled.div``;
 
-  &:last-child {
-    border-right: none;
-  }
-
-  code {
-    background: ${({ theme }) => theme.colors.background.primary};
-    padding: 0.2rem 0.4rem;
-    border-radius: 4px;
-    font-size: 0.9rem;
-  }
+const HighlightTitle = styled.h2`
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: ${({ theme }) => theme.colors.text.primary};
+  margin-bottom: 1rem;
 `;
 
-const CodeComparison = styled.div`
+const HighlightText = styled.p`
+  color: ${({ theme }) => theme.colors.text.secondary};
+  line-height: 1.7;
+  margin-bottom: 1.5rem;
+`;
+
+const CodeBlock = styled.div`
+  border-radius: 10px;
+  overflow: hidden;
+  background: #1a1b26;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+`;
+
+const ComparisonSection = styled.div`
+  margin-bottom: 5rem;
+`;
+
+const ComparisonGrid = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 2rem;
-  margin: 2rem 0;
 
   @media (max-width: ${({ theme }) => theme.breakpoints.tablet}) {
     grid-template-columns: 1fr;
   }
 `;
 
-const CodeBlock = styled.div`
-  background: ${({ theme }) => theme.colors.background.tertiary};
+const ComparisonCard = styled.div`
+  background: ${({ theme }) => theme.colors.background.secondary};
   border: 1px solid ${({ theme }) => theme.colors.border};
-  border-radius: 10px;
+  border-radius: 12px;
   overflow: hidden;
 `;
 
-const CodeHeader = styled.div`
-  background: ${({ theme }) => theme.colors.background.secondary};
+const ComparisonHeader = styled.div`
   padding: 1rem 1.5rem;
   border-bottom: 1px solid ${({ theme }) => theme.colors.border};
   font-weight: 600;
-  color: ${({ theme }) => theme.colors.primary};
+  color: ${({ theme }) => theme.colors.text.primary};
+  background: ${({ theme }) => theme.colors.background.tertiary};
 `;
 
-const KeywordList = styled.ul`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-  list-style: none;
-  margin: 2rem 0;
-`;
-
-const KeywordItem = styled.li`
+const KeywordTable = styled.div`
   background: ${({ theme }) => theme.colors.background.secondary};
   border: 1px solid ${({ theme }) => theme.colors.border};
-  border-radius: 8px;
-  padding: 1rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  border-radius: 12px;
+  overflow: hidden;
 `;
 
-const Keyword = styled.code`
+const KeywordRow = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr 2fr;
+  border-bottom: 1px solid ${({ theme }) => theme.colors.border};
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.mobile}) {
+    grid-template-columns: 1fr 1fr;
+  }
+`;
+
+const KeywordCell = styled.div<{ $header?: boolean }>`
+  padding: 0.875rem 1.25rem;
+  font-size: 0.95rem;
+  color: ${({ theme, $header }) => $header ? theme.colors.text.primary : theme.colors.text.secondary};
+  font-weight: ${({ $header }) => $header ? '600' : 'normal'};
+  background: ${({ theme, $header }) => $header ? theme.colors.background.tertiary : 'transparent'};
+
+  code {
+    background: rgba(6, 182, 212, 0.1);
+    color: ${({ theme }) => theme.colors.primary};
+    padding: 0.15rem 0.4rem;
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9em;
+  }
+
+  &:nth-child(3) {
+    @media (max-width: ${({ theme }) => theme.breakpoints.mobile}) {
+      display: none;
+    }
+  }
+`;
+
+const StatGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 4rem;
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.tablet}) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+`;
+
+const StatCard = styled.div`
+  text-align: center;
+  padding: 1.5rem;
+  background: ${({ theme }) => theme.colors.background.secondary};
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: 12px;
+`;
+
+const StatValue = styled.div`
+  font-size: 2rem;
+  font-weight: 700;
   color: ${({ theme }) => theme.colors.primary};
-  font-weight: 600;
+  margin-bottom: 0.5rem;
 `;
 
-const Arrow = styled.span`
+const StatLabel = styled.div`
+  font-size: 0.9rem;
   color: ${({ theme }) => theme.colors.text.secondary};
-  margin: 0 0.5rem;
 `;
 
-const Translation = styled.span`
+const CTASection = styled.div`
+  text-align: center;
+  padding: 3rem;
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: 16px;
+`;
+
+const CTATitle = styled.h2`
+  font-size: 1.75rem;
+  font-weight: 600;
   color: ${({ theme }) => theme.colors.text.primary};
+  margin-bottom: 1rem;
+`;
+
+const CTAText = styled.p`
+  color: ${({ theme }) => theme.colors.text.secondary};
+  margin-bottom: 2rem;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+`;
+
+const CTAButtons = styled.div`
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+`;
+
+const PrimaryButton = styled(Link)`
+  padding: 0.875rem 2rem;
+  background: ${({ theme }) => theme.colors.primary};
+  color: white;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.2s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(6, 182, 212, 0.4);
+  }
+`;
+
+const SecondaryButton = styled(Link)`
+  padding: 0.875rem 2rem;
+  background: transparent;
+  color: ${({ theme }) => theme.colors.text.primary};
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: ${({ theme }) => theme.colors.primary};
+    color: ${({ theme }) => theme.colors.primary};
+  }
 `;
 
 const Features: React.FC = () => {
-  const pythonExample = `# Python
-class Animal:
-    def __init__(self, name):
-        self.name = name
-    
-    def speak(self):
-        return f"{self.name} makes a sound"
-
-class Dog(Animal):
-    def __init__(self, name, breed):
-        super().__init__(name)
-        self.breed = breed
-    
-    def speak(self):
-        return f"{self.name} barks"
-
-# Error handling
-try:
-    risky_operation()
-except SpecificError:
-    handle_error()
-finally:
-    cleanup()`;
-
-  const carrionExample = `# Carrion
-grim Animal:
+  const carrionExample = `grim Animal:
     init(name):
         self.name = name
-    
+
     spell speak():
         return f"{self.name} makes a sound"
 
@@ -217,7 +333,7 @@ grim Dog(Animal):
     init(name, breed):
         super.init(name)
         self.breed = breed
-    
+
     spell speak():
         return f"{self.name} barks"
 
@@ -234,415 +350,324 @@ resolve:
       <Header>
         <Title>Language Features</Title>
         <Subtitle>
-          Discover what makes Carrion unique - a powerful programming language 
-          that combines familiar syntax with magical terminology and advanced features.
+          A modern, dynamically-typed language built for clarity and productivity.
+          Familiar syntax with powerful capabilities.
         </Subtitle>
       </Header>
 
-      <Section>
-        <SectionTitle>Core Language Features</SectionTitle>
-        <FeatureGrid>
-          <FeatureCard>
-            <FeatureIcon>🧙‍♂️</FeatureIcon>
-            <FeatureTitle>Magical Syntax</FeatureTitle>
-            <FeatureDescription>
-              Transform mundane programming concepts into magical terminology.
-              Classes become "grimoires", methods become "spells", and error handling
-              uses mystical keywords like "attempt" and "ensnare".
-            </FeatureDescription>
-          </FeatureCard>
+      <StatGrid>
+        <StatCard>
+          <StatValue>v0.1.9</StatValue>
+          <StatLabel>Latest Release</StatLabel>
+        </StatCard>
+        <StatCard>
+          <StatValue>Go</StatValue>
+          <StatLabel>Built With</StatLabel>
+        </StatCard>
+        <StatCard>
+          <StatValue>3</StatValue>
+          <StatLabel>Platforms</StatLabel>
+        </StatCard>
+        <StatCard>
+          <StatValue>MIT</StatValue>
+          <StatLabel>License</StatLabel>
+        </StatCard>
+      </StatGrid>
 
-          <FeatureCard>
-            <FeatureIcon>🏗️</FeatureIcon>
-            <FeatureTitle>Object-Oriented Programming</FeatureTitle>
-            <FeatureDescription>
-              Full OOP support with classes, inheritance, encapsulation, polymorphism,
-              and abstraction. Create complex hierarchies with clean, readable syntax.
-            </FeatureDescription>
-          </FeatureCard>
-
-          <FeatureCard>
-            <FeatureIcon>🔥</FeatureIcon>
-            <FeatureTitle>Dynamic Typing</FeatureTitle>
-            <FeatureDescription>
-              Write code faster with dynamic typing while maintaining type safety
-              through runtime checks and comprehensive error reporting.
-            </FeatureDescription>
-          </FeatureCard>
-
-          <FeatureCard>
-            <FeatureIcon>⚡</FeatureIcon>
-            <FeatureTitle>Built in Go</FeatureTitle>
-            <FeatureDescription>
-              Leverages Go's performance and reliability for the interpreter,
-              providing fast execution and excellent concurrency capabilities.
-            </FeatureDescription>
-          </FeatureCard>
-
-          <FeatureCard>
-            <FeatureIcon>📚</FeatureIcon>
-            <FeatureTitle>Rich Standard Library</FeatureTitle>
-            <FeatureDescription>
-              "Munin" standard library provides enhanced collections, file I/O,
-              math functions, OS interface, and debugging utilities out of the box.
-            </FeatureDescription>
-          </FeatureCard>
-
-          <FeatureCard>
-            <FeatureIcon>🛡️</FeatureIcon>
-            <FeatureTitle>Robust Error Handling</FeatureTitle>
-            <FeatureDescription>
-              Comprehensive error handling with magical keywords and detailed
-              error reporting that pinpoints issues with file and line information.
-            </FeatureDescription>
-          </FeatureCard>
-        </FeatureGrid>
-      </Section>
-
-      <Section>
-        <SectionTitle>Developer Tooling Ecosystem (v0.1.8)</SectionTitle>
-        <FeatureGrid>
-          <FeatureCard>
-            <FeatureIcon>🧪</FeatureIcon>
-            <FeatureTitle>Sindri Testing Framework</FeatureTitle>
-            <FeatureDescription>
-              Comprehensive testing with automatic test discovery, colored terminal output,
-              and flexible assertions. Write tests using the "appraise" naming convention
-              and the built-in <code>check()</code> function for validating code behavior.
-            </FeatureDescription>
-          </FeatureCard>
-
-          <FeatureCard>
-            <FeatureIcon>📖</FeatureIcon>
-            <FeatureTitle>Mimir Documentation System</FeatureTitle>
-            <FeatureDescription>
-              Interactive documentation browser and command-line help system. Access
-              comprehensive documentation for built-in functions, standard library modules,
-              and language features with instant lookup via <code>mimir scry</code>.
-            </FeatureDescription>
-          </FeatureCard>
-
-          <FeatureCard>
-            <FeatureIcon>🌉</FeatureIcon>
-            <FeatureTitle>Bifrost Package Manager</FeatureTitle>
-            <FeatureDescription>
-              Integrated package management for the growing Carrion ecosystem. Install,
-              manage, and distribute packages seamlessly with Git submodule integration
-              and comprehensive dependency resolution.
-            </FeatureDescription>
-          </FeatureCard>
-
-          <FeatureCard>
-            <FeatureIcon>🔧</FeatureIcon>
-            <FeatureTitle>Static Method Support</FeatureTitle>
-            <FeatureDescription>
-              Grimoires now support static method calls for cleaner APIs. Access File and
-              OS operations through unified grimoire interfaces like <code>File.read()</code>
-              and <code>OS.cwd()</code> for more intuitive code organization.
-            </FeatureDescription>
-          </FeatureCard>
-
-          <FeatureCard>
-            <FeatureIcon>🐛</FeatureIcon>
-            <FeatureTitle>Critical Bug Fixes</FeatureTitle>
-            <FeatureDescription>
-              Fixed multi-level inheritance infinite recursion, string concatenation type
-              issues, and variable resolution precedence. Ensures stable, reliable code
-              execution across complex inheritance hierarchies.
-            </FeatureDescription>
-          </FeatureCard>
-
-          <FeatureCard>
-            <FeatureIcon>📦</FeatureIcon>
-            <FeatureTitle>Enhanced Module System</FeatureTitle>
-            <FeatureDescription>
-              Improved import resolution with support for local files, project packages,
-              user packages, global packages, and the standard library. Seamless integration
-              with Bifrost for external dependencies.
-            </FeatureDescription>
-          </FeatureCard>
-
-          <FeatureCard>
-            <FeatureIcon>🎯</FeatureIcon>
-            <FeatureTitle>Selective Imports</FeatureTitle>
-            <FeatureDescription>
-              Import specific grimoires or spells from modules using dot notation:
-              <code>import "module.GrimoireName"</code> or <code>import "module.spell_name"</code>.
-              Supports both class and function selective imports for cleaner namespace management.
-            </FeatureDescription>
-          </FeatureCard>
-
-          <FeatureCard>
-            <FeatureIcon>✨</FeatureIcon>
-            <FeatureTitle>Improved REPL Experience</FeatureTitle>
-            <FeatureDescription>
-              Enhanced REPL with smarter output display - assignment statements and function
-              definitions don't clutter your screen. Only expression results and function call
-              outputs are displayed for a cleaner interactive experience.
-            </FeatureDescription>
-          </FeatureCard>
-
-          <FeatureCard>
-            <FeatureIcon>🔧</FeatureIcon>
-            <FeatureTitle>Tuple Handling Refinements</FeatureTitle>
-            <FeatureDescription>
-              More predictable tuple behavior in function calls and assignments. Removed
-              automatic tuple unpacking to prevent unexpected behavior and provide more
-              explicit control over tuple operations.
-            </FeatureDescription>
-          </FeatureCard>
-        </FeatureGrid>
-      </Section>
-
-      <Section>
-        <SectionTitle>Magical Keywords Translation</SectionTitle>
-        <p style={{ textAlign: 'center', marginBottom: '2rem', color: '#8892b0' }}>
-          Carrion transforms traditional programming concepts into magical terminology:
-        </p>
-        <KeywordList>
-          <KeywordItem>
-            <Keyword>grim</Keyword>
-            <Arrow>→</Arrow>
-            <Translation>class</Translation>
-          </KeywordItem>
-          <KeywordItem>
-            <Keyword>spell</Keyword>
-            <Arrow>→</Arrow>
-            <Translation>method/function</Translation>
-          </KeywordItem>
-          <KeywordItem>
-            <Keyword>attempt</Keyword>
-            <Arrow>→</Arrow>
-            <Translation>try</Translation>
-          </KeywordItem>
-          <KeywordItem>
-            <Keyword>ensnare</Keyword>
-            <Arrow>→</Arrow>
-            <Translation>catch/except</Translation>
-          </KeywordItem>
-          <KeywordItem>
-            <Keyword>resolve</Keyword>
-            <Arrow>→</Arrow>
-            <Translation>finally</Translation>
-          </KeywordItem>
-          <KeywordItem>
-            <Keyword>skip</Keyword>
-            <Arrow>→</Arrow>
-            <Translation>continue</Translation>
-          </KeywordItem>
-          <KeywordItem>
-            <Keyword>stop</Keyword>
-            <Arrow>→</Arrow>
-            <Translation>break</Translation>
-          </KeywordItem>
-          <KeywordItem>
-            <Keyword>otherwise</Keyword>
-            <Arrow>→</Arrow>
-            <Translation>elif</Translation>
-          </KeywordItem>
-          <KeywordItem>
-            <Keyword>arcane grim</Keyword>
-            <Arrow>→</Arrow>
-            <Translation>abstract class</Translation>
-          </KeywordItem>
-          <KeywordItem>
-            <Keyword>Munin</Keyword>
-            <Arrow>→</Arrow>
-            <Translation>Standard Library</Translation>
-          </KeywordItem>
-          <KeywordItem>
-            <Keyword>Mimir</Keyword>
-            <Arrow>→</Arrow>
-            <Translation>Interactive Help</Translation>
-          </KeywordItem>
-          <KeywordItem>
-            <Keyword>.crl</Keyword>
-            <Arrow>→</Arrow>
-            <Translation>File Extension</Translation>
-          </KeywordItem>
-        </KeywordList>
-      </Section>
-
-      <Section>
-        <SectionTitle>Carrion vs Python</SectionTitle>
-        <p style={{ textAlign: 'center', marginBottom: '2rem', color: '#8892b0' }}>
-          While Carrion shares Python's accessibility, it brings unique features and syntax:
-        </p>
-        
-        <ComparisonTable>
-          <TableRow header>
-            <TableCell header>Feature</TableCell>
-            <TableCell header>Python</TableCell>
-            <TableCell header>Carrion</TableCell>
-          </TableRow>
-          <TableRow>
-            <TableCell><strong>Comments</strong></TableCell>
-            <TableCell><code># Single line</code></TableCell>
-            <TableCell><code># Single line</code><br/><code>```Multi-line```</code></TableCell>
-          </TableRow>
-          <TableRow>
-            <TableCell><strong>Classes</strong></TableCell>
-            <TableCell><code>class MyClass:</code></TableCell>
-            <TableCell><code>grim MyGrimoire:</code></TableCell>
-          </TableRow>
-          <TableRow>
-            <TableCell><strong>Methods</strong></TableCell>
-            <TableCell><code>def method(self):</code></TableCell>
-            <TableCell><code>spell method():</code></TableCell>
-          </TableRow>
-          <TableRow>
-            <TableCell><strong>Error Handling</strong></TableCell>
-            <TableCell><code>try/except/finally</code></TableCell>
-            <TableCell><code>attempt/ensnare/resolve</code></TableCell>
-          </TableRow>
-          <TableRow>
-            <TableCell><strong>Loop Control</strong></TableCell>
-            <TableCell><code>continue/break</code></TableCell>
-            <TableCell><code>skip/stop</code></TableCell>
-          </TableRow>
-          <TableRow>
-            <TableCell><strong>Elif Statement</strong></TableCell>
-            <TableCell><code>elif condition:</code></TableCell>
-            <TableCell><code>otherwise condition:</code></TableCell>
-          </TableRow>
-          <TableRow>
-            <TableCell><strong>Increment</strong></TableCell>
-            <TableCell><code>i += 1</code></TableCell>
-            <TableCell><code>i++, ++i, i += 1</code></TableCell>
-          </TableRow>
-          <TableRow>
-            <TableCell><strong>File Extension</strong></TableCell>
-            <TableCell><code>.py</code></TableCell>
-            <TableCell><code>.crl</code></TableCell>
-          </TableRow>
-        </ComparisonTable>
-      </Section>
-
-      <Section>
-        <SectionTitle>Code Comparison</SectionTitle>
-        <CodeComparison>
+      <HighlightSection>
+        <HighlightGrid>
+          <HighlightContent>
+            <HighlightTitle>Clean, Expressive Syntax</HighlightTitle>
+            <HighlightText>
+              Carrion combines Python's readability with unique keywords that make code
+              intent clear. Object-oriented programming feels natural with grimoires (classes)
+              and spells (methods).
+            </HighlightText>
+            <HighlightText>
+              Full support for inheritance, abstract classes, error handling, and modern
+              language features you expect from a production-ready language.
+            </HighlightText>
+          </HighlightContent>
           <CodeBlock>
-            <CodeHeader>🐍 Python</CodeHeader>
             <SyntaxHighlighter
               language="python"
               style={atomOneDark}
-              customStyle={{ margin: 0, background: 'transparent' }}
-            >
-              {pythonExample}
-            </SyntaxHighlighter>
-          </CodeBlock>
-          <CodeBlock>
-            <CodeHeader>🐦‍⬛ Carrion</CodeHeader>
-            <SyntaxHighlighter
-              language="python"
-              style={atomOneDark}
-              customStyle={{ margin: 0, background: 'transparent' }}
+              customStyle={{ margin: 0, padding: '1.5rem', fontSize: '0.9rem' }}
             >
               {carrionExample}
             </SyntaxHighlighter>
           </CodeBlock>
-        </CodeComparison>
-      </Section>
+        </HighlightGrid>
+      </HighlightSection>
 
       <Section>
-        <SubSectionTitle>Advanced Features</SubSectionTitle>
+        <SectionHeader>
+          <SectionTitle>Core Features</SectionTitle>
+          <SectionDescription>
+            Everything you need to build applications, from simple scripts to complex systems.
+          </SectionDescription>
+        </SectionHeader>
+
         <FeatureGrid>
           <FeatureCard>
-            <FeatureIcon>🎯</FeatureIcon>
-            <FeatureTitle>Pattern Matching</FeatureTitle>
+            <FeatureIcon>OOP</FeatureIcon>
+            <FeatureTitle>Object-Oriented</FeatureTitle>
             <FeatureDescription>
-              Modern pattern matching with <code>match/case</code> statements 
-              for clean conditional logic and data structure handling.
+              Classes, inheritance, polymorphism, and encapsulation. Build modular,
+              maintainable code with familiar OOP patterns.
             </FeatureDescription>
           </FeatureCard>
 
           <FeatureCard>
-            <FeatureIcon>🔮</FeatureIcon>
-            <FeatureTitle>Abstract Classes</FeatureTitle>
+            <FeatureIcon>Dyn</FeatureIcon>
+            <FeatureTitle>Dynamic Typing</FeatureTitle>
             <FeatureDescription>
-              Create abstract base classes with <code>arcane grim</code> and 
-              <code>@arcanespell</code> decorators for robust inheritance patterns.
+              Rapid development with dynamic typing and comprehensive runtime
+              error reporting with file and line information.
             </FeatureDescription>
           </FeatureCard>
 
           <FeatureCard>
-            <FeatureIcon>🌟</FeatureIcon>
+            <FeatureIcon>Err</FeatureIcon>
+            <FeatureTitle>Error Handling</FeatureTitle>
+            <FeatureDescription>
+              Structured error handling with attempt/ensnare/resolve blocks.
+              Catch specific errors or handle them broadly.
+            </FeatureDescription>
+          </FeatureCard>
+
+          <FeatureCard>
+            <FeatureIcon>Lib</FeatureIcon>
+            <FeatureTitle>Standard Library</FeatureTitle>
+            <FeatureDescription>
+              Munin standard library with collections, file I/O, math functions,
+              OS interface, and more out of the box.
+            </FeatureDescription>
+          </FeatureCard>
+
+          <FeatureCard>
+            <FeatureIcon>Mod</FeatureIcon>
+            <FeatureTitle>Module System</FeatureTitle>
+            <FeatureDescription>
+              Import system with support for local files, packages, and selective
+              imports for clean namespace management.
+            </FeatureDescription>
+          </FeatureCard>
+
+          <FeatureCard>
+            <FeatureIcon>Str</FeatureIcon>
             <FeatureTitle>String Interpolation</FeatureTitle>
             <FeatureDescription>
-              Multiple string formats including f-strings and i-strings 
-              for flexible text formatting and expression embedding.
-            </FeatureDescription>
-          </FeatureCard>
-
-          <FeatureCard>
-            <FeatureIcon>📊</FeatureIcon>
-            <FeatureTitle>Rich Data Types</FeatureTitle>
-            <FeatureDescription>
-              Support for integers, floats, strings, booleans, arrays, hashes, 
-              and tuples with comprehensive built-in methods.
-            </FeatureDescription>
-          </FeatureCard>
-
-          <FeatureCard>
-            <FeatureIcon>🔧</FeatureIcon>
-            <FeatureTitle>Interactive REPL</FeatureTitle>
-            <FeatureDescription>
-              Feature-rich REPL with tab completion, command history, 
-              built-in help system ("Mimir"), and debugging utilities.
-            </FeatureDescription>
-          </FeatureCard>
-
-          <FeatureCard>
-            <FeatureIcon>📦</FeatureIcon>
-            <FeatureTitle>Enhanced Collections</FeatureTitle>
-            <FeatureDescription>
-              Extended collection classes with additional methods like 
-              <code>.contains()</code>, <code>.slice()</code>, and mathematical operations.
+              F-strings and multiple string formats for flexible text formatting
+              and expression embedding.
             </FeatureDescription>
           </FeatureCard>
         </FeatureGrid>
       </Section>
 
       <Section>
-        <SubSectionTitle>Why Choose Carrion?</SubSectionTitle>
+        <SectionHeader>
+          <SectionTitle>Developer Tooling</SectionTitle>
+          <SectionDescription>
+            Integrated tools that make development faster and more enjoyable.
+          </SectionDescription>
+        </SectionHeader>
+
         <FeatureGrid>
           <FeatureCard>
-            <FeatureIcon>🎓</FeatureIcon>
-            <FeatureTitle>Beginner Friendly</FeatureTitle>
+            <FeatureIcon>Test</FeatureIcon>
+            <FeatureTitle>Sindri Testing</FeatureTitle>
             <FeatureDescription>
-              Familiar Python-like syntax makes it easy to learn, while the magical 
-              terminology creates an engaging and memorable learning experience.
+              Built-in testing framework with automatic test discovery, colored output,
+              and the check() assertion function.
             </FeatureDescription>
           </FeatureCard>
 
           <FeatureCard>
-            <FeatureIcon>🚀</FeatureIcon>
-            <FeatureTitle>Modern Design</FeatureTitle>
+            <FeatureIcon>Doc</FeatureIcon>
+            <FeatureTitle>Mimir Documentation</FeatureTitle>
             <FeatureDescription>
-              Built from the ground up with modern language features, avoiding 
-              historical baggage while incorporating lessons learned from other languages.
+              Interactive help system accessible from the REPL. Look up any function
+              or module with instant documentation.
             </FeatureDescription>
           </FeatureCard>
 
           <FeatureCard>
-            <FeatureIcon>🌍</FeatureIcon>
-            <FeatureTitle>Cross Platform</FeatureTitle>
+            <FeatureIcon>Pkg</FeatureIcon>
+            <FeatureTitle>Bifrost Packages</FeatureTitle>
             <FeatureDescription>
-              Runs on Linux, macOS, and Windows. Available as binaries, source code, 
-              and Docker containers for maximum flexibility.
+              Package manager with Git integration. Install, manage, and distribute
+              packages with dependency resolution.
             </FeatureDescription>
           </FeatureCard>
 
           <FeatureCard>
-            <FeatureIcon>📈</FeatureIcon>
-            <FeatureTitle>Active Development</FeatureTitle>
+            <FeatureIcon>CLI</FeatureIcon>
+            <FeatureTitle>Interactive REPL</FeatureTitle>
             <FeatureDescription>
-              Regular updates and improvements with a roadmap including JIT compilation, 
-              VM implementation, and enhanced type systems.
+              Feature-rich REPL with tab completion, command history, and smart
+              output display for rapid prototyping.
+            </FeatureDescription>
+          </FeatureCard>
+
+          <FeatureCard>
+            <FeatureIcon>Abs</FeatureIcon>
+            <FeatureTitle>Abstract Classes</FeatureTitle>
+            <FeatureDescription>
+              Define interfaces with arcane grimoires and abstract methods for
+              robust inheritance patterns.
+            </FeatureDescription>
+          </FeatureCard>
+
+          <FeatureCard>
+            <FeatureIcon>Pat</FeatureIcon>
+            <FeatureTitle>Pattern Matching</FeatureTitle>
+            <FeatureDescription>
+              Modern match/case statements for clean conditional logic and
+              structured data handling.
             </FeatureDescription>
           </FeatureCard>
         </FeatureGrid>
       </Section>
+
+      <ComparisonSection>
+        <SectionHeader>
+          <SectionTitle>Syntax Reference</SectionTitle>
+          <SectionDescription>
+            Carrion's keywords compared to their equivalents in other languages.
+          </SectionDescription>
+        </SectionHeader>
+
+        <KeywordTable>
+          <KeywordRow>
+            <KeywordCell $header>Carrion</KeywordCell>
+            <KeywordCell $header>Equivalent</KeywordCell>
+            <KeywordCell $header>Description</KeywordCell>
+          </KeywordRow>
+          <KeywordRow>
+            <KeywordCell><code>grim</code></KeywordCell>
+            <KeywordCell><code>class</code></KeywordCell>
+            <KeywordCell>Define a class</KeywordCell>
+          </KeywordRow>
+          <KeywordRow>
+            <KeywordCell><code>spell</code></KeywordCell>
+            <KeywordCell><code>def / function</code></KeywordCell>
+            <KeywordCell>Define a method or function</KeywordCell>
+          </KeywordRow>
+          <KeywordRow>
+            <KeywordCell><code>attempt</code></KeywordCell>
+            <KeywordCell><code>try</code></KeywordCell>
+            <KeywordCell>Begin error handling block</KeywordCell>
+          </KeywordRow>
+          <KeywordRow>
+            <KeywordCell><code>ensnare</code></KeywordCell>
+            <KeywordCell><code>catch / except</code></KeywordCell>
+            <KeywordCell>Handle caught errors</KeywordCell>
+          </KeywordRow>
+          <KeywordRow>
+            <KeywordCell><code>resolve</code></KeywordCell>
+            <KeywordCell><code>finally</code></KeywordCell>
+            <KeywordCell>Always execute cleanup</KeywordCell>
+          </KeywordRow>
+          <KeywordRow>
+            <KeywordCell><code>otherwise</code></KeywordCell>
+            <KeywordCell><code>elif / else if</code></KeywordCell>
+            <KeywordCell>Conditional else-if</KeywordCell>
+          </KeywordRow>
+          <KeywordRow>
+            <KeywordCell><code>skip</code></KeywordCell>
+            <KeywordCell><code>continue</code></KeywordCell>
+            <KeywordCell>Skip to next loop iteration</KeywordCell>
+          </KeywordRow>
+          <KeywordRow>
+            <KeywordCell><code>stop</code></KeywordCell>
+            <KeywordCell><code>break</code></KeywordCell>
+            <KeywordCell>Exit loop</KeywordCell>
+          </KeywordRow>
+          <KeywordRow>
+            <KeywordCell><code>arcane grim</code></KeywordCell>
+            <KeywordCell><code>abstract class</code></KeywordCell>
+            <KeywordCell>Define abstract base class</KeywordCell>
+          </KeywordRow>
+        </KeywordTable>
+      </ComparisonSection>
+
+      <Section>
+        <SectionHeader>
+          <SectionTitle>Why Carrion?</SectionTitle>
+          <SectionDescription>
+            Built for developers who value clarity and productivity.
+          </SectionDescription>
+        </SectionHeader>
+
+        <FeatureGrid>
+          <FeatureCard>
+            <FeatureIcon>01</FeatureIcon>
+            <FeatureTitle>Easy to Learn</FeatureTitle>
+            <FeatureDescription>
+              Familiar Python-like syntax means you can be productive in hours,
+              not weeks. Great for beginners and experienced developers alike.
+            </FeatureDescription>
+          </FeatureCard>
+
+          <FeatureCard>
+            <FeatureIcon>02</FeatureIcon>
+            <FeatureTitle>Modern Design</FeatureTitle>
+            <FeatureDescription>
+              Built from scratch with modern language features. No legacy baggage,
+              just clean, consistent design decisions.
+            </FeatureDescription>
+          </FeatureCard>
+
+          <FeatureCard>
+            <FeatureIcon>03</FeatureIcon>
+            <FeatureTitle>Cross Platform</FeatureTitle>
+            <FeatureDescription>
+              Runs on Linux, macOS, and Windows. Available as binaries, from source,
+              or via Docker containers.
+            </FeatureDescription>
+          </FeatureCard>
+
+          <FeatureCard>
+            <FeatureIcon>04</FeatureIcon>
+            <FeatureTitle>Go Performance</FeatureTitle>
+            <FeatureDescription>
+              Built in Go for reliable performance and excellent concurrency
+              capabilities under the hood.
+            </FeatureDescription>
+          </FeatureCard>
+
+          <FeatureCard>
+            <FeatureIcon>05</FeatureIcon>
+            <FeatureTitle>Active Development</FeatureTitle>
+            <FeatureDescription>
+              Regular releases with new features. Roadmap includes JIT compilation,
+              VM implementation, and type annotations.
+            </FeatureDescription>
+          </FeatureCard>
+
+          <FeatureCard>
+            <FeatureIcon>06</FeatureIcon>
+            <FeatureTitle>Open Source</FeatureTitle>
+            <FeatureDescription>
+              MIT licensed and fully open source. Contribute, fork, or use it
+              however you need for your projects.
+            </FeatureDescription>
+          </FeatureCard>
+        </FeatureGrid>
+      </Section>
+
+      <CTASection>
+        <CTATitle>Ready to Get Started?</CTATitle>
+        <CTAText>
+          Install Carrion and start building in minutes. Check out the documentation
+          for tutorials and examples.
+        </CTAText>
+        <CTAButtons>
+          <PrimaryButton to="/docs/installation">Installation Guide</PrimaryButton>
+          <SecondaryButton to="/docs/quick-start">Quick Start</SecondaryButton>
+        </CTAButtons>
+      </CTASection>
     </Container>
   );
 };
