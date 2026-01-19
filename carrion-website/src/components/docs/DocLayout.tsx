@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { Link, useLocation } from 'react-router-dom';
 
-interface NavSection {
+interface INavSection {
   title: string;
   items: NavItem[];
 }
@@ -20,7 +20,7 @@ interface DocLayoutProps {
   sections?: { id: string; title: string }[];
 }
 
-const docNavigation: NavSection[] = [
+const docNavigation: INavSection[] = [
   {
     title: 'Getting Started',
     items: [

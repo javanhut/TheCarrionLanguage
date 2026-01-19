@@ -160,31 +160,6 @@ const ComparisonSection = styled.div`
   margin-bottom: 5rem;
 `;
 
-const ComparisonGrid = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 2rem;
-
-  @media (max-width: ${({ theme }) => theme.breakpoints.tablet}) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-const ComparisonCard = styled.div`
-  background: ${({ theme }) => theme.colors.background.secondary};
-  border: 1px solid ${({ theme }) => theme.colors.border};
-  border-radius: 12px;
-  overflow: hidden;
-`;
-
-const ComparisonHeader = styled.div`
-  padding: 1rem 1.5rem;
-  border-bottom: 1px solid ${({ theme }) => theme.colors.border};
-  font-weight: 600;
-  color: ${({ theme }) => theme.colors.text.primary};
-  background: ${({ theme }) => theme.colors.background.tertiary};
-`;
-
 const KeywordTable = styled.div`
   background: ${({ theme }) => theme.colors.background.secondary};
   border: 1px solid ${({ theme }) => theme.colors.border};

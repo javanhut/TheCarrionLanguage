@@ -1,7 +1,6 @@
 import React from 'react';
 import { Light as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomOneDark } from 'react-syntax-highlighter/dist/esm/styles/hljs';
-import { Link } from 'react-router-dom';
 import {
   DocLayout,
   Section,
@@ -19,13 +18,7 @@ import {
   TableRow,
   TableHead,
   TableCell,
-  CardGrid,
-  Card,
-  CardTitle,
-  CardDescription,
   InlineCode,
-  List,
-  ListItem,
 } from '../../components/docs';
 
 const sections = [

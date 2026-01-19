@@ -20,8 +20,6 @@ import {
   CardTitle,
   CardDescription,
   InlineCode,
-  List,
-  ListItem,
 } from '../../components/docs';
 
 const sections = [

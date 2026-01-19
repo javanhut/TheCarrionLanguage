@@ -48,10 +48,6 @@ const Logo = styled(Link)`
   }
 `;
 
-const LogoIcon = styled.span`
-  font-size: 2rem;
-`;
-
 const CenterSection = styled.div`
   display: flex;
   align-items: center;

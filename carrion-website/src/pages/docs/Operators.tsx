@@ -75,7 +75,7 @@ const Operators: React.FC = () => {
               <TableCell>5.0</TableCell>
             </TableRow>
             <TableRow>
-              <TableCell><InlineCode>//</InlineCode></TableCell>
+              <TableCell><InlineCode>{'//'}</InlineCode></TableCell>
               <TableCell>Integer Division</TableCell>
               <TableCell><InlineCode>17 // 3</InlineCode></TableCell>
               <TableCell>5</TableCell>
@@ -434,7 +434,7 @@ left_shift = a << 2   // 20 (Binary: 10100)`}
             </TableRow>
             <TableRow>
               <TableCell>4</TableCell>
-              <TableCell><InlineCode>*</InlineCode> <InlineCode>/</InlineCode> <InlineCode>//</InlineCode> <InlineCode>%</InlineCode></TableCell>
+              <TableCell><InlineCode>*</InlineCode> <InlineCode>/</InlineCode> <InlineCode>{'//'}</InlineCode> <InlineCode>%</InlineCode></TableCell>
               <TableCell>Multiplicative</TableCell>
             </TableRow>
             <TableRow>

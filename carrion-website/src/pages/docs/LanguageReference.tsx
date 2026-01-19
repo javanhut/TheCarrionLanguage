@@ -299,7 +299,7 @@ greet(123, 3)      // Error: type mismatch`}
             <tbody>
               <TableRow>
                 <TableCell>Arithmetic</TableCell>
-                <TableCell><InlineCode>+</InlineCode> <InlineCode>-</InlineCode> <InlineCode>*</InlineCode> <InlineCode>/</InlineCode> <InlineCode>%</InlineCode> <InlineCode>**</InlineCode> <InlineCode>//</InlineCode></TableCell>
+                <TableCell><InlineCode>+</InlineCode> <InlineCode>-</InlineCode> <InlineCode>*</InlineCode> <InlineCode>/</InlineCode> <InlineCode>%</InlineCode> <InlineCode>**</InlineCode> <InlineCode>{'//'}</InlineCode></TableCell>
               </TableRow>
               <TableRow>
                 <TableCell>Comparison</TableCell>
