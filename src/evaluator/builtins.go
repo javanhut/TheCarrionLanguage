@@ -96,19 +96,19 @@ var builtins = map[string]*object.Builtin{
 	"print": {
 		Fn: func(args ...object.Object) object.Object {
 			if len(args) == 0 {
-				fmt.Println()
+				fmt.Fprintln(outputWriter)
 				return &object.None{}
 			}
-			
+
 			// Build the output string from all arguments
 			var parts []string
 			for _, arg := range args {
 				parts = append(parts, arg.Inspect())
 			}
-			
+
 			// Join with spaces and print with newline (default behavior)
 			output := strings.Join(parts, " ")
-			fmt.Println(output)
+			fmt.Fprintln(outputWriter, output)
 			return &object.None{}
 		},
 	},
@@ -117,30 +117,30 @@ var builtins = map[string]*object.Builtin{
 			if len(args) == 0 {
 				return &object.None{}
 			}
-			
+
 			// Build the output string from all arguments
 			var parts []string
 			for _, arg := range args {
 				parts = append(parts, arg.Inspect())
 			}
-			
+
 			// Join with spaces and print without newline
 			output := strings.Join(parts, " ")
-			fmt.Print(output)
+			fmt.Fprint(outputWriter, output)
 			return &object.None{}
 		},
 	},
 	"printend": {
 		Fn: func(args ...object.Object) object.Object {
 			if len(args) < 1 {
-				fmt.Println()
+				fmt.Fprintln(outputWriter)
 				return &object.None{}
 			}
-			
+
 			// Default end character is newline
 			endChar := "\n"
 			printArgs := args
-			
+
 			// Check if the first argument is a hash/map containing end specification
 			if len(args) > 0 {
 				if hash, ok := args[0].(*object.Hash); ok {
@@ -151,7 +151,7 @@ var builtins = map[string]*object.Builtin{
 							endChar = endStr
 						}
 					}
-					
+
 					// Look for "values" key in the hash for the actual values to print
 					valuesKey := &object.String{Value: "values"}
 					if valuesPair, exists := hash.Pairs[valuesKey.HashKey()]; exists {
@@ -167,16 +167,16 @@ var builtins = map[string]*object.Builtin{
 					}
 				}
 			}
-			
+
 			// Build the output string from print arguments
 			var parts []string
 			for _, arg := range printArgs {
 				parts = append(parts, arg.Inspect())
 			}
-			
+
 			// Join with spaces and print with specified end character
 			output := strings.Join(parts, " ")
-			fmt.Print(output + endChar)
+			fmt.Fprint(outputWriter, output+endChar)
 			return &object.None{}
 		},
 	},
@@ -1051,4 +1051,15 @@ func GetBuiltins() map[string]*object.Builtin {
 		result[name] = builtin
 	}
 	return result
+}
+
+// OverrideBuiltin allows overriding a builtin function (used by WASM)
+func OverrideBuiltin(name string, builtin *object.Builtin) {
+	builtins[name] = builtin
+}
+
+// GetBuiltin returns a specific builtin by name
+func GetBuiltin(name string) (*object.Builtin, bool) {
+	b, ok := builtins[name]
+	return b, ok
 }
