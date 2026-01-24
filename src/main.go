@@ -12,7 +12,7 @@ import (
 	"github.com/javanhut/TheCarrionLanguage/src/repl"
 )
 
-var versionNum string = "0.1.8"
+var versionNum string = "0.1.9"
 
 const CROW_IMAGE = `
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣀⣀⣀⠀⠀⠀⠀⠀⠀⠀⠀
