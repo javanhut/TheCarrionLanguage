@@ -59,6 +59,7 @@ const (
 	COLON     TokenType = ":"
 	PIPE      TokenType = "|"
 	DOT       TokenType = "."
+	DOTDOT    TokenType = ".."
 	LSHIFT    TokenType = "<<"
 	RSHIFT    TokenType = ">>"
 	XOR       TokenType = "^"

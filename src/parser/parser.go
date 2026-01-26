@@ -1870,11 +1870,14 @@ func (p *Parser) parseForStatement() ast.Statement {
 	fs := &ast.ForStatement{Token: p.currToken}
 
 	// --- Parse the loop variable(s) - support both single variables and tuple unpacking ---
-	if !p.expectPeek(token.IDENT) {
+	// Accept either IDENT or DOTDOT (..) as discard variable
+	if !p.peekTokenIs(token.IDENT) && !p.peekTokenIs(token.DOTDOT) {
+		p.peekError(token.IDENT)
 		return nil
 	}
+	p.nextToken()
 
-	// Start with the first identifier
+	// Start with the first identifier (or discard)
 	firstVar := &ast.Identifier{Token: p.currToken, Value: p.currToken.Literal}
 
 	// Check if there are more variables (tuple unpacking)
@@ -1885,9 +1888,12 @@ func (p *Parser) parseForStatement() ast.Statement {
 		// Parse remaining variables
 		for p.peekTokenIs(token.COMMA) {
 			p.nextToken() // consume comma
-			if !p.expectPeek(token.IDENT) {
+			// Accept either IDENT or DOTDOT (..) as discard variable
+			if !p.peekTokenIs(token.IDENT) && !p.peekTokenIs(token.DOTDOT) {
+				p.peekError(token.IDENT)
 				return nil
 			}
+			p.nextToken()
 			nextVar := &ast.Identifier{Token: p.currToken, Value: p.currToken.Literal}
 			variables = append(variables, nextVar)
 		}

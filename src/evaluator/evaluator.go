@@ -4116,7 +4116,9 @@ func evalForStatement(
 						// Process each element immediately
 						switch varExpr := fs.Variable.(type) {
 						case *ast.Identifier:
-							env.Set(varExpr.Value, nextValue)
+							if varExpr.Value != ".." {
+								env.Set(varExpr.Value, nextValue)
+							}
 						case *ast.TupleLiteral:
 							var items []object.Object
 							if tupObj, ok := nextValue.(*object.Tuple); ok {
@@ -4134,7 +4136,9 @@ func evalForStatement(
 								if !ok {
 									return newErrorWithTrace("invalid assignment target in for loop", fs, ctx)
 								}
-								env.Set(ident.Value, items[i])
+								if ident.Value != ".." {
+									env.Set(ident.Value, items[i])
+								}
 							}
 						default:
 							env.Set(fs.Variable.String(), nextValue)
@@ -4302,7 +4306,9 @@ func processArrayIteration(
 	for _, elem := range elements {
 		switch varExpr := fs.Variable.(type) {
 		case *ast.Identifier:
-			env.Set(varExpr.Value, elem)
+			if varExpr.Value != ".." {
+				env.Set(varExpr.Value, elem)
+			}
 		case *ast.TupleLiteral:
 			var items []object.Object
 			if tupObj, ok := elem.(*object.Tuple); ok {
@@ -4322,7 +4328,9 @@ func processArrayIteration(
 				if !ok {
 					return newErrorWithTrace("invalid assignment target in for loop", fs, ctx)
 				}
-				env.Set(ident.Value, items[i])
+				if ident.Value != ".." {
+					env.Set(ident.Value, items[i])
+				}
 			}
 		default:
 			env.Set(fs.Variable.String(), elem)

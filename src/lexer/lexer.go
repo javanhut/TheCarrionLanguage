@@ -275,6 +275,10 @@ func (l *Lexer) NextToken() token.Token {
 		return l.newToken(token.RBRACE, "}")
 
 	case '.':
+		if l.peekChar() == '.' {
+			l.charIndex += 2
+			return l.newToken(token.DOTDOT, "..")
+		}
 		l.charIndex++
 		return l.newToken(token.DOT, ".")
 
