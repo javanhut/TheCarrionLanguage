@@ -282,7 +282,13 @@ func (tr *TestRunner) RunSingleFile(filename string) FileTestResult {
 		return result
 	}
 
-	l := lexer.New(string(content))
+	// Get absolute path for proper relative import resolution
+	absFilename, err := filepath.Abs(filename)
+	if err != nil {
+		absFilename = filename // Fall back to original if abs fails
+	}
+
+	l := lexer.NewWithFilename(string(content), absFilename)
 	p := parser.New(l)
 	program := p.ParseProgram()
 
@@ -307,6 +313,7 @@ func (tr *TestRunner) RunSingleFile(filename string) FileTestResult {
 	ctx := &evaluator.CallContext{
 		FunctionName:      "main",
 		IsDirectExecution: true,
+		SourceFile:        absFilename, // Track source file for relative imports
 	}
 
 	// Create a fresh environment for this file

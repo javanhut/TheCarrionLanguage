@@ -39,6 +39,7 @@ type CallContext struct {
 	depth             int
 	IsDirectExecution bool             // True when file is run directly, false when imported
 	MethodGrimoire    *object.Grimoire // The grimoire that owns the current method
+	SourceFile        string           // The source file path being evaluated (for relative imports)
 }
 
 // A map to track call stack depth for recursive functions
@@ -4357,8 +4358,9 @@ func processArrayIteration(
 }
 
 // resolveImportPath searches for an import file with smart resolution
-func resolveImportPath(importPath string) (string, error) {
-	// Get current working directory
+// sourceFile is the file containing the import statement (used for relative import resolution)
+func resolveImportPath(importPath string, sourceFile string) (string, error) {
+	// Get current working directory as fallback
 	currentDir, err := os.Getwd()
 	if err != nil {
 		currentDir = "."
@@ -4366,7 +4368,12 @@ func resolveImportPath(importPath string) (string, error) {
 
 	// Handle relative imports explicitly (starts with . or ..)
 	if strings.HasPrefix(importPath, "./") || strings.HasPrefix(importPath, "../") {
-		return resolveRelativeImport(importPath, currentDir)
+		// For relative imports, use the source file's directory if available
+		resolveDir := currentDir
+		if sourceFile != "" {
+			resolveDir = filepath.Dir(sourceFile)
+		}
+		return resolveRelativeImport(importPath, resolveDir)
 	}
 
 	// Check if this looks like a package import
@@ -4561,8 +4568,14 @@ func evalImportStatement(
 
 	importPath := node.FilePath.Value
 
+	// Get the source file from context for relative import resolution
+	sourceFile := ""
+	if ctx != nil {
+		sourceFile = ctx.SourceFile
+	}
+
 	// Resolve the import path to an actual file
-	resolvedPath, err := resolveImportPath(importPath)
+	resolvedPath, err := resolveImportPath(importPath, sourceFile)
 	if err != nil {
 		return newErrorWithTrace("could not resolve import: %s", node, ctx, err)
 	}
@@ -4605,6 +4618,7 @@ func evalImportStatement(
 			Parent:            ctx,
 			env:               importEnv,
 			IsDirectExecution: false, // This is an import, not direct execution
+			SourceFile:        resolvedPath, // Track source file for nested relative imports
 		}
 
 		evalResult := Eval(program, importEnv, importCtx)

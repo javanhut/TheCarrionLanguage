@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/peterh/liner"
@@ -460,8 +461,14 @@ func ProcessFile(filePath string, out io.Writer, env *object.Environment) error 
 		return fmt.Errorf("error reading file %s: %w", filePath, err)
 	}
 
+	// Get absolute path for proper relative import resolution
+	absFilePath, err := filepath.Abs(filePath)
+	if err != nil {
+		absFilePath = filePath // Fall back to original if abs fails
+	}
+
 	// Tokenize, parse, and evaluate the file contents
-	l := lexer.NewWithFilename(string(content), filePath)
+	l := lexer.NewWithFilename(string(content), absFilePath)
 	p := parser.New(l)
 	program := p.ParseProgram()
 
@@ -470,7 +477,15 @@ func ProcessFile(filePath string, out io.Writer, env *object.Environment) error 
 		return fmt.Errorf("file %s contains syntax errors", filePath)
 	}
 
-	evaluated := evaluator.Eval(program, env, nil)
+	// Create context with source file for relative import resolution
+	ctx := &evaluator.CallContext{
+		FunctionName:      "main",
+		Node:              program,
+		IsDirectExecution: true,
+		SourceFile:        absFilePath,
+	}
+
+	evaluated := evaluator.Eval(program, env, ctx)
 
 	// Handle errors with unified formatting (EnhancedError, ErrorWithTrace, Error)
 	if object.IsError(evaluated) {
@@ -596,7 +611,21 @@ func ProcessFileWithDebug(filePath string, out io.Writer, env *object.Environmen
 		fmt.Fprintf(os.Stderr, "\n=== EVALUATOR OUTPUT ===\n")
 	}
 
-	evaluated := evaluator.EvalWithDebug(program, env, nil, debugConfig)
+	// Get absolute path for proper relative import resolution
+	absFilePath, err := filepath.Abs(filePath)
+	if err != nil {
+		absFilePath = filePath // Fall back to original if abs fails
+	}
+
+	// Create context with source file for relative import resolution
+	ctx := &evaluator.CallContext{
+		FunctionName:      "main",
+		Node:              program,
+		IsDirectExecution: true,
+		SourceFile:        absFilePath,
+	}
+
+	evaluated := evaluator.EvalWithDebug(program, env, ctx, debugConfig)
 
 	if debugConfig.ShouldDebugEvaluator() {
 		fmt.Fprintf(os.Stderr, "=====================\n\n")
