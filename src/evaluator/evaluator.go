@@ -3729,6 +3729,31 @@ func evalInfixExpression(
 		}
 		return newErrorWithTrace("type mismatch: %s %s %s", node, ctx,
 			left.Type(), operator, right.Type())
+	// String-Boolean comparison: empty string is falsy, non-empty is truthy
+	case unwrappedLeft.Type() == object.STRING_OBJ && unwrappedRight.Type() == object.BOOLEAN_OBJ:
+		if operator == "==" || operator == "!=" {
+			strVal := unwrappedLeft.(*object.String).Value
+			boolVal := unwrappedRight.(*object.Boolean).Value
+			// Empty string is false, non-empty is true
+			strAsBool := strVal != ""
+			if operator == "==" {
+				return nativeBoolToBooleanObject(strAsBool == boolVal)
+			}
+			return nativeBoolToBooleanObject(strAsBool != boolVal)
+		}
+		return newErrorWithTrace("unsupported operation: %s %s %s", node, ctx, unwrappedLeft.Type(), operator, unwrappedRight.Type())
+	case unwrappedLeft.Type() == object.BOOLEAN_OBJ && unwrappedRight.Type() == object.STRING_OBJ:
+		if operator == "==" || operator == "!=" {
+			boolVal := unwrappedLeft.(*object.Boolean).Value
+			strVal := unwrappedRight.(*object.String).Value
+			// Empty string is false, non-empty is true
+			strAsBool := strVal != ""
+			if operator == "==" {
+				return nativeBoolToBooleanObject(boolVal == strAsBool)
+			}
+			return nativeBoolToBooleanObject(boolVal != strAsBool)
+		}
+		return newErrorWithTrace("unsupported operation: %s %s %s", node, ctx, unwrappedLeft.Type(), operator, unwrappedRight.Type())
 	case unwrappedLeft.Type() != unwrappedRight.Type():
 		hint := getConversionHint(unwrappedRight.Type(), unwrappedLeft.Type())
 		if hint != "" {

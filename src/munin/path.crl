@@ -41,6 +41,9 @@ grim Path:
 
 grim Dir(Path):
   init(path: str = "", path_instance: Path = None):
+    if not path and path_instance:
+      path = path_instance.path
+
     super.init(path)
     self.path_instance = path_instance 
 
