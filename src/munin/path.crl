@@ -48,11 +48,11 @@ grim Dir(Path):
 
   spell mkdir(dir_name: str):
     if type(self.path) == type(Path()):
-      new_path = self.path.path_name() + dir_name
+      new_path = self.path.path_name() + "/"+ dir_name
     else:
-      new_path = self.path_name() + dir_name
+      new_path = self.path_name() + "/" + dir_name
     result = os.mkdir(new_path)
-    if result:
+    if self.path.directory_exists(new_path):
       print(f"Created new directory: {new_path}")
     else:
       print("Failed to create new directory")
