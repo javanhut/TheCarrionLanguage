@@ -40,18 +40,17 @@ grim Path:
 
 
 grim Dir(Path):
-  init(path: str = "", path_instance: Path = None):
-    if not path and path_instance:
-      path = path_instance.path
+  init(path:str = None, path_instance: Path = None):
+    if path:
+      super.init(path)
+    if path_instance:
+      self.path = path_instance
 
-    super.init(path)
-    self.path_instance = path_instance 
-
-  spell mkdir(dir_name:str):
-    if self.path_instance:
-      new_path = self.path_instance.path + dir_name
+  spell mkdir(dir_name: str):
+    if type(self.path) == type(Path()):
+      new_path = self.path.path_name() + dir_name
     else:
-      new_path = self.path + dir_name
+      new_path = self.path_name() + dir_name
     result = os.mkdir(new_path)
     if result:
       print(f"Created new directory: {new_path}")
@@ -60,10 +59,11 @@ grim Dir(Path):
 
   spell parent():
     current_path: str
-    if self.path_instance:
-      current_path = self.path_instance.path
+    if type(self.path) == type(Path()):
+      current_path = self.path.path_name()
     else:
-      current_path = self.path
+      current_path = self.path_name()
+    print(current_path)
     if os.is_dir(current_path):
       split_str = current_path.split("/")
       parent_directory = split_str[-2]
