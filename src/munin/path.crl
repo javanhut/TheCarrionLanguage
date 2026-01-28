@@ -1,0 +1,18 @@
+grim Path:
+  init(path: str):
+    self.path = path
+
+  spell directory_exists(path: str):
+    check_path = ""
+    if path:
+      check_path = path
+    else:
+      check_path = self.path
+    check_dir = os.dir_exists(path)
+    if check_dir == "True":
+      return True
+    else:
+      return False
+
+
+      

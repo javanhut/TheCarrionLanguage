@@ -321,4 +321,24 @@ var OSBuiltins = map[string]*object.Builtin{
 			return &object.String{Value: expanded}
 		},
 	},
+
+	"osDirExist": {
+		Fn: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return &object.Error{Message: "osDir Exist requires 1 argument: string"}
+			}
+			strArg, ok := extractStringOS(args[0])
+			if !ok {
+				return &object.Error{Message: "osDirExist arguement must be STRING, got " + string(args[0].Type())}
+			}
+			var dirExists string
+			_, err := os.Stat(strArg)
+			if err == nil {
+				dirExists = "True"
+			} else {
+				dirExists = "False"
+			}
+			return &object.String{Value: dirExists}
+		},
+	},
 }

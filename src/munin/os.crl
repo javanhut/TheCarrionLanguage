@@ -147,3 +147,14 @@ grim os:
         ```
         return osExpandEnv(path_str)
 
+    spell dir_exists(path_str):
+      ```
+      This method wraps the stat function in go and return a boolean
+
+      Return a string boolean to see if a path passed in exists or not.
+
+      Returns:
+        str: String True or False if the directory exists or not
+      ```
+      return osDirExist(path_str)
+
