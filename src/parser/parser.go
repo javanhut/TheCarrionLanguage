@@ -1837,12 +1837,12 @@ func (p *Parser) parseCallArguments() []ast.Expression {
 	}
 
 	p.nextToken()
-	args = append(args, p.parseExpression(LOWEST))
+	args = append(args, p.parseCallArgument())
 
 	for p.peekTokenIs(token.COMMA) {
 		p.nextToken()
 		p.nextToken()
-		args = append(args, p.parseExpression(LOWEST))
+		args = append(args, p.parseCallArgument())
 	}
 
 	if !p.expectPeek(token.RPAREN) {
@@ -1850,6 +1850,22 @@ func (p *Parser) parseCallArguments() []ast.Expression {
 	}
 
 	return args
+}
+
+// parseCallArgument parses a single call argument, which can be either:
+// - A named argument: `name=value`
+// - A positional argument: any expression
+func (p *Parser) parseCallArgument() ast.Expression {
+	// Check: IDENT followed by ASSIGN = named argument
+	if p.currTokenIs(token.IDENT) && p.peekTokenIs(token.ASSIGN) {
+		nameToken := p.currToken
+		name := &ast.Identifier{Token: nameToken, Value: nameToken.Literal}
+		p.nextToken() // consume IDENT, now on ASSIGN
+		p.nextToken() // consume ASSIGN, now on value
+		value := p.parseExpression(LOWEST)
+		return &ast.NamedArgument{Token: nameToken, Name: name, Value: value}
+	}
+	return p.parseExpression(LOWEST)
 }
 
 func (p *Parser) parseForStatement() ast.Statement {

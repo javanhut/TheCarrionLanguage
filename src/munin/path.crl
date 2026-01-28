@@ -40,11 +40,15 @@ grim Path:
 
 
 grim Dir(Path):
-  init(path: str = None):
+  init(path: str = "", path_instance: Path = None):
     super.init(path)
+    self.path_instance = path_instance 
 
   spell mkdir(dir_name:str):
-    new_path = self.path + dir_name
+    if self.path_instance:
+      new_path = self.path_instance.path + dir_name
+    else:
+      new_path = self.path + dir_name
     result = os.mkdir(new_path)
     if result:
       print(f"Created new directory: {new_path}")
@@ -52,8 +56,13 @@ grim Dir(Path):
       print("Failed to create new directory")
 
   spell parent():
-    if os.is_dir(self.path):
-      split_str = path.split("/")
+    current_path: str
+    if self.path_instance:
+      current_path = self.path_instance.path
+    else:
+      current_path = self.path
+    if os.is_dir(current_path):
+      split_str = current_path.split("/")
       parent_directory = split_str[-2]
       return parent_directory
     else:

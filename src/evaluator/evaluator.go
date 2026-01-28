@@ -244,6 +244,8 @@ func getNodeToken(node ast.Node) *token.Token {
 		return &n.Token
 	case *ast.WildcardExpression:
 		return &n.Token
+	case *ast.NamedArgument:
+		return &n.Token
 	default:
 		// Return a synthetic token for unknown nodes to prevent nil pointer issues
 		return &token.Token{
@@ -889,14 +891,38 @@ func Eval(node ast.Node, env *object.Environment, ctx *CallContext) object.Objec
 		fnObj := Eval(node.Function, env, ctx)
 		if isError(fnObj) {
 			return fnObj
-		} // ← new
-
-		argObjs := evalExpressions(node.Arguments, env, ctx)
-		if err := promoteErrors(argObjs); err != nil {
-			return err // ← new (optional helper)
 		}
 
-		return evalCallExpression(fnObj, argObjs, env, ctx)
+		// Separate positional and named arguments
+		positionalArgs := []object.Object{}
+		namedArgs := make(map[string]object.Object)
+		seenNamed := false
+
+		for _, argExpr := range node.Arguments {
+			if namedArg, isNamed := argExpr.(*ast.NamedArgument); isNamed {
+				seenNamed = true
+				val := Eval(namedArg.Value, env, ctx)
+				if isError(val) {
+					return val
+				}
+				// Check for duplicate keyword argument
+				if _, exists := namedArgs[namedArg.Name.Value]; exists {
+					return newErrorWithTrace("duplicate keyword argument: %s", node, ctx, namedArg.Name.Value)
+				}
+				namedArgs[namedArg.Name.Value] = val
+			} else {
+				if seenNamed {
+					return newErrorWithTrace("positional argument follows keyword argument", node, ctx)
+				}
+				val := Eval(argExpr, env, ctx)
+				if isError(val) {
+					return val
+				}
+				positionalArgs = append(positionalArgs, val)
+			}
+		}
+
+		return evalCallExpressionWithNamed(fnObj, positionalArgs, namedArgs, env, ctx, node)
 	}
 
 	return NONE
@@ -2169,6 +2195,388 @@ func evalCallExpression(
 			"not a function: %s (in file %s)",
 			ctx.Node, ctx, fn.Type(), getSourcePosition(ctx.Node).Filename)
 	}
+}
+
+// evalCallExpressionWithNamed handles function calls with both positional and named arguments
+func evalCallExpressionWithNamed(
+	fn object.Object,
+	positionalArgs []object.Object,
+	namedArgs map[string]object.Object,
+	env *object.Environment,
+	ctx *CallContext,
+	node ast.Node,
+) object.Object {
+	// If no named arguments, fall back to the simpler version
+	if len(namedArgs) == 0 {
+		return evalCallExpression(fn, positionalArgs, env, ctx)
+	}
+
+	// Propagate existing errors
+	if isError(fn) {
+		return fn
+	}
+	for _, a := range positionalArgs {
+		if isError(a) {
+			return a
+		}
+	}
+
+	switch fnTyped := fn.(type) {
+	case *object.Function:
+		// Type checking before function call
+		if typeErr := checkParameterTypes(fnTyped, positionalArgs, ctx); typeErr != nil {
+			return typeErr
+		}
+
+		fun := fnTyped
+		callCtx, ok := callStack[fun]
+		if !ok {
+			callCtx = &CallContext{depth: 0, env: env}
+			callStack[fun] = callCtx
+		}
+		callCtx.depth++
+		if callCtx.depth > MAX_CALL_DEPTH {
+			callCtx.depth--
+			return newErrorWithTrace(
+				"maximum recursion depth exceeded (%d)", ctx.Node, ctx, MAX_CALL_DEPTH)
+		}
+
+		global := getGlobalEnv(fun.Env, ctx)
+		extended, err := extendFunctionEnvWithNamed(fun, positionalArgs, namedArgs, global, ctx, node)
+		if err != nil {
+			callCtx.depth--
+			if callCtx.depth == 0 {
+				delete(callStack, fun)
+			}
+			return err
+		}
+
+		funcName := ctx.FunctionName
+		if funcName == "" {
+			funcName = "<anonymous>"
+		}
+
+		fnCtx := &CallContext{
+			FunctionName: funcName,
+			Node:         fun.Body,
+			Parent:       ctx,
+			env:          extended,
+		}
+
+		evaluated := Eval(fun.Body, extended, fnCtx)
+
+		callCtx.depth--
+		if callCtx.depth == 0 {
+			delete(callStack, fun)
+		}
+		return unwrapReturnValue(evaluated)
+
+	case *object.BoundMethod:
+		return evalBoundMethodCallWithNamed(fnTyped, positionalArgs, namedArgs, env, ctx, node)
+
+	case *object.StaticMethod:
+		// For static methods, convert named args to positional for now
+		// (could be enhanced later)
+		return evalStaticMethodCall(fnTyped.Grimoire, fnTyped.Name, positionalArgs, env, ctx)
+
+	case *object.Grimoire:
+		if fnTyped.IsArcane {
+			return newErrorWithTrace(
+				"cannot instantiate arcane grimoire: %s", ctx.Node, ctx, fnTyped.Name)
+		}
+
+		instance := &object.Instance{
+			Grimoire: fnTyped,
+			Env:      object.NewEnclosedEnvironment(fnTyped.Env),
+		}
+
+		if fnTyped.InitMethod != nil {
+			global := getGlobalEnv(fnTyped.Env, ctx)
+			extended, err := extendFunctionEnvWithNamed(fnTyped.InitMethod, positionalArgs, namedArgs, global, ctx, node)
+			if err != nil {
+				return err
+			}
+			extended.Set("self", instance)
+
+			initCtx := &CallContext{
+				FunctionName:   fnTyped.Name + ".init",
+				Node:           fnTyped.InitMethod.Body,
+				Parent:         ctx,
+				env:            extended,
+				MethodGrimoire: fnTyped,
+			}
+			result := Eval(fnTyped.InitMethod.Body, extended, initCtx)
+			if isError(result) {
+				return result
+			}
+		}
+		return instance
+
+	case *object.Builtin:
+		// Builtins don't support named arguments currently
+		res := fnTyped.Fn(positionalArgs...)
+		if err, ok := res.(*object.Error); ok {
+			return newErrorWithTrace(err.Message, ctx.Node, ctx)
+		}
+		if shouldWrapStringResult(ctx.FunctionName) {
+			if stringObj, isString := res.(*object.String); isString {
+				return wrapPrimitive(stringObj, env, ctx)
+			}
+		}
+		if ctx.FunctionName == "pairs" {
+			if arrayObj, isArray := res.(*object.Array); isArray {
+				return wrapPrimitive(arrayObj, env, ctx)
+			}
+		}
+		return res
+
+	default:
+		return newErrorWithTrace(
+			"not a function: %s (in file %s)",
+			ctx.Node, ctx, fn.Type(), getSourcePosition(ctx.Node).Filename)
+	}
+}
+
+// extendFunctionEnvWithNamed creates a new environment for a function call,
+// binding parameters with support for both positional and named arguments
+func extendFunctionEnvWithNamed(
+	fn *object.Function,
+	positionalArgs []object.Object,
+	namedArgs map[string]object.Object,
+	global *object.Environment,
+	ctx *CallContext,
+	node ast.Node,
+) (*object.Environment, object.Object) {
+	env := object.NewEnclosedEnvironment(fn.Env)
+
+	// Build a map of parameter names to their indices and default values
+	type paramInfo struct {
+		index        int
+		hasDefault   bool
+		defaultValue ast.Expression
+	}
+	paramMap := make(map[string]paramInfo)
+	paramOrder := []string{} // Preserve parameter order
+
+	for i, pExpr := range fn.Parameters {
+		var name string
+		var hasDefault bool
+		var defaultValue ast.Expression
+
+		switch param := pExpr.(type) {
+		case *ast.Identifier:
+			name = param.Value
+		case *ast.Parameter:
+			name = param.Name.Value
+			if param.DefaultValue != nil {
+				hasDefault = true
+				defaultValue = param.DefaultValue
+			}
+		default:
+			continue
+		}
+
+		paramMap[name] = paramInfo{
+			index:        i,
+			hasDefault:   hasDefault,
+			defaultValue: defaultValue,
+		}
+		paramOrder = append(paramOrder, name)
+	}
+
+	// Check for unknown keyword arguments
+	for name := range namedArgs {
+		if _, exists := paramMap[name]; !exists {
+			return nil, newErrorWithTrace("unknown keyword argument: %s", node, ctx, name)
+		}
+	}
+
+	// Bind parameters in order
+	positionalIndex := 0
+	for _, paramName := range paramOrder {
+		info := paramMap[paramName]
+
+		// Check if this parameter was passed by name
+		if namedVal, hasNamed := namedArgs[paramName]; hasNamed {
+			// Check if it was also passed positionally
+			if positionalIndex <= info.index && info.index < len(positionalArgs) {
+				return nil, newErrorWithTrace(
+					"parameter '%s' got multiple values (positional and keyword)",
+					node, ctx, paramName)
+			}
+			env.Set(paramName, namedVal)
+		} else if positionalIndex < len(positionalArgs) {
+			// Use positional argument
+			env.Set(paramName, positionalArgs[positionalIndex])
+			positionalIndex++
+		} else if info.hasDefault {
+			// Use default value
+			switch dv := info.defaultValue.(type) {
+			case *ast.Identifier:
+				if val, ok := global.Get(dv.Value); ok {
+					env.Set(paramName, val)
+				} else {
+					env.Set(paramName,
+						newErrorWithTrace("identifier not found: %s", dv, ctx, dv.Value))
+				}
+			default:
+				env.Set(paramName, Eval(info.defaultValue, fn.Env, ctx))
+			}
+		} else {
+			// No value provided, use NONE
+			env.Set(paramName, NONE)
+		}
+	}
+
+	// Store type hints for parameters if present
+	for _, pExpr := range fn.Parameters {
+		if param, ok := pExpr.(*ast.Parameter); ok {
+			if param.TypeHint != nil {
+				if typeHintIdent, ok := param.TypeHint.(*ast.Identifier); ok {
+					typeHintKey := "__type_hint__" + param.Name.Value
+					env.Set(typeHintKey, &object.String{Value: typeHintIdent.Value})
+				}
+			}
+		}
+	}
+
+	return env, nil
+}
+
+// evalBoundMethodCallWithNamed handles bound method calls with named arguments
+func evalBoundMethodCallWithNamed(
+	bm *object.BoundMethod,
+	positionalArgs []object.Object,
+	namedArgs map[string]object.Object,
+	env *object.Environment,
+	ctx *CallContext,
+	node ast.Node,
+) object.Object {
+	instance := bm.Instance
+	method := bm.Method
+
+	// Create method environment
+	methodEnv := object.NewEnclosedEnvironment(instance.Grimoire.Env)
+	methodEnv.Set("self", instance)
+
+	// Find the grimoire that owns this method for proper super resolution
+	methodOwner := findMethodOwner(instance, bm.Name, method)
+
+	methodCtx := &CallContext{
+		FunctionName:   instance.Grimoire.Name + "." + bm.Name,
+		Node:           method.Body,
+		Parent:         ctx,
+		env:            methodEnv,
+		depth:          ctx.depth + 1,
+		MethodGrimoire: methodOwner,
+	}
+
+	// Bind arguments using the new helper function that handles named args
+	if err := bindMethodParametersWithNamed(method, positionalArgs, namedArgs, methodEnv, methodCtx, true, node); err != nil {
+		return err
+	}
+
+	// Execute with bounds checking for recursive calls
+	return evalWithRecursionLimit(method.Body, methodEnv, method, methodCtx, 0)
+}
+
+// bindMethodParametersWithNamed binds arguments to method parameters with named argument support
+func bindMethodParametersWithNamed(
+	method *object.Function,
+	positionalArgs []object.Object,
+	namedArgs map[string]object.Object,
+	methodEnv *object.Environment,
+	methodCtx *CallContext,
+	skipSelf bool,
+	node ast.Node,
+) object.Object {
+	// Build parameter info map
+	type paramInfo struct {
+		index        int
+		hasDefault   bool
+		defaultValue ast.Expression
+		isSelf       bool
+	}
+	paramMap := make(map[string]paramInfo)
+	paramOrder := []string{}
+
+	for i, pExpr := range method.Parameters {
+		var name string
+		var hasDefault bool
+		var defaultValue ast.Expression
+
+		switch param := pExpr.(type) {
+		case *ast.Identifier:
+			name = param.Value
+		case *ast.Parameter:
+			name = param.Name.Value
+			if param.DefaultValue != nil {
+				hasDefault = true
+				defaultValue = param.DefaultValue
+			}
+		default:
+			continue
+		}
+
+		paramMap[name] = paramInfo{
+			index:        i,
+			hasDefault:   hasDefault,
+			defaultValue: defaultValue,
+			isSelf:       name == "self",
+		}
+		paramOrder = append(paramOrder, name)
+	}
+
+	// Check for unknown keyword arguments
+	for name := range namedArgs {
+		if _, exists := paramMap[name]; !exists {
+			return newErrorWithTrace("unknown keyword argument: %s", node, methodCtx, name)
+		}
+	}
+
+	// Bind parameters
+	positionalIndex := 0
+	for _, paramName := range paramOrder {
+		info := paramMap[paramName]
+
+		// Skip self parameter if requested
+		if skipSelf && info.isSelf {
+			continue
+		}
+
+		// Check if this parameter was passed by name
+		if namedVal, hasNamed := namedArgs[paramName]; hasNamed {
+			// Check for duplicate positional/named
+			effectiveIndex := info.index
+			if skipSelf && info.index > 0 {
+				// Adjust index if we skipped self
+				for _, pName := range paramOrder[:info.index] {
+					if paramMap[pName].isSelf {
+						effectiveIndex--
+						break
+					}
+				}
+			}
+			if positionalIndex <= effectiveIndex && effectiveIndex < len(positionalArgs) {
+				return newErrorWithTrace(
+					"parameter '%s' got multiple values (positional and keyword)",
+					node, methodCtx, paramName)
+			}
+			methodEnv.Set(paramName, namedVal)
+		} else if positionalIndex < len(positionalArgs) {
+			// Use positional argument
+			methodEnv.Set(paramName, positionalArgs[positionalIndex])
+			positionalIndex++
+		} else if info.hasDefault {
+			// Use default value
+			methodEnv.Set(paramName, Eval(info.defaultValue, method.Env, methodCtx))
+		} else {
+			// No value provided, use NONE
+			methodEnv.Set(paramName, NONE)
+		}
+	}
+
+	return nil
 }
 
 func evalDotExpression(

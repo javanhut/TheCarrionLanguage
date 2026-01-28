@@ -96,6 +96,19 @@ func (ce *CallExpression) String() string {
 	return out.String()
 }
 
+// NamedArgument represents a keyword argument like `name=value` in function calls
+type NamedArgument struct {
+	Token token.Token // The IDENT token (parameter name)
+	Name  *Identifier // The parameter name
+	Value Expression  // The argument value
+}
+
+func (na *NamedArgument) expressionNode()      {}
+func (na *NamedArgument) TokenLiteral() string { return na.Token.Literal }
+func (na *NamedArgument) String() string {
+	return fmt.Sprintf("%s=%s", na.Name.String(), na.Value.String())
+}
+
 type Boolean struct {
 	Token token.Token
 	Value bool
