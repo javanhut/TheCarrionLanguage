@@ -70,5 +70,14 @@ grim Dir(Path):
       return parent_directory
     else:
       return ""
-      
+
+  spell list_files():
+    path_name: str
+    if type(self.path) == type(Path()):
+      path_name = self.path.path_name()
+    else:
+      path_name = self.path_name()
+    files = os.list_dir(path_name)
+    print(files)
+
         
