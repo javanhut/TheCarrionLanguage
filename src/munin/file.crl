@@ -11,29 +11,39 @@ Key Features:
 - Static utility methods for common file operations
 - Path-based operations without explicit handle management
 - Support for different file modes (read, write, append)
+- Multi-encoding support (UTF-8, UTF-16, Latin-1, Windows-1252, etc.)
 
 Usage:
     # Instance-based approach
     file = File("data.txt", "r")
     content = file.file_read()
     file.close()
-    
+
     # Static utility approach
     content = File.read("data.txt")
     File.write("output.txt", "Hello World")
+
+    # With encoding support
+    content = File.read("data.txt", "latin-1")
+    File.write("output.txt", "Hello", "utf-16")
+
+    # Read raw bytes
+    bytes = File.read_bytes("binary.dat")
 """
 grim File:
-    init(path="", mode=""):
+    init(path="", mode="", encoding="utf-8"):
         ```
-        Initialize a File instance with optional path and mode.
-        
+        Initialize a File instance with optional path, mode, and encoding.
+
         If path is provided, automatically opens the file with the specified mode.
         Otherwise, creates an uninitialized File instance for later use.
-        
+
         Args:
             path (str): Path to the file (default: "")
             mode (str): File open mode - "r", "w", "a" (default: "")
+            encoding (str): Character encoding for read/write (default: "utf-8")
         ```
+        self.encoding = encoding
         if path != "":
             self.handle = fileOpen(path, mode)
             self.path = path
@@ -45,16 +55,17 @@ grim File:
             self.mode = ""
             self._closed = True
         
-    spell file_open(path, mode="r"):
+    spell file_open(path, mode="r", encoding="utf-8"):
         ```
-        Open a file with the specified path and mode.
-        
+        Open a file with the specified path, mode, and encoding.
+
         Closes any previously opened file before opening the new one.
-        
+
         Args:
             path (str): Path to the file to open
             mode (str): File open mode - "r" (read), "w" (write), "a" (append)
-            
+            encoding (str): Character encoding for read/write (default: "utf-8")
+
         Returns:
             File: This File instance for method chaining
         ```
@@ -63,39 +74,44 @@ grim File:
         self.handle = fileOpen(path, mode)
         self.path = path
         self.mode = mode
+        self.encoding = encoding
         self._closed = False
         return self
         
     spell file_read(size=-1):
         ```
         Read content from the opened file.
-        
+
+        Uses the encoding specified when the file was opened.
+
         Args:
             size (int): Number of bytes to read, -1 for entire file (default: -1)
-            
+
         Returns:
             str: File content, or None if file is closed/invalid
         ```
         if self._closed or self.handle == None:
             return None
         if size == -1:
-            return fileReadHandle(self.handle)
+            return fileReadHandle(self.handle, -1, self.encoding)
         else:
-            return fileReadHandle(self.handle, size)
+            return fileReadHandle(self.handle, size, self.encoding)
         
     spell file_write(content):
         ```
         Write content to the opened file.
-        
+
+        Uses the encoding specified when the file was opened.
+
         Args:
             content (str): Content to write to the file
-            
+
         Returns:
             int: Number of bytes written, or None if file is closed/invalid
         ```
         if self._closed or self.handle == None:
             return None
-        return fileWriteHandle(self.handle, content)
+        return fileWriteHandle(self.handle, content, self.encoding)
         
     spell seek(offset, whence=0):
         ```
@@ -171,30 +187,61 @@ grim File:
         ```
         return self.file_write(content)
     # Static convenience methods using path-based operations
-    spell read(path):
+    spell read(path, encoding="utf-8"):
         ```
         Static method to read entire file content.
-        
+
         Args:
             path (str): Path to the file to read
-            
+            encoding (str): Character encoding to use (default: "utf-8")
+
         Returns:
             str: File content
         ```
-        return fileRead(path)
-    
-    spell write(path, content):
+        return fileRead(path, encoding)
+
+    spell write(path, content, encoding="utf-8"):
         ```
         Static method to write content to a file.
-        
+
         Args:
             path (str): Path to the file to write
             content (str): Content to write
-            
+            encoding (str): Character encoding to use (default: "utf-8")
+
         Returns:
             int: Number of bytes written
         ```
-        return fileWrite(path, content)
+        return fileWrite(path, content, encoding)
+
+    spell read_bytes(path):
+        ```
+        Static method to read file as raw bytes.
+
+        Useful for binary files or when you need to handle encoding manually.
+
+        Args:
+            path (str): Path to the file to read
+
+        Returns:
+            Array: File content as array of byte values (0-255)
+        ```
+        return fileReadBytes(path)
+
+    spell write_bytes(path, bytes):
+        ```
+        Static method to write raw bytes to a file.
+
+        Useful for binary files or when you need to handle encoding manually.
+
+        Args:
+            path (str): Path to the file to write
+            bytes (Array): Array of byte values (0-255) to write
+
+        Returns:
+            None
+        ```
+        return fileWriteBytes(path, bytes)
     
     spell append(path, content):
         ```
@@ -221,15 +268,16 @@ grim File:
         ```
         return fileExists(path)
     
-    spell open(path, mode="r"):
+    spell open(path, mode="r", encoding="utf-8"):
         ```
         Static method to create and open a new File instance.
-        
+
         Args:
             path (str): Path to the file
             mode (str): File open mode (default: "r")
-            
+            encoding (str): Character encoding to use (default: "utf-8")
+
         Returns:
             File: New File instance with opened file
         ```
-        return File(path, mode)
+        return File(path, mode, encoding)
