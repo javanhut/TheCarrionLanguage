@@ -1,0 +1,25 @@
+grim FileReader:
+  init(filename: str, file_type: str):
+    self.file_name = filename
+    self.type = file_type
+    excel_file_types = [".xls", ".xlsx", ".xlsm", ".xlsb"]
+    csv_file_types = [".csv"]
+    json_file_types = [".json"]
+    self.file_type_map = {
+      "excel": excel_file_types,
+      "csv": csv_file_types,
+      "json": json_file_types}
+
+  spell process_file():
+    # Process name check for filetype
+    file_name = self.file_name.lower()
+    processable_filetypes = self.file_type_map[self.type.lower()]
+    is_correct_type: bool = False
+    for ft in processable_filetypes:
+      if file_name.contains(ft):
+        is_correct_type = True
+    print(f"Is correct file type: {is_correct_type}")
+
+
+
+
