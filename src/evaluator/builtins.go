@@ -856,39 +856,24 @@ var builtins = map[string]*object.Builtin{
 			// Set self reference
 			instance.Env.Set("self", instance)
 
-			// Initialize the File instance state according to the File grimoire's init spell
+			// Initialize the File instance state
 			instance.Env.Set("path", &object.String{Value: pathStr})
 			instance.Env.Set("mode", &object.String{Value: mode})
-			instance.Env.Set("_handle", &object.None{})
-			instance.Env.Set("_closed", &object.Boolean{Value: false})
+			instance.Env.Set("encoding", &object.String{Value: "utf-8"})
 
-			// Handle file operations based on mode
-			if mode == "r" {
-				// Read mode - read the file content
-				content, err := os.ReadFile(pathStr)
-				if err != nil {
-					return newError("failed to open file '%s' for reading: %s", pathStr, err)
-				}
-				instance.Env.Set("_content", &object.String{Value: string(content)})
-				instance.Env.Set("_position", &object.Integer{Value: 0})
-			} else if mode == "w" {
-				// Write mode - clear the file
-				err := os.WriteFile(pathStr, []byte(""), 0644)
-				if err != nil {
-					return newError("failed to open file '%s' for writing: %s", pathStr, err)
-				}
-			} else if mode == "a" {
-				// Append mode - check if file exists and get content
-				if _, err := os.Stat(pathStr); err == nil {
-					content, err := os.ReadFile(pathStr)
-					if err != nil {
-						return newError("failed to read file '%s' for append: %s", pathStr, err)
-					}
-					instance.Env.Set("_content", &object.String{Value: string(content)})
-				} else {
-					instance.Env.Set("_content", &object.String{Value: ""})
-				}
+			// Call fileOpen to get a real handle ID
+			handleResult := modules.FileBuiltins["fileOpen"].Fn(
+				&object.String{Value: pathStr},
+				&object.String{Value: mode},
+			)
+
+			// Check for errors from fileOpen
+			if errObj, isErr := handleResult.(*object.Error); isErr {
+				return errObj
 			}
+
+			instance.Env.Set("handle", handleResult)
+			instance.Env.Set("_closed", &object.Boolean{Value: false})
 
 			return instance
 		},

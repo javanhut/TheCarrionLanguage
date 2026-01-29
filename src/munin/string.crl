@@ -21,7 +21,7 @@ grim String:
     Parameters:
         value: The string content to be managed by this grimoire instance
     ```
-    init(value):
+    init(value: str):
         self.value = value
     
     ```
@@ -35,7 +35,7 @@ grim String:
     Returns:
         Integer representing the total number of characters in the string
     ```
-    spell length():
+    spell length() -> int:
         return len(self.value)
     
     ```
@@ -49,7 +49,7 @@ grim String:
     Returns:
         A new string with all uppercase letters converted to lowercase
     ```
-    spell lower():
+    spell lower() -> str:
         result = ""
         for i in range(0, len(self.value)):
             char = self.value[i]
@@ -72,7 +72,7 @@ grim String:
     Returns:
         A new string with all lowercase letters converted to uppercase
     ```
-    spell upper():
+    spell upper() -> str:
         result = ""
         for i in range(0, len(self.value)):
             char = self.value[i]
@@ -95,7 +95,7 @@ grim String:
     Returns:
         A new string containing the same characters in reverse order
     ```
-    spell reverse():
+    spell reverse() -> str:
         result = ""
         # Iterate from last character to first (reverse order)
         for i in range(len(self.value) - 1, -1, -1):
@@ -116,7 +116,7 @@ grim String:
     Returns:
         Integer index of the first occurrence, or -1 if substring not found
     ```
-    spell find(substring):
+    spell find(substring: str) -> int:
         sub_len = len(substring)
         str_len = len(self.value)
         
@@ -150,7 +150,7 @@ grim String:
     Returns:
         True if the substring is found anywhere in the string, False otherwise
     ```
-    spell contains(substring):
+    spell contains(substring: str) -> bool:
         found_at = self.find(substring)
         if found_at >= 0:
             return True
@@ -171,7 +171,7 @@ grim String:
     Returns:
         The character at the specified position, or None if index is out of bounds
     ```
-    spell char_at(index):
+    spell char_at(index: int) -> str:
         # Convert negative index to positive equivalent
         if index < 0:
             index = len(self.value) + index
@@ -193,7 +193,7 @@ grim String:
     Returns:
         The underlying string value without grimoire wrapper
     ```
-    spell to_string():
+    spell to_string() -> str:
         return self.value
     
     ```
@@ -210,7 +210,7 @@ grim String:
     Raises:
         Error if the string cannot be converted to a valid integer
     ```
-    spell to_int():
+    spell to_int() -> int:
         return int(self.value)
     
     ```
@@ -227,7 +227,7 @@ grim String:
     Raises:
         Error if the string cannot be converted to a valid float
     ```
-    spell to_float():
+    spell to_float() -> float:
         return float(self.value)
     
     ```
@@ -244,7 +244,7 @@ grim String:
     Returns:
         A single string with all elements joined by this string as separator
     ```
-    spell join(string_list):
+    spell join(string_list: list) -> str:
         if len(string_list) == 0:
             return ""
         
@@ -270,7 +270,7 @@ grim String:
     Returns:
         A list of strings split at each occurrence of the separator
     ```
-    spell split(separator):
+    spell split(separator: str) -> list:
         if len(self.value) == 0:
             return [""]
         
@@ -303,7 +303,7 @@ grim String:
     Returns:
         A new string with specified characters removed from both ends
     ```
-    spell strip(characters):
+    spell strip(characters: str) -> str:
         if len(self.value) == 0:
             return ""
         
@@ -353,3 +353,53 @@ grim String:
         for i in range(start, end + 1):
             result = result + self.value[i]
         return result
+        
+    ```
+    Replaces all occurrences of a substring with a new string.
+
+    This spell searches through the string and replaces every occurrence
+    of old_string with new_string. If old_string is not found, the original
+    string is returned unchanged. If old_string is empty, the original
+    string is returned to prevent infinite loops.
+
+    Parameters:
+        old_string: The substring to search for and replace
+        new_string: The string to substitute in place of old_string
+
+    Returns:
+        A new string with all occurrences of old_string replaced by new_string
+    ```
+    spell replace(old_string: str, new_string: str) -> str:
+        if len(self.value) == 0:
+            return ""
+
+        if len(old_string) == 0:
+            return self.value
+
+        result = ""
+        i = 0
+        old_len = len(old_string)
+        str_len = len(self.value)
+
+        while i < str_len:
+            # Check if old_string starts at current position
+            found = True
+            if i + old_len <= str_len:
+                for j in range(0, old_len):
+                    if self.value[i + j] != old_string[j]:
+                        found = False
+                        stop
+            else:
+                found = False
+
+            if found:
+                # Add the new_string instead of old_string
+                result = result + new_string
+                i = i + old_len
+            else:
+                # Add current character and move to next
+                result = result + self.value[i]
+                i = i + 1
+
+        return result
+

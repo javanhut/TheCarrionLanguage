@@ -187,32 +187,65 @@ grim File:
         ```
         return self.file_write(content)
     # Static convenience methods using path-based operations
-    spell read(path, encoding="utf-8"):
+    spell read(path="", encoding=""):
         ```
-        Static method to read entire file content.
+        Read entire file content.
+
+        Can be used as instance method (uses opened file) or static method (with path).
 
         Args:
-            path (str): Path to the file to read
-            encoding (str): Character encoding to use (default: "utf-8")
+            path (str): Path to the file to read (optional if file already opened)
+            encoding (str): Character encoding to use (default: uses instance encoding or "utf-8")
 
         Returns:
             str: File content
         ```
-        return fileRead(path, encoding)
+        # If no path provided, use instance's handle or path
+        if path == "":
+            # If we have an open handle, use it
+            if self._closed == False and self.handle != None:
+                return self.file_read()
+            # If we have a path stored, use it
+            if self.path != "":
+                enc = self.encoding
+                if enc == "":
+                    enc = "utf-8"
+                return fileRead(self.path, enc)
+            return None
+        # Path provided - use it (static behavior)
+        enc = encoding
+        if enc == "":
+            enc = "utf-8"
+        return fileRead(path, enc)
 
-    spell write(path, content, encoding="utf-8"):
+    spell write(path_or_content, content="", encoding=""):
         ```
-        Static method to write content to a file.
+        Write content to a file.
+
+        Can be used as instance method (uses opened file) or static method (with path).
+
+        Instance usage: file.write("content") - writes to the opened file
+        Static usage: File.write("path", "content") - writes to the specified path
 
         Args:
-            path (str): Path to the file to write
-            content (str): Content to write
-            encoding (str): Character encoding to use (default: "utf-8")
+            path_or_content: If instance method, this is content. If static, this is path.
+            content (str): Content to write (only for static usage)
+            encoding (str): Character encoding to use (default: uses instance encoding or "utf-8")
 
         Returns:
             int: Number of bytes written
         ```
-        return fileWrite(path, content, encoding)
+        # If content is empty, assume instance method: path_or_content is actually content
+        if content == "":
+            # Instance method usage - write to opened file
+            if self._closed or self.handle == None:
+                return None
+            return self.file_write(path_or_content)
+        # Static method usage - path and content provided
+        enc = encoding
+        if enc == "":
+            enc = "utf-8"
+        return fileWrite(path_or_content, content, enc)
 
     spell read_bytes(path):
         ```
