@@ -78,6 +78,19 @@ grim Dir(Path):
     else:
       path_name = self.path_name()
     files = os.list_dir(path_name)
-    print(files)
+    return files
+
+  spell filter_files(substring: str, case_insensitive:bool = False  ):
+    filtered_files: Array = []
+    files = self.list_files()
+    if case_insensitive:
+      for file in files:
+        if file.lower().contains(substring):
+          filtered_files.append(file)
+    else:
+      for file in files:
+        if file.contains(substring):
+          filtered_files.append(file)
+    return filtered_files
 
         

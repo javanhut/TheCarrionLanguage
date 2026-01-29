@@ -3105,6 +3105,13 @@ func evalStringIndexExpression(
 func evalSliceExpression(left, start, end object.Object, node ast.Node, ctx *CallContext) object.Object {
 	// Unwrap instances to get the underlying primitive values
 	unwrappedLeft := unwrapPrimitive(left)
+	// Also unwrap start and end indices in case they are Integer instances
+	if start != nil {
+		start = unwrapPrimitive(start)
+	}
+	if end != nil {
+		end = unwrapPrimitive(end)
+	}
 
 	switch {
 	case unwrappedLeft.Type() == object.STRING_OBJ:
@@ -4583,7 +4590,7 @@ func evalForStatement(
 							if loopResult != nil {
 								rt := getObjectType(loopResult)
 								if rt == string(object.STOP.Type()) {
-									return object.STOP
+									break // Exit only this loop, don't propagate STOP
 								}
 								if rt == string(object.SKIP.Type()) {
 									continue
@@ -4775,7 +4782,7 @@ func processArrayIteration(
 			if loopResult != nil {
 				rt := getObjectType(loopResult)
 				if rt == string(object.STOP.Type()) {
-					return object.STOP // Exit the entire for loop
+					break // Exit only this loop, don't propagate STOP
 				}
 				if rt == string(object.SKIP.Type()) {
 					continue // Skip to the next element in the outer loop

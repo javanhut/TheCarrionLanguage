@@ -612,6 +612,11 @@ var builtins = map[string]*object.Builtin{
 			switch arg := args[0].(type) {
 			case *object.Array:
 				elements = arg.Elements
+			case *object.String:
+				// Convert string to array of character strings
+				for _, char := range arg.Value {
+					elements = append(elements, &object.String{Value: string(char)})
+				}
 			case *object.Instance:
 				// Handle Array instances
 				if arg.Grimoire.Name == "Array" {
@@ -638,11 +643,23 @@ var builtins = map[string]*object.Builtin{
 					if elements == nil {
 						return newError("invalid Array instance: missing or invalid elements")
 					}
+				} else if arg.Grimoire.Name == "String" {
+					// Handle String instances
+					if value, exists := arg.Env.Get("value"); exists {
+						if str, isString := value.(*object.String); isString {
+							for _, char := range str.Value {
+								elements = append(elements, &object.String{Value: string(char)})
+							}
+						}
+					}
+					if elements == nil {
+						return newError("invalid String instance: missing value")
+					}
 				} else {
-					return newError("enumerate expects an array, got instance of %s", arg.Grimoire.Name)
+					return newError("enumerate expects an array or string, got instance of %s", arg.Grimoire.Name)
 				}
 			default:
-				return newError("enumerate expects an array, got %s", args[0].Type())
+				return newError("enumerate expects an array or string, got %s", args[0].Type())
 			}
 			
 			var enumerated []object.Object

@@ -863,11 +863,66 @@ func TestIncrementDecrementOperators(t *testing.T) {
 		{"x = 1; ++x", 2, "pre-increment"},
 		{"x = 5; --x", 4, "pre-decrement"},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
 			evaluated := testEval(tt.input)
 			testIntegerObject(t, evaluated, tt.expected)
 		})
 	}
+}
+
+func TestEnumerateStringInstance(t *testing.T) {
+	env := object.NewEnvironment()
+	err := LoadMuninStdlib(env)
+	if err != nil {
+		t.Fatalf("Failed to load stdlib: %v", err)
+	}
+
+	input := `
+s = String("abc")
+result = enumerate(s)
+result
+`
+	l := lexer.New(input)
+	p := parser.New(l)
+	program := p.ParseProgram()
+
+	if len(p.Errors()) > 0 {
+		t.Fatalf("Parser errors: %v", p.Errors())
+	}
+
+	ctx := &CallContext{
+		FunctionName:      "<program>",
+		Node:              program,
+		Parent:            nil,
+		IsDirectExecution: true,
+		env:               env,
+	}
+	result := Eval(program, env, ctx)
+
+	arr, ok := result.(*object.Array)
+	if !ok {
+		t.Fatalf("Expected Array, got %T (%v)", result, result)
+	}
+
+	if len(arr.Elements) != 3 {
+		t.Fatalf("Expected 3 elements, got %d", len(arr.Elements))
+	}
+
+	// Check first tuple: (0, "a")
+	tuple0, ok := arr.Elements[0].(*object.Tuple)
+	if !ok {
+		t.Fatalf("Expected Tuple, got %T", arr.Elements[0])
+	}
+	idx0, ok := tuple0.Elements[0].(*object.Integer)
+	if !ok || idx0.Value != 0 {
+		t.Errorf("Expected index 0, got %v", tuple0.Elements[0])
+	}
+	char0, ok := tuple0.Elements[1].(*object.String)
+	if !ok || char0.Value != "a" {
+		t.Errorf("Expected 'a', got %v", tuple0.Elements[1])
+	}
+
+	t.Logf("enumerate on String instance works! Got: %v", result.Inspect())
 }
