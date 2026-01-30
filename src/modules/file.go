@@ -1,6 +1,7 @@
 package modules
 
 import (
+	"bufio"
 	"io"
 	"os"
 	"strings"
@@ -14,6 +15,12 @@ var (
 	fileHandles = make(map[int64]*os.File)
 	nextHandle  int64 = 1
 	handleMutex sync.RWMutex
+)
+
+// Scanner registry for line-based reading (maintains state between readline calls)
+var (
+	fileScanners = make(map[int64]*bufio.Scanner)
+	scannerMutex sync.RWMutex
 )
 
 // Helper function to extract string value from object
@@ -77,6 +84,36 @@ func removeFileHandle(handleID int64) {
 	handleMutex.Lock()
 	defer handleMutex.Unlock()
 	delete(fileHandles, handleID)
+}
+
+// Get or create scanner for file handle
+func getOrCreateScanner(handleID int64) (*bufio.Scanner, bool) {
+	scannerMutex.Lock()
+	defer scannerMutex.Unlock()
+
+	if scanner, exists := fileScanners[handleID]; exists {
+		return scanner, true
+	}
+
+	// Need to get the file handle to create scanner
+	handleMutex.RLock()
+	file, exists := fileHandles[handleID]
+	handleMutex.RUnlock()
+
+	if !exists {
+		return nil, false
+	}
+
+	scanner := bufio.NewScanner(file)
+	fileScanners[handleID] = scanner
+	return scanner, true
+}
+
+// Remove scanner from registry
+func removeScanner(handleID int64) {
+	scannerMutex.Lock()
+	defer scannerMutex.Unlock()
+	delete(fileScanners, handleID)
 }
 
 var FileBuiltins = map[string]*object.Builtin{
@@ -260,24 +297,25 @@ var FileBuiltins = map[string]*object.Builtin{
 			if len(args) != 1 {
 				return &object.Error{Message: "fileClose requires 1 argument: handleID"}
 			}
-			
+
 			handleID, ok := extractIntFile(args[0])
 			if !ok {
 				return &object.Error{Message: "fileClose: handleID must be an integer"}
 			}
-			
+
 			file, exists := getFileHandle(handleID)
 			if !exists {
 				return &object.Error{Message: "fileClose: invalid file handle"}
 			}
-			
+
 			err := file.Close()
 			removeFileHandle(handleID)
-			
+			removeScanner(handleID) // Also remove any associated scanner
+
 			if err != nil {
 				return &object.Error{Message: "failed to close file: " + err.Error()}
 			}
-			
+
 			return &object.None{}
 		},
 	},
@@ -646,6 +684,113 @@ var FileBuiltins = map[string]*object.Builtin{
 				return &object.Error{Message: "failed to write file '" + pathStr + "': " + err.Error()}
 			}
 			return &object.None{}
+		},
+	},
+
+	"fileReadLine": {
+		Fn: func(args ...object.Object) object.Object {
+			if len(args) < 1 || len(args) > 2 {
+				return &object.Error{Message: "fileReadLine requires 1-2 arguments: handleID, [encoding]"}
+			}
+
+			handleID, ok := extractIntFile(args[0])
+			if !ok {
+				return &object.Error{Message: "fileReadLine: handleID must be an integer"}
+			}
+
+			// Get or create scanner for this handle
+			scanner, exists := getOrCreateScanner(handleID)
+			if !exists {
+				return &object.Error{Message: "fileReadLine: invalid file handle"}
+			}
+
+			// Get optional encoding
+			var encodingName string
+			if len(args) == 2 {
+				encStr, ok := extractStringFile(args[1])
+				if !ok {
+					return &object.Error{Message: "fileReadLine: encoding must be a string"}
+				}
+				encodingName = encStr
+			}
+
+			// Read next line
+			if scanner.Scan() {
+				line := scanner.Text()
+
+				// Handle encoding if specified
+				if encodingName != "" && strings.ToLower(encodingName) != "utf-8" && strings.ToLower(encodingName) != "utf8" {
+					decoded, err := DecodeBytes([]byte(line), encodingName)
+					if err != nil {
+						return &object.Error{Message: "fileReadLine: " + err.Error()}
+					}
+					return &object.String{Value: decoded}
+				}
+
+				return &object.String{Value: line}
+			}
+
+			// Check for scanner error
+			if err := scanner.Err(); err != nil {
+				return &object.Error{Message: "fileReadLine: " + err.Error()}
+			}
+
+			// EOF reached - return None
+			return &object.None{}
+		},
+	},
+
+	"fileReadLines": {
+		Fn: func(args ...object.Object) object.Object {
+			if len(args) < 1 || len(args) > 2 {
+				return &object.Error{Message: "fileReadLines requires 1-2 arguments: path, [encoding]"}
+			}
+
+			pathStr, ok := extractStringFile(args[0])
+			if !ok {
+				return &object.Error{Message: "fileReadLines: path must be a string"}
+			}
+
+			// Get optional encoding
+			var encodingName string
+			if len(args) == 2 {
+				encStr, ok := extractStringFile(args[1])
+				if !ok {
+					return &object.Error{Message: "fileReadLines: encoding must be a string"}
+				}
+				encodingName = encStr
+			}
+
+			// Open the file
+			file, err := os.Open(pathStr)
+			if err != nil {
+				return &object.Error{Message: "fileReadLines: failed to open file '" + pathStr + "': " + err.Error()}
+			}
+			defer file.Close()
+
+			// Read all lines
+			var lines []object.Object
+			scanner := bufio.NewScanner(file)
+			for scanner.Scan() {
+				line := scanner.Text()
+
+				// Handle encoding if specified
+				if encodingName != "" && strings.ToLower(encodingName) != "utf-8" && strings.ToLower(encodingName) != "utf8" {
+					decoded, err := DecodeBytes([]byte(line), encodingName)
+					if err != nil {
+						return &object.Error{Message: "fileReadLines: " + err.Error()}
+					}
+					lines = append(lines, &object.String{Value: decoded})
+				} else {
+					lines = append(lines, &object.String{Value: line})
+				}
+			}
+
+			if err := scanner.Err(); err != nil {
+				return &object.Error{Message: "fileReadLines: " + err.Error()}
+			}
+
+			return &object.Array{Elements: lines}
 		},
 	},
 }

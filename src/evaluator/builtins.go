@@ -932,6 +932,14 @@ func init() {
 	for name, builtin := range modules.HttpModule {
 		builtins[name] = builtin
 	}
+	// Merge Excel module functions into builtins
+	for name, builtin := range modules.ExcelBuiltins {
+		builtins[name] = builtin
+	}
+	// Merge Parser module functions into builtins
+	for name, builtin := range modules.ParserBuiltins {
+		builtins[name] = builtin
+	}
 }
 
 // Global reference to the stdlib environment

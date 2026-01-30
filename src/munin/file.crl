@@ -314,3 +314,47 @@ grim File:
             File: New File instance with opened file
         ```
         return File(path, mode, encoding)
+
+    spell readline():
+        ```
+        Read a single line from the file.
+
+        Uses a scanner to maintain position between calls, allowing efficient
+        line-by-line reading without loading the entire file into memory.
+
+        Returns:
+            str: The next line (without newline character), or None at EOF
+        ```
+        if self._closed or self.handle == None:
+            return None
+        return fileReadLine(self.handle, self.encoding)
+
+    spell readlines(path="", encoding=""):
+        ```
+        Read all lines from a file as an array.
+
+        Can be used as instance method (reads from opened file's path) or
+        static method (with path parameter).
+
+        Args:
+            path (str): Path to the file to read (optional if file already opened)
+            encoding (str): Character encoding to use (default: uses instance encoding or "utf-8")
+
+        Returns:
+            Array: Array of strings, one per line (without newline characters)
+        ```
+        # If no path provided, use instance's path
+        if path == "":
+            if self.path != "":
+                enc = self.encoding
+                if encoding != "":
+                    enc = encoding
+                if enc == "":
+                    enc = "utf-8"
+                return fileReadLines(self.path, enc)
+            return None
+        # Path provided - use it (static behavior)
+        enc = encoding
+        if enc == "":
+            enc = "utf-8"
+        return fileReadLines(path, enc)
