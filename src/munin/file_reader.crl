@@ -20,6 +20,7 @@ grim FileReader:
         is_correct_type = True
     print(f"Is correct file type: {is_correct_type}")
 
-
-
-
+  spell read_csv():
+    autoclose open(self.file_name, "r") as file:
+      contents = file.read()
+      print(contents)
