@@ -316,8 +316,9 @@ func (tr *TestRunner) RunSingleFile(filename string) FileTestResult {
 		SourceFile:        absFilename, // Track source file for relative imports
 	}
 
-	// Create a fresh environment for this file
+	// Create a fresh environment for this file and load stdlib
 	fileEnv := object.NewEnvironment()
+	evaluator.LoadMuninStdlib(fileEnv)
 	evaluator.Eval(program, fileEnv, ctx)
 
 	// Run each appraise function

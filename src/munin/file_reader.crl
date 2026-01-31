@@ -84,11 +84,11 @@ grim FileReader:
         if file_type == "":
             file_lower = filename.lower()
             # Check for .tsv specifically to set delimiter
-            if file_lower.endswith(".tsv"):
+            if file_lower.ends_with(".tsv"):
                 self.delimiter = "\t"
             for type_name, extensions in pairs(self.file_type_map):
                 for ext in extensions:
-                    if file_lower.endswith(ext):
+                    if file_lower.ends_with(ext):
                         self.type = type_name
                         return
             # Default to txt for unknown extensions
@@ -133,7 +133,7 @@ grim FileReader:
         if self.type in pairs(self.file_type_map, "k"):
             valid_extensions = self.file_type_map[self.type]
             for ext in valid_extensions:
-                if file_lower.endswith(ext):
+                if file_lower.ends_with(ext):
                     return True
         return False
 

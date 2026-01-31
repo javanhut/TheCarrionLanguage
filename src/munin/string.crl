@@ -303,13 +303,13 @@ grim String:
     Returns:
         A new string with specified characters removed from both ends
     ```
-    spell strip(characters: str) -> str:
+    spell strip(characters: str = "") -> str:
         if len(self.value) == 0:
             return ""
-        
+
         # Default whitespace characters if none specified
         chars_to_strip = characters
-        if len(characters) == 0:
+        if characters == None or len(characters) == 0:
             chars_to_strip = " "
         
         # Find start position (skip leading chars to strip)
@@ -402,4 +402,71 @@ grim String:
                 i = i + 1
 
         return result
+
+    ```
+    Checks whether the string starts with the specified prefix.
+
+    This spell examines the beginning of the string to determine if it
+    matches the given prefix. It compares characters one by one from
+    the start of the string.
+
+    Parameters:
+        prefix: The string to check at the beginning
+
+    Returns:
+        True if the string starts with the prefix, False otherwise
+    ```
+    spell starts_with(prefix: str) -> bool:
+        prefix_len = len(prefix)
+        str_len = len(self.value)
+
+        # Prefix can't exist if it's longer than the string
+        if prefix_len > str_len:
+            return False
+
+        # Check if prefix is empty
+        if prefix_len == 0:
+            return True
+
+        # Compare each character of the prefix
+        for i in range(0, prefix_len):
+            if self.value[i] != prefix[i]:
+                return False
+
+        return True
+
+    ```
+    Checks whether the string ends with the specified suffix.
+
+    This spell examines the end of the string to determine if it
+    matches the given suffix. It compares characters from the end
+    of the string backwards.
+
+    Parameters:
+        suffix: The string to check at the end
+
+    Returns:
+        True if the string ends with the suffix, False otherwise
+    ```
+    spell ends_with(suffix: str) -> bool:
+        suffix_len = len(suffix)
+        str_len = len(self.value)
+
+        # Suffix can't exist if it's longer than the string
+        if suffix_len > str_len:
+            return False
+
+        # Check if suffix is empty
+        if suffix_len == 0:
+            return True
+
+        # Calculate starting position to compare
+        start_pos = str_len - suffix_len
+
+        # Compare each character of the suffix
+        for i in range(0, suffix_len):
+            if self.value[start_pos + i] != suffix[i]:
+                return False
+
+        return True
 
