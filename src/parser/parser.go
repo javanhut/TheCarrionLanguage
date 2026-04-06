@@ -1837,12 +1837,12 @@ func (p *Parser) parseCallArguments() []ast.Expression {
 	}
 
 	p.nextToken()
-	args = append(args, p.parseExpression(LOWEST))
+	args = append(args, p.parseCallArgument())
 
 	for p.peekTokenIs(token.COMMA) {
 		p.nextToken()
 		p.nextToken()
-		args = append(args, p.parseExpression(LOWEST))
+		args = append(args, p.parseCallArgument())
 	}
 
 	if !p.expectPeek(token.RPAREN) {
@@ -1850,6 +1850,22 @@ func (p *Parser) parseCallArguments() []ast.Expression {
 	}
 
 	return args
+}
+
+// parseCallArgument parses a single call argument, which can be either:
+// - A named argument: `name=value`
+// - A positional argument: any expression
+func (p *Parser) parseCallArgument() ast.Expression {
+	// Check: IDENT followed by ASSIGN = named argument
+	if p.currTokenIs(token.IDENT) && p.peekTokenIs(token.ASSIGN) {
+		nameToken := p.currToken
+		name := &ast.Identifier{Token: nameToken, Value: nameToken.Literal}
+		p.nextToken() // consume IDENT, now on ASSIGN
+		p.nextToken() // consume ASSIGN, now on value
+		value := p.parseExpression(LOWEST)
+		return &ast.NamedArgument{Token: nameToken, Name: name, Value: value}
+	}
+	return p.parseExpression(LOWEST)
 }
 
 func (p *Parser) parseForStatement() ast.Statement {
@@ -1870,11 +1886,14 @@ func (p *Parser) parseForStatement() ast.Statement {
 	fs := &ast.ForStatement{Token: p.currToken}
 
 	// --- Parse the loop variable(s) - support both single variables and tuple unpacking ---
-	if !p.expectPeek(token.IDENT) {
+	// Accept either IDENT or DOTDOT (..) as discard variable
+	if !p.peekTokenIs(token.IDENT) && !p.peekTokenIs(token.DOTDOT) {
+		p.peekError(token.IDENT)
 		return nil
 	}
+	p.nextToken()
 
-	// Start with the first identifier
+	// Start with the first identifier (or discard)
 	firstVar := &ast.Identifier{Token: p.currToken, Value: p.currToken.Literal}
 
 	// Check if there are more variables (tuple unpacking)
@@ -1885,9 +1904,12 @@ func (p *Parser) parseForStatement() ast.Statement {
 		// Parse remaining variables
 		for p.peekTokenIs(token.COMMA) {
 			p.nextToken() // consume comma
-			if !p.expectPeek(token.IDENT) {
+			// Accept either IDENT or DOTDOT (..) as discard variable
+			if !p.peekTokenIs(token.IDENT) && !p.peekTokenIs(token.DOTDOT) {
+				p.peekError(token.IDENT)
 				return nil
 			}
+			p.nextToken()
 			nextVar := &ast.Identifier{Token: p.currToken, Value: p.currToken.Literal}
 			variables = append(variables, nextVar)
 		}
@@ -2332,47 +2354,67 @@ func (p *Parser) parseImportStatement() ast.Statement {
 		lastDotIndex := strings.LastIndex(importPath, ".")
 		if lastDotIndex != -1 && lastDotIndex < len(importPath)-1 {
 			potentialName := importPath[lastDotIndex+1:]
-			// Check if the part after the last dot is a valid identifier (grimoire or spell name)
-			// It should start with a letter and contain only alphanumeric characters and underscores
-			isValidIdentifier := len(potentialName) > 0 &&
-				((potentialName[0] >= 'A' && potentialName[0] <= 'Z') ||
-					(potentialName[0] >= 'a' && potentialName[0] <= 'z') ||
-					potentialName[0] == '_')
 
-			if isValidIdentifier {
-				// Check if it's a valid identifier throughout
-				allValidChars := true
-				for _, ch := range potentialName {
-					if !((ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') ||
-						(ch >= '0' && ch <= '9') || ch == '_') {
-						allValidChars = false
-						break
-					}
+			// First check if this is a file extension (like .crl)
+			// Known file extensions should not be treated as selective imports
+			knownExtensions := []string{"crl", "crln"}
+			isFileExtension := false
+			for _, ext := range knownExtensions {
+				if potentialName == ext {
+					isFileExtension = true
+					break
 				}
+			}
 
-				if allValidChars {
-					// This looks like a selective import: "module/path.Name" or "module/path.spell_name"
-					modulePath := importPath[:lastDotIndex]
-					stmt.FilePath = &ast.StringLiteral{
-						Token: p.currToken,
-						Value: modulePath, // The module path without the name
+			if isFileExtension {
+				// This is a file path with extension, not a selective import
+				stmt.FilePath = &ast.StringLiteral{
+					Token: p.currToken,
+					Value: importPath,
+				}
+			} else {
+				// Check if the part after the last dot is a valid identifier (grimoire or spell name)
+				// It should start with a letter and contain only alphanumeric characters and underscores
+				isValidIdentifier := len(potentialName) > 0 &&
+					((potentialName[0] >= 'A' && potentialName[0] <= 'Z') ||
+						(potentialName[0] >= 'a' && potentialName[0] <= 'z') ||
+						potentialName[0] == '_')
+
+				if isValidIdentifier {
+					// Check if it's a valid identifier throughout
+					allValidChars := true
+					for _, ch := range potentialName {
+						if !((ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') ||
+							(ch >= '0' && ch <= '9') || ch == '_') {
+							allValidChars = false
+							break
+						}
 					}
-					stmt.ClassName = &ast.Identifier{
-						Token: p.currToken,
-						Value: potentialName, // The specific grimoire or spell name
+
+					if allValidChars {
+						// This looks like a selective import: "module/path.Name" or "module/path.spell_name"
+						modulePath := importPath[:lastDotIndex]
+						stmt.FilePath = &ast.StringLiteral{
+							Token: p.currToken,
+							Value: modulePath, // The module path without the name
+						}
+						stmt.ClassName = &ast.Identifier{
+							Token: p.currToken,
+							Value: potentialName, // The specific grimoire or spell name
+						}
+					} else {
+						// Regular import path with non-identifier after dot
+						stmt.FilePath = &ast.StringLiteral{
+							Token: p.currToken,
+							Value: importPath,
+						}
 					}
 				} else {
-					// Regular import path with non-identifier after dot (like file.crl)
+					// Regular import path that happens to have dots
 					stmt.FilePath = &ast.StringLiteral{
 						Token: p.currToken,
 						Value: importPath,
 					}
-				}
-			} else {
-				// Regular import path that happens to have dots
-				stmt.FilePath = &ast.StringLiteral{
-					Token: p.currToken,
-					Value: importPath,
 				}
 			}
 		} else {

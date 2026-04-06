@@ -1,8 +1,10 @@
 package modules
 
 import (
+	"bufio"
 	"io"
 	"os"
+	"strings"
 	"sync"
 
 	"github.com/javanhut/TheCarrionLanguage/src/object"
@@ -13,6 +15,12 @@ var (
 	fileHandles = make(map[int64]*os.File)
 	nextHandle  int64 = 1
 	handleMutex sync.RWMutex
+)
+
+// Scanner registry for line-based reading (maintains state between readline calls)
+var (
+	fileScanners = make(map[int64]*bufio.Scanner)
+	scannerMutex sync.RWMutex
 )
 
 // Helper function to extract string value from object
@@ -78,6 +86,36 @@ func removeFileHandle(handleID int64) {
 	delete(fileHandles, handleID)
 }
 
+// Get or create scanner for file handle
+func getOrCreateScanner(handleID int64) (*bufio.Scanner, bool) {
+	scannerMutex.Lock()
+	defer scannerMutex.Unlock()
+
+	if scanner, exists := fileScanners[handleID]; exists {
+		return scanner, true
+	}
+
+	// Need to get the file handle to create scanner
+	handleMutex.RLock()
+	file, exists := fileHandles[handleID]
+	handleMutex.RUnlock()
+
+	if !exists {
+		return nil, false
+	}
+
+	scanner := bufio.NewScanner(file)
+	fileScanners[handleID] = scanner
+	return scanner, true
+}
+
+// Remove scanner from registry
+func removeScanner(handleID int64) {
+	scannerMutex.Lock()
+	defer scannerMutex.Unlock()
+	delete(fileScanners, handleID)
+}
+
 var FileBuiltins = map[string]*object.Builtin{
 	"fileOpen": {
 		Fn: func(args ...object.Object) object.Object {
@@ -131,81 +169,125 @@ var FileBuiltins = map[string]*object.Builtin{
 
 	"fileReadHandle": {
 		Fn: func(args ...object.Object) object.Object {
-			if len(args) < 1 || len(args) > 2 {
-				return &object.Error{Message: "fileReadHandle requires 1-2 arguments: handleID, [size]"}
+			if len(args) < 1 || len(args) > 3 {
+				return &object.Error{Message: "fileReadHandle requires 1-3 arguments: handleID, [size], [encoding]"}
 			}
-			
+
 			handleID, ok := extractIntFile(args[0])
 			if !ok {
 				return &object.Error{Message: "fileReadHandle: handleID must be an integer"}
 			}
-			
+
 			file, exists := getFileHandle(handleID)
 			if !exists {
 				return &object.Error{Message: "fileReadHandle: invalid file handle"}
 			}
-			
+
 			// Conditional size parameter
 			var data []byte
 			var err error
-			
-			if len(args) == 2 {
-				size, ok := extractIntFile(args[1])
-				if !ok {
-					return &object.Error{Message: "fileReadHandle: size must be an integer"}
-				}
-				if size <= 0 {
-					// Read all
-					data, err = io.ReadAll(file)
-				} else {
-					// Read specific size
-					data = make([]byte, size)
-					n, readErr := file.Read(data)
-					if readErr != nil && readErr != io.EOF {
-						err = readErr
+			var encodingName string
+
+			if len(args) >= 2 {
+				// Check if second arg is size (int) or encoding (string)
+				if size, ok := extractIntFile(args[1]); ok {
+					if size <= 0 {
+						// Read all
+						data, err = io.ReadAll(file)
 					} else {
-						data = data[:n]
+						// Read specific size
+						data = make([]byte, size)
+						n, readErr := file.Read(data)
+						if readErr != nil && readErr != io.EOF {
+							err = readErr
+						} else {
+							data = data[:n]
+						}
 					}
+					// Check for optional encoding as third arg
+					if len(args) == 3 {
+						encStr, ok := extractStringFile(args[2])
+						if !ok {
+							return &object.Error{Message: "fileReadHandle: encoding must be a string"}
+						}
+						encodingName = encStr
+					}
+				} else if encStr, ok := extractStringFile(args[1]); ok {
+					// Second arg is encoding, read all
+					data, err = io.ReadAll(file)
+					encodingName = encStr
+				} else {
+					return &object.Error{Message: "fileReadHandle: second argument must be size (integer) or encoding (string)"}
 				}
 			} else {
 				// Read all by default
 				data, err = io.ReadAll(file)
 			}
-			
+
 			if err != nil {
 				return &object.Error{Message: "failed to read from file: " + err.Error()}
 			}
-			
+
+			// Handle encoding if specified
+			if encodingName != "" && strings.ToLower(encodingName) != "utf-8" && strings.ToLower(encodingName) != "utf8" {
+				decoded, err := DecodeBytes(data, encodingName)
+				if err != nil {
+					return &object.Error{Message: "fileReadHandle: " + err.Error()}
+				}
+				return &object.String{Value: decoded}
+			}
+
 			return &object.String{Value: string(data)}
 		},
 	},
 
 	"fileWriteHandle": {
 		Fn: func(args ...object.Object) object.Object {
-			if len(args) != 2 {
-				return &object.Error{Message: "fileWriteHandle requires 2 arguments: handleID, content"}
+			if len(args) < 2 || len(args) > 3 {
+				return &object.Error{Message: "fileWriteHandle requires 2-3 arguments: handleID, content, [encoding]"}
 			}
-			
+
 			handleID, ok := extractIntFile(args[0])
 			if !ok {
 				return &object.Error{Message: "fileWriteHandle: handleID must be an integer"}
 			}
-			
+
 			contentStr, ok := extractStringFile(args[1])
 			if !ok {
 				return &object.Error{Message: "fileWriteHandle: content must be a string"}
 			}
-			
+
 			file, exists := getFileHandle(handleID)
 			if !exists {
 				return &object.Error{Message: "fileWriteHandle: invalid file handle"}
 			}
-			
-			n, err := file.WriteString(contentStr)
+
+			var dataToWrite []byte
+			// Handle optional encoding parameter
+			if len(args) == 3 {
+				encStr, ok := extractStringFile(args[2])
+				if !ok {
+					return &object.Error{Message: "fileWriteHandle: encoding must be a string"}
+				}
+				// Only encode if not UTF-8 (default)
+				if strings.ToLower(encStr) != "utf-8" && strings.ToLower(encStr) != "utf8" {
+					encoded, err := EncodeString(contentStr, encStr)
+					if err != nil {
+						return &object.Error{Message: "fileWriteHandle: " + err.Error()}
+					}
+					dataToWrite = encoded
+				} else {
+					dataToWrite = []byte(contentStr)
+				}
+			} else {
+				dataToWrite = []byte(contentStr)
+			}
+
+			n, err := file.Write(dataToWrite)
 			if err != nil {
 				return &object.Error{Message: "failed to write to file: " + err.Error()}
 			}
-			
+
 			return &object.Integer{Value: int64(n)}
 		},
 	},
@@ -215,24 +297,25 @@ var FileBuiltins = map[string]*object.Builtin{
 			if len(args) != 1 {
 				return &object.Error{Message: "fileClose requires 1 argument: handleID"}
 			}
-			
+
 			handleID, ok := extractIntFile(args[0])
 			if !ok {
 				return &object.Error{Message: "fileClose: handleID must be an integer"}
 			}
-			
+
 			file, exists := getFileHandle(handleID)
 			if !exists {
 				return &object.Error{Message: "fileClose: invalid file handle"}
 			}
-			
+
 			err := file.Close()
 			removeFileHandle(handleID)
-			
+			removeScanner(handleID) // Also remove any associated scanner
+
 			if err != nil {
 				return &object.Error{Message: "failed to close file: " + err.Error()}
 			}
-			
+
 			return &object.None{}
 		},
 	},
@@ -329,8 +412,8 @@ var FileBuiltins = map[string]*object.Builtin{
 	// Keep convenience functions for backward compatibility
 	"fileReadPath": {
 		Fn: func(args ...object.Object) object.Object {
-			if len(args) != 1 {
-				return &object.Error{Message: "fileReadPath requires 1 argument: path"}
+			if len(args) < 1 || len(args) > 2 {
+				return &object.Error{Message: "fileReadPath requires 1-2 arguments: path, [encoding]"}
 			}
 			pathStr, ok := extractStringFile(args[0])
 			if !ok {
@@ -340,21 +423,59 @@ var FileBuiltins = map[string]*object.Builtin{
 			if err != nil {
 				return &object.Error{Message: "failed to read file '" + pathStr + "': " + err.Error()}
 			}
+
+			// Handle optional encoding parameter
+			if len(args) == 2 {
+				encStr, ok := extractStringFile(args[1])
+				if !ok {
+					return &object.Error{Message: "fileReadPath: encoding must be a string"}
+				}
+				// Only decode if not UTF-8 (default)
+				if strings.ToLower(encStr) != "utf-8" && strings.ToLower(encStr) != "utf8" {
+					decoded, err := DecodeBytes(data, encStr)
+					if err != nil {
+						return &object.Error{Message: "fileReadPath: " + err.Error()}
+					}
+					return &object.String{Value: decoded}
+				}
+			}
 			return &object.String{Value: string(data)}
 		},
 	},
 
 	"fileWritePath": {
 		Fn: func(args ...object.Object) object.Object {
-			if len(args) != 2 {
-				return &object.Error{Message: "fileWritePath requires 2 arguments: path, content"}
+			if len(args) < 2 || len(args) > 3 {
+				return &object.Error{Message: "fileWritePath requires 2-3 arguments: path, content, [encoding]"}
 			}
 			pathStr, ok1 := extractStringFile(args[0])
 			contentStr, ok2 := extractStringFile(args[1])
 			if !ok1 || !ok2 {
 				return &object.Error{Message: "fileWritePath: path/content must be strings"}
 			}
-			err := os.WriteFile(pathStr, []byte(contentStr), 0644)
+
+			var dataToWrite []byte
+			// Handle optional encoding parameter
+			if len(args) == 3 {
+				encStr, ok := extractStringFile(args[2])
+				if !ok {
+					return &object.Error{Message: "fileWritePath: encoding must be a string"}
+				}
+				// Only encode if not UTF-8 (default)
+				if strings.ToLower(encStr) != "utf-8" && strings.ToLower(encStr) != "utf8" {
+					encoded, err := EncodeString(contentStr, encStr)
+					if err != nil {
+						return &object.Error{Message: "fileWritePath: " + err.Error()}
+					}
+					dataToWrite = encoded
+				} else {
+					dataToWrite = []byte(contentStr)
+				}
+			} else {
+				dataToWrite = []byte(contentStr)
+			}
+
+			err := os.WriteFile(pathStr, dataToWrite, 0644)
 			if err != nil {
 				return &object.Error{Message: "failed to write file '" + pathStr + "': " + err.Error()}
 			}
@@ -414,8 +535,8 @@ var FileBuiltins = map[string]*object.Builtin{
 	// Backward compatibility aliases - redirect to path-based functions
 	"fileRead": {
 		Fn: func(args ...object.Object) object.Object {
-			if len(args) != 1 {
-				return &object.Error{Message: "fileRead requires 1 argument: path"}
+			if len(args) < 1 || len(args) > 2 {
+				return &object.Error{Message: "fileRead requires 1-2 arguments: path, [encoding]"}
 			}
 			pathStr, ok := extractStringFile(args[0])
 			if !ok {
@@ -425,21 +546,59 @@ var FileBuiltins = map[string]*object.Builtin{
 			if err != nil {
 				return &object.Error{Message: "failed to read file '" + pathStr + "': " + err.Error()}
 			}
+
+			// Handle optional encoding parameter
+			if len(args) == 2 {
+				encStr, ok := extractStringFile(args[1])
+				if !ok {
+					return &object.Error{Message: "fileRead: encoding must be a string"}
+				}
+				// Only decode if not UTF-8 (default)
+				if strings.ToLower(encStr) != "utf-8" && strings.ToLower(encStr) != "utf8" {
+					decoded, err := DecodeBytes(data, encStr)
+					if err != nil {
+						return &object.Error{Message: "fileRead: " + err.Error()}
+					}
+					return &object.String{Value: decoded}
+				}
+			}
 			return &object.String{Value: string(data)}
 		},
 	},
 
 	"fileWrite": {
 		Fn: func(args ...object.Object) object.Object {
-			if len(args) != 2 {
-				return &object.Error{Message: "fileWrite requires 2 arguments: path, content"}
+			if len(args) < 2 || len(args) > 3 {
+				return &object.Error{Message: "fileWrite requires 2-3 arguments: path, content, [encoding]"}
 			}
 			pathStr, ok1 := extractStringFile(args[0])
 			contentStr, ok2 := extractStringFile(args[1])
 			if !ok1 || !ok2 {
 				return &object.Error{Message: "fileWrite: path/content must be strings"}
 			}
-			err := os.WriteFile(pathStr, []byte(contentStr), 0644)
+
+			var dataToWrite []byte
+			// Handle optional encoding parameter
+			if len(args) == 3 {
+				encStr, ok := extractStringFile(args[2])
+				if !ok {
+					return &object.Error{Message: "fileWrite: encoding must be a string"}
+				}
+				// Only encode if not UTF-8 (default)
+				if strings.ToLower(encStr) != "utf-8" && strings.ToLower(encStr) != "utf8" {
+					encoded, err := EncodeString(contentStr, encStr)
+					if err != nil {
+						return &object.Error{Message: "fileWrite: " + err.Error()}
+					}
+					dataToWrite = encoded
+				} else {
+					dataToWrite = []byte(contentStr)
+				}
+			} else {
+				dataToWrite = []byte(contentStr)
+			}
+
+			err := os.WriteFile(pathStr, dataToWrite, 0644)
 			if err != nil {
 				return &object.Error{Message: "failed to write file '" + pathStr + "': " + err.Error()}
 			}
@@ -467,6 +626,171 @@ var FileBuiltins = map[string]*object.Builtin{
 				return &object.Error{Message: "failed to append to file '" + pathStr + "': " + err.Error()}
 			}
 			return &object.None{}
+		},
+	},
+
+	"fileReadBytes": {
+		Fn: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return &object.Error{Message: "fileReadBytes requires 1 argument: path"}
+			}
+			pathStr, ok := extractStringFile(args[0])
+			if !ok {
+				return &object.Error{Message: "fileReadBytes: path must be a string"}
+			}
+			data, err := os.ReadFile(pathStr)
+			if err != nil {
+				return &object.Error{Message: "failed to read file '" + pathStr + "': " + err.Error()}
+			}
+			// Return as array of integers (bytes)
+			elements := make([]object.Object, len(data))
+			for i, b := range data {
+				elements[i] = &object.Integer{Value: int64(b)}
+			}
+			return &object.Array{Elements: elements}
+		},
+	},
+
+	"fileWriteBytes": {
+		Fn: func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return &object.Error{Message: "fileWriteBytes requires 2 arguments: path, bytes"}
+			}
+			pathStr, ok := extractStringFile(args[0])
+			if !ok {
+				return &object.Error{Message: "fileWriteBytes: path must be a string"}
+			}
+
+			// Handle bytes as array of integers
+			arr, ok := args[1].(*object.Array)
+			if !ok {
+				return &object.Error{Message: "fileWriteBytes: bytes must be an array of integers"}
+			}
+
+			data := make([]byte, len(arr.Elements))
+			for i, elem := range arr.Elements {
+				intVal, ok := elem.(*object.Integer)
+				if !ok {
+					return &object.Error{Message: "fileWriteBytes: array must contain integers"}
+				}
+				if intVal.Value < 0 || intVal.Value > 255 {
+					return &object.Error{Message: "fileWriteBytes: byte values must be 0-255"}
+				}
+				data[i] = byte(intVal.Value)
+			}
+
+			err := os.WriteFile(pathStr, data, 0644)
+			if err != nil {
+				return &object.Error{Message: "failed to write file '" + pathStr + "': " + err.Error()}
+			}
+			return &object.None{}
+		},
+	},
+
+	"fileReadLine": {
+		Fn: func(args ...object.Object) object.Object {
+			if len(args) < 1 || len(args) > 2 {
+				return &object.Error{Message: "fileReadLine requires 1-2 arguments: handleID, [encoding]"}
+			}
+
+			handleID, ok := extractIntFile(args[0])
+			if !ok {
+				return &object.Error{Message: "fileReadLine: handleID must be an integer"}
+			}
+
+			// Get or create scanner for this handle
+			scanner, exists := getOrCreateScanner(handleID)
+			if !exists {
+				return &object.Error{Message: "fileReadLine: invalid file handle"}
+			}
+
+			// Get optional encoding
+			var encodingName string
+			if len(args) == 2 {
+				encStr, ok := extractStringFile(args[1])
+				if !ok {
+					return &object.Error{Message: "fileReadLine: encoding must be a string"}
+				}
+				encodingName = encStr
+			}
+
+			// Read next line
+			if scanner.Scan() {
+				line := scanner.Text()
+
+				// Handle encoding if specified
+				if encodingName != "" && strings.ToLower(encodingName) != "utf-8" && strings.ToLower(encodingName) != "utf8" {
+					decoded, err := DecodeBytes([]byte(line), encodingName)
+					if err != nil {
+						return &object.Error{Message: "fileReadLine: " + err.Error()}
+					}
+					return &object.String{Value: decoded}
+				}
+
+				return &object.String{Value: line}
+			}
+
+			// Check for scanner error
+			if err := scanner.Err(); err != nil {
+				return &object.Error{Message: "fileReadLine: " + err.Error()}
+			}
+
+			// EOF reached - return None
+			return &object.None{}
+		},
+	},
+
+	"fileReadLines": {
+		Fn: func(args ...object.Object) object.Object {
+			if len(args) < 1 || len(args) > 2 {
+				return &object.Error{Message: "fileReadLines requires 1-2 arguments: path, [encoding]"}
+			}
+
+			pathStr, ok := extractStringFile(args[0])
+			if !ok {
+				return &object.Error{Message: "fileReadLines: path must be a string"}
+			}
+
+			// Get optional encoding
+			var encodingName string
+			if len(args) == 2 {
+				encStr, ok := extractStringFile(args[1])
+				if !ok {
+					return &object.Error{Message: "fileReadLines: encoding must be a string"}
+				}
+				encodingName = encStr
+			}
+
+			// Open the file
+			file, err := os.Open(pathStr)
+			if err != nil {
+				return &object.Error{Message: "fileReadLines: failed to open file '" + pathStr + "': " + err.Error()}
+			}
+			defer file.Close()
+
+			// Read all lines
+			var lines []object.Object
+			scanner := bufio.NewScanner(file)
+			for scanner.Scan() {
+				line := scanner.Text()
+
+				// Handle encoding if specified
+				if encodingName != "" && strings.ToLower(encodingName) != "utf-8" && strings.ToLower(encodingName) != "utf8" {
+					decoded, err := DecodeBytes([]byte(line), encodingName)
+					if err != nil {
+						return &object.Error{Message: "fileReadLines: " + err.Error()}
+					}
+					lines = append(lines, &object.String{Value: decoded})
+				} else {
+					lines = append(lines, &object.String{Value: line})
+				}
+			}
+
+			if err := scanner.Err(); err != nil {
+				return &object.Error{Message: "fileReadLines: " + err.Error()}
+			}
+
+			return &object.Array{Elements: lines}
 		},
 	},
 }

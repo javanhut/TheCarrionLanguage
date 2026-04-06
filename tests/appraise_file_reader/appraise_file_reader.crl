@@ -1,0 +1,271 @@
+# FileReader Grimoire Test Suite
+# Tests for src/munin/file_reader.crl
+# FileReader is auto-loaded globally - no import needed
+
+# Base path for fixtures
+FIXTURE_PATH = "tests/appraise_file_reader/fixtures/"
+
+# ===== Type Detection Tests =====
+
+spell appraise_type_detection_txt():
+    reader = FileReader(FIXTURE_PATH + "test_data.txt")
+    check(reader.get_type() == "txt")
+
+spell appraise_type_detection_csv():
+    reader = FileReader(FIXTURE_PATH + "test_data.csv")
+    check(reader.get_type() == "csv")
+
+spell appraise_type_detection_tsv():
+    reader = FileReader(FIXTURE_PATH + "test_data.tsv")
+    check(reader.get_type() == "csv")  # TSV is treated as CSV type
+
+spell appraise_type_detection_json():
+    reader = FileReader(FIXTURE_PATH + "test_data.json")
+    check(reader.get_type() == "json")
+
+spell appraise_type_detection_yaml():
+    reader = FileReader(FIXTURE_PATH + "test_data.yaml")
+    check(reader.get_type() == "yaml")
+
+spell appraise_type_detection_toml():
+    reader = FileReader(FIXTURE_PATH + "test_data.toml")
+    check(reader.get_type() == "toml")
+
+spell appraise_type_detection_xml():
+    reader = FileReader(FIXTURE_PATH + "test_data.xml")
+    check(reader.get_type() == "xml")
+
+spell appraise_type_detection_ini():
+    reader = FileReader(FIXTURE_PATH + "test_data.ini")
+    check(reader.get_type() == "ini")
+
+spell appraise_type_detection_properties():
+    reader = FileReader(FIXTURE_PATH + "test_data.properties")
+    check(reader.get_type() == "properties")
+
+spell appraise_type_detection_excel():
+    reader = FileReader(FIXTURE_PATH + "test_data.xlsx")
+    check(reader.get_type() == "excel")
+
+# ===== Text File Tests =====
+
+spell appraise_read_txt():
+    reader = FileReader(FIXTURE_PATH + "test_data.txt")
+    lines = reader.read_txt()
+    check(len(lines) == 3)
+    check(lines[0] == "Line one")
+    check(lines[1] == "Line two")
+    check(lines[2] == "Line three")
+
+spell appraise_read_lines():
+    reader = FileReader(FIXTURE_PATH + "test_data.txt")
+    lines = reader.read_lines()
+    check(len(lines) == 3)
+    check(lines[0] == "Line one")
+
+# ===== CSV File Tests =====
+
+spell appraise_read_csv():
+    reader = FileReader(FIXTURE_PATH + "test_data.csv")
+    rows = reader.read_csv()
+    check(len(rows) == 3)  # header + 2 data rows
+    check(rows[0][0] == "name")
+    check(rows[0][1] == "age")
+    check(rows[0][2] == "city")
+    check(rows[1][0] == "Alice")
+    check(rows[1][1] == "30")
+
+spell appraise_read_csv_with_headers():
+    reader = FileReader(FIXTURE_PATH + "test_data.csv")
+    records = reader.read_csv_with_headers()
+    check(len(records) == 2)  # 2 data rows (header excluded)
+    check(records[0]["name"] == "Alice")
+    check(records[0]["age"] == "30")
+    check(records[0]["city"] == "New York")
+    check(records[1]["name"] == "Bob")
+
+spell appraise_set_delimiter():
+    reader = FileReader(FIXTURE_PATH + "test_data.csv")
+    result = reader.set_delimiter(";")
+    # Method chaining - should return self
+    check(result.delimiter == ";")
+
+spell appraise_tsv_auto_delimiter():
+    reader = FileReader(FIXTURE_PATH + "test_data.tsv")
+    # TSV should auto-detect tab delimiter
+    check(reader.delimiter == "\t")
+    rows = reader.read_csv()
+    check(len(rows) == 2)  # header + 1 data row
+    check(rows[0][0] == "name")
+    check(rows[1][0] == "Carol")
+    check(rows[1][1] == "35")
+
+# ===== JSON File Tests =====
+
+spell appraise_read_json():
+    reader = FileReader(FIXTURE_PATH + "test_data.json")
+    data = reader.read_json()
+    check(data["name"] == "Test")
+    check(int(data["value"]) == 42)  # JSON numbers are parsed as floats
+    check(data["nested"]["key"] == "inner")
+
+# ===== YAML File Tests =====
+
+spell appraise_read_yaml():
+    reader = FileReader(FIXTURE_PATH + "test_data.yaml")
+    data = reader.read_yaml()
+    check(data["name"] == "Test")
+    check(len(data["items"]) == 2)
+    check(data["items"][0] == "one")
+    check(data["items"][1] == "two")
+
+# ===== TOML File Tests =====
+
+spell appraise_read_toml():
+    reader = FileReader(FIXTURE_PATH + "test_data.toml")
+    data = reader.read_toml()
+    check(data["section"]["key"] == "value")
+    check(data["section"]["number"] == 42)
+
+# ===== XML File Tests =====
+
+spell appraise_read_xml():
+    reader = FileReader(FIXTURE_PATH + "test_data.xml")
+    data = reader.read_xml()
+    # XML structure varies by implementation
+    # Check that root element is parsed
+    check(data != None)
+
+# ===== INI File Tests =====
+
+spell appraise_read_ini():
+    reader = FileReader(FIXTURE_PATH + "test_data.ini")
+    data = reader.read_ini()
+    check(data["section1"]["key1"] == "value1")
+    check(data["section2"]["key2"] == "value2")
+
+# ===== Properties File Tests =====
+
+spell appraise_read_properties():
+    reader = FileReader(FIXTURE_PATH + "test_data.properties")
+    data = reader.read_properties()
+    check(data["app.name"] == "TestApp")
+    check(data["app.version"] == "1.0")
+
+# ===== Excel File Tests =====
+
+spell appraise_read_excel():
+    reader = FileReader(FIXTURE_PATH + "test_data.xlsx")
+    data = reader.read_excel()
+    check(len(data) == 3)  # header + 2 data rows
+    check(data[0][0] == "name")
+    check(data[0][1] == "age")
+    check(data[0][2] == "city")
+    check(data[1][0] == "Dave")
+    reader.close()
+
+spell appraise_get_sheets():
+    reader = FileReader(FIXTURE_PATH + "test_data.xlsx")
+    sheets = reader.get_sheets()
+    check(len(sheets) >= 1)
+    check(sheets[0] == "Sheet1")
+    reader.close()
+
+spell appraise_read_excel_with_headers():
+    reader = FileReader(FIXTURE_PATH + "test_data.xlsx")
+    records = reader.read_excel_with_headers()
+    check(len(records) == 2)  # 2 data rows
+    check(records[0]["name"] == "Dave")
+    check(records[0]["age"] == "40")
+    check(records[0]["city"] == "Boston")
+    check(records[1]["name"] == "Eve")
+    reader.close()
+
+# ===== Utility Method Tests =====
+
+spell appraise_get_type():
+    reader = FileReader(FIXTURE_PATH + "test_data.json")
+    check(reader.get_type() == "json")
+
+spell appraise_is_valid_type():
+    reader = FileReader(FIXTURE_PATH + "test_data.json")
+    check(reader.is_valid_type() == True)
+
+spell appraise_get_supported_types():
+    reader = FileReader(FIXTURE_PATH + "test_data.txt")
+    types = reader.get_supported_types()
+    check("txt" in types)
+    check("csv" in types)
+    check("json" in types)
+    check("yaml" in types)
+    check("toml" in types)
+    check("xml" in types)
+    check("ini" in types)
+    check("properties" in types)
+    check("excel" in types)
+
+spell appraise_get_extensions_for_type():
+    reader = FileReader(FIXTURE_PATH + "test_data.txt")
+    json_exts = reader.get_extensions_for_type("json")
+    check(".json" in json_exts)
+
+    yaml_exts = reader.get_extensions_for_type("yaml")
+    check(".yaml" in yaml_exts)
+    check(".yml" in yaml_exts)
+
+    excel_exts = reader.get_extensions_for_type("excel")
+    check(".xlsx" in excel_exts)
+    check(".xls" in excel_exts)
+
+# ===== Generic read() Tests =====
+
+spell appraise_generic_read_txt():
+    reader = FileReader(FIXTURE_PATH + "test_data.txt")
+    data = reader.read()
+    check(len(data) == 3)
+
+spell appraise_generic_read_json():
+    reader = FileReader(FIXTURE_PATH + "test_data.json")
+    data = reader.read()
+    check(data["name"] == "Test")
+
+spell appraise_generic_read_csv():
+    reader = FileReader(FIXTURE_PATH + "test_data.csv")
+    data = reader.read()
+    check(len(data) == 3)
+
+spell appraise_generic_read_yaml():
+    reader = FileReader(FIXTURE_PATH + "test_data.yaml")
+    data = reader.read()
+    check(data["name"] == "Test")
+
+# ===== Method Chaining Tests =====
+
+spell appraise_method_chaining():
+    reader = FileReader(FIXTURE_PATH + "test_data.csv")
+    # set_delimiter returns self for chaining
+    result = reader.set_delimiter(",").set_encoding("utf-8")
+    check(result.delimiter == ",")
+    check(result.encoding == "utf-8")
+
+# ===== read_with_headers Tests =====
+
+spell appraise_read_with_headers_csv():
+    reader = FileReader(FIXTURE_PATH + "test_data.csv")
+    records = reader.read_with_headers()
+    check(len(records) == 2)
+    check(records[0]["name"] == "Alice")
+
+spell appraise_read_with_headers_excel():
+    reader = FileReader(FIXTURE_PATH + "test_data.xlsx")
+    records = reader.read_with_headers()
+    check(len(records) == 2)
+    check(records[0]["name"] == "Dave")
+    reader.close()
+
+# ===== Explicit file_type Parameter Tests =====
+
+spell appraise_explicit_file_type():
+    # Create reader with explicit type (overriding extension detection)
+    reader = FileReader(FIXTURE_PATH + "test_data.txt", "txt")
+    check(reader.get_type() == "txt")

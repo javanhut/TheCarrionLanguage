@@ -29,7 +29,7 @@ ifeq ($(OS),unsupported)
 	$(error Unsupported operating system: $(UNAME_S). Please set OS manually to one of: linux, mac, windows)
 endif
 
-.PHONY: build push run clean install uninstall build-source build-linux build-windows bifrost-update
+.PHONY: build push run clean install uninstall build-source build-linux build-windows bifrost-update tidy
 
 # 1) Build a tarball of the uncompiled source
 build-source:
@@ -101,3 +101,11 @@ bifrost-update:
 	@git submodule update --init --recursive
 	@git submodule update --remote
 
+tidy:
+	@echo "Running go mod tidy on all modules..."
+	@go mod tidy & \
+	cd cmd/sindri && go mod tidy & \
+	cd cmd/mimir && go mod tidy & \
+	cd bifrost && go mod tidy & \
+	wait
+	@echo "All modules tidied."

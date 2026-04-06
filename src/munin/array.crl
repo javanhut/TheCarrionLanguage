@@ -1,5 +1,5 @@
 grim Array:
-    init(elements):
+    init(elements=None):
         ```
         Initialize a new Array instance.
         
@@ -216,7 +216,24 @@ grim Array:
         if len(self.elements) > 0:
             return self.elements[len(self.elements) - 1]
         return None
-    
+  
+    ```
+    Remove the last element of an array and returns it.
+
+    This spell provides a convenient way to use a function to remove
+    the last element from the array and return it as a value.
+
+    Returns:
+      The last element of  and None if empty.
+    ```
+    spell pop():
+      length_of_elements = len(self.elements)
+      if length_of_elements > 0:
+        last_ele = self.last()
+        self.elements = self.slice(0, length_of_elements - 1)
+        return last_ele
+      return None
+
     ```
     Creates a new array containing elements from a specified range.
     

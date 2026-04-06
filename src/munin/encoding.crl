@@ -1,0 +1,100 @@
+"""
+Encoding grimoire providing character encoding support for text processing.
+
+This grimoire provides methods for converting text between different character
+encodings, detecting byte order marks (BOM), and listing supported encodings.
+
+Supported Encodings:
+- utf-8: Unicode UTF-8 (default)
+- utf-16: Unicode UTF-16 with BOM
+- utf-16le: Unicode UTF-16 Little Endian
+- utf-16be: Unicode UTF-16 Big Endian
+- latin-1 / iso-8859-1: Western European (Latin-1)
+- windows-1252 / cp1252: Windows Western European
+- ascii: ASCII (7-bit)
+
+Usage:
+    # Decode bytes from an encoding to UTF-8 string
+    text = Encoding.decode(raw_bytes, "latin-1")
+
+    # Encode UTF-8 string to bytes in target encoding
+    bytes = Encoding.encode("Hello", "utf-16")
+
+    # Detect encoding from BOM
+    encoding = Encoding.detect(raw_bytes)
+
+    # List supported encodings
+    encodings = Encoding.list()
+"""
+grim Encoding:
+    init(name="utf-8"):
+        ```
+        Initialize an Encoding instance with a default encoding name.
+
+        Args:
+            name (str): The encoding name (default: "utf-8")
+        ```
+        self.name = name.lower()
+
+    spell list():
+        ```
+        List all supported encoding names.
+
+        Returns:
+            Array: List of supported encoding names as strings
+        ```
+        return encodingList()
+
+    spell detect(data):
+        ```
+        Detect encoding from Byte Order Mark (BOM).
+
+        Examines the beginning of the data for known BOM sequences
+        and returns the detected encoding name. If no BOM is found,
+        defaults to "utf-8".
+
+        Args:
+            data: Raw bytes as string or array of integers
+
+        Returns:
+            str: Detected encoding name ("utf-8", "utf-16le", "utf-16be", etc.)
+        ```
+        return encodingDetectBOM(data)
+
+    spell decode(data, encoding="utf-8"):
+        ```
+        Decode bytes from the specified encoding to a UTF-8 string.
+
+        Args:
+            data: Raw bytes as string or array of integers
+            encoding (str): Source encoding name (default: "utf-8")
+
+        Returns:
+            str: Decoded UTF-8 string
+        ```
+        return encodingDecode(data, encoding)
+
+    spell encode(text, encoding="utf-8"):
+        ```
+        Encode a UTF-8 string to bytes in the target encoding.
+
+        Args:
+            text (str): UTF-8 string to encode
+            encoding (str): Target encoding name (default: "utf-8")
+
+        Returns:
+            Array: Encoded bytes as array of integers (0-255)
+        ```
+        return encodingEncode(text, encoding)
+
+    spell strip_bom(data):
+        ```
+        Remove Byte Order Mark from the beginning of data if present.
+
+        Args:
+            data: Raw bytes as string or array of integers
+
+        Returns:
+            Array: Data with BOM removed as array of integers
+        ```
+        return encodingStripBOM(data)

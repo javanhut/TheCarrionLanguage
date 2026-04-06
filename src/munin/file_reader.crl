@@ -1,0 +1,570 @@
+"""
+FileReader grimoire for processing different file types.
+
+This grimoire provides specialized reading capabilities for various file formats.
+It is the single entry point for reading and processing different file types in Carrion.
+
+Supported File Types:
+- Text files (.txt, .text, .log, .md, .rst)
+- CSV files (.csv, .tsv)
+- JSON files (.json)
+- YAML files (.yaml, .yml)
+- TOML files (.toml)
+- XML files (.xml)
+- INI files (.ini, .cfg, .conf)
+- Properties files (.properties)
+- Excel files (.xlsx, .xls, .xlsm, .xlsb)
+
+Usage:
+    # Auto-detect and read any file
+    reader = FileReader("config.json")
+    data = reader.read()
+
+    # Read a CSV file
+    reader = FileReader("data.csv")
+    rows = reader.read()
+
+    # Read with headers (CSV or Excel)
+    reader = FileReader("data.csv")
+    records = reader.read_with_headers()
+
+    # Read an Excel file
+    reader = FileReader("data.xlsx")
+    sheets = reader.get_sheets()
+    data = reader.read_sheet("Sheet2")
+
+    # Read a YAML config
+    reader = FileReader("config.yaml")
+    config = reader.read()
+
+    # Process lines with a callback (text-based files only)
+    reader = FileReader("data.txt")
+    reader.process_lines(spell(line): print(line.upper()))
+"""
+grim FileReader:
+    init(filename: str, file_type: str = ""):
+        ```
+        Initialize a FileReader for a specific file.
+
+        Args:
+            filename (str): Path to the file to read
+            file_type (str): Type of file (optional, auto-detected from extension)
+                Supported: "txt", "csv", "json", "yaml", "toml", "xml", "ini", "properties", "excel"
+        ```
+        self.file_name = filename
+        self.delimiter = ","
+        self.encoding = "utf-8"
+        self._excel_handle = None
+        self._closed = False
+
+        # File type mappings for validation and auto-detection
+        excel_file_types = [".xls", ".xlsx", ".xlsm", ".xlsb"]
+        csv_file_types = [".csv", ".tsv"]
+        json_file_types = [".json"]
+        yaml_file_types = [".yaml", ".yml"]
+        toml_file_types = [".toml"]
+        xml_file_types = [".xml"]
+        ini_file_types = [".ini", ".cfg", ".conf"]
+        properties_file_types = [".properties"]
+        txt_file_types = [".txt", ".text", ".log", ".md", ".rst"]
+
+        self.file_type_map = {
+            "excel": excel_file_types,
+            "csv": csv_file_types,
+            "json": json_file_types,
+            "yaml": yaml_file_types,
+            "toml": toml_file_types,
+            "xml": xml_file_types,
+            "ini": ini_file_types,
+            "properties": properties_file_types,
+            "txt": txt_file_types
+        }
+
+        # Auto-detect file type if not provided
+        if file_type == "":
+            file_lower = filename.lower()
+            # Check for .tsv specifically to set delimiter
+            if file_lower.ends_with(".tsv"):
+                self.delimiter = "\t"
+            for type_name, extensions in pairs(self.file_type_map):
+                for ext in extensions:
+                    if file_lower.ends_with(ext):
+                        self.type = type_name
+                        return
+            # Default to txt for unknown extensions
+            self.type = "txt"
+        else:
+            self.type = file_type.lower()
+
+    spell set_delimiter(delimiter: str):
+        ```
+        Set the delimiter for CSV/TSV parsing.
+
+        Args:
+            delimiter (str): The delimiter character (default: ",")
+
+        Returns:
+            FileReader: This instance for method chaining
+        ```
+        self.delimiter = delimiter
+        return self
+
+    spell set_encoding(encoding: str):
+        ```
+        Set the encoding for file reading.
+
+        Args:
+            encoding (str): The encoding to use (default: "utf-8")
+
+        Returns:
+            FileReader: This instance for method chaining
+        ```
+        self.encoding = encoding
+        return self
+
+    spell is_valid_type():
+        ```
+        Check if the file has a valid extension for its declared type.
+
+        Returns:
+            bool: True if file extension matches the declared type
+        ```
+        file_lower = self.file_name.lower()
+        if self.type in pairs(self.file_type_map, "k"):
+            valid_extensions = self.file_type_map[self.type]
+            for ext in valid_extensions:
+                if file_lower.ends_with(ext):
+                    return True
+        return False
+
+    spell close():
+        ```
+        Close any open file handles.
+
+        For Excel files, closes the Excel handle.
+        Safe to call multiple times.
+
+        Returns:
+            None
+        ```
+        if self._excel_handle != None and not self._closed:
+            excelClose(self._excel_handle)
+            self._excel_handle = None
+            self._closed = True
+        return None
+
+    spell read():
+        ```
+        Read the file based on its detected or specified type.
+
+        Returns appropriate data structure based on file type:
+        - txt: Array of lines
+        - csv: Array of arrays (rows of cells)
+        - json: Hash or Array (parsed JSON)
+        - yaml: Hash or Array (parsed YAML)
+        - toml: Hash (parsed TOML)
+        - xml: Hash (parsed XML)
+        - ini: Hash of sections (parsed INI)
+        - properties: Hash (key-value pairs)
+        - excel: 2D array from first sheet
+
+        Returns:
+            Mixed: File contents in appropriate format
+        ```
+        if self.type == "txt":
+            return self.read_txt()
+        otherwise self.type == "csv":
+            return self.read_csv()
+        otherwise self.type == "json":
+            return self.read_json()
+        otherwise self.type == "yaml":
+            return self.read_yaml()
+        otherwise self.type == "toml":
+            return self.read_toml()
+        otherwise self.type == "xml":
+            return self.read_xml()
+        otherwise self.type == "ini":
+            return self.read_ini()
+        otherwise self.type == "properties":
+            return self.read_properties()
+        otherwise self.type == "excel":
+            return self.read_excel()
+        else:
+            return self.read_txt()
+
+    spell read_with_headers():
+        ```
+        Read the file and parse using first row/element as headers.
+
+        Works with CSV and Excel files. Returns array of maps.
+
+        Returns:
+            Array: Array of maps with header names as keys
+        ```
+        if self.type == "csv":
+            return self.read_csv_with_headers()
+        otherwise self.type == "excel":
+            return self.read_excel_with_headers()
+        else:
+            return None
+
+    # ==================== Text File Methods ====================
+
+    spell read_lines():
+        ```
+        Read all lines from a text file as an array.
+
+        Returns:
+            Array: Array of strings, one per line
+        ```
+        return fileReadLines(self.file_name, self.encoding)
+
+    spell read_txt():
+        ```
+        Read a text file and return all lines.
+
+        Returns:
+            Array: Array of strings, one per line
+        ```
+        return self.read_lines()
+
+    spell process_lines(callback):
+        ```
+        Process each line of the file with a callback function.
+
+        Reads lines one at a time for memory efficiency with large files.
+        Only works with text-based files (txt, csv).
+
+        Args:
+            callback: A function that takes a line string as argument
+
+        Returns:
+            int: Number of lines processed
+        ```
+        if self.type == "excel":
+            return 0
+        autoclose File.open(self.file_name, "r", self.encoding) as file:
+            count = 0
+            line = file.readline()
+            while line != None:
+                callback(line)
+                count = count + 1
+                line = file.readline()
+            return count
+
+    # ==================== CSV File Methods ====================
+
+    spell read_csv():
+        ```
+        Read a CSV file and parse it into rows.
+
+        Each row is returned as an array of values split by the delimiter.
+        Use set_delimiter() to change from the default comma.
+
+        Returns:
+            Array: Array of arrays, where each inner array is a row of values
+        ```
+        lines = self.read_lines()
+        if lines == None:
+            return None
+
+        result = []
+        for line in lines:
+            # Skip empty lines
+            if line == "":
+                continue
+            # Split by delimiter
+            row = line.split(self.delimiter)
+            # Trim whitespace from each cell
+            trimmed_row = []
+            for cell in row:
+                trimmed_row.append(cell.strip())
+            result.append(trimmed_row)
+        return result
+
+    spell read_csv_with_headers():
+        ```
+        Read a CSV file and parse it into dictionaries using the first row as headers.
+
+        Returns:
+            Array: Array of maps, where each map has header names as keys
+        ```
+        rows = self.read_csv()
+        if rows == None or len(rows) == 0:
+            return None
+
+        headers = rows[0]
+        result = []
+
+        # Start from index 1 to skip header row
+        for i in range(1, len(rows)):
+            row = rows[i]
+            row_map = {}
+            for j in range(len(headers)):
+                if j < len(row):
+                    row_map[headers[j]] = row[j]
+                else:
+                    row_map[headers[j]] = ""
+            result.append(row_map)
+        return result
+
+    # ==================== JSON File Methods ====================
+
+    spell read_json():
+        ```
+        Read and parse a JSON file.
+
+        Returns:
+            Hash or Array: Parsed JSON structure
+        ```
+        return jsonReadFile(self.file_name)
+
+    # ==================== YAML File Methods ====================
+
+    spell read_yaml():
+        ```
+        Read and parse a YAML file.
+
+        Returns:
+            Hash or Array: Parsed YAML structure
+        ```
+        return yamlReadFile(self.file_name)
+
+    # ==================== TOML File Methods ====================
+
+    spell read_toml():
+        ```
+        Read and parse a TOML file.
+
+        Returns:
+            Hash: Parsed TOML structure
+        ```
+        return tomlReadFile(self.file_name)
+
+    # ==================== XML File Methods ====================
+
+    spell read_xml():
+        ```
+        Read and parse an XML file.
+
+        Returns a nested Hash structure where:
+        - Element names are keys
+        - @attributes contains element attributes
+        - #text contains text content
+        - Arrays are used for repeated elements
+
+        Returns:
+            Hash: Parsed XML structure
+        ```
+        return xmlReadFile(self.file_name)
+
+    # ==================== INI File Methods ====================
+
+    spell read_ini():
+        ```
+        Read and parse an INI/CFG file.
+
+        Returns a Hash where keys are section names and values are
+        Hashes of key-value pairs within each section.
+
+        Returns:
+            Hash: Parsed INI structure with sections
+        ```
+        return iniReadFile(self.file_name)
+
+    # ==================== Properties File Methods ====================
+
+    spell read_properties():
+        ```
+        Read and parse a Java-style properties file.
+
+        Returns:
+            Hash: Key-value pairs from the properties file
+        ```
+        return propertiesReadFile(self.file_name)
+
+    # ==================== Excel File Methods ====================
+
+    spell _ensure_excel_open():
+        ```
+        Internal method to ensure Excel file is open.
+
+        Returns:
+            bool: True if file is open, False on error
+        ```
+        if self._excel_handle == None or self._closed:
+            self._excel_handle = excelOpen(self.file_name)
+            self._closed = False
+        return self._excel_handle != None
+
+    spell read_excel(sheet_name: str = ""):
+        ```
+        Read data from an Excel file.
+
+        If no sheet name is provided, reads from the first sheet.
+
+        Args:
+            sheet_name (str): Name of the sheet to read (optional)
+
+        Returns:
+            Array: 2D array where each element is a row (array of cell values)
+        ```
+        if not self._ensure_excel_open():
+            return None
+
+        if sheet_name == "":
+            sheet_list = excelGetSheets(self._excel_handle)
+            if sheet_list == None or len(sheet_list) == 0:
+                return None
+            sheet_name = sheet_list[0]
+
+        return excelReadSheet(self._excel_handle, sheet_name)
+
+    spell get_sheets():
+        ```
+        Get the list of all sheet names in an Excel workbook.
+
+        Returns:
+            Array: Array of sheet name strings
+        ```
+        if self.type != "excel":
+            return None
+        if not self._ensure_excel_open():
+            return None
+        return excelGetSheets(self._excel_handle)
+
+    spell read_sheet(sheet_name: str):
+        ```
+        Read all data from a specific Excel sheet.
+
+        Args:
+            sheet_name (str): Name of the sheet to read
+
+        Returns:
+            Array: 2D array where each element is a row (array of cell values)
+        ```
+        if not self._ensure_excel_open():
+            return None
+        return excelReadSheet(self._excel_handle, sheet_name)
+
+    spell read_row(sheet_name: str, row_num: int):
+        ```
+        Read a specific row from an Excel sheet.
+
+        Args:
+            sheet_name (str): Name of the sheet
+            row_num (int): Row number (1-based)
+
+        Returns:
+            Array: Array of cell values in the row
+        ```
+        if not self._ensure_excel_open():
+            return None
+        return excelReadRow(self._excel_handle, sheet_name, row_num)
+
+    spell read_cell(sheet_name: str, cell_ref: str):
+        ```
+        Read the value of a specific Excel cell.
+
+        Args:
+            sheet_name (str): Name of the sheet
+            cell_ref (str): Cell reference (e.g., "A1", "B2")
+
+        Returns:
+            str: The cell value as a string
+        ```
+        if not self._ensure_excel_open():
+            return None
+        return excelReadCell(self._excel_handle, sheet_name, cell_ref)
+
+    spell read_excel_with_headers(sheet_name: str = ""):
+        ```
+        Read an Excel sheet and parse it into dictionaries using the first row as headers.
+
+        Args:
+            sheet_name (str): Name of the sheet to read (optional, defaults to first sheet)
+
+        Returns:
+            Array: Array of maps, where each map has header names as keys
+        ```
+        rows = self.read_excel(sheet_name)
+        if rows == None or len(rows) == 0:
+            return None
+
+        headers = rows[0]
+        result = []
+
+        # Start from index 1 to skip header row
+        for i in range(1, len(rows)):
+            row = rows[i]
+            row_map = {}
+            for j in range(len(headers)):
+                if j < len(row):
+                    row_map[headers[j]] = row[j]
+                else:
+                    row_map[headers[j]] = ""
+            result.append(row_map)
+        return result
+
+    spell iterate_rows(callback, sheet_name: str = ""):
+        ```
+        Iterate over rows in the file with a callback function.
+
+        Works with text-based files and Excel files.
+
+        Args:
+            callback: Function that takes (row_num, row_data) as arguments
+            sheet_name (str): For Excel files, the sheet name (optional)
+
+        Returns:
+            int: Number of rows processed
+        ```
+        if self.type == "excel":
+            data = self.read_excel(sheet_name)
+        otherwise self.type == "csv":
+            data = self.read_csv()
+        else:
+            data = self.read_txt()
+
+        if data == None:
+            return 0
+
+        count = 0
+        for i in range(len(data)):
+            callback(i + 1, data[i])
+            count = count + 1
+        return count
+
+    # ==================== Utility Methods ====================
+
+    spell get_type():
+        ```
+        Get the detected or specified file type.
+
+        Returns:
+            str: The file type ("txt", "csv", "json", "yaml", "toml", "xml", "ini", "properties", "excel")
+        ```
+        return self.type
+
+    spell get_supported_types():
+        ```
+        Get list of all supported file types.
+
+        Returns:
+            Array: Array of supported type names
+        ```
+        return ["txt", "csv", "json", "yaml", "toml", "xml", "ini", "properties", "excel"]
+
+    spell get_extensions_for_type(type_name: str):
+        ```
+        Get the file extensions associated with a type.
+
+        Args:
+            type_name (str): The type name (e.g., "json", "yaml")
+
+        Returns:
+            Array: Array of extensions for the type, or None if type not found
+        ```
+        if type_name in pairs(self.file_type_map, "k"):
+            return self.file_type_map[type_name]
+        return None

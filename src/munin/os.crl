@@ -147,3 +147,52 @@ grim os:
         ```
         return osExpandEnv(path_str)
 
+    spell dir_exists(path_str):
+      ```
+      This method wraps the stat function in go and return a boolean
+
+      Return a string boolean to see if a path passed in exists or not.
+
+      Returns:
+        str: String True or False if the directory exists or not
+      ```
+      exists = osDirExist(path_str)
+      if exists == "True":
+        return True
+      else:
+        return False
+
+    spell is_dir(path_str):
+      ```
+      This spell determines if a path string is a Directory
+
+      Returns:
+        bool: True or False boolean if is directory.
+      ```
+      is_directory = isDirectory(path_str)
+      if is_directory == "True":
+        return True
+      else: 
+        return False
+
+    spell is_file(path_str):
+      ```
+      This spell determines if a path is a file.
+
+      Returns:
+        bool: True or False boolean if is file.
+      ```
+      is_type_file = isFile(path_str)
+      if is_type_file == "True":
+        return True
+      else:
+        return False
+
+    spell is_file_or_dir(path_str):
+      ```
+      Determines if the path is a file or directory
+
+      Returns:
+        str: Returns file, dir, or other 
+      ```
+      return isFileOrDir(path_str)

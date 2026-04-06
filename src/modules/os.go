@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/exec"
 	"time"
+	"fmt"
 
 	"github.com/javanhut/TheCarrionLanguage/src/object"
 )
@@ -319,6 +320,91 @@ var OSBuiltins = map[string]*object.Builtin{
 			}
 			expanded := os.ExpandEnv(strArg)
 			return &object.String{Value: expanded}
+		},
+	},
+
+	"osDirExist": {
+		Fn: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return &object.Error{Message: "osDir Exist requires 1 argument: string"}
+			}
+			strArg, ok := extractStringOS(args[0])
+			if !ok {
+				return &object.Error{Message: "osDirExist arguement must be STRING, got " + string(args[0].Type())}
+			}
+			var dirExists string
+			_, err := os.Stat(strArg)
+			if err == nil {
+				dirExists = "True"
+			} else {
+				dirExists = "False"
+			}
+			return &object.String{Value: dirExists}
+		},
+	},
+	"isDirectory": {
+		Fn: func (args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return &object.Error{Message: "isDirectory requires 1 argument: string"}
+			}
+			strArg, ok := extractStringOS(args[0])
+			if !ok {
+				return &object.Error{Message: "isDirectory arguement must be a STRING, got " + string(args[0].Type())}
+			}
+			fileInfo, err := os.Stat(strArg)
+			if err != nil {
+				return &object.Error{Message: "Error reading current file Information, Error: " + fmt.Sprintf("%v",err) }
+			}
+
+			if fileInfo.IsDir() {
+				return &object.String{Value: "True"}
+			} else {
+				return &object.String{Value: "False"}
+			}
+		},
+	},
+	"isFile": {
+		Fn: func (args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return &object.Error{Message: "isFile requires 1 argument: string"}
+			}
+			strArg, ok := extractStringOS(args[0])
+			if !ok {
+				return &object.Error{Message: "isFile arguement must be a STRING, got " + string(args[0].Type())}
+			}
+			fileInfo, err := os.Stat(strArg)
+			if err != nil {
+				return &object.Error{Message: "Error reading current file Information, Error: " + fmt.Sprintf("%v",err) }
+			}
+			mode := fileInfo.Mode()
+			if mode.IsRegular(){
+				return &object.String{Value: "True"}
+			} else {				
+				return &object.String{Value: "False"}
+			}
+		},
+	},
+
+	"isFileOrDir": {
+		Fn: func (args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return &object.Error{Message: "isFile requires 1 argument: string"}
+			}
+			strArg, ok := extractStringOS(args[0])
+			if !ok {
+				return &object.Error{Message: "isFile arguement must be a STRING, got " + string(args[0].Type())}
+			}
+			fileInfo, err := os.Stat(strArg)
+			if err != nil {
+				return &object.Error{Message: "Error reading current file Information, Error: " + fmt.Sprintf("%v", err) }
+			}
+			mode := fileInfo.Mode()
+			if mode.IsDir(){
+				return &object.String{Value: "dir"}
+			} else if mode.IsRegular(){
+				return &object.String{Value: "file"}
+			}
+			return &object.String{Value: "other"}
 		},
 	},
 }

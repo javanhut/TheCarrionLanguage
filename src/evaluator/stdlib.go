@@ -31,6 +31,16 @@ func LoadModules(env *object.Environment) {
 	for name, builtin := range modules.OSBuiltins {
 		env.Set(name, builtin)
 	}
+
+	// Load Excel module functions into the environment
+	for name, builtin := range modules.ExcelBuiltins {
+		env.Set(name, builtin)
+	}
+
+	// Load Parser module functions into the environment
+	for name, builtin := range modules.ParserBuiltins {
+		env.Set(name, builtin)
+	}
 }
 
 func LoadMuninStdlib(env *object.Environment) error {

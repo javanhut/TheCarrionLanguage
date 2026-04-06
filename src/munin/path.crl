@@ -1,0 +1,96 @@
+grim Path:
+  init(path: str = None):
+    self.path = path
+
+  spell path_name():
+    return self.path
+
+  spell directory_exists(path: str):
+    if not path:
+      path = self.path
+    check_dir = os.dir_exists(path)
+    is_directory = os.is_dir(path)
+    return check_dir and is_directory
+
+  spell dir_name(path: str):
+    if not path:
+      path = self.path
+    if os.is_dir(path):
+      split_str = path.split("/")
+      last_val = split_str[-1]
+      return last_val
+    else:
+      print("Currently not a directory")
+      return ""
+  
+  spell file_name(path: str):
+    if not path:
+      path = self.path
+    if os.is_file(path):
+      split_str = path.split("/")
+      last_val = split_str[-1]
+      return last_val
+    else:
+      path_type = os.is_file_or_dir(path)
+      if path_type == "dir":
+        print(f"Current path to file doesn't exist: {path} it is of type: \'{path_type}\' which is a directory.")
+      else:
+        print(f"Current path to file doesn't exist: {path} is of type: \'{path_type}\' which is neither a file or directory")
+      return ""
+
+
+grim Dir(Path):
+  init(path:str = None, path_instance: Path = None):
+    if path:
+      super.init(path)
+    if path_instance:
+      self.path = path_instance
+
+  spell mkdir(dir_name: str):
+    if type(self.path) == type(Path()):
+      new_path = self.path.path_name() + "/"+ dir_name
+    else:
+      new_path = self.path_name() + "/" + dir_name
+    result = os.mkdir(new_path)
+    if self.path.directory_exists(new_path):
+      print(f"Created new directory: {new_path}")
+    else:
+      print("Failed to create new directory")
+
+  spell parent():
+    current_path: str
+    if type(self.path) == type(Path()):
+      current_path = self.path.path_name()
+    else:
+      current_path = self.path_name()
+    print(current_path)
+    if os.is_dir(current_path):
+      split_str = current_path.split("/")
+      parent_directory = split_str[-2]
+      return parent_directory
+    else:
+      return ""
+
+  spell list_files():
+    path_name: str
+    if type(self.path) == type(Path()):
+      path_name = self.path.path_name()
+    else:
+      path_name = self.path_name()
+    files = os.list_dir(path_name)
+    return files
+
+  spell filter_files(substring: str, case_insensitive:bool = False  ):
+    filtered_files: Array = []
+    files = self.list_files()
+    if case_insensitive:
+      for file in files:
+        if file.lower().contains(substring):
+          filtered_files.append(file)
+    else:
+      for file in files:
+        if file.contains(substring):
+          filtered_files.append(file)
+    return filtered_files
+
+        

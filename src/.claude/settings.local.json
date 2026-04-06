@@ -2,6 +2,9 @@
   "permissions": {
     "additionalDirectories": [
       "/home/javanstorm/Carrion"
+    ],
+    "allow": [
+      "Bash(go run:*)"
     ]
   }
 }
