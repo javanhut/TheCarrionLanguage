@@ -22,6 +22,18 @@ fi
 
 TARGET_OS=$1
 
+# Detect host architecture so we install a native binary on arm64 machines
+# (Raspberry Pi, AWS Graviton, Apple Silicon, arm64 Windows). Users can force
+# a different arch with `TARGET_ARCH=amd64 ./install.sh linux`.
+detect_arch() {
+  case "$(uname -m)" in
+    x86_64|amd64)  echo "amd64" ;;
+    arm64|aarch64) echo "arm64" ;;
+    *) echo "amd64" ;;  # fallback
+  esac
+}
+TARGET_ARCH=${TARGET_ARCH:-$(detect_arch)}
+
 # --- 2) Check if Go is Installed ---
 if ! command -v go &> /dev/null; then
   echo "Error: 'go' is not installed or not in your PATH."
@@ -29,21 +41,34 @@ if ! command -v go &> /dev/null; then
   exit 1
 fi
 
+# --- 2a) Resolve version metadata for ldflags injection ---
+# CARRION_VERSION is parsed from the single source of truth in
+# src/version/version.go so bumping the version only needs to happen there.
+CARRION_VERSION=$(awk -F'"' '/^var Version =/{print $2; exit}' src/version/version.go)
+CARRION_COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "")
+CARRION_CHANNEL=${CARRION_CHANNEL:-release}
+CARRION_BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+CARRION_LDFLAGS="-X github.com/javanhut/TheCarrionLanguage/src/version.Version=${CARRION_VERSION} \
+-X github.com/javanhut/TheCarrionLanguage/src/version.Commit=${CARRION_COMMIT} \
+-X github.com/javanhut/TheCarrionLanguage/src/version.Channel=${CARRION_CHANNEL} \
+-X github.com/javanhut/TheCarrionLanguage/src/version.BuildDate=${CARRION_BUILD_DATE}"
+
 # --- 3) Build & Install Logic ---
 case "$TARGET_OS" in
   linux)
     echo "Building Carrion for Linux..."
     # Cross-compile for Linux on amd64. Adjust GOARCH if needed (e.g., arm64).
-    GOOS=linux GOARCH=amd64 go build -o carrion ./src
+    GOOS=linux GOARCH=${TARGET_ARCH} go build -ldflags "${CARRION_LDFLAGS}" -o carrion ./src
     
     echo "Building Sindri Testing Framework for Linux..."
     cd cmd/sindri
-    GOOS=linux GOARCH=amd64 go build -o sindri .
+    GOOS=linux GOARCH=${TARGET_ARCH} go build -o sindri .
     cd ../..
     
     echo "Building Mimir Documentation Tool for Linux..."
     cd cmd/mimir
-    GOOS=linux GOARCH=amd64 go build -o mimir .
+    GOOS=linux GOARCH=${TARGET_ARCH} go build -o mimir .
     cd ../..
 
     echo "Building Bifrost Package Manager for Linux..."
@@ -85,22 +110,22 @@ case "$TARGET_OS" in
   windows)
     echo "Building Carrion for Windows..."
     # Cross-compile for Windows on amd64. Adjust GOARCH if needed (e.g., arm64).
-    GOOS=windows GOARCH=amd64 go build -o carrion.exe ./src
+    GOOS=windows GOARCH=${TARGET_ARCH} go build -ldflags "${CARRION_LDFLAGS}" -o carrion.exe ./src
     
     echo "Building Sindri Testing Framework for Windows..."
     cd cmd/sindri
-    GOOS=windows GOARCH=amd64 go build -o sindri.exe .
+    GOOS=windows GOARCH=${TARGET_ARCH} go build -o sindri.exe .
     cd ../..
     
     echo "Building Mimir Documentation Tool for Windows..."
     cd cmd/mimir
-    GOOS=windows GOARCH=amd64 go build -o mimir.exe .
+    GOOS=windows GOARCH=${TARGET_ARCH} go build -o mimir.exe .
     cd ../..
 
     echo "Building Bifrost Package Manager for Windows..."
     if [ -d "bifrost" ]; then
       cd bifrost
-      GOOS=windows GOARCH=amd64 go build -o build/bifrost.exe ./cmd/bifrost
+      GOOS=windows GOARCH=${TARGET_ARCH} go build -o build/bifrost.exe ./cmd/bifrost
       cd ..
     else
       echo "Warning: Bifrost submodule not found. Skipping Bifrost build."
@@ -128,16 +153,16 @@ case "$TARGET_OS" in
   mac)
     echo "Building Carrion for macOS..."
     # Cross-compile for Darwin on amd64. Adjust GOARCH if you're on Apple Silicon (e.g., arm64).
-    GOOS=darwin GOARCH=amd64 go build -o carrion ./src
+    GOOS=darwin GOARCH=${TARGET_ARCH} go build -ldflags "${CARRION_LDFLAGS}" -o carrion ./src
     
     echo "Building Sindri Testing Framework for macOS..."
     cd cmd/sindri
-    GOOS=darwin GOARCH=amd64 go build -o sindri .
+    GOOS=darwin GOARCH=${TARGET_ARCH} go build -o sindri .
     cd ../..
     
     echo "Building Mimir Documentation Tool for macOS..."
     cd cmd/mimir
-    GOOS=darwin GOARCH=amd64 go build -o mimir .
+    GOOS=darwin GOARCH=${TARGET_ARCH} go build -o mimir .
     cd ../..
 
     echo "Building Bifrost Package Manager for macOS..."

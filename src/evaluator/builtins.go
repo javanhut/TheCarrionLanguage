@@ -42,13 +42,13 @@ var builtins = map[string]*object.Builtin{
 			}
 			switch arg := args[0].(type) {
 			case *object.String:
-				return &object.Integer{Value: int64(len(arg.Value))}
+				return object.NewInteger(int64(len(arg.Value)))
 			case *object.Array:
-				return &object.Integer{Value: int64(len(arg.Elements))}
+				return object.NewInteger(int64(len(arg.Elements)))
 			case *object.Tuple:
-				return &object.Integer{Value: int64(len(arg.Elements))}
+				return object.NewInteger(int64(len(arg.Elements)))
 			case *object.Hash:
-				return &object.Integer{Value: int64(len(arg.Pairs))}
+				return object.NewInteger(int64(len(arg.Pairs)))
 			case *object.Instance:
 				// Handle instances based on their grimoire type
 				switch arg.Grimoire.Name {
@@ -56,21 +56,21 @@ var builtins = map[string]*object.Builtin{
 					if elements, exists := arg.Env.Get("elements"); exists {
 						// Check if elements is a direct Array
 						if arr, isArray := elements.(*object.Array); isArray {
-							return &object.Integer{Value: int64(len(arr.Elements))}
+							return object.NewInteger(int64(len(arr.Elements)))
 						}
 						// Check if elements is an Instance wrapping an Array
 						if elemInstance, isInstance := elements.(*object.Instance); isInstance {
 							// Check if it's an Array instance containing value
 							if value, valueExists := elemInstance.Env.Get("value"); valueExists {
 								if arr, isArray := value.(*object.Array); isArray {
-									return &object.Integer{Value: int64(len(arr.Elements))}
+									return object.NewInteger(int64(len(arr.Elements)))
 								}
 							}
 							// Try to see if it's a direct wrapped array
 							if elemInstance.Grimoire.Name == "Array" {
 								if innerElements, innerExists := elemInstance.Env.Get("elements"); innerExists {
 									if arr, isArray := innerElements.(*object.Array); isArray {
-										return &object.Integer{Value: int64(len(arr.Elements))}
+										return object.NewInteger(int64(len(arr.Elements)))
 									}
 								}
 							}
@@ -80,7 +80,7 @@ var builtins = map[string]*object.Builtin{
 				case "String":
 					if value, exists := arg.Env.Get("value"); exists {
 						if str, isString := value.(*object.String); isString {
-							return &object.Integer{Value: int64(len(str.Value))}
+							return object.NewInteger(int64(len(str.Value)))
 						}
 					}
 					return newError("invalid String instance: missing value")
@@ -277,9 +277,9 @@ var builtins = map[string]*object.Builtin{
 				if err != nil {
 					return newError("cannot convert string to int: %s", err)
 				}
-				return &object.Integer{Value: int64(value)}
+				return object.NewInteger(int64(value))
 			case *object.Float:
-				return &object.Integer{Value: int64(typedArg.Value)}
+				return object.NewInteger(int64(typedArg.Value))
 			case *object.Integer:
 				return typedArg
 			default:
@@ -307,9 +307,9 @@ var builtins = map[string]*object.Builtin{
 				if err != nil {
 					return newError("cannot convert string to int: %s", err)
 				}
-				return &object.Integer{Value: int64(value)}
+				return object.NewInteger(int64(value))
 			case *object.Float:
-				return &object.Integer{Value: int64(typedArg.Value)}
+				return object.NewInteger(int64(typedArg.Value))
 			case *object.Integer:
 				return typedArg
 			default:
@@ -510,11 +510,11 @@ var builtins = map[string]*object.Builtin{
 			var elements []object.Object
 			if step > 0 {
 				for i := start; i < stop; i += step {
-					elements = append(elements, &object.Integer{Value: i})
+					elements = append(elements, object.NewInteger(i))
 				}
 			} else {
 				for i := start; i > stop; i += step {
-					elements = append(elements, &object.Integer{Value: i})
+					elements = append(elements, object.NewInteger(i))
 				}
 			}
 
@@ -548,7 +548,7 @@ var builtins = map[string]*object.Builtin{
 			}
 
 			if maxVal == float64(int64(maxVal)) {
-				return &object.Integer{Value: int64(maxVal)}
+				return object.NewInteger(int64(maxVal))
 			}
 			return &object.Float{Value: maxVal}
 		},
@@ -562,7 +562,7 @@ var builtins = map[string]*object.Builtin{
 			switch v := args[0].(type) {
 			case *object.Integer:
 				if v.Value < 0 {
-					return &object.Integer{Value: -v.Value}
+					return object.NewInteger(-v.Value)
 				}
 				return v
 			case *object.Float:
@@ -666,7 +666,7 @@ var builtins = map[string]*object.Builtin{
 			for i, elem := range elements {
 				tuple := &object.Tuple{
 					Elements: []object.Object{
-						&object.Integer{Value: int64(i)},
+						object.NewInteger(int64(i)),
 						elem,
 					},
 				}
@@ -787,7 +787,7 @@ var builtins = map[string]*object.Builtin{
 			if len(str.Value) != 1 {
 				return newError("ord expects a single character string, got length %d", len(str.Value))
 			}
-			return &object.Integer{Value: int64(str.Value[0])}
+			return object.NewInteger(int64(str.Value[0]))
 		},
 	},
 	"chr": {
@@ -1030,7 +1030,7 @@ func jsonToCarrionObject(data interface{}) object.Object {
 	case float64:
 		// Check if it's an integer
 		if v == float64(int64(v)) {
-			return &object.Integer{Value: int64(v)}
+			return object.NewInteger(int64(v))
 		}
 		return &object.Float{Value: v}
 	case string:

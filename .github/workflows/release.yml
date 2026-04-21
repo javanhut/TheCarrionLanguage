@@ -1,9 +1,25 @@
 name: "Carrion Language Build & Release"
 
+# Triggered by pushing a semver tag like `v0.1.10`. You do not need to edit
+# `src/version/version.go` or any docs before tagging — this workflow does it:
+#
+#   1. Extract the version from the tag.
+#   2. Rewrite `src/version/version.go` with that version.
+#   3. Run `make sync-version` to propagate it to every tracked doc.
+#   4. Commit the bump back to `main`.
+#   5. Build release artifacts with the correct version baked in via ldflags.
+#   6. Create the GitHub release with all artifacts attached.
+#
+# The only thing you do to ship a release is push the tag.
+
 on:
   push:
     tags:
-      - 'v*'  # e.g. v1.0.0
+      - 'v*'
+
+permissions:
+  # Needed to push the version-bump commit back to main.
+  contents: write
 
 jobs:
   build-and-release:
@@ -15,60 +31,87 @@ jobs:
 
     steps:
       - name: Check out code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Needed to access branch history
-          persist-credentials: true  # Required for subsequent pushes
+          fetch-depth: 0
+          # Required so the post-bump commit can be pushed back to main.
+          persist-credentials: true
 
       - name: Set up Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v5
         with:
-          go-version: "1.23"
+          # Must match the `go` directive in go.mod.
+          go-version: "1.24"
 
       - name: Extract version from tag
         id: version_info
         run: |
-          RAW_VERSION="${GITHUB_REF##*/}"    # e.g. "v1.0.0"
-          VERSION="${RAW_VERSION#v}"        # e.g. "1.0.0"
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          RAW_VERSION="${GITHUB_REF##*/}"   # e.g. "v0.1.10"
+          VERSION="${RAW_VERSION#v}"        # e.g. "0.1.10"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "RAW_VERSION=$RAW_VERSION" >> "$GITHUB_ENV"
+          # Sanity check — reject tags that aren't major.minor.patch so we fail
+          # fast instead of silently corrupting version.go.
+          if ! echo "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::Tag $RAW_VERSION is not a valid semver (expected vMAJOR.MINOR.PATCH)."
+            exit 1
+          fi
 
-      - name: Update README version
+      # Rewrite src/version/version.go to the tag's version, then run
+      # versionsync to propagate through every tracked doc file. This is the
+      # single automated step that replaces the old manual "bump version.go
+      # and readmes before tagging" workflow.
+      - name: Bump version.go and sync docs
         run: |
-          # Update version in README
-          sed -i "s/{{VERSION}}/$VERSION/g" docs/README.md
-          
-          # Configure Git
-          git config --global user.name "GitHub Actions"
-          git config --global user.email "actions@github.com"
-          
-          # Commit changes
-          git add docs/README.md
-          git commit -m "📚 Update README to version $VERSION"
-          
-          # Push to main branch
-          git push origin HEAD:main
+          sed -i -E 's/(^var Version = ")[^"]+(")/\1'"$VERSION"'\2/' src/version/version.go
+          make sync-version
 
-      - name: Build Artifacts
+      # Run tests against the post-bump tree so we know the tagged version
+      # compiles and passes.
+      - name: Run tests
+        run: make test
+
+      # Commit the bump + any doc rewrites back to main so the repo reflects
+      # the just-released version. The tag itself still points at the
+      # pre-bump commit (which is harmless — release binaries use ldflags, and
+      # the Unreleased → Released section move happens on main going forward).
+      - name: Commit version bump to main
         run: |
-          make build-source
-          make build-linux
-          make build-windows
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet; then
+            echo "No changes to commit — version.go and docs were already at $VERSION."
+          else
+            git add src/version/version.go docs/
+            git commit -m "chore: bump to $VERSION (automated)"
+            git push origin HEAD:main
+          fi
+
+      - name: Build all release artifacts
+        # CARRION_CHANNEL=release is the Makefile default; set explicitly for
+        # clarity. Version comes from version.go (just bumped) via ldflags.
+        run: CARRION_CHANNEL=release make build-release
 
       - name: Docker login
-        run: |
-          echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+        if: env.DOCKER_USERNAME != ''
+        run: echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
 
       - name: Docker build and push
+        if: env.DOCKER_USERNAME != ''
         run: |
-          make build USER_NAME=$DOCKER_USERNAME VERSION=${{ env.VERSION }}
-          make push USER_NAME=$DOCKER_USERNAME VERSION=${{ env.VERSION }}
+          make build USER_NAME="$DOCKER_USERNAME" VERSION="$VERSION"
+          make push USER_NAME="$DOCKER_USERNAME" VERSION="$VERSION"
 
       - name: Create Release and Upload Assets
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
           name: "Carrion Release ${{ env.VERSION }}"
+          generate_release_notes: true
           files: |
             carrion-src.tar.gz
             carrion_linux_amd64.tar.gz
+            carrion_linux_arm64.tar.gz
+            carrion_darwin_amd64.tar.gz
+            carrion_darwin_arm64.tar.gz
             carrion_windows_amd64.zip
