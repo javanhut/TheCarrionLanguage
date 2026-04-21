@@ -17,9 +17,9 @@ func NewEnvironment() *Environment {
 }
 
 func NewEnclosedEnvironment(outer *Environment) *Environment {
-	env := NewEnvironment()
-	env.outer = outer
-	return env
+	// Pre-size for typical method/closure environments (self + a few params)
+	s := make(map[string]Object, 4)
+	return &Environment{store: s, outer: outer, globalVars: nil}
 }
 
 func (e *Environment) Get(name string) (Object, bool) {

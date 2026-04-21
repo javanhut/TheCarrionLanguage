@@ -10,9 +10,9 @@ import (
 	"github.com/javanhut/TheCarrionLanguage/src/evaluator"
 	"github.com/javanhut/TheCarrionLanguage/src/object"
 	"github.com/javanhut/TheCarrionLanguage/src/repl"
+	"github.com/javanhut/TheCarrionLanguage/src/update"
+	"github.com/javanhut/TheCarrionLanguage/src/version"
 )
-
-var versionNum string = "0.1.9"
 
 const CROW_IMAGE = `
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣀⣀⣀⠀⠀⠀⠀⠀⠀⠀⠀
@@ -33,8 +33,21 @@ const CROW_IMAGE = `
   `
 
 func main() {
+	// Subcommand routing — must run before flag.Parse because subcommands own
+	// their own flag sets (e.g. `carrion update --experimental`).
+	if len(os.Args) > 1 {
+		switch os.Args[1] {
+		case "update":
+			if err := update.Run(os.Args[2:]); err != nil {
+				fmt.Fprintln(os.Stderr, "Error:", err)
+				os.Exit(2)
+			}
+			os.Exit(update.CheckExitCode())
+		}
+	}
+
 	// Define command line flags
-	version := flag.Bool("version", false, "Prints out the Current version of the Carrion Language")
+	versionFlag := flag.Bool("version", false, "Prints out the Current version of the Carrion Language")
 	shortVersion := flag.Bool("v", false, "Prints out the current Carrion Version (short from)")
 	idebug := flag.Bool("idebug", false, "Enable interpreter debugging")
 	id := flag.Bool("id", false, "Enable interpreter debugging (short form)")
@@ -67,10 +80,8 @@ func main() {
 	env.SetDebugConfig(debugConfig)
 
 	// Print out the version of Carrion Lang
-	if *version || *shortVersion {
-		print := fmt.Println
-		versionInfo := fmt.Sprintf("Carrion Language version %v", versionNum)
-		print(versionInfo)
+	if *versionFlag || *shortVersion {
+		fmt.Printf("Carrion Language version %s\n", version.Full())
 		return
 	}
 

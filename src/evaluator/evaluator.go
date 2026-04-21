@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -398,50 +399,15 @@ func areValuesEqual(a, b object.Object) bool {
 	}
 }
 
+// wrapPrimitive defers wrapping — primitives stay as raw objects.
+// Wrapping only happens on demand in evalDotExpression when a method is accessed.
 func wrapPrimitive(obj object.Object, env *object.Environment, ctx *CallContext) object.Object {
-	if debugPrimitiveWrapping {
-		fmt.Fprintf(os.Stderr, "WRAP: Evaluating %T, ctx=%s, hasSelf=%t\n", obj, getContextName(ctx), hasSelfInEnv(env))
-	}
+	return obj
+}
 
-	// Don't wrap if we're inside an instance method or initializer
-	// Check current environment and traverse up parent environments
-	if hasSelfInEnv(env) {
-		if debugPrimitiveWrapping {
-			fmt.Fprintf(os.Stderr, "WRAP: Found self in environment, not wrapping\n")
-		}
-		return obj
-	}
-
-	// Don't wrap if we're in a method context (check the call context chain)
-	if isInMethodContext(ctx) {
-		if debugPrimitiveWrapping {
-			fmt.Fprintf(os.Stderr, "WRAP: In method context %s, not wrapping\n", getContextName(ctx))
-		}
-		return obj
-	}
-
-	// Don't wrap if this is in a function call context that expects primitives
-	if ctx != nil && ctx.FunctionName != "" {
-		// Don't wrap arguments to builtin functions (except for input functions that should return String instances and pairs() that should return Array instances)
-		if isBuiltinFunction(ctx.FunctionName) && !shouldWrapStringResult(ctx.FunctionName) && ctx.FunctionName != "pairs" {
-			if debugPrimitiveWrapping {
-				fmt.Fprintf(os.Stderr, "WRAP: Builtin function %s, not wrapping\n", ctx.FunctionName)
-			}
-			return obj
-		}
-		// Don't wrap arguments to grimoire constructors
-		if isGrimoireConstructor(ctx.FunctionName, env) {
-			if debugPrimitiveWrapping {
-				fmt.Fprintf(os.Stderr, "WRAP: Grimoire constructor %s, not wrapping\n", ctx.FunctionName)
-			}
-			return obj
-		}
-	}
-
-	if debugPrimitiveWrapping {
-		fmt.Fprintf(os.Stderr, "WRAP: Wrapping %T in context %s\n", obj, getContextName(ctx))
-	}
-
+// wrapPrimitiveForMethod creates an Instance wrapping a primitive for method access.
+// Called only from evalDotExpression when a method is actually invoked on a primitive.
+func wrapPrimitiveForMethod(obj object.Object, env *object.Environment) object.Object {
 	var grimName string
 
 	switch obj.Type() {
@@ -456,29 +422,32 @@ func wrapPrimitive(obj object.Object, env *object.Environment, ctx *CallContext)
 	case object.ARRAY_OBJ:
 		grimName = "Array"
 	default:
-		return obj // Not a primitive, return as is
+		return obj
 	}
 
-	// Try to find the grimoire
-	if grimObj, ok := env.Get(grimName); ok {
+	// Try stdlib environment first, then local
+	var grimObj object.Object
+	var ok bool
+	if stdlibEnv != nil {
+		grimObj, ok = stdlibEnv.Get(grimName)
+	}
+	if !ok {
+		grimObj, ok = env.Get(grimName)
+	}
+
+	if ok {
 		if grimoire, isGrim := grimObj.(*object.Grimoire); isGrim {
-			// Create instance exactly like the normal grimoire constructor
 			instance := &object.Instance{
 				Grimoire: grimoire,
 				Env:      object.NewEnclosedEnvironment(grimoire.Env),
 			}
-
-			// Set self reference
 			instance.Env.Set("self", instance)
 
-			// Handle different types appropriately
 			if grimName == "Array" {
-				// For arrays, set the elements directly
 				if arrayObj, isArray := obj.(*object.Array); isArray {
 					instance.Env.Set("elements", arrayObj)
 				}
 			} else {
-				// For other primitives, set the value
 				instance.Env.Set("value", obj)
 			}
 
@@ -486,7 +455,6 @@ func wrapPrimitive(obj object.Object, env *object.Environment, ctx *CallContext)
 		}
 	}
 
-	// If grimoire not found, return the original object
 	return obj
 }
 
@@ -604,9 +572,10 @@ func Eval(node ast.Node, env *object.Environment, ctx *CallContext) object.Objec
 		}
 	}
 
+	// Save and restore CurrentContext without defer (avoid closure allocation per Eval call)
 	oldContext := CurrentContext
 	CurrentContext = ctx
-	defer func() { CurrentContext = oldContext }()
+
 	// Create a new call context if node is a function call
 	if callExp, ok := node.(*ast.CallExpression); ok {
 		funcName := ""
@@ -626,6 +595,13 @@ func Eval(node ast.Node, env *object.Environment, ctx *CallContext) object.Objec
 		ctx = newCtx
 	}
 
+	result := evalNode(node, env, ctx)
+	CurrentContext = oldContext
+	return result
+}
+
+// evalNode is the inner dispatch loop, separated to avoid defer overhead in Eval.
+func evalNode(node ast.Node, env *object.Environment, ctx *CallContext) object.Object {
 	switch node := node.(type) {
 	case *ast.Program:
 		return evalProgram(node, env, ctx)
@@ -765,7 +741,7 @@ func Eval(node ast.Node, env *object.Environment, ctx *CallContext) object.Objec
 		return evalPostfixIncrementDecrement(node.Operator, node, env, ctx)
 
 	case *ast.IntegerLiteral:
-		primitive := &object.Integer{Value: node.Value}
+		primitive := object.NewInteger(node.Value)
 		return wrapPrimitive(primitive, env, ctx)
 	case *ast.FloatLiteral:
 		primitive := &object.Float{Value: node.Value}
@@ -814,20 +790,7 @@ func Eval(node ast.Node, env *object.Environment, ctx *CallContext) object.Objec
 			return elements[0]
 		}
 
-		// Create Array instance if Array grimoire exists
-		if grimObj, ok := env.Get("Array"); ok {
-			if grimoire, isGrim := grimObj.(*object.Grimoire); isGrim {
-				instance := &object.Instance{
-					Grimoire: grimoire,
-					Env:      object.NewEnclosedEnvironment(grimoire.Env),
-				}
-				// Set the elements directly in the instance environment
-				instance.Env.Set("elements", &object.Array{Elements: elements})
-				return instance
-			}
-		}
-
-		// Fallback to regular array
+		// Return raw array — wrapping deferred to DotExpression on method access
 		return &object.Array{Elements: elements}
 
 	case *ast.StringLiteral:
@@ -1646,6 +1609,14 @@ func evalIndexAssignment(
 		array.Pairs[key.HashKey()] = pair
 		return value
 
+	case *object.Instance:
+		// Unwrap Instance-wrapped arrays and hashes
+		unwrapped := unwrapPrimitive(array)
+		if unwrapped != array {
+			return evalIndexAssignment(unwrapped, index, value, node, ctx)
+		}
+		return newErrorWithTrace("index assignment not supported: %s", node, ctx, array.Type())
+
 	default:
 		return newErrorWithTrace("index assignment not supported: %s", node, ctx, array.Type())
 	}
@@ -1919,8 +1890,264 @@ func bindMethodParameters(
 	}
 }
 
+// wrapArrayInstance returns a new Array grimoire Instance wrapping the given
+// raw array, matching the return type of the Carrion-stdlib Array methods
+// (which return `self.elements + [...]` that the evaluator lifts into an
+// Instance). Without this, native `sort`/`reverse` would return raw
+// *object.Array and break callers that introspect the type.
+func wrapArrayInstance(arrayGrim *object.Grimoire, arr *object.Array) object.Object {
+	if arrayGrim == nil {
+		return arr
+	}
+	inst := &object.Instance{
+		Grimoire: arrayGrim,
+		Env:      object.NewEnclosedEnvironment(arrayGrim.Env),
+	}
+	inst.Env.Set("self", inst)
+	inst.Env.Set("elements", arr)
+	return inst
+}
+
 // evalGrimoireMethodCall executes a method call on a grimoire instance
 // Sets MethodGrimoire to the method's defining class for proper super resolution
+// nativeArrayMethod handles performance-critical Array methods in Go instead of
+// interpreting them in Carrion. Returns (result, true) if handled, (nil, false) otherwise.
+func nativeArrayMethod(instance *object.Instance, methodName string, args []object.Object, ctx *CallContext) (object.Object, bool) {
+	if instance.Grimoire.Name != "Array" {
+		return nil, false
+	}
+
+	elemObj, exists := instance.Env.Get("elements")
+	if !exists {
+		return nil, false
+	}
+	arr, isArray := elemObj.(*object.Array)
+	if !isArray {
+		return nil, false
+	}
+
+	switch methodName {
+	case "set":
+		if len(args) != 2 {
+			return nil, false
+		}
+		idxObj := unwrapPrimitive(args[0])
+		intIdx, ok := idxObj.(*object.Integer)
+		if !ok {
+			return nil, false
+		}
+		idx := intIdx.Value
+		if idx < 0 {
+			idx = int64(len(arr.Elements)) + idx
+		}
+		if idx >= 0 && idx < int64(len(arr.Elements)) {
+			arr.Elements[idx] = args[1]
+		}
+		return NONE, true
+
+	case "get":
+		if len(args) != 1 {
+			return nil, false
+		}
+		idxObj := unwrapPrimitive(args[0])
+		intIdx, ok := idxObj.(*object.Integer)
+		if !ok {
+			return nil, false
+		}
+		idx := intIdx.Value
+		if idx < 0 {
+			idx = int64(len(arr.Elements)) + idx
+		}
+		if idx < 0 || idx >= int64(len(arr.Elements)) {
+			return NONE, true
+		}
+		return arr.Elements[idx], true
+
+	case "append":
+		if len(args) != 1 {
+			return nil, false
+		}
+		arr.Elements = append(arr.Elements, args[0])
+		return NONE, true
+
+	case "pop":
+		if len(arr.Elements) == 0 {
+			return NONE, true
+		}
+		last := arr.Elements[len(arr.Elements)-1]
+		arr.Elements = arr.Elements[:len(arr.Elements)-1]
+		return last, true
+
+	case "length":
+		return object.NewInteger(int64(len(arr.Elements))), true
+
+	case "is_empty":
+		return nativeBoolToBooleanObject(len(arr.Elements) == 0), true
+
+	case "first":
+		if len(arr.Elements) == 0 {
+			return NONE, true
+		}
+		return arr.Elements[0], true
+
+	case "last":
+		if len(arr.Elements) == 0 {
+			return NONE, true
+		}
+		return arr.Elements[len(arr.Elements)-1], true
+
+	case "clear":
+		arr.Elements = arr.Elements[:0]
+		return NONE, true
+
+	case "reverse":
+		n := len(arr.Elements)
+		result := make([]object.Object, n)
+		for i := 0; i < n; i++ {
+			result[i] = arr.Elements[n-1-i]
+		}
+		return wrapArrayInstance(instance.Grimoire, &object.Array{Elements: result}), true
+
+	case "sort":
+		// Create a copy and sort it (non-mutating, matches Carrion semantics)
+		n := len(arr.Elements)
+		sorted := make([]object.Object, n)
+		copy(sorted, arr.Elements)
+		sort.SliceStable(sorted, func(i, j int) bool {
+			return objectLess(sorted[i], sorted[j])
+		})
+		return wrapArrayInstance(instance.Grimoire, &object.Array{Elements: sorted}), true
+
+	case "contains":
+		if len(args) != 1 {
+			return nil, false
+		}
+		target := args[0]
+		for _, elem := range arr.Elements {
+			if objectEquals(elem, target) {
+				return TRUE, true
+			}
+		}
+		return FALSE, true
+
+	case "index_of":
+		if len(args) != 1 {
+			return nil, false
+		}
+		target := args[0]
+		for i, elem := range arr.Elements {
+			if objectEquals(elem, target) {
+				return object.NewInteger(int64(i)), true
+			}
+		}
+		return object.NewInteger(-1), true
+
+	case "remove":
+		if len(args) != 1 {
+			return nil, false
+		}
+		target := args[0]
+		found := false
+		newElements := make([]object.Object, 0, len(arr.Elements))
+		for _, elem := range arr.Elements {
+			if !found && objectEquals(elem, target) {
+				found = true
+				continue
+			}
+			newElements = append(newElements, elem)
+		}
+		arr.Elements = newElements
+		return nativeBoolToBooleanObject(found), true
+
+	case "slice":
+		if len(args) != 2 {
+			return nil, false
+		}
+		startObj := unwrapPrimitive(args[0])
+		endObj := unwrapPrimitive(args[1])
+		startInt, ok1 := startObj.(*object.Integer)
+		endInt, ok2 := endObj.(*object.Integer)
+		if !ok1 || !ok2 {
+			return nil, false
+		}
+		start := startInt.Value
+		end := endInt.Value
+		n := int64(len(arr.Elements))
+		if start < 0 {
+			start = n + start
+		}
+		if end < 0 {
+			end = n + end
+		}
+		result := make([]object.Object, 0)
+		for i := start; i < end; i++ {
+			if i >= 0 && i < n {
+				result = append(result, arr.Elements[i])
+			}
+		}
+		return &object.Array{Elements: result}, true
+	}
+
+	return nil, false
+}
+
+// objectLess compares two objects for sort ordering (less-than).
+func objectLess(a, b object.Object) bool {
+	a = unwrapPrimitive(a)
+	b = unwrapPrimitive(b)
+
+	switch av := a.(type) {
+	case *object.Integer:
+		if bv, ok := b.(*object.Integer); ok {
+			return av.Value < bv.Value
+		}
+		if bv, ok := b.(*object.Float); ok {
+			return float64(av.Value) < bv.Value
+		}
+	case *object.Float:
+		if bv, ok := b.(*object.Float); ok {
+			return av.Value < bv.Value
+		}
+		if bv, ok := b.(*object.Integer); ok {
+			return av.Value < float64(bv.Value)
+		}
+	case *object.String:
+		if bv, ok := b.(*object.String); ok {
+			return av.Value < bv.Value
+		}
+	}
+	return false
+}
+
+// objectEquals compares two objects for equality.
+func objectEquals(a, b object.Object) bool {
+	a = unwrapPrimitive(a)
+	b = unwrapPrimitive(b)
+
+	switch av := a.(type) {
+	case *object.Integer:
+		if bv, ok := b.(*object.Integer); ok {
+			return av.Value == bv.Value
+		}
+	case *object.Float:
+		if bv, ok := b.(*object.Float); ok {
+			return av.Value == bv.Value
+		}
+	case *object.String:
+		if bv, ok := b.(*object.String); ok {
+			return av.Value == bv.Value
+		}
+	case *object.Boolean:
+		if bv, ok := b.(*object.Boolean); ok {
+			return av.Value == bv.Value
+		}
+	case *object.None:
+		_, ok := b.(*object.None)
+		return ok
+	}
+	return a == b
+}
+
 func evalGrimoireMethodCall(
 	instance *object.Instance,
 	methodName string,
@@ -1928,6 +2155,11 @@ func evalGrimoireMethodCall(
 	env *object.Environment,
 	ctx *CallContext,
 ) object.Object {
+	// Fast path: native Go implementation for Array methods
+	if result, handled := nativeArrayMethod(instance, methodName, args, ctx); handled {
+		return result
+	}
+
 	method, ok := instance.Grimoire.Methods[methodName]
 	if !ok {
 		// Get available methods and find similar names for suggestions
@@ -2010,6 +2242,11 @@ func evalBoundMethodCall(
 	method := boundMethod.Method
 	instance := boundMethod.Instance
 	methodName := boundMethod.Name
+
+	// Fast path: native Go implementation for Array methods
+	if result, handled := nativeArrayMethod(instance, methodName, args, ctx); handled {
+		return result
+	}
 
 	// Create isolated method environment from the method's original environment, not instance env
 	methodEnv := object.NewEnclosedEnvironment(method.Env)
@@ -2455,6 +2692,13 @@ func evalBoundMethodCallWithNamed(
 	instance := bm.Instance
 	method := bm.Method
 
+	// Fast path: native Go implementation for Array methods (when no named args)
+	if len(namedArgs) == 0 {
+		if result, handled := nativeArrayMethod(instance, bm.Name, positionalArgs, ctx); handled {
+			return result
+		}
+	}
+
 	// Create method environment
 	methodEnv := object.NewEnclosedEnvironment(instance.Grimoire.Env)
 	methodEnv.Set("self", instance)
@@ -2727,61 +2971,10 @@ func evalDotExpression(
 		}
 	}
 
-	// Wrap primitives to allow method access (e.g., self.some_string.upper())
-	// This enables calling methods on primitives stored in instance variables
+	// Wrap primitives on demand for method access (e.g., "hello".upper())
 	switch leftObj.Type() {
 	case object.INTEGER_OBJ, object.FLOAT_OBJ, object.STRING_OBJ, object.BOOLEAN_OBJ, object.ARRAY_OBJ:
-		// Determine the grimoire name based on the primitive type
-		var grimName string
-		switch leftObj.Type() {
-		case object.INTEGER_OBJ:
-			grimName = "Integer"
-		case object.FLOAT_OBJ:
-			grimName = "Float"
-		case object.STRING_OBJ:
-			grimName = "String"
-		case object.BOOLEAN_OBJ:
-			grimName = "Boolean"
-		case object.ARRAY_OBJ:
-			grimName = "Array"
-		}
-
-		// Find the grimoire in the stdlib environment (not local env)
-		// We need to use stdlibEnv to access primitive grimoires that are globally available
-
-		// Try stdlib environment first (where String, Integer, etc. grimoires are defined)
-		var grimObj object.Object
-		var ok bool
-		if stdlibEnv != nil {
-			grimObj, ok = stdlibEnv.Get(grimName)
-		}
-
-		// Fallback to local environment if not found in stdlib
-		if !ok {
-			grimObj, ok = env.Get(grimName)
-		}
-
-		if ok {
-			if grimoire, isGrim := grimObj.(*object.Grimoire); isGrim {
-				// Create an instance wrapping the primitive
-				instance := &object.Instance{
-					Grimoire: grimoire,
-					Env:      object.NewEnclosedEnvironment(grimoire.Env),
-				}
-				instance.Env.Set("self", instance)
-
-				// Set the primitive value
-				if grimName == "Array" {
-					if arrayObj, isArray := leftObj.(*object.Array); isArray {
-						instance.Env.Set("elements", arrayObj)
-					}
-				} else {
-					instance.Env.Set("value", leftObj)
-				}
-
-				leftObj = instance
-			}
-		}
+		leftObj = wrapPrimitiveForMethod(leftObj, env)
 	}
 
 	instance, ok := leftObj.(*object.Instance)
@@ -3497,7 +3690,7 @@ func evalPrefixExpression(
 			return newErrorWithTrace("unsupported operand type for ~: %s", node, ctx, unwrappedRight.Type())
 		}
 
-		return wrapPrimitive(&object.Integer{Value: ^intOperand.Value}, env, ctx)
+		return wrapPrimitive(object.NewInteger(^intOperand.Value), env, ctx)
 
 	// Prefix increment and decrement operators
 	case "++":
@@ -3515,8 +3708,8 @@ func evalPrefixExpression(
 			return newErrorWithTrace("prefix '++' operator requires an integer", node, ctx)
 		}
 		newVal := intObj.Value + 1
-		env.Set(ident.Value, &object.Integer{Value: newVal})
-		return &object.Integer{Value: newVal}
+		env.Set(ident.Value, object.NewInteger(newVal))
+		return object.NewInteger(newVal)
 	case "--":
 		ident, ok := node.Right.(*ast.Identifier)
 		if !ok {
@@ -3531,8 +3724,8 @@ func evalPrefixExpression(
 			return newErrorWithTrace("prefix '--' operator requires an integer", node, ctx)
 		}
 		newValDec := intObj.Value - 1
-		env.Set(ident.Value, &object.Integer{Value: newValDec})
-		return &object.Integer{Value: newValDec}
+		env.Set(ident.Value, object.NewInteger(newValDec))
+		return object.NewInteger(newValDec)
 	case "-":
 		right := Eval(node.Right, env, ctx)
 		return evalMinusPrefixOperatorExpression(right, env, ctx)
@@ -3549,6 +3742,24 @@ func evalInfixExpression(
 	ctx *CallContext,
 	env *object.Environment,
 ) object.Object {
+	// Fast path: if both operands are already raw primitives (most common case in loops),
+	// skip unwrapPrimitive entirely and go straight to type-specific evaluation.
+	if leftInt, ok := left.(*object.Integer); ok {
+		if rightInt, ok := right.(*object.Integer); ok {
+			return evalIntegerInfixExpression(operator, leftInt, rightInt, node, ctx, env)
+		}
+	}
+	if leftBool, ok := left.(*object.Boolean); ok {
+		if rightBool, ok := right.(*object.Boolean); ok {
+			return evalBooleanInfixExpression(operator, leftBool, rightBool, node, ctx)
+		}
+	}
+	if leftStr, ok := left.(*object.String); ok {
+		if rightStr, ok := right.(*object.String); ok {
+			return evalStringInfixExpression(operator, leftStr, rightStr, node, ctx, env)
+		}
+	}
+
 	if debugPrimitiveWrapping && operator == "//" {
 		fmt.Fprintf(os.Stderr, "EVAL_INFIX: %s between %T and %T in %s\n", operator, left, right, getContextName(ctx))
 	}
@@ -3774,23 +3985,18 @@ func evalInfixExpression(
 		rightVal := toFloat(unwrappedRight)
 		switch operator {
 		case "+":
-			primitive := &object.Float{Value: leftVal + rightVal}
-			return wrapPrimitive(primitive, env, ctx)
+			return &object.Float{Value: leftVal + rightVal}
 		case "-":
-			primitive := &object.Float{Value: leftVal - rightVal}
-			return wrapPrimitive(primitive, env, ctx)
+			return &object.Float{Value: leftVal - rightVal}
 		case "*":
-			primitive := &object.Float{Value: leftVal * rightVal}
-			return wrapPrimitive(primitive, env, ctx)
+			return &object.Float{Value: leftVal * rightVal}
 		case "/":
 			if rightVal == 0 {
 				return newErrorWithTrace("division by zero", node, ctx)
 			}
-			primitive := &object.Float{Value: leftVal / rightVal}
-			return wrapPrimitive(primitive, env, ctx)
+			return &object.Float{Value: leftVal / rightVal}
 		case "**":
-			primitive := &object.Float{Value: math.Pow(leftVal, rightVal)}
-			return wrapPrimitive(primitive, env, ctx)
+			return &object.Float{Value: math.Pow(leftVal, rightVal)}
 		case "<":
 			return nativeBoolToBooleanObject(leftVal < rightVal)
 		case ">":
@@ -3852,8 +4058,7 @@ func evalStringInfixExpression(
 
 	switch operator {
 	case "+":
-		primitive := &object.String{Value: leftVal + rightVal}
-		return wrapPrimitive(primitive, env, ctx)
+		return &object.String{Value: leftVal + rightVal}
 	case "==":
 		return nativeBoolToBooleanObject(leftVal == rightVal)
 	case "!=":
@@ -3924,20 +4129,22 @@ func evalPrefixIncrementDecrement(
 				node, ctx, operator, operand.Value)
 		}
 
+		var newValue int64
 		if operator == "++" {
-			intObj.Value += 1
-		} else if operator == "--" {
-			intObj.Value -= 1
+			newValue = intObj.Value + 1
+		} else {
+			newValue = intObj.Value - 1
 		}
+		newIntObj := object.NewInteger(newValue)
 
 		// If it was an instance, update the instance's value
 		if instance, ok := obj.(*object.Instance); ok {
-			instance.Env.Set("value", intObj)
+			instance.Env.Set("value", newIntObj)
 			env.SetWithGlobalCheck(operand.Value, instance)
 		} else {
-			env.SetWithGlobalCheck(operand.Value, intObj)
+			env.SetWithGlobalCheck(operand.Value, newIntObj)
 		}
-		return intObj
+		return newIntObj
 
 	default:
 		return newErrorWithTrace("prefix '%s' operator requires an integer or identifier",
@@ -3987,7 +4194,7 @@ func evalPostfixIncrementDecrement(
 			newValue = oldValue - 1
 		}
 
-		newIntObj := &object.Integer{Value: newValue}
+		newIntObj := object.NewInteger(newValue)
 
 		// If it was an instance, update the instance's value
 		if instance, ok := obj.(*object.Instance); ok {
@@ -3997,7 +4204,7 @@ func evalPostfixIncrementDecrement(
 			env.SetWithGlobalCheck(operand.Value, newIntObj)
 		}
 
-		return &object.Integer{Value: oldValue}
+		return object.NewInteger(oldValue)
 	default:
 		return newErrorWithTrace("postfix '%s' operator requires an integer or identifier",
 			node, ctx, operator)
@@ -4035,7 +4242,7 @@ func evalMinusPrefixOperatorExpression(
 	}
 	switch unwrapped := unwrapped.(type) {
 	case *object.Integer:
-		return &object.Integer{Value: -unwrapped.Value}
+		return object.NewInteger(-unwrapped.Value)
 	case *object.Float:
 		return &object.Float{Value: -unwrapped.Value}
 	default:
@@ -4054,38 +4261,29 @@ func evalIntegerInfixExpression(
 	leftVal := left.(*object.Integer).Value
 	rightVal := right.(*object.Integer).Value
 
-	if debugPrimitiveWrapping && operator == "//" {
-		fmt.Fprintf(os.Stderr, "INTDIV: %d %s %d in %s\n", leftVal, operator, rightVal, getContextName(ctx))
-	}
 	switch operator {
 	case "+":
-		primitive := &object.Integer{Value: leftVal + rightVal}
-		return wrapPrimitive(primitive, env, ctx)
+		return object.NewInteger(leftVal + rightVal)
 	case "-":
-		primitive := &object.Integer{Value: leftVal - rightVal}
-		return wrapPrimitive(primitive, env, ctx)
+		return object.NewInteger(leftVal - rightVal)
 	case "*":
-		primitive := &object.Integer{Value: leftVal * rightVal}
-		return wrapPrimitive(primitive, env, ctx)
+		return object.NewInteger(leftVal * rightVal)
 	case "/":
 		if rightVal == 0 {
 			return newErrorWithTrace("division by zero", node, ctx)
 		}
-		primitive := &object.Integer{Value: leftVal / rightVal}
-		return wrapPrimitive(primitive, env, ctx)
+		return object.NewInteger(leftVal / rightVal)
 	case "%":
 		if rightVal == 0 {
 			return newErrorWithTrace("modulo by zero", node, ctx)
 		}
-		primitive := &object.Integer{Value: leftVal % rightVal}
-		return wrapPrimitive(primitive, env, ctx)
+		return object.NewInteger(leftVal % rightVal)
 	case "<":
 		return nativeBoolToBooleanObject(leftVal < rightVal)
 	case ">":
 		return nativeBoolToBooleanObject(leftVal > rightVal)
 	case "**":
-		primitive := &object.Integer{Value: int64(math.Pow(float64(leftVal), float64(rightVal)))}
-		return wrapPrimitive(primitive, env, ctx)
+		return object.NewInteger(int64(math.Pow(float64(leftVal), float64(rightVal))))
 	case "==":
 		return nativeBoolToBooleanObject(leftVal == rightVal)
 	case "!=":
@@ -4095,26 +4293,20 @@ func evalIntegerInfixExpression(
 	case "<=":
 		return nativeBoolToBooleanObject(leftVal <= rightVal)
 	case "<<":
-		primitive := &object.Integer{Value: leftVal << uint(rightVal)}
-		return wrapPrimitive(primitive, env, ctx)
+		return object.NewInteger(leftVal << uint(rightVal))
 	case ">>":
-		primitive := &object.Integer{Value: leftVal >> uint(rightVal)}
-		return wrapPrimitive(primitive, env, ctx)
+		return object.NewInteger(leftVal >> uint(rightVal))
 	case "&":
-		primitive := &object.Integer{Value: leftVal & rightVal}
-		return wrapPrimitive(primitive, env, ctx)
+		return object.NewInteger(leftVal & rightVal)
 	case "^":
-		primitive := &object.Integer{Value: leftVal ^ rightVal}
-		return wrapPrimitive(primitive, env, ctx)
+		return object.NewInteger(leftVal ^ rightVal)
 	case "|":
-		primitive := &object.Integer{Value: leftVal | rightVal}
-		return wrapPrimitive(primitive, env, ctx)
+		return object.NewInteger(leftVal | rightVal)
 	case "//":
 		if rightVal == 0 {
 			return newErrorWithTrace("integer division by zero", node, ctx)
 		}
-		primitive := &object.Integer{Value: leftVal / rightVal}
-		return wrapPrimitive(primitive, env, ctx)
+		return object.NewInteger(leftVal / rightVal)
 	default:
 		return newErrorWithTrace("unknown operator: %s %s %s",
 			node, ctx, left.Type(), operator, right.Type())
@@ -4207,20 +4399,16 @@ func applyCompoundOperator(
 		}
 		switch operator {
 		case "+=":
-			primitive := &object.Integer{Value: lInt.Value + rInt.Value}
-			return wrapPrimitive(primitive, env, ctx)
+			return object.NewInteger(lInt.Value + rInt.Value)
 		case "-=":
-			primitive := &object.Integer{Value: lInt.Value - rInt.Value}
-			return wrapPrimitive(primitive, env, ctx)
+			return object.NewInteger(lInt.Value - rInt.Value)
 		case "*=":
-			primitive := &object.Integer{Value: lInt.Value * rInt.Value}
-			return wrapPrimitive(primitive, env, ctx)
+			return object.NewInteger(lInt.Value * rInt.Value)
 		case "/=":
 			if rInt.Value == 0 {
 				return newErrorWithTrace("division by zero", node, ctx)
 			}
-			primitive := &object.Integer{Value: lInt.Value / rInt.Value}
-			return wrapPrimitive(primitive, env, ctx)
+			return object.NewInteger(lInt.Value / rInt.Value)
 		default:
 			return newErrorWithTrace("unknown operator: %s", node, ctx, operator)
 		}
@@ -4235,20 +4423,16 @@ func applyCompoundOperator(
 		}
 		switch operator {
 		case "+=":
-			primitive := &object.Float{Value: lFloat.Value + rFloat.Value}
-			return wrapPrimitive(primitive, env, ctx)
+			return &object.Float{Value: lFloat.Value + rFloat.Value}
 		case "-=":
-			primitive := &object.Float{Value: lFloat.Value - rFloat.Value}
-			return wrapPrimitive(primitive, env, ctx)
+			return &object.Float{Value: lFloat.Value - rFloat.Value}
 		case "*=":
-			primitive := &object.Float{Value: lFloat.Value * rFloat.Value}
-			return wrapPrimitive(primitive, env, ctx)
+			return &object.Float{Value: lFloat.Value * rFloat.Value}
 		case "/=":
 			if rFloat.Value == 0 {
 				return newErrorWithTrace("division by zero", node, ctx)
 			}
-			primitive := &object.Float{Value: lFloat.Value / rFloat.Value}
-			return wrapPrimitive(primitive, env, ctx)
+			return &object.Float{Value: lFloat.Value / rFloat.Value}
 		default:
 			return newErrorWithTrace("unknown operator: %s", node, ctx, operator)
 		}
@@ -4274,8 +4458,7 @@ func applyCompoundOperator(
 	if operator == "+=" {
 		if lStr, ok := extractString(leftVal); ok {
 			if rStr, ok := extractString(rightVal); ok {
-				primitive := &object.String{Value: lStr.Value + rStr.Value}
-				return wrapPrimitive(primitive, env, ctx)
+				return &object.String{Value: lStr.Value + rStr.Value}
 			}
 		}
 	}
@@ -4403,6 +4586,15 @@ func evalWhileStatement(
 		env:          env,
 	}
 
+	// Pre-allocate a single statement context and reuse it each iteration
+	stmtCtx := &CallContext{
+		FunctionName: "while_statement",
+		Parent:       whileCtx,
+		env:          env,
+	}
+
+	n := len(node.Body.Statements)
+
 	for {
 		condition := Eval(node.Condition, env, whileCtx)
 		if isError(condition) {
@@ -4412,17 +4604,10 @@ func evalWhileStatement(
 			break
 		}
 
-		n := len(node.Body.Statements)
 		var controlSignal object.Object = nil
 
 		for i := 0; i < n-1; i++ {
-			stmtCtx := &CallContext{
-				FunctionName: "while_statement",
-				Node:         node.Body.Statements[i],
-				Parent:       whileCtx,
-				env:          env,
-			}
-
+			stmtCtx.Node = node.Body.Statements[i]
 			res := Eval(node.Body.Statements[i], env, stmtCtx)
 
 			rt := getObjectType(res)
@@ -4434,14 +4619,9 @@ func evalWhileStatement(
 			}
 		}
 
-		if n > 0 {
-			lastStmtCtx := &CallContext{
-				FunctionName: "while_last_statement",
-				Node:         node.Body.Statements[n-1],
-				Parent:       whileCtx,
-				env:          env,
-			}
-			_ = Eval(node.Body.Statements[n-1], env, lastStmtCtx)
+		if controlSignal == nil && n > 0 {
+			stmtCtx.Node = node.Body.Statements[n-1]
+			_ = Eval(node.Body.Statements[n-1], env, stmtCtx)
 		}
 
 		if controlSignal != nil {
@@ -4482,6 +4662,13 @@ func isTruthy(obj object.Object) bool {
 		return len(obj.Pairs) > 0
 	case *object.None:
 		return false
+	case *object.Instance:
+		// Unwrap primitive instances (e.g., Boolean(false) should be falsy)
+		unwrapped := unwrapPrimitive(obj)
+		if unwrapped != obj {
+			return isTruthy(unwrapped)
+		}
+		return true
 	default:
 		return true
 	}
@@ -5471,7 +5658,7 @@ func unpackArray(
 			// Create indices array
 			indices := &object.Array{Elements: []object.Object{}}
 			for i := range arr.Elements {
-				indices.Elements = append(indices.Elements, &object.Integer{Value: int64(i)})
+				indices.Elements = append(indices.Elements, object.NewInteger(int64(i)))
 			}
 
 			// Assign to variables

@@ -294,12 +294,24 @@ The Carrion Language is implemented in Go and follows a traditional interpreter 
 - `unpackTuple()` - Tuple destructuring
 - `unpackMap()` - Hash destructuring
 
-#### Primitive Wrapping (5 functions)
-- `wrapPrimitive()` - Wrap primitives in grimoire instances
+#### Primitive Wrapping (6 functions)
+
+Primitives (`Integer`, `Float`, `String`, `Boolean`, `Array`) stay raw through literal evaluation and arithmetic. Wrapping into grimoire `Instance` objects is deferred to the dot-access boundary (`evalDotExpression`) so that hot loops avoid per-operation allocation while `"hello".upper()` and `[1,2,3].length()` still work as expected.
+
+- `wrapPrimitive()` - Deferred no-op retained for call-site compatibility; returns the primitive unchanged
+- `wrapPrimitiveForMethod()` - Creates an `Instance` on demand from `evalDotExpression` when a method is accessed on a raw primitive (looks up grimoires from `stdlibEnv` first, then local env)
 - `unwrapPrimitive()` - Extract primitives from instances
 - `isPrimitiveLiteral()` - Type checking
 - `shouldWrapStringResult()` - Wrapping decision logic
 - `isBuiltinFunction()` - Builtin detection
+
+#### Native Method Dispatch (3 functions)
+
+Performance-critical `Array` methods execute in Go instead of interpreting their Carrion stdlib bodies. Dispatch is wired into all three method-call paths (`evalGrimoireMethodCall`, `evalBoundMethodCall`, `evalBoundMethodCallWithNamed`).
+
+- `nativeArrayMethod()` - Intercepts the 15 `Array` grimoire methods `set`, `get`, `append`, `pop`, `length`, `is_empty`, `first`, `last`, `clear`, `reverse`, `sort`, `contains`, `index_of`, `remove`, `slice`
+- `objectLess()` - Ordering helper used by native `sort`
+- `objectEquals()` - Equality helper used by native `contains`, `index_of`, `remove`
 
 #### Type System (6 functions)
 - `checkType()` - Type validation
@@ -345,7 +357,8 @@ The Carrion Language is implemented in Go and follows a traditional interpreter 
 - **Comprehensive type system**: Type hints, compatibility checking
 - **Sophisticated error handling**: Stack traces, custom errors
 - **Memory management**: Recursion limits, cleanup functions
-- **Primitive wrapping**: Automatic primitive-to-grimoire conversion
+- **Deferred primitive wrapping**: Primitives stay raw; wrapping to grimoire instances only occurs at method access, removing per-expression allocation overhead
+- **Native fast paths**: Hot-loop infix arithmetic (Integer/Boolean/String) and 15 `Array` methods execute in Go, bypassing the interpreter
 - **Concurrency**: Full goroutine implementation
 - **Advanced imports**: Package resolution, version handling
 
@@ -356,7 +369,7 @@ The Carrion Language is implemented in Go and follows a traditional interpreter 
 ### Object Types (20 total)
 
 #### Primitives
-- `Integer` - 64-bit integers with hashing
+- `Integer` - 64-bit integers with hashing; small values (-5..256) are interned via `object.NewInteger()` to avoid heap allocation on hot paths
 - `Float` - 64-bit floats with hashing  
 - `Boolean` - Boolean values with hashing
 - `String` - String values with hashing
@@ -398,6 +411,7 @@ The Carrion Language is implemented in Go and follows a traditional interpreter 
 - **Rich type system**: 20 distinct object types
 - **Hashable objects**: Support for hash maps and sets
 - **Object-oriented**: Full class system with inheritance
+- **Integer interning**: Small integers (-5..256) are cached at package init via `object.NewInteger()`, sharply reducing allocation pressure in arithmetic-heavy code
 - **Error handling**: Multiple error types with context
 - **Concurrency**: Goroutine management with channels
 
@@ -458,6 +472,51 @@ The Carrion Language is implemented in Go and follows a traditional interpreter 
 - `wrapPrimitiveForBuiltin()` - Wrap primitives for method support
 - `extractIntegerValue()` - Extract integers from objects/instances
 - `jsonToCarrionObject()` - Convert JSON to Carrion objects
+
+---
+
+## 7a. Version Metadata (`src/version/version.go`)
+
+Single source of truth for the running binary's version string. All fields are package-level `var`s so they can be overridden at build time via `go build -ldflags "-X github.com/javanhut/TheCarrionLanguage/src/version.<Field>=<value>"`.
+
+### Fields
+- `Version` - Base semver (major.minor.patch), e.g. `0.1.9`. Default matches the last tagged release for local `go build` invocations without ldflags.
+- `Commit` - Short git SHA the binary was built from. Empty for tagged releases; non-empty for experimental builds.
+- `Channel` - `release`, `experimental`, or `dev` (default).
+- `BuildDate` - RFC3339 UTC build timestamp (optional).
+
+### Functions
+- `Full()` - Returns `v{Version}` for tagged releases, `v{Version}-{Commit[:7]}` for experimental builds.
+- `Short()` - Returns the raw semver without prefix or suffix.
+- `CommitShort()` - Returns the 7-character abbreviated commit hash, or `""`.
+- `IsExperimental()` - Reports whether this binary was built from a non-tagged commit.
+
+The Makefile (`build-linux`, `build-windows`) and `install/install.sh` inject these values via `-ldflags` so every installed binary can report exactly what source it came from.
+
+---
+
+## 7b. Self-Update (`src/update/`)
+
+Implements the `carrion update` subcommand. Separated into five files by concern.
+
+### Files
+- `update.go` - `Run(args)` entry point, flag parsing, `runStable` and `runExperimental` branches, release/experimental asset acquisition
+- `github.go` - GitHub REST client (`releases/latest`, `commits/{branch}`), asset downloader with shared `http.Client`
+- `semver.go` - Minimal `major.minor.patch` parser and `classifyBump()` helper (patch/minor/major)
+- `install.go` - Cross-platform archive extraction (tar.gz for Linux/macOS, zip for Windows), atomic binary swap, git clone, `go build` with injected ldflags, `readSourceVersion()` for picking up repo-bumped semver during experimental builds
+
+### Behavior
+- **Stable channel** (`carrion update`): fetches the latest GitHub release, prefers prebuilt assets matching `runtime.GOOS`/`runtime.GOARCH`, falls back to source build at the release tag.
+- **Experimental channel** (`carrion update --experimental`): tracks `main` HEAD, always builds from source with the commit SHA baked in.
+- **Demotion protection**: if the running binary is `v{semver}-{sha}` (experimental ahead of stable), `carrion update` (stable) warns and refuses to silently replace it with the older tagged release.
+- **Permission handling**: `canWrite(path)` probes the target binary; if not writable, the updater tells the user to re-run with sudo rather than failing mid-install.
+- **Atomic swap**: `os.Rename` on Unix (Linux allows replacing a running binary because the kernel holds the old inode open); on Windows, the current binary is moved aside first since it's locked.
+
+### Flags
+- `--experimental` - Track main HEAD instead of stable releases
+- `--check` - Report status only; no install
+- `--yes` / `-y` - Skip confirmation prompt
+- `--verbose` - Print diagnostic info (asset fallback decisions, etc.)
 
 ---
 

@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  check:
+    name: Test, build, and verify version sync
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          # Must match the `go` directive in go.mod.
+          go-version: "1.24"
+
+      # Fails the build if any hand-edited doc has drifted from the Version
+      # constant in src/version/version.go. Run `make sync-version` locally to
+      # regenerate, then commit the diff.
+      - name: Verify documentation version sync
+        run: make version-check
+
+      - name: Run tests
+        run: make test
+
+      - name: Build (smoke test)
+        run: go build -o /tmp/carrion ./src
+
+      - name: Verify baked-in version string
+        run: |
+          # --version should report the Version from version.go (no commit
+          # suffix when Commit is empty).
+          EXPECTED="$(awk -F'"' '/^var Version =/{print $2; exit}' src/version/version.go)"
+          GOT="$(/tmp/carrion --version)"
+          echo "$GOT"
+          echo "$GOT" | grep -q "v$EXPECTED"

@@ -90,6 +90,62 @@ docker build -t carrion .
 docker run -it carrion
 ```
 
+## Updating Carrion
+
+Once installed, Carrion can update itself in place.
+
+### Stable releases
+
+```bash
+carrion update            # Prompts before installing the latest tagged release
+carrion update --check    # Report status without installing
+carrion update -y         # Skip the confirmation prompt
+```
+
+`carrion update` fetches the latest release from GitHub, downloads the prebuilt asset for your OS/arch when available (`carrion_linux_amd64.tar.gz`, `carrion_darwin_amd64.tar.gz`, `carrion_windows_amd64.zip`), and falls back to a source build at the release tag if no asset is present. Stable updates always take precedence over experimental builds.
+
+### Experimental (latest `main` commit)
+
+```bash
+carrion update --experimental          # Prompts before building from source
+carrion update --experimental --check  # Report status without installing
+```
+
+Experimental updates track the `main` branch: Carrion fetches the latest commit SHA, clones the source, and rebuilds with the commit hash baked into the version string. Requires `git` and a Go 1.24+ toolchain in `PATH`.
+
+### Version format
+
+```bash
+carrion --version
+# Carrion Language version v0.1.10            — tagged release
+# Carrion Language version v0.1.10-a1b2c3d    — experimental (main@a1b2c3d)
+```
+
+Stable releases show plain `v{major}.{minor}.{patch}`; experimental builds append `-{short-sha}` so you always know exactly what's running.
+
+### Permissions
+
+If Carrion is installed in a system directory like `/usr/local/bin`, `carrion update` will tell you to re-run with `sudo`. The binary is replaced atomically — no downtime for long-running processes that already have it open.
+
+## Build & Test Targets
+
+The Makefile exposes the following targets for contributors:
+
+- `make build` — Build the Carrion binary for the host platform
+- `make install` — Install Carrion, Sindri, Mimir, and Bifrost to the system
+- `make uninstall` — Remove installed binaries
+- `make build-linux` / `make build-linux-arm64` — Cross-compile a Linux amd64/arm64 binary tarball
+- `make build-windows` — Cross-compile a Windows amd64 binary zip
+- `make build-mac` (`build-mac-amd64`, `build-mac-arm64`) — Cross-compile macOS tarballs
+- `make build-release` — Build every release artifact in one shot
+- `make build-source` — Produce a source tarball
+- `make test` — Run the full Go test suite (`go test ./src/...`)
+- `make bench` — Run evaluator benchmarks with memory profiling
+- `make sync-version` — Rewrite version references in docs from `src/version/version.go`
+- `make version-check` — Report whether any docs are out of sync (exits 1 if so; CI-friendly)
+- `make tidy` — Run `go mod tidy` across all modules
+- `make bifrost-update` — Initialize and update the Bifrost git submodule
+
 ## Package Management
 
 Carrion integrates with **Bifrost**, the official package manager, for seamless dependency management. Bifrost is automatically installed when you install Carrion.

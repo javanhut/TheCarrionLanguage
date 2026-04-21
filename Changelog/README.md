@@ -1,5 +1,81 @@
 # Carrion Language Changelog
 
+## Unreleased
+
+*Target: 0.1.10. Tag `v0.1.10` triggers the release workflow, which bumps
+`src/version/version.go` + docs automatically and cuts the GitHub release.*
+
+### Self-Update (`carrion update`)
+
+- New `carrion update` subcommand updates the installed binary in place by fetching the latest GitHub release. Uses prebuilt release assets matching the host OS/arch when available (`carrion_linux_amd64.tar.gz`, `carrion_darwin_amd64.tar.gz`, `carrion_windows_amd64.zip`), and falls back to a source build at the release tag when no asset is present.
+- `carrion update --experimental` tracks `main`-branch HEAD: fetches the latest commit, clones the source, and rebuilds with the commit SHA baked in (requires `git` and a Go 1.24+ toolchain).
+- `carrion update --check` reports status without installing. `-y` / `--yes` skips the confirmation prompt.
+- Stable releases take precedence over experimental builds: if you're on an experimental build ahead of the latest stable tag, `carrion update` warns and refuses to silently demote you — you can re-run without `--experimental` to explicitly pin back.
+- **Location**: `src/update/`
+
+### Versioning
+
+- New `src/version` package provides build-time-injectable metadata (`Version`, `Commit`, `Channel`, `BuildDate`) consumed by `carrion --version`.
+- Version format:
+  - `v{major}.{minor}.{patch}` for tagged stable releases (e.g. `v0.1.10`).
+  - `v{major}.{minor}.{patch}-{short-sha}` for experimental builds (e.g. `v0.1.10-a1b2c3d`).
+- The Makefile (`build-linux`, `build-windows`) and `install/install.sh` now inject `-ldflags` so the installed binary reports exactly what it was built from. `CARRION_VERSION` is parsed from `src/version/version.go` as the single source of truth; bumping the version only needs to happen there.
+
+### Evaluator Performance
+
+#### Integer Interning
+- Small integers (-5 to 256) are now cached at package init via `object.NewInteger()`, eliminating per-operation heap allocation for the most common values. All evaluator and builtin sites that previously produced `&object.Integer{Value: ...}` now route through the cache.
+- **Location**: `src/object/object.go`
+
+#### Deferred Primitive Wrapping
+- Primitives (`Integer`, `Float`, `String`, `Boolean`, `Array`) no longer auto-wrap into grimoire `Instance` objects at literal or expression time. Wrapping is deferred to `evalDotExpression` and happens only when a method is actually accessed on the primitive (via the new `wrapPrimitiveForMethod` helper).
+- User-visible semantics are unchanged — `"hello".upper()` and `[1, 2, 3].length()` still work — but tight arithmetic and string loops now avoid repeated `Instance` allocation.
+- **Location**: `src/evaluator/evaluator.go`
+
+#### Native Array Methods
+- 15 `Array` grimoire methods (`set`, `get`, `append`, `pop`, `length`, `is_empty`, `first`, `last`, `clear`, `reverse`, `sort`, `contains`, `index_of`, `remove`, `slice`) now execute in Go via `nativeArrayMethod` instead of interpreting the Carrion stdlib implementations. Dispatch is wired into `evalGrimoireMethodCall`, `evalBoundMethodCall`, and `evalBoundMethodCallWithNamed`.
+- **Location**: `src/evaluator/evaluator.go`
+
+#### Infix Fast Path
+- `evalInfixExpression` now short-circuits to type-specific handlers when both operands are already raw `*Integer`, `*Boolean`, or `*String`, skipping `unwrapPrimitive` entirely in the common case.
+- Arithmetic helpers (`evalIntegerInfixExpression`, `evalStringInfixExpression`, float/compound/increment paths) return raw primitives instead of re-wrapping after every operation.
+
+#### Eval Hot-Loop Cleanup
+- Removed `defer func() { CurrentContext = oldContext }()` from `Eval` by splitting into `Eval` (context save/restore) and a new inner `evalNode` (dispatch). Eliminates per-node closure allocation.
+- `NewEnclosedEnvironment` pre-sizes its map to 4 entries to match typical method/closure frames (`self` + a few params).
+- **Location**: `src/evaluator/evaluator.go`, `src/object/environment.go`
+
+### Performance Numbers
+
+Measured on an Intel i5-10500H (Linux, Go 1.24) by running the new benchmark
+suite at the pre-improvements commit (`f5b487a`) and at this release, with
+`count=3` to smooth variance.
+
+| Benchmark          | Before           | After            | Δ time   | Δ allocs |
+| ------------------ | ---------------- | ---------------- | -------- | -------- |
+| IntegerLoop        | 7.13 ms / 40 K   | 2.21 ms / 19.8 K | **3.2×** | −50.6%   |
+| Arithmetic         | 8.10 ms / 50 K   | 2.62 ms / 24.6 K | **3.1×** | −50.8%   |
+| Fibonacci (fib 20) | 45.4 ms / 263 K  | 17.5 ms / 164 K  | **2.6×** | −37.5%   |
+| ArrayBuild         | 14.9 ms / 9.0 K  | 2.93 ms / 5.75 K | **~5×**  | −36.1%   |
+| StringConcat       | 1.42 ms / 8.0 K  | 0.58 ms / 4.75 K | **2.4×** | −40.7%   |
+
+Memory per operation drops sharply on the arithmetic benchmarks (85–87% less)
+because small integers now bypass the allocator entirely. Reproduce with
+`make bench` on `main` and on this branch.
+
+### Tooling
+
+- `make bench` — runs `go test -bench=. -benchmem -count=1 ./src/evaluator/`
+- `make test` — runs `go test ./src/...`
+- `make sync-version` — rewrite version references in docs from `src/version/version.go`
+- `make version-check` — CI-friendly check that fails if docs are out of sync
+- `make build-mac`, `make build-linux-arm64`, `make build-release` — new release artifact targets
+- New benchmark suite at `src/evaluator/evaluator_bench_test.go` covering integer loops, arithmetic, recursion (fibonacci), array building, and string concatenation.
+- New semver unit tests at `src/update/semver_test.go`.
+- New `cmd/versionsync` tool — single source of truth for the Carrion version is `src/version/version.go`; the tool rewrites matching patterns in documentation. Run `make sync-version` after bumping, or wire `make version-check` into CI to enforce drift-free docs.
+
+---
+
 ## Version 0.1.8
 
 ### Tooling Ecosystem & Testing Framework

@@ -53,6 +53,26 @@ type Integer struct {
 func (i *Integer) Type() ObjectType { return INTEGER_OBJ }
 func (i *Integer) Inspect() string  { return fmt.Sprintf("%d", i.Value) }
 
+// integerCache caches small integers (-5 to 256) to avoid heap allocations.
+const intCacheMin = -5
+const intCacheMax = 256
+
+var integerCache [intCacheMax - intCacheMin + 1]*Integer
+
+func init() {
+	for i := int64(intCacheMin); i <= intCacheMax; i++ {
+		integerCache[i-intCacheMin] = &Integer{Value: i}
+	}
+}
+
+// NewInteger returns an *Integer, using the cache for small values.
+func NewInteger(value int64) *Integer {
+	if value >= intCacheMin && value <= intCacheMax {
+		return integerCache[value-intCacheMin]
+	}
+	return &Integer{Value: value}
+}
+
 type Float struct {
 	Value float64
 }
